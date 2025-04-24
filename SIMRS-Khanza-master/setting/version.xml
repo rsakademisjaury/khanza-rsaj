@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <comment>KhanzaHMS</comment>
+    <!-- tahunbulanhari -->
+    <entry key="VERSION">01.01.20230717001</entry>
+</properties>

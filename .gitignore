@@ -1,0 +1,25 @@
+# File Java build
+*.class
+*.jar
+*.war
+*.ear
+
+# Folder NetBeans & build
+/dist/
+/build/
+/nbproject/private/
+/setting/
+/settingupdate/
+/webapps/
+/api-bpjsfktl/
+/api-bpjsfktp/
+/api-bridgingradiologi/
+
+# File sistem
+.DS_Store
+Thumbs.db
+
+# File besar yang tadi dibersihkan
+*.zip
+*.dll
+*.exe

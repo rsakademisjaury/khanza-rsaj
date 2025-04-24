@@ -1,0 +1,511 @@
+<html>
+  <head>
+    <style type="text/css">
+      <!--
+        table { width: 100%; font-family: Arial, sans-serif }
+        th { border-top-color: #d3d3d3; border-top-style: dotted; border-top-width: 1px; border-right-color: #d3d3d3; border-right-style: dotted; border-right-width: 1px; border-bottom-color: #d3d3d3; border-bottom-style: dotted; border-bottom-width: 1px; border-left-color: #d3d3d3; border-left-style: dotted; border-left-width: 1px; padding-top: 5px; padding-right: 5px; padding-bottom: 5px; padding-left: 5px; text-align: center; font-size: 9px; background-color: #f2f2f2 }
+        td { border-top-color: #d3d3d3; border-top-style: dotted; border-top-width: 1px; border-right-color: #d3d3d3; border-right-style: dotted; border-right-width: 1px; border-bottom-color: #d3d3d3; border-bottom-style: dotted; border-bottom-width: 1px; border-left-color: #d3d3d3; border-left-style: dotted; border-left-width: 1px; padding-top: 5px; padding-right: 5px; padding-bottom: 5px; padding-left: 5px; text-align: center; font-size: 9px }
+      -->
+    </style>
+    
+  </head>
+  <body>
+    <table>
+      <tr>
+        <th rowspan="2">
+          No.
+        </th>
+        <th rowspan="2">
+          No.RM
+        </th>
+        <th rowspan="2">
+          Nama Pasien
+        </th>
+        <th rowspan="2">
+          Nama Operasi
+        </th>
+        <th rowspan="2">
+          Biaya RS
+        </th>
+        <th rowspan="2">
+          Paket BPJS
+        </th>
+        <th colspan="7">
+          JASA MEDIK
+        </th>
+        <th colspan="4">
+          PENUNJANG
+        </th>
+        <th rowspan="2">
+          Biaya Operasional RS
+        </th>
+        <th rowspan="2">
+          Total Jasa+ Penunjang
+        </th>
+        <th rowspan="2">
+          Selisih Paket BPJS - Biaya RS
+        </th>
+      </tr>
+      <tr>
+        <th>
+          Konsul &amp; Visite Dokter
+        </th>
+        <th>
+          Jasa Operasi
+        </th>
+        <th>
+          Alat Medis
+        </th>
+        <th>
+          Konsul &amp; Visite Anestesi
+        </th>
+        <th>
+          Jasa Anestesi
+        </th>
+        <th>
+          Tim OK
+        </th>
+        <th>
+          Tim UGD
+        </th>
+        <th>
+          Apotik
+        </th>
+        <th>
+          Lab
+        </th>
+        <th>
+          Radiologi
+        </th>
+        <th>
+          Darah PMI
+        </th>
+      </tr>
+      <tr style="background-color: #ffffff">
+        <td align="center">
+          1
+        </td>
+        <td align="center">
+          197052
+        </td>
+        <td align="left">
+          GOWA DG PONE
+        </td>
+        <td align="left">
+          Pemasangan Pintasan VA/VP Shunt kelas 1
+        </td>
+        <td align="right">
+          36,112,693
+        </td>
+        <td align="right">
+          18,250,100
+        </td>
+        <td align="right">
+          750,000
+        </td>
+        <td align="right">
+          3,650,020
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          225,000
+        </td>
+        <td align="right">
+          1,277,507
+        </td>
+        <td align="right">
+          182,501
+        </td>
+        <td align="right">
+          87,500
+        </td>
+        <td align="right">
+          8,806,693
+        </td>
+        <td align="right">
+          2,179,000
+        </td>
+        <td align="right">
+          1,300,000
+        </td>
+        <td align="right">
+          475,000
+        </td>
+        <td align="right">
+          17,179,472
+        </td>
+        <td align="right">
+          18,933,221
+        </td>
+        <td align="right">
+          -17,862,593
+        </td>
+      </tr>
+      <tr style="background-color: #f2f2f2">
+        <td align="center">
+          2
+        </td>
+        <td align="center">
+          296705
+        </td>
+        <td align="left">
+          FATIMAH
+        </td>
+        <td align="left">
+          Kraniotomi/Trepanasi Konvensional kelas 3
+        </td>
+        <td align="right">
+          21,264,501
+        </td>
+        <td align="right">
+          20,522,800
+        </td>
+        <td align="right">
+          500,000
+        </td>
+        <td align="right">
+          4,104,560
+        </td>
+        <td align="right">
+          2,500,000
+        </td>
+        <td align="right">
+          50,000
+        </td>
+        <td align="right">
+          1,436,596
+        </td>
+        <td align="right">
+          205,228
+        </td>
+        <td align="right">
+          50,000
+        </td>
+        <td align="right">
+          4,643,001
+        </td>
+        <td align="right">
+          1,106,000
+        </td>
+        <td align="right">
+          1,100,000
+        </td>
+        <td align="right">
+          360,000
+        </td>
+        <td align="right">
+          5,209,116
+        </td>
+        <td align="right">
+          16,055,385
+        </td>
+        <td align="right">
+          -741,701
+        </td>
+      </tr>
+      <tr style="background-color: #ffffff">
+        <td align="center">
+          3
+        </td>
+        <td align="center">
+          297292
+        </td>
+        <td align="left">
+          BADIR IKHTIMAM
+        </td>
+        <td align="left">
+          Pemasangan Pintasan VA/VP Shunt kelas 2
+        </td>
+        <td align="right">
+          67,696,828
+        </td>
+        <td align="right">
+          46,600,000
+        </td>
+        <td align="right">
+          1,260,000
+        </td>
+        <td align="right">
+          9,320,000
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          600,000
+        </td>
+        <td align="right">
+          3,262,000
+        </td>
+        <td align="right">
+          466,000
+        </td>
+        <td align="right">
+          70,000
+        </td>
+        <td align="right">
+          15,519,328
+        </td>
+        <td align="right">
+          5,106,000
+        </td>
+        <td align="right">
+          2,600,000
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          29,493,500
+        </td>
+        <td align="right">
+          38,203,328
+        </td>
+        <td align="right">
+          -21,096,828
+        </td>
+      </tr>
+      <tr style="background-color: #f2f2f2">
+        <td align="center">
+          4
+        </td>
+        <td align="center">
+          258265
+        </td>
+        <td align="left">
+          ABD KAHIR
+        </td>
+        <td align="left">
+          Repair VP Shunt
+        </td>
+        <td align="right">
+          10,162,261
+        </td>
+        <td align="right">
+          13,721,900
+        </td>
+        <td align="right">
+          200,000
+        </td>
+        <td align="right">
+          2,744,380
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          100,000
+        </td>
+        <td align="right">
+          960,533
+        </td>
+        <td align="right">
+          137,219
+        </td>
+        <td align="right">
+          27,000
+        </td>
+        <td align="right">
+          1,995,261
+        </td>
+        <td align="right">
+          639,000
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          3,358,868
+        </td>
+        <td align="right">
+          6,803,393
+        </td>
+        <td align="right">
+          3,559,639
+        </td>
+      </tr>
+      <tr style="background-color: #ffffff">
+        <td align="center">
+          5
+        </td>
+        <td align="center">
+          296020
+        </td>
+        <td align="left">
+          Hj. ANDI TENRI DIO
+        </td>
+        <td align="left">
+          Kranioplasti/Koreksi Fraktur kelas 1
+        </td>
+        <td align="right">
+          27,484,760
+        </td>
+        <td align="right">
+          27,295,300
+        </td>
+        <td align="right">
+          375,000
+        </td>
+        <td align="right">
+          5,459,060
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          150,000
+        </td>
+        <td align="right">
+          1,910,671
+        </td>
+        <td align="right">
+          272,953
+        </td>
+        <td align="right">
+          44,500
+        </td>
+        <td align="right">
+          3,669,260
+        </td>
+        <td align="right">
+          670,000
+        </td>
+        <td align="right">
+          200,000
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          14,733,316
+        </td>
+        <td align="right">
+          12,751,444
+        </td>
+        <td align="right">
+          -189,460
+        </td>
+      </tr>
+      <tr style="background-color: #f2f2f2">
+        <td align="center">
+          6
+        </td>
+        <td align="center">
+          297166
+        </td>
+        <td align="left">
+          ARYA SYAPUTRA
+        </td>
+        <td align="left">
+          -
+        </td>
+        <td align="right">
+          10,500,714
+        </td>
+        <td align="right">
+          2,963,500
+        </td>
+        <td align="right">
+          600,000
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          35,000
+        </td>
+        <td align="right">
+          2,093,214
+        </td>
+        <td align="right">
+          920,000
+        </td>
+        <td align="right">
+          1,100,000
+        </td>
+        <td align="right">
+          0
+        </td>
+        <td align="right">
+          5,752,500
+        </td>
+        <td align="right">
+          4,748,214
+        </td>
+        <td align="right">
+          -7,537,214
+        </td>
+      </tr>
+      <tr style="background-color: #d9edf7">
+        <td colspan="4" align="right">
+          TOTAL
+        </td>
+        <td align="right">
+          173,221,757
+        </td>
+        <td align="right">
+          129,353,600
+        </td>
+        <td align="right">
+          3,685,000
+        </td>
+        <td align="right">
+          25,278,020
+        </td>
+        <td align="right">
+          2,500,000
+        </td>
+        <td align="right">
+          1,125,000
+        </td>
+        <td align="right">
+          8,847,307
+        </td>
+        <td align="right">
+          1,263,901
+        </td>
+        <td align="right">
+          314,000
+        </td>
+        <td align="right">
+          36,726,757
+        </td>
+        <td align="right">
+          10,620,000
+        </td>
+        <td align="right">
+          6,300,000
+        </td>
+        <td align="right">
+          835,000
+        </td>
+        <td align="right">
+          75,726,772
+        </td>
+        <td align="right">
+          97,494,985
+        </td>
+        <td align="right">
+          -43,868,157
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

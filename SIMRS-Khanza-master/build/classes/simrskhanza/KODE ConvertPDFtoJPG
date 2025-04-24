@@ -1,0 +1,39 @@
+private void ConvertPDFtoJPG(String FileName) {
+    try {
+        // Pastikan file PDF ada
+        File pdfFile = new File("tmpPDF/" + FileName + ".pdf");
+        if (!pdfFile.exists()) {
+            System.err.println("File PDF tidak ditemukan: " + pdfFile.getAbsolutePath());
+            return;
+        }
+
+        // Load PDF
+        PDDocument document = PDDocument.load(pdfFile);
+        PDFRenderer pdfRenderer = new PDFRenderer(document);
+
+        // Pastikan folder tmpJPG ada
+        File jpgDir = new File("tmpJPG");
+        if (!jpgDir.exists() && !jpgDir.mkdir()) {
+            System.err.println("Gagal membuat folder tmpJPG.");
+            document.close();
+            return;
+        }
+
+        // Iterasi untuk setiap halaman PDF dan konversi ke JPG
+        for (int page = 0; page < document.getNumberOfPages(); page++) {
+            BufferedImage image = pdfRenderer.renderImageWithDPI(page, 300);
+
+            // Simpan tiap halaman sebagai JPG
+            File jpgFile = new File(jpgDir, FileName + "_page_" + (page + 1) + ".jpg");
+            ImageIO.write(image, "jpg", jpgFile);
+
+            System.out.println("Konversi berhasil: " + jpgFile.getAbsolutePath());
+        }
+
+        // Tutup dokumen PDF
+        document.close();
+
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}    
