@@ -1,0 +1,769 @@
+package simrskhanza;
+
+import java.awt.Point;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
+import java.lang.management.ManagementFactory;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
+
+/** Entry point SIMRS sekaligus pemeriksa pembaruan aplikasi. */
+public class SIMRSKhanza {
+
+    private static final int CONNECT_TIMEOUT_MS = 3_000;
+    private static final int VERSION_READ_TIMEOUT_MS = 5_000;
+    private static final int DOWNLOAD_READ_TIMEOUT_MS = 15_000;
+    private static final int BUFFER_SIZE = 65_536;
+    private static final String DEFAULT_UPDATE_SERVER =
+            "http://192.168.10.1/webapps/serverupdate";
+
+    private static final Path APPLICATION_DIR = Paths.get(System.getProperty("user.dir"))
+            .toAbsolutePath().normalize();
+    private static final Path SETTING_UPDATE_DIR = APPLICATION_DIR.resolve("settingupdate");
+    private static final Path LOCAL_VERSION_FILE = SETTING_UPDATE_DIR.resolve("localversion.txt");
+    private static final Path CONFIG_FILE = SETTING_UPDATE_DIR.resolve("config.xml");
+    private static final Path UPDATE_WORK_DIR = SETTING_UPDATE_DIR.resolve("update-work");
+    private static final Path UPDATE_ZIP = UPDATE_WORK_DIR.resolve("dataupdate.zip");
+    private static final Path UPDATE_PART = UPDATE_WORK_DIR.resolve("dataupdate.zip.part");
+    private static final Path STAGING_DIR = UPDATE_WORK_DIR.resolve("extracted");
+
+    private static UpdateForm updateForm;
+    private static volatile String pendingWindowsUpdateVersion;
+
+    private enum UpdateResult {
+        NO_UPDATE,
+        UPDATED
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            updateForm = new UpdateForm();
+            startUpdateCheck();
+        });
+    }
+
+    private static void startUpdateCheck() {
+        SwingWorker<UpdateResult, Void> worker = new SwingWorker<UpdateResult, Void>() {
+            private boolean updateStarted;
+
+            @Override
+            protected UpdateResult doInBackground() throws Exception {
+                updateForm.updateProgress(2, "Memeriksa konfigurasi pembaruan...");
+                String updateServer = loadUpdateServer();
+
+                updateForm.updateProgress(5, "Menghubungi server pembaruan...");
+                String serverVersion = validateServerVersion(downloadText(
+                        updateServer + "/serverversion.txt").trim());
+                String localVersion = readLocalVersion();
+
+                if (serverVersion.isEmpty()) {
+                    throw new IOException("Versi pada server kosong");
+                }
+
+                System.out.println("Versi server : " + serverVersion);
+                System.out.println("Versi lokal  : " + localVersion);
+
+                if (serverVersion.equals(localVersion)) {
+                    updateForm.updateProgress(100, "Versi terbaru sudah terpasang");
+                    return UpdateResult.NO_UPDATE;
+                }
+
+                updateStarted = true;
+                updateForm.updateProgress(10,
+                        "Tersedia pembaruan versi " + serverVersion);
+                performAutoUpdate(updateServer, serverVersion);
+                if (isWindows() && pendingWindowsUpdateVersion != null) {
+                    updateForm.updateProgress(90,
+                            "Menyiapkan pemasang pembaruan...");
+                } else {
+                    updateForm.updateProgress(100,
+                            "Pembaruan selesai. Memulai ulang aplikasi...");
+                }
+                return UpdateResult.UPDATED;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    UpdateResult result = get();
+                    if (result == UpdateResult.UPDATED) {
+                        restartAfterUpdate();
+                    } else {
+                        transitionToMainSplash(350);
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    continueAfterUpdateFailure(ex, updateStarted);
+                } catch (ExecutionException ex) {
+                    Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+                    continueAfterUpdateFailure(cause, updateStarted);
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private static void continueAfterUpdateFailure(Throwable error, boolean updateStarted) {
+        error.printStackTrace();
+        String prefix = updateStarted
+                ? "Pembaruan gagal. Menjalankan versi yang tersedia..."
+                : "Server update tidak dapat dihubungi. Menjalankan aplikasi...";
+        updateForm.updateProgress(100, prefix);
+
+        if (updateStarted) {
+            JOptionPane.showMessageDialog(updateForm,
+                    "Pembaruan tidak dapat diselesaikan. Versi lokal tidak diubah.\n"
+                    + safeMessage(error),
+                    "Pembaruan Gagal", JOptionPane.WARNING_MESSAGE);
+        }
+        transitionToMainSplash(updateStarted ? 300 : 650);
+    }
+
+    private static void transitionToMainSplash(int delayMs) {
+        Timer timer = new Timer(delayMs, event -> {
+            ((Timer) event.getSource()).stop();
+            Point splashLocation = updateForm == null ? null : updateForm.getLocation();
+
+            main mainSplash = new main();
+            if (splashLocation != null) {
+                mainSplash.setLocation(splashLocation);
+            }
+            mainSplash.setVisible(true);
+
+            if (updateForm != null) {
+                updateForm.dispose();
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private static void restartAfterUpdate() {
+        Timer timer = new Timer(120, event -> {
+            ((Timer) event.getSource()).stop();
+            if (isWindows() && pendingWindowsUpdateVersion != null) {
+                new Thread(() -> {
+                    try {
+                        launchWindowsJavaHelper(pendingWindowsUpdateVersion);
+                        SwingUtilities.invokeLater(() -> {
+                            if (updateForm != null) {
+                                updateForm.dispose();
+                            }
+                        });
+                        System.exit(0);
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(updateForm,
+                                    "Helper pembaruan gagal dijalankan.\n"
+                                    + safeMessage(ex),
+                                    "Gagal Menjalankan Helper",
+                                    JOptionPane.WARNING_MESSAGE);
+                            transitionToMainSplash(250);
+                        });
+                    }
+                }, "Khanza-Update-Helper-Launcher").start();
+            } else {
+                try {
+                    launchKhanza();
+                    if (updateForm != null) {
+                        updateForm.dispose();
+                    }
+                    System.exit(0);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(updateForm,
+                            "Pembaruan sudah diterapkan, tetapi aplikasi gagal dimulai ulang.\n"
+                            + safeMessage(ex),
+                            "Gagal Memulai Ulang", JOptionPane.WARNING_MESSAGE);
+                    transitionToMainSplash(250);
+                }
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private static String loadUpdateServer() throws IOException {
+        String configuredServer = null;
+        if (Files.isRegularFile(CONFIG_FILE)) {
+            Properties properties = new Properties();
+            try (InputStream input = Files.newInputStream(CONFIG_FILE)) {
+                properties.loadFromXML(input);
+            }
+            configuredServer = properties.getProperty("URLSERVERUPDATE");
+        }
+
+        String server = configuredServer == null || configuredServer.trim().isEmpty()
+                ? DEFAULT_UPDATE_SERVER : configuredServer.trim();
+        if (!server.regionMatches(true, 0, "http://", 0, 7)
+                && !server.regionMatches(true, 0, "https://", 0, 8)) {
+            server = "http://" + server;
+        }
+        while (server.endsWith("/")) {
+            server = server.substring(0, server.length() - 1);
+        }
+        return server;
+    }
+
+    private static String readLocalVersion() throws IOException {
+        if (!Files.isRegularFile(LOCAL_VERSION_FILE)) {
+            System.out.println("File versi lokal tidak ditemukan, menggunakan versi 0.0");
+            return "0.0";
+        }
+
+        try (BufferedReader reader = Files.newBufferedReader(
+                LOCAL_VERSION_FILE, StandardCharsets.UTF_8)) {
+            String line = reader.readLine();
+            return line == null || line.trim().isEmpty() ? "0.0" : line.trim();
+        }
+    }
+
+    private static String downloadText(String address) throws IOException {
+        HttpURLConnection connection = openHttpConnection(address,
+                VERSION_READ_TIMEOUT_MS);
+        try {
+            validateHttpResponse(connection);
+            StringBuilder text = new StringBuilder(128);
+            try (InputStream input = new BufferedInputStream(connection.getInputStream());
+                 BufferedReader reader = new BufferedReader(
+                         new InputStreamReader(input, StandardCharsets.UTF_8))) {
+                char[] buffer = new char[1024];
+                int read;
+                while ((read = reader.read(buffer)) != -1) {
+                    if (text.length() + read > 16_384) {
+                        throw new IOException("File versi server terlalu besar");
+                    }
+                    text.append(buffer, 0, read);
+                }
+            }
+            return text.toString();
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private static void performAutoUpdate(String updateServer,
+            String serverVersion) throws IOException {
+        Files.createDirectories(UPDATE_WORK_DIR);
+        deleteOwnedTree(STAGING_DIR);
+        Files.deleteIfExists(UPDATE_PART);
+        Files.deleteIfExists(UPDATE_ZIP);
+        pendingWindowsUpdateVersion = null;
+        boolean keepStagingForExternalHelper = false;
+
+        try {
+            updateForm.updateProgress(10, "Mengunduh paket pembaruan...");
+            downloadFileWithProgress(updateServer + "/dataupdate.zip",
+                    UPDATE_PART, 10, 65);
+            moveDownloadedFile(UPDATE_PART, UPDATE_ZIP);
+
+            updateForm.updateProgress(65, "Memeriksa dan mengekstrak pembaruan...");
+            unzipWithProgress(UPDATE_ZIP, STAGING_DIR, 65, 88);
+
+            if (isWindows()) {
+                // khanza.jar sedang dikunci oleh JVM Windows. Simpan hasil
+                // ekstraksi dan terapkan setelah proses ini benar-benar keluar.
+                pendingWindowsUpdateVersion = serverVersion;
+                keepStagingForExternalHelper = true;
+                updateForm.updateProgress(98,
+                        "Paket siap diterapkan setelah aplikasi ditutup...");
+            } else {
+                updateForm.updateProgress(88, "Menerapkan pembaruan aplikasi...");
+                applyUpdate(STAGING_DIR, APPLICATION_DIR, 88, 98);
+
+                updateForm.updateProgress(99, "Menyimpan versi aplikasi...");
+                updateLocalVersion(serverVersion);
+            }
+        } finally {
+            Files.deleteIfExists(UPDATE_PART);
+            Files.deleteIfExists(UPDATE_ZIP);
+            if (!keepStagingForExternalHelper) {
+                deleteOwnedTree(STAGING_DIR);
+            }
+        }
+    }
+
+    private static void downloadFileWithProgress(String address, Path destination,
+            int progressStart, int progressEnd) throws IOException {
+        HttpURLConnection connection = openHttpConnection(address,
+                DOWNLOAD_READ_TIMEOUT_MS);
+        try {
+            validateHttpResponse(connection);
+            long expectedSize = connection.getContentLengthLong();
+            long totalRead = 0L;
+            int lastProgress = progressStart;
+            long lastUiUpdate = 0L;
+
+            try (InputStream input = new BufferedInputStream(
+                        connection.getInputStream(), BUFFER_SIZE);
+                 OutputStream output = new BufferedOutputStream(
+                        Files.newOutputStream(destination,
+                                StandardOpenOption.CREATE,
+                                StandardOpenOption.TRUNCATE_EXISTING,
+                                StandardOpenOption.WRITE), BUFFER_SIZE)) {
+                byte[] buffer = new byte[BUFFER_SIZE];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, read);
+                    totalRead += read;
+
+                    int progress = lastProgress;
+                    if (expectedSize > 0L) {
+                        long phaseProgress = totalRead * (progressEnd - progressStart)
+                                / expectedSize;
+                        progress = progressStart + (int) Math.min(
+                                progressEnd - progressStart - 1L, phaseProgress);
+                    }
+
+                    long now = System.currentTimeMillis();
+                    if (progress != lastProgress || now - lastUiUpdate >= 300L) {
+                        lastProgress = progress;
+                        lastUiUpdate = now;
+                        updateForm.updateProgress(progress,
+                                "Mengunduh paket pembaruan ("
+                                + formatMegabytes(totalRead) + ")...");
+                    }
+                }
+            }
+
+            if (expectedSize > 0L && totalRead != expectedSize) {
+                throw new IOException("Ukuran paket tidak sesuai. Diterima "
+                        + totalRead + " dari " + expectedSize + " byte");
+            }
+            if (totalRead == 0L) {
+                throw new IOException("Paket pembaruan kosong");
+            }
+            updateForm.updateProgress(progressEnd, "Paket pembaruan selesai diunduh");
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private static void moveDownloadedFile(Path source, Path destination)
+            throws IOException {
+        try {
+            Files.move(source, destination,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException ex) {
+            Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void unzipWithProgress(Path zipPath, Path destination,
+            int progressStart, int progressEnd) throws IOException {
+        Files.createDirectories(destination);
+
+        try (ZipFile zipFile = new ZipFile(zipPath.toFile())) {
+            List<? extends ZipEntry> entries = Collections.list(zipFile.entries());
+            if (entries.isEmpty()) {
+                throw new IOException("Paket pembaruan tidak memiliki isi");
+            }
+
+            long totalUncompressed = 0L;
+            for (ZipEntry entry : entries) {
+                if (!entry.isDirectory() && entry.getSize() > 0L) {
+                    totalUncompressed += entry.getSize();
+                }
+            }
+
+            long extracted = 0L;
+            int processedEntries = 0;
+            int lastProgress = progressStart;
+            byte[] buffer = new byte[BUFFER_SIZE];
+
+            for (ZipEntry entry : entries) {
+                Path target = safeZipTarget(destination, entry.getName());
+                if (entry.isDirectory()) {
+                    Files.createDirectories(target);
+                    processedEntries++;
+                    continue;
+                }
+
+                Path parent = target.getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
+
+                try (InputStream input = new BufferedInputStream(
+                            zipFile.getInputStream(entry), BUFFER_SIZE);
+                     OutputStream output = new BufferedOutputStream(
+                            Files.newOutputStream(target,
+                                    StandardOpenOption.CREATE,
+                                    StandardOpenOption.TRUNCATE_EXISTING,
+                                    StandardOpenOption.WRITE), BUFFER_SIZE)) {
+                    int read;
+                    while ((read = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, read);
+                        extracted += read;
+
+                        if (totalUncompressed > 0L) {
+                            int progress = progressStart + (int) Math.min(
+                                    progressEnd - progressStart - 1L,
+                                    extracted * (progressEnd - progressStart)
+                                    / totalUncompressed);
+                            if (progress != lastProgress) {
+                                lastProgress = progress;
+                                updateForm.updateProgress(progress,
+                                        "Mengekstrak " + entry.getName());
+                            }
+                        }
+                    }
+                }
+
+                processedEntries++;
+                if (totalUncompressed <= 0L) {
+                    int progress = progressStart + (processedEntries
+                            * (progressEnd - progressStart) / entries.size());
+                    updateForm.updateProgress(Math.min(progressEnd - 1, progress),
+                            "Mengekstrak " + entry.getName());
+                }
+            }
+        }
+        updateForm.updateProgress(progressEnd, "Ekstraksi pembaruan selesai");
+    }
+
+    private static Path safeZipTarget(Path destination, String entryName)
+            throws IOException {
+        Path normalizedDestination = destination.toAbsolutePath().normalize();
+        Path target = normalizedDestination.resolve(entryName).normalize();
+        if (!target.startsWith(normalizedDestination)) {
+            throw new IOException("Isi ZIP tidak aman: " + entryName);
+        }
+        return target;
+    }
+
+    private static void applyUpdate(Path sourceDirectory, Path targetDirectory,
+            int progressStart, int progressEnd) throws IOException {
+        List<Path> sourceFiles = new ArrayList<>();
+        try (Stream<Path> stream = Files.walk(sourceDirectory)) {
+            stream.forEach(sourceFiles::add);
+        }
+
+        long totalBytes = 0L;
+        for (Path source : sourceFiles) {
+            if (Files.isRegularFile(source)) {
+                totalBytes += Files.size(source);
+            }
+        }
+        if (totalBytes == 0L) {
+            throw new IOException("Tidak ada file pembaruan yang dapat diterapkan");
+        }
+
+        long copiedBytes = 0L;
+        int lastProgress = progressStart;
+        for (Path source : sourceFiles) {
+            Path relative = sourceDirectory.relativize(source);
+            Path target = targetDirectory.resolve(relative).normalize();
+            if (!target.startsWith(targetDirectory.toAbsolutePath().normalize())) {
+                throw new IOException("Target pembaruan tidak aman: " + relative);
+            }
+
+            if (Files.isDirectory(source)) {
+                Files.createDirectories(target);
+                continue;
+            }
+
+            Path parent = target.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+            copiedBytes += Files.size(source);
+
+            int progress = progressStart + (int) Math.min(
+                    progressEnd - progressStart,
+                    copiedBytes * (progressEnd - progressStart) / totalBytes);
+            if (progress != lastProgress) {
+                lastProgress = progress;
+                updateForm.updateProgress(progress,
+                        "Menerapkan " + relative.toString());
+            }
+        }
+        updateForm.updateProgress(progressEnd, "Pembaruan berhasil diterapkan");
+    }
+
+    private static void updateLocalVersion(String newVersion) throws IOException {
+        Files.createDirectories(SETTING_UPDATE_DIR);
+        Path temporaryVersion = SETTING_UPDATE_DIR.resolve("localversion.txt.tmp");
+        Files.write(temporaryVersion,
+                Collections.singletonList(newVersion.trim()),
+                StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE);
+        try {
+            Files.move(temporaryVersion, LOCAL_VERSION_FILE,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException ex) {
+            Files.move(temporaryVersion, LOCAL_VERSION_FILE,
+                    StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static HttpURLConnection openHttpConnection(String address,
+            int readTimeoutMs) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(address)
+                .openConnection();
+        connection.setRequestMethod("GET");
+        connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        connection.setReadTimeout(readTimeoutMs);
+        connection.setUseCaches(false);
+        connection.setInstanceFollowRedirects(true);
+        connection.setRequestProperty("User-Agent", "SIMRS-Khanza-Updater");
+        return connection;
+    }
+
+    private static void validateHttpResponse(HttpURLConnection connection)
+            throws IOException {
+        int responseCode = connection.getResponseCode();
+        if (responseCode < 200 || responseCode >= 300) {
+            throw new IOException("Server update merespons HTTP " + responseCode);
+        }
+    }
+
+    private static void deleteOwnedTree(Path target) throws IOException {
+        if (target == null || !Files.exists(target)) {
+            return;
+        }
+
+        Path normalizedWorkDir = UPDATE_WORK_DIR.toAbsolutePath().normalize();
+        Path normalizedTarget = target.toAbsolutePath().normalize();
+        if (!normalizedTarget.startsWith(normalizedWorkDir)
+                || normalizedTarget.equals(normalizedWorkDir)) {
+            throw new IOException("Menolak membersihkan folder di luar area update: "
+                    + normalizedTarget);
+        }
+
+        try (Stream<Path> stream = Files.walk(normalizedTarget)) {
+            try {
+                stream.sorted(Comparator.reverseOrder()).forEach(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException ex) {
+                        throw new UncheckedIOException(ex);
+                    }
+                });
+            } catch (UncheckedIOException ex) {
+                throw ex.getCause();
+            }
+        }
+    }
+
+    /**
+     * Menyalin JAR yang sedang berjalan ke TEMP dan menjalankan helper dari
+     * salinan tersebut. Helper menampilkan splash yang sama, sehingga tidak
+     * ada layar kosong, dan tidak mengunci khanza.jar pada folder aplikasi.
+     */
+    private static void launchWindowsJavaHelper(String serverVersion)
+            throws IOException {
+        if (!Files.isDirectory(STAGING_DIR)) {
+            throw new IOException("Folder staging pembaruan tidak ditemukan");
+        }
+
+        Path applicationJar = APPLICATION_DIR.resolve("khanza.jar");
+        if (!Files.isRegularFile(applicationJar)) {
+            throw new IOException("khanza.jar tidak ditemukan di " + APPLICATION_DIR);
+        }
+
+        cleanupOldHelperJars();
+        Path helperJar = Files.createTempFile("khanza-update-helper-", ".jar");
+        Path readyFile = Files.createTempFile("khanza-update-ready-", ".tmp");
+        Files.deleteIfExists(readyFile);
+        Files.copy(applicationJar, helperJar, StandardCopyOption.REPLACE_EXISTING);
+
+        long currentPid = currentProcessId();
+        Point location = updateForm == null ? new Point(0, 0)
+                : updateForm.getLocation();
+        List<String> helperCommand = new ArrayList<>();
+        Collections.addAll(helperCommand,
+                resolveJavaWindowExecutable(),
+                "-cp", helperJar.toAbsolutePath().toString(),
+                "simrskhanza.WindowsUpdateHelper",
+                Long.toString(currentPid),
+                STAGING_DIR.toString(),
+                APPLICATION_DIR.toString(),
+                LOCAL_VERSION_FILE.toString(),
+                validateServerVersion(serverVersion),
+                UPDATE_WORK_DIR.toString(),
+                readyFile.toString(),
+                helperJar.toString(),
+                Integer.toString(location.x),
+                Integer.toString(location.y),
+                resolveJavaWindowExecutable());
+        helperCommand.addAll(restartMemoryArguments());
+
+        Process helperProcess = new ProcessBuilder(helperCommand)
+                .directory(APPLICATION_DIR.toFile())
+                .start();
+
+        long deadline = System.currentTimeMillis() + 8_000L;
+        while (!Files.exists(readyFile)) {
+            if (!helperProcess.isAlive()) {
+                throw new IOException("Helper pembaruan berhenti sebelum tampil");
+            }
+            if (System.currentTimeMillis() >= deadline) {
+                helperProcess.destroy();
+                throw new IOException("Helper pembaruan tidak siap dalam 8 detik");
+            }
+            try {
+                Thread.sleep(50L);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Menunggu helper pembaruan dibatalkan", ex);
+            }
+        }
+        Files.deleteIfExists(readyFile);
+    }
+
+    private static String validateServerVersion(String version) throws IOException {
+        String value = version == null ? "" : version.trim();
+        if (!value.matches("[A-Za-z0-9._-]{1,64}")) {
+            throw new IOException("Format versi server tidak valid: " + value);
+        }
+        return value;
+    }
+
+    private static long currentProcessId() {
+        try {
+            return ProcessHandle.current().pid();
+        } catch (Exception ex) {
+            return 0L;
+        }
+    }
+
+    private static void cleanupOldHelperJars() {
+        Path tempDirectory = Paths.get(System.getProperty("java.io.tmpdir"));
+        try (Stream<Path> stream = Files.list(tempDirectory)) {
+            stream.filter(path -> path.getFileName().toString()
+                    .startsWith("khanza-update-helper-"))
+                    .filter(path -> path.getFileName().toString().endsWith(".jar"))
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException ignore) {
+                        }
+                    });
+        } catch (IOException ignore) {
+        }
+    }
+
+    /** Pertahankan opsi heap/stack dari Aplikasi.bat saat versi baru dibuka. */
+    private static List<String> restartMemoryArguments() {
+        List<String> arguments = new ArrayList<>();
+        for (String argument
+                : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
+            if (argument.matches("-X(?:ms|mx|ss).+")) {
+                arguments.add(argument);
+            }
+        }
+        return arguments;
+    }
+
+    private static void launchKhanza() throws IOException {
+        File directory = APPLICATION_DIR.toFile();
+
+        if (isWindows()) {
+            File script = firstExisting(directory,
+                    "Aplikasi.bat", "Aplikasi.cmd", "khanza.bat", "khanza.cmd");
+            if (script != null) {
+                new ProcessBuilder("cmd.exe", "/c", "start", "", script.getName())
+                        .directory(directory)
+                        .inheritIO()
+                        .start();
+                return;
+            }
+        } else {
+            File script = firstExisting(directory, "Aplikasi.sh", "khanza.sh");
+            if (script != null) {
+                script.setExecutable(true);
+                new ProcessBuilder("/bin/bash", script.getAbsolutePath())
+                        .directory(directory)
+                        .inheritIO()
+                        .start();
+                return;
+            }
+        }
+
+        File jar = firstExisting(directory, "khanza.jar");
+        if (jar != null) {
+            new ProcessBuilder(resolveJavaExecutable(), "-jar", jar.getAbsolutePath())
+                    .directory(directory)
+                    .inheritIO()
+                    .start();
+            return;
+        }
+
+        throw new IOException("Tidak ditemukan script aplikasi atau khanza.jar di "
+                + directory.getAbsolutePath());
+    }
+
+    private static File firstExisting(File directory, String... names) {
+        for (String name : names) {
+            File candidate = new File(directory, name);
+            if (candidate.isFile()) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static String resolveJavaExecutable() {
+        String executableName = isWindows() ? "java.exe" : "java";
+        File executable = new File(new File(System.getProperty("java.home"), "bin"),
+                executableName);
+        return executable.isFile() ? executable.getAbsolutePath() : executableName;
+    }
+
+    private static String resolveJavaWindowExecutable() {
+        if (!isWindows()) {
+            return resolveJavaExecutable();
+        }
+        File executable = new File(new File(System.getProperty("java.home"), "bin"),
+                "javaw.exe");
+        return executable.isFile() ? executable.getAbsolutePath() : "javaw.exe";
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase().contains("win");
+    }
+
+    private static String formatMegabytes(long bytes) {
+        return String.format(java.util.Locale.US, "%.1f MB", bytes / 1_048_576.0);
+    }
+
+    private static String safeMessage(Throwable error) {
+        String message = error == null ? null : error.getMessage();
+        return message == null || message.trim().isEmpty()
+                ? error.getClass().getSimpleName() : message;
+    }
+}

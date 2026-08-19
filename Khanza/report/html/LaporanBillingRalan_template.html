@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Laporan Billing Rawat Jalan</title>
+  <style>
+    :root { --fg:#111; --muted:#666; --border:#333; }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#fff;color:var(--fg);font:12px/1.45 Arial,Helvetica,sans-serif}
+    .page{max-width:860px;margin:0 auto;padding:16px}
+    header{display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px}
+    header img.logo{width:54px;height:54px;object-fit:contain}
+    header .hgroup h1{font-size:18px;margin:0 0 4px 0}
+    header .hgroup .meta{font-size:11px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+    .card{border:1px solid var(--border);border-radius:8px;padding:8px}
+    .card h3{font-size:12px;margin:0 0 6px 0;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    table{width:100%;border-collapse:collapse;margin-top:4px}
+    th,td{border:1px solid var(--border);padding:6px;vertical-align:top}
+    th{background:#f5f5f5;text-align:left}
+    td.num, th.num{text-align:right;white-space:nowrap}
+    .totals td{font-weight:bold}
+    .muted{color:var(--muted)}
+    @media print {.page{padding:0}.no-print{display:none!important}}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <img class="logo" src="${RS_LOGO_DATAURL}" alt="Logo" />
+      <div class="hgroup">
+        <h1>${RS_NAMA}</h1>
+        <div class="meta">${RS_ALAMAT} · Telp ${RS_TELP} · ${RS_EMAIL}</div>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div class="muted">No. Billing</div>
+        <div style="font-weight:bold">${NO_BILLING}</div>
+        <div class="muted">Tanggal</div>
+        <div>${TANGGAL_BILLING}</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Identitas Pasien</h3>
+        <table class="no-border" style="border:none">
+          <tr><td class="muted">No. RM</td><td>${NO_RM}</td></tr>
+          <tr><td class="muted">Nama</td><td>${NAMA_PASIEN}</td></tr>
+          <tr><td class="muted">No. Rawat</td><td>${NO_RAWAT}</td></tr>
+          <tr><td class="muted">Jaminan</td><td>${PENJAMIN}</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Rawat Jalan</h3>
+        <table class="no-border" style="border:none">
+          <tr><td class="muted">Tanggal Periksa</td><td>${TGL_PERIKSA}</td></tr>
+          <tr><td class="muted">Poli</td><td>${POLI}</td></tr>
+          <tr><td class="muted">DPJP</td><td>${DOKTER}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Rincian Biaya</h3>
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th style="width:32px">No</th>
+            <th>Uraian</th>
+            <th class="num" style="width:80px">Jumlah</th>
+            <th class="num" style="width:80px">Tarif</th>
+            <th class="num" style="width:100px">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <!-- ROW_TEMPLATE:
+          <tr>
+            <td class="num">${NO}</td>
+            <td>${URAIAN}</td>
+            <td class="num">${JUMLAH}</td>
+            <td class="num">${TARIF}</td>
+            <td class="num">${SUBTOTAL}</td>
+          </tr>
+          -->
+        </tbody>
+        <tfoot>
+          <tr class="totals"><td colspan="4" class="num">Total Biaya</td><td class="num">${TOTAL}</td></tr>
+          <tr><td colspan="4" class="num">Potongan</td><td class="num">${POTONGAN}</td></tr>
+          <tr><td colspan="4" class="num">Pembayaran</td><td class="num">${DIBAYAR}</td></tr>
+          <tr class="totals"><td colspan="4" class="num">Sisa</td><td class="num">${SISA}</td></tr>
+        </tfoot>
+      </table>
+      <div class="muted" style="margin-top:6px">${CATATAN}</div>
+    </div>
+
+    <div class="no-print" style="margin-top:12px;display:flex;gap:8px">
+      <button onclick="window.print()">Cetak</button>
+    </div>
+  </div>
+
+  <!-- Optional: demo filler. Remove if you prefer raw tokens. -->
+  <script>
+  (function(){
+    if (!window.demoData) return;
+    for (const [k,v] of Object.entries(window.demoData.header||{})) {
+      document.body.innerHTML = document.body.innerHTML.replaceAll("${"+k+"}", v);
+    }
+    const rows = (window.demoData.items||[]).map((r,i)=>`<tr>
+      <td class="num">${i+1}</td>
+      <td>${r.uraian}</td>
+      <td class="num">${r.jumlah}</td>
+      <td class="num">${r.tarif}</td>
+      <td class="num">${r.subtotal}</td>
+    </tr>`).join("");
+    document.getElementById("rows").innerHTML = rows;
+  })();
+  </script>
+</body>
+</html>

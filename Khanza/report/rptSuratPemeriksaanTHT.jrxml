@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="null" pageWidth="595" pageHeight="842" columnWidth="483" leftMargin="56" rightMargin="56" topMargin="20" bottomMargin="20" uuid="b98c6957-7340-483c-9834-702b3e096d12">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="96"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="63"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="926"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="lokal"/>
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<parameter name="namars" class="java.lang.String"/>
+	<parameter name="alamatrs" class="java.lang.String"/>
+	<parameter name="kotars" class="java.lang.String"/>
+	<parameter name="propinsirs" class="java.lang.String"/>
+	<parameter name="kontakrs" class="java.lang.String"/>
+	<parameter name="emailrs" class="java.lang.String"/>
+	<parameter name="logo" class="java.io.InputStream"/>
+	<parameter name="finger" class="java.lang.String"/>
+	<parameter name="logo2" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[]]>
+	</queryString>
+	<field name="nm_dokter" class="java.lang.String">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="jk" class="java.lang.String">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="nm_pasien" class="java.lang.String">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="umur" class="java.lang.String">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="alamat" class="java.lang.String">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="telinga" class="java.lang.String"/>
+	<field name="pendengaran" class="java.lang.String"/>
+	<field name="hidung" class="java.lang.String"/>
+	<field name="tenggorokan" class="java.lang.String"/>
+	<field name="kesimpulan" class="java.lang.String"/>
+	<field name="tanggalsurat" class="java.lang.String"/>
+	<field name="no_surat" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="306" splitType="Stretch">
+			<image scaleImage="FillFrame" onErrorType="Blank">
+				<reportElement x="3" y="0" width="4" height="4" uuid="bb92be62-e826-4689-a6bc-b3eef4b548a3"/>
+				<imageExpression><![CDATA[$P{logo}]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="52" y="0" width="499" height="5" uuid="016440dc-612e-42ff-b8d9-e4c3df9a3a0e"/>
+				<textElement textAlignment="Center">
+					<font fontName="Segoe UI" size="12"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{namars}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="52" y="14" width="499" height="2" uuid="4137e55d-c32d-4348-8ec0-1b55c8b0e3d1"/>
+				<textElement textAlignment="Center">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{alamatrs}+", "+$P{kotars}+", "+$P{propinsirs}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="52" y="25" width="499" height="2" uuid="7db59fa4-fdc7-4549-83ed-25533f4d35fa"/>
+				<textElement textAlignment="Center">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{kontakrs}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="52" y="36" width="499" height="3" uuid="4015a2c5-4573-49a9-89ef-38d41be778df"/>
+				<textElement textAlignment="Center">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["e-mail: "+$P{emailrs}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="120" width="483" height="21" uuid="0eac3d93-afe1-40fb-a4b2-743ba65a60d8"/>
+				<textElement textAlignment="Center">
+					<font fontName="Segoe UI" size="10" isBold="true" isUnderline="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[SURAT PEMERIKSAAN THT]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="226" width="83" height="20" uuid="c53cffa9-5d27-4244-8efa-9253b9747ca1"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Nama]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="120" y="226" width="363" height="20" uuid="cebf4b8f-58c6-4731-8241-4ab08df25de1"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nm_pasien}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="30" y="286" width="83" height="20" uuid="f7e0b54b-93e1-4d3d-b7aa-1d3cbc812f7c"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Alamat]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="120" y="286" width="363" height="20" uuid="89b6abac-6362-4f30-9d81-10e8999c9179"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{alamat}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="30" y="246" width="83" height="20" uuid="e7a763f5-1de3-41fe-974c-0107cc3ebaa3"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Umur]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="266" width="83" height="20" uuid="ad396c2b-2cce-4c42-88ef-4f2b946a9864"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Jenis Kelamin]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="113" y="226" width="7" height="20" uuid="ffe9ebcf-3ec4-484d-9dc5-8e1011f09924"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="120" y="246" width="104" height="20" uuid="7cd86ca9-4e7b-403a-8f68-f8700c9a4cb0"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{umur}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="120" y="266" width="363" height="20" uuid="7d41c2b6-e4fa-4f90-8625-cc7cf3538148"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{jk}.equals("L")? "Laki-Laki":"Perempuan"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="113" y="246" width="7" height="20" uuid="4370b404-24cb-438c-a699-6d2fe120ac7b"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="113" y="266" width="7" height="20" uuid="09fb21eb-856c-4fe9-ba0e-33ddfaccca05"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="113" y="286" width="7" height="20" uuid="838890cf-161b-4344-a526-148de914d264"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="200" width="483" height="25" uuid="dcad19f4-87b6-4152-9c60-3e9fc75cdb02">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Yang bertanda tangan di bawah ini, menerangkan bahwa : ]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="1" y="137" width="482" height="25" uuid="29061b9f-8220-46e5-a549-85a04ee45890">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Nomor  :  "+$F{no_surat}]]></textFieldExpression>
+			</textField>
+			<image scaleImage="RealHeight" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement x="-23" y="0" width="536" height="96" uuid="1a6bb378-cec6-47b1-a35f-2584d598ffe8"/>
+				<imageExpression><![CDATA[$P{logo2}]]></imageExpression>
+			</image>
+		</band>
+		<band height="70">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="120" y="50" width="362" height="20" uuid="78c7a862-c235-40e5-8e4f-32e49bac022c"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{telinga}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="113" y="50" width="7" height="20" uuid="e16ca2ee-2b8c-4f1d-aa1b-298e792fe6f0"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="50" width="83" height="20" uuid="891f5529-77ee-4503-9f21-85a9b2bb4892"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Telinga]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="20" width="359" height="20" uuid="94d42939-e5e1-4b32-8236-bba6361a3fde"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Pada pemeriksaan THT saat ini didapatkan :]]></text>
+			</staticText>
+		</band>
+		<band height="24">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="120" y="4" width="362" height="20" uuid="1290f7f2-70c7-4955-b4d2-34dd4c98e519"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{pendengaran}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="113" y="4" width="7" height="20" uuid="ef04445c-ab23-4a34-a174-b7255fd9a8dd"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="4" width="83" height="20" uuid="126c667c-ae82-4bff-bb38-b8578b1ecc3f"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Pendengaran]]></text>
+			</staticText>
+		</band>
+		<band height="25">
+			<staticText>
+				<reportElement x="30" y="5" width="83" height="20" uuid="a4e95666-1d7b-4aef-9152-0c65cd6e8394"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Hidung]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="120" y="5" width="362" height="20" uuid="cd620f8b-81ce-4ce4-9d15-1cb9c17b0308"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{hidung}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="113" y="5" width="7" height="20" uuid="857d8aea-4dc5-446a-9cbf-b18b3a2d5785"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="25">
+			<staticText>
+				<reportElement x="30" y="5" width="83" height="20" uuid="3838ebb5-0ded-4b3d-850a-94f3c97420e7"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tenggorokan]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="120" y="5" width="362" height="20" uuid="571ecb21-84ed-4ad3-80b6-531800e4367b"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tenggorokan}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="113" y="5" width="7" height="20" uuid="43802465-7482-4c14-b6b8-9185e49c0a37"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="31">
+			<staticText>
+				<reportElement x="30" y="11" width="83" height="20" uuid="ef421991-ddc1-4579-b77b-8971aaaa5e1f"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Kesimpulan]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="120" y="11" width="362" height="20" uuid="d0f2cdea-13ad-4971-b423-7e68cd348f3a"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kesimpulan}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="113" y="11" width="7" height="20" uuid="a941a6f0-7062-47e1-9023-a65896ac1e22"/>
+				<textElement>
+					<font fontName="Segoe UI" size="10"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="215">
+			<staticText>
+				<reportElement x="0" y="20" width="482" height="40" uuid="a5fd0c1e-41ea-4490-9ad5-ef6071e2a6af">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Justified">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Demikian surat keterangan ini dibuat dengan sebenarnya dan dipergunakan sebagaimana mestinya.]]></text>
+			</staticText>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement x="289" y="60" width="193" height="25" uuid="2727512b-bb2d-42f4-bed3-645fce487a0f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{kotars}+", "+$F{tanggalsurat}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="289" y="168" width="192" height="20" uuid="816320f6-7c29-4933-b34e-e68305a2256d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left">
+					<font fontName="Segoe UI Semibold" size="10" isUnderline="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nm_dokter}]]></textFieldExpression>
+			</textField>
+			<componentElement>
+				<reportElement x="289" y="86" width="98" height="83" isRemoveLineWhenBlank="true" uuid="810f531b-643d-4c63-ba07-cd0e026855db">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<jr:QRCode xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" errorCorrectionLevel="H">
+					<jr:codeExpression><![CDATA[$P{finger}]]></jr:codeExpression>
+				</jr:QRCode>
+			</componentElement>
+		</band>
+	</detail>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

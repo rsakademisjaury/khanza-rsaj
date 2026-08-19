@@ -1,0 +1,3589 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="null" pageWidth="612" pageHeight="936" columnWidth="572" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="479507e5-0db3-4ea9-9590-dbfa174d1542">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="0"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="1000"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="lokal"/>
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="parameter" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="namars" class="java.lang.String"/>
+	<parameter name="alamatrs" class="java.lang.String"/>
+	<parameter name="kotars" class="java.lang.String"/>
+	<parameter name="propinsirs" class="java.lang.String"/>
+	<parameter name="kontakrs" class="java.lang.String"/>
+	<parameter name="emailrs" class="java.lang.String"/>
+	<parameter name="logo" class="java.io.InputStream"/>
+	<parameter name="tanggal1" class="java.lang.String"/>
+	<parameter name="tanggal2" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[SELECT reg_periksa.no_rawat, pasien.no_rkm_medis, pasien.nm_pasien, pasien.jk, pasien.tgl_lahir,
+               sga.tanggal, sga.kd_dokter, dokter.nm_dokter, sga.kd_kamar, sga.DiagnosisMedis,
+               sga.RiwayatAsupan1, sga.SkorRiwayatAsupan1, sga.LamaAsupanMenurun, sga.RiwayatAsupan2, sga.SkorRiwayatAsupan2,
+               sga.BeratBadan3, sga.SkorBeratBadan3, sga.BBBiasanya, sga.BBSaatIni, sga.BesarnyaKehilangan,
+               sga.BeratBadan4, sga.SkorBeratBadan4, sga.BeratBadan5, sga.SkorBeratBadan5,
+               sga.Gejala6, sga.SkorGejala6, sga.Gejala7, sga.SkorGejala7, sga.Gejala8, sga.SkorGejala8,
+               sga.Gejala9, sga.SkorGejala9, sga.Gejala10, sga.SkorGejala10, sga.Gejala11, sga.SkorGejala11,
+               sga.Gejala12, sga.SkorGejala12, sga.Gejala13, sga.SkorGejala13, sga.Gejala14, sga.SkorGejala14,
+               sga.Gejala15, sga.SkorGejala15,
+               sga.KapasitasFungsional16, sga.SkorKapasitasFungsional16, sga.KapasitasFungsional17, sga.SkorKapasitasFungsional17,
+               sga.Penyakit18, sga.SkorPenyakit18,
+               sga.PemFis19, sga.SkorPemFis19, sga.PemFis20, sga.SkorPemFis20, sga.PemFis21, sga.SkorPemFis21,
+               sga.PemFis22, sga.SkorPemFis22, sga.PemFis23, sga.SkorPemFis23, sga.PemFis24, sga.SkorPemFis24,
+               sga.PemFis25, sga.SkorPemFis25, sga.PemFis26, sga.SkorPemFis26, sga.PemFis27, sga.SkorPemFis27,
+               sga.PemFis28, sga.SkorPemFis28, sga.PemFis29, sga.SkorPemFis29, sga.PemFis30, sga.SkorPemFis30,
+               sga.PemFis31, sga.SkorPemFis31,
+               sga.Lab32, sga.SkorLab32, sga.Lab33, sga.SkorLab33,
+               sga.FaktorKontribusi34, sga.SkorFaktorKontribusi34, sga.FaktorKontribusi35, sga.SkorFaktorKontribusi35,
+               sga.SkorSGA, sga.Catatan
+        FROM sga_malnutrisi sga
+        INNER JOIN reg_periksa ON sga.no_rawat = reg_periksa.no_rawat
+        INNER JOIN pasien ON reg_periksa.no_rkm_medis = pasien.no_rkm_medis
+        INNER JOIN dokter ON sga.kd_dokter = dokter.kd_dokter
+        WHERE sga.tanggal BETWEEN $P{tanggal1} AND $P{tanggal2}
+        ORDER BY sga.tanggal]]>
+	</queryString>
+	<field name="no_rawat" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="no_rawat"/>
+		<property name="com.jaspersoft.studio.field.label" value="no_rawat"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="bridging_sep"/>
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="SkorRiwayatAsupan2" class="java.lang.String"/>
+	<field name="SkorRiwayatAsupan1" class="java.lang.String"/>
+	<field name="SkorBeratBadan3" class="java.lang.String"/>
+	<pageHeader>
+		<band/>
+	</pageHeader>
+	<detail>
+		<band height="896">
+			<staticText>
+				<reportElement x="180" y="796" width="326" height="44" uuid="90a47557-5665-46df-9e8e-499238b2817c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="528" y="176" width="22" height="697" uuid="cfe7b449-d6b9-40b5-85fa-3f3e170fefb8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="506" y="176" width="66" height="697" uuid="4a9014f9-d2c9-47a1-90f4-d7ccfb918960">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="748" width="326" height="33" uuid="050d476a-6e37-409c-a369-5159a5f3ffa0">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="748" width="180" height="33" uuid="9539bbd4-ce25-4e18-a467-bc217f501c7b"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Gejala selama 2 minggu terakhir]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="715" width="180" height="33" uuid="15e63968-b0df-44ba-9286-990d199b08df">
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Konstipasi]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="682" width="180" height="33" uuid="49017510-3cae-413d-80e4-5c5a742ff05c">
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Cepat penuh]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="649" width="180" height="33" uuid="c7955127-288d-45fb-9a31-9611ad585205">
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Masalah gigi geligi]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="616" width="180" height="33" uuid="e4526298-5878-44f1-bfe6-ecdf567e5e8e">
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Diare]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="517" width="180" height="33" uuid="659da515-5ad7-49b5-b15d-9a80ce682321">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Mual]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="484" width="326" height="33" uuid="c1523a76-5e16-4731-9d83-52cbfb017c14">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="451" width="180" height="33" uuid="891b7d02-81d6-4d69-a869-6e3285e1f840">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Anorexia]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="418" width="326" height="33" uuid="923927d8-5057-4ae8-8019-f73284b38f32">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="370" width="326" height="33" uuid="51f0feb8-3813-4131-8a1f-afff3df859c3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="337" width="392" height="33" uuid="c05a2e60-a2c1-406a-8b4c-91b491405ee0">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="279" width="326" height="58" uuid="d5836f25-54b8-4212-8186-dfcdfc775047">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="176" width="180" height="55" uuid="b0870f23-1b6c-4d9b-bbf9-513e28c22d0e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Asupan makanan, perubahan jumlah asupan akhir-akhir ini dibandingkan dengan kebiasaan.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="231" width="180" height="33" uuid="516bf689-2f8a-4fdb-acdf-8773e8bcf94c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Asupan dalam 2 hari terakhir]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="176" width="326" height="55" uuid="2be583d5-7d51-4365-b329-7930529c8690">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="231" width="392" height="33" uuid="d29c9709-fe48-4077-836b-18d7a680d049">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="80" y="0" width="400" height="20" uuid="a7e34400-5416-435a-9f93-a67ea7ae55cd"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="12" isBold="true" isItalic="false" isUnderline="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[FORMULIR SUBJECTIVE GLOBAL ASSESMENT]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="40" width="90" height="11" uuid="45b03c25-d52b-4f89-be40-1b31cdf4ad22"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Kamar]]></text>
+			</staticText>
+			<image scaleImage="FillFrame" onErrorType="Blank">
+				<reportElement x="0" y="0" width="40" height="37" uuid="727a6326-248f-47d8-9741-7791e5f78990">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<imageExpression><![CDATA[$P{logo}]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="0" y="51" width="90" height="11" uuid="760049ba-16a3-4ee3-9b3f-b7ce92bdb604"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Nama Pasien]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="62" width="90" height="11" uuid="836b4c2a-2740-41ef-9e24-adf0adfbac71"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[No. Registrasi]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="73" width="90" height="11" uuid="c5fb7346-83f9-4d85-8555-0e3131854650"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Jenis Kelamin]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="84" width="90" height="11" uuid="68da7c3a-825f-44ea-9d08-0b3ff9d3812a"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tgl. Lahir / Usia]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="106" width="90" height="11" uuid="b9f2d18d-5c3e-440c-9820-7b91fb4ce9bf"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Alamat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="95" width="90" height="11" uuid="5938f5e3-7faf-4c13-a776-46eb8f8be461"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Panjang / Tinggi Badan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="95" width="80" height="11" uuid="e949c87b-6732-4ccd-a541-b419281377bf"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tgl. Konsul]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="62" width="80" height="11" uuid="913164d7-eda9-41f2-aaf4-c131ecdecbb8"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tingkat Pendidikan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="51" width="80" height="11" uuid="972c5c69-b3f2-4b56-a2d0-31c8f5ce7a8b"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Agama]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="106" width="80" height="11" uuid="fd6bbd20-8dbc-4f68-87f0-2f728d108a37"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Diagnosa]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="73" width="80" height="11" uuid="ea96bf07-29fa-43f2-ad7f-a5e563856b55"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Pekerjaan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="84" width="80" height="11" uuid="77b78a37-d069-423e-bcae-efd30eb5b9e7"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tgl. Masuk]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="40" width="80" height="11" uuid="9e864c05-f726-4491-9a4f-bf0c278aba4b"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[No. Rekam Medis]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="280" y="117" width="80" height="11" uuid="90307620-b24a-4a09-bb18-05db347d0575"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Dokter Pemeriksa]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="482" y="20" width="90" height="13" uuid="07ce9502-6d54-4c9f-9f8c-ba95c4d3aa0b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[MR. KH / I / R.I / 2025]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="141" width="572" height="20" backcolor="#99CCFF" uuid="1daf739b-93e6-455b-ae16-1dd3b2c565ef">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[DESKRIPSI]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="161" width="572" height="15" backcolor="rgba(153, 204, 255, 0.50980395)" uuid="1aacfdac-af2e-40c5-abb1-642a0af09b4d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[RIWAYAT ASUPAN]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="506" y="141" width="66" height="20" backcolor="#99CCFF" uuid="681ec650-abb9-4683-b338-6b8fa4a4c490">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[SKOR SGA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="176" width="306" height="11" uuid="98d77b9d-e3b2-4849-9f6a-b0c2b194ae80">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Asupan cukup dan tidak ada perubahan ( kalaupun ada, hanya sedikit atau dalam waktu singkat )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="187" width="306" height="11" uuid="8e57e3e5-9ece-4a05-b746-f2ac5a8ab6d7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Asupan tidak cukup, lamanya asupan menurun ....]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="198" width="296" height="11" uuid="096884bb-bc3e-4d49-8348-d5aeb001b15d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Diet padat suboptimal]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="185" y="176" width="15" height="11" uuid="9cf9525a-abbb-44c2-ad40-bce679d22fe2">
+					<property name="com.jaspersoft.studio.unit.spacingBefore" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0" spacingBefore="3" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="185" y="187" width="15" height="11" uuid="424bfa00-7d87-4e34-91c6-477e3c2705a9"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="198" width="10" height="11" uuid="505559c8-89bc-4912-88cf-00b57ac0f605"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="209" width="10" height="11" uuid="37fe1d06-b1b1-41d2-8c37-8f6dd277dbe5"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="209" width="296" height="11" uuid="ea3fbae9-111d-4f5f-81d3-5824b322b4c6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Diet cair penuh ( full liquid ) / hanya oral nutrition supplements ( ONS )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="220" width="10" height="11" uuid="76cfe2c2-5176-40c8-ae36-9bc7afedd5ee"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="220" width="296" height="11" uuid="26d1697e-3fe1-4bbb-bf82-df2521b5ae63">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Diet minimal, clear liquid, atau starvasi ( menurun tahap berat )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="550" y="181" width="22" height="13" uuid="841ad49b-4366-4a09-a2a2-6bdf6ebf837b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[MR. KH / I / R.I / 2025]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="528" y="185" width="22" height="13" uuid="93eb4549-182c-460c-84a8-76bb62309630">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[MR. KH / I / R.I / 2025]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="506" y="194" width="22" height="13" uuid="d04d52cb-91bc-4c20-b177-4113af468d4a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[MR. KH / I / R.I / 2025]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="231" width="14" height="11" uuid="b539c57c-fcfb-49fa-ac2d-e98edae0f8f7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="231" width="306" height="11" uuid="52b4b081-4b21-4c9e-952d-8f88176b5e22">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Cukup]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="242" width="14" height="11" uuid="05b6ebac-3863-4616-a93b-220aee0191ae"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="242" width="306" height="11" uuid="6a3f4684-4c67-4d20-b029-c1c5d0f551e1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Membaik tapi tidak adekuat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="253" width="14" height="11" uuid="23ce6754-e883-449d-b134-c911a052ee39"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="253" width="306" height="11" uuid="0b38e4a1-924d-43ce-a3ab-6bf3d3479e6e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada perbaikan atau tidak adekuat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="264" width="572" height="15" backcolor="rgba(153, 204, 255, 0.50980395)" uuid="53963c4f-2eac-4ae9-ae4e-698b58488285"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[BERAT BADAN]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="279" width="180" height="58" uuid="3d38f01b-4053-4ae1-8618-6ffb806dd892">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Perubahan BB tanpa cairan selama 6 bulan terakhir
+BB biasanya 
+saat ini 
+Besarnya kehilangan ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="326" width="306" height="11" uuid="cea0abb0-1cc1-4ae6-ae94-2bba6944f592">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Penurunan > 10 % dan sedang proses berjalan terus]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="326" width="14" height="11" uuid="300ac6c4-9fe2-4863-acbc-a9445d1d1e4f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="304" width="14" height="11" uuid="0b16e65e-b2d4-4ba1-91d9-fe6b12d99970"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="304" width="306" height="11" uuid="85ca12a7-3188-4ace-a212-b01c8b9771c0">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada ( berat badan stabil ) atau penurunan < 5 %]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="315" width="14" height="11" uuid="6dcd3ac7-57a1-4c3f-8c3c-274efa0abf8c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="315" width="306" height="11" uuid="596d6e4f-bc18-4fd2-8055-7f22dbd80bd8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Penurunan 5 - 10 % tanpa stabilitas atau peningkatan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="281" width="110" height="11" uuid="fe66863c-467c-44df-a86e-c321d00df545">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<bottomPen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[BB Biasanya - BB Awal Masuk]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="291" width="110" height="11" uuid="ec1d2184-d55e-438a-bc4d-2d097eb9c1a2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[BB Biasanya]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="314" y="286" width="40" height="11" uuid="ed2c3d11-d69f-4ce5-99b1-372f5af6b5fd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[x  100 %]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="359" width="306" height="11" uuid="e2dec79d-39f9-4fda-9578-cb8f93638d8a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Berat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="359" width="14" height="11" uuid="848d6df1-ac96-4c07-85e4-185741f29745"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="337" width="14" height="11" uuid="ed957540-97f8-4037-98fb-638a3041edcf"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="337" width="306" height="11" uuid="96dfe2b6-b19d-47c0-8fa4-665b9bf91ec3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Ringan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="348" width="14" height="11" uuid="a82c5259-48ba-4e16-b090-3d4b57d96365"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="337" width="180" height="33" uuid="adcf675a-cd08-4684-958f-7ef94f5a8059">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Jika perubahan BB tidak diketahui, apakah ada kehilangan berat badan secara objektif selama 6 bulan terakhir]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="348" width="306" height="11" uuid="0092f582-017f-4855-b2f4-e8faa697baa5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sedang]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="392" width="14" height="11" uuid="f639578c-4189-4e99-91f8-8f504c58c6b9"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="370" width="306" height="11" uuid="035d9442-1710-4511-ae21-bdd3cd81c0d3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Meningkat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="370" width="180" height="33" uuid="de9d1347-df7e-4777-9c47-d40cfc82b736">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Jika perubahan BB tidak diketahui, apakah ada kehilangan berat badan secara subjektif selama 6 bulan terakhir]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="381" width="14" height="11" uuid="3de5b787-974a-46ca-b9d7-eadd2d5105bf"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="370" width="14" height="11" uuid="e90aa9e9-ce49-4a7d-b4f5-74f3b688ab30"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="392" width="306" height="11" uuid="959eb1ba-088f-428c-8788-25b720ae2051">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Menurun]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="381" width="306" height="11" uuid="0c5e4c2a-ddbd-4a8b-a373-0a457010de9d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="403" width="572" height="15" backcolor="rgba(153, 204, 255, 0.50980395)" uuid="6e1d1d29-5cb2-4eb8-aa02-8bc79ff23b46">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[GEJALA - GEJALA ( YANG MEMPENGARUHI ASUPAN MAKAN )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="440" width="306" height="11" uuid="0993396e-9b51-4b67-8682-981ed334c5de">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="429" width="14" height="11" uuid="4455b983-406f-41a3-83d1-791f9f8eb4a6"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="440" width="14" height="11" uuid="24ce6d92-9958-4230-aa55-70cb81ff6db2"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="429" width="306" height="11" uuid="1d584582-78a6-4d95-b6ef-b6866c6759fd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="418" width="306" height="11" uuid="04ce039d-ac48-463c-b0e0-e2cb4e8f153e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="418" width="14" height="11" uuid="d1dfaf42-4e6a-42b1-9413-83907e743118"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="418" width="180" height="33" uuid="3194e484-9a75-4d26-814f-3e4827998889">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Nyeri Telan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="429" width="10" height="11" uuid="64906e27-d994-447a-9296-a5b767ef0479"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="451" width="392" height="33" uuid="0e5f69b5-d3f1-4428-b60c-d0997c4eed0b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="462" width="306" height="11" uuid="be8867c2-eef3-43fa-85a3-ab44e7b193d4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="462" width="10" height="11" uuid="38345db2-f2b7-4382-a682-19c4680eb6be"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="462" width="14" height="11" uuid="fd69f2fa-a9e0-4621-9662-eb8ccc6c88d3"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="451" width="14" height="11" uuid="2b50b67f-151b-40cb-b331-f63a3a0aa85c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="473" width="14" height="11" uuid="3050ed6b-1a37-43a8-a3e2-4d0cb8929aa8"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="473" width="306" height="11" uuid="cc5bef75-34b5-42aa-bdcc-6611f7b4b72a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="451" width="306" height="11" uuid="a9cb13b0-3f45-4ebd-a610-374c582c13a2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="484" width="14" height="11" uuid="5aa6b96d-6d5c-40b0-9051-1550ef272441"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="484" width="180" height="33" uuid="0b975d5d-ba48-43a8-9a66-8bda617687c1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Muntah]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="506" width="306" height="11" uuid="00b0f616-16e4-4eac-bf2b-954fa30446cc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="495" width="14" height="11" uuid="a20b4a87-39e9-40ce-b1b9-62fdd7ca4267"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="495" width="306" height="11" uuid="b66fc026-18cf-48be-97d3-c4e619a21876">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="495" width="10" height="11" uuid="86c0f6f7-2bfa-492d-ae58-2fd3c31d7e43"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="506" width="14" height="11" uuid="a2aaa859-957f-4eb1-b1bf-e965acc92022"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="484" width="306" height="11" uuid="b53b4d34-f6ce-4d84-8531-836e083627dd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="528" width="10" height="11" uuid="93e4e893-62aa-4259-92c1-559ee5ed3907"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="550" width="180" height="33" uuid="be477289-a5bf-47d2-a69e-f950c6661f4b">
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Disfagia]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="561" width="10" height="11" uuid="f8d9c2e9-3fd5-4bed-96e2-58b5c1d38c42"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="583" width="180" height="33" uuid="28bcc2a5-1c5a-4d26-a102-d90e653855dc">
+					<property name="com.jaspersoft.studio.unit.leftIndent" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="20" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Disfagia]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="594" width="10" height="11" uuid="7988c336-98d1-4287-9e83-5621fe2b99e6"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="627" width="10" height="11" uuid="ec0c4a52-1ba3-499e-a1b4-68b1091a9dea"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="660" width="10" height="11" uuid="ef4d04fb-8bcc-4de4-86d1-5c681af30256"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="693" width="10" height="11" uuid="f4861692-64e3-4317-ba6d-7cf1f1937f6a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="726" width="10" height="11" uuid="fc53d823-4dd6-4936-8a78-7bf02cc82cb7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="517" width="392" height="33" uuid="53e517df-a3d1-4655-a095-7df0e000d276">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="517" width="14" height="11" uuid="377f89bf-ebda-4373-8ca3-3fee998d5736"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="539" width="306" height="11" uuid="7000a163-4304-4839-985e-26a25281453d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="528" width="14" height="11" uuid="84397340-755e-4627-9e2b-d9e722f00cf0"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="528" width="306" height="11" uuid="fcf3e3a2-581e-4bf6-a562-c79de66dfbca">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="539" width="14" height="11" uuid="666753d6-f07d-409a-ab22-b389add1e5a5"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="517" width="306" height="11" uuid="24ad3ec9-ad0d-4f82-a54d-743b53b4bce6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="561" width="14" height="11" uuid="d33a56fe-ea95-4ba4-bca5-f495b6d42d50"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="550" width="326" height="33" uuid="b7c294e9-c08f-4c23-b2c8-6a7514a3ef5b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="572" width="14" height="11" uuid="c768e517-3aa3-4d8c-8013-2e5e4af8dd7b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="572" width="306" height="11" uuid="90efdae5-3949-4be0-9a6b-6cca24e7c66d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="550" width="14" height="11" uuid="5cb2976c-8cd8-48b0-a5f4-85ff679a4b18"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="561" width="306" height="11" uuid="6f3f1372-d447-405d-bbc1-ebaa019b30c1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="550" width="306" height="11" uuid="110d4f81-a12d-4354-9839-1d7da1a46552">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="594" width="14" height="11" uuid="4deb828a-e276-4897-9660-8d997573f916"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="583" width="392" height="33" uuid="bbdd4036-90b2-442f-b290-8f2a09062d1d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="605" width="14" height="11" uuid="5d2609e3-e9fe-4875-a5e3-e94afd2434dc"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="605" width="306" height="11" uuid="91c670a9-6e92-4b3b-a2df-fee52c13aa51">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="583" width="14" height="11" uuid="4cce5db8-59d8-437a-849a-44feb8a74d63"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="594" width="306" height="11" uuid="6a5201b1-7e62-4a8b-96e3-dfc6ac52f503">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="583" width="306" height="11" uuid="7903e3bc-d9d3-4372-99f5-6c592b0be25f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="627" width="14" height="11" uuid="45d8f739-041b-4ada-959c-71479296b4cd"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="616" width="326" height="33" uuid="41c2587f-0ab8-48b4-904b-3dfb7e9f885f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="638" width="14" height="11" uuid="7790f8c2-9bbf-412d-bb0b-9e5550b4b606"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="638" width="306" height="11" uuid="0fcdaa4c-bcde-4719-920a-8127301095c3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="616" width="14" height="11" uuid="ba30aec3-4d1c-455c-ba9c-b58f10bf7ddb"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="627" width="306" height="11" uuid="30328c76-b197-4ec7-90ed-de4348dbce80">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="616" width="306" height="11" uuid="798e24d2-0d73-419b-9e5e-41f3e28517fb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="660" width="14" height="11" uuid="b511a3f7-fee6-4f55-b486-18ad46c4e541"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="649" width="392" height="33" uuid="fa15d64c-bb98-44de-b756-34ece66e43a4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="671" width="14" height="11" uuid="2bda6427-25f7-43c5-85a8-7f1393d2d58c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="671" width="306" height="11" uuid="9b0c2529-dd3c-4236-8ecf-f137c29be9e5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="649" width="14" height="11" uuid="c01bdd10-1a63-46fc-bc29-7d7e4b5f7fb6"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="660" width="306" height="11" uuid="5ee0dd0d-a3dd-491c-8cfa-36b5979d0e2d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="649" width="306" height="11" uuid="44585e0b-87e9-4e41-8053-dc0b81b40a4f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="693" width="14" height="11" uuid="42b81fea-532b-453b-9f39-d54a3ea88034"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="682" width="326" height="33" uuid="c31ef782-9da4-4ad3-ba71-16586abbe3dc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="704" width="14" height="11" uuid="ab793761-b0ac-4f60-8603-e652d7ba6f53"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="704" width="306" height="11" uuid="1628e444-1d3d-46d0-9bcf-922b9121dc61">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="682" width="14" height="11" uuid="c1010fd7-3999-451d-9b44-1c69400b45cd"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="693" width="306" height="11" uuid="6bf997ce-67a2-473f-b817-8bf403bb2319">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="682" width="306" height="11" uuid="0b5c2c42-93a7-44db-9b4c-0ab5f50e8f6e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="726" width="14" height="11" uuid="89a06c6b-1abc-4878-9d86-db5c5615b39b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="715" width="392" height="33" uuid="f9a9b657-b7be-4f79-a0b6-68d6464a11be">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="737" width="14" height="11" uuid="10093323-c035-4146-a4d4-05963ee5f13a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="737" width="306" height="11" uuid="f510bf7e-df24-4902-8050-e2bd15683a6c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Konstan / Berat / Berkali-kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="715" width="14" height="11" uuid="098991c0-19d1-43ab-9b80-6aa2e57dd868"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="726" width="306" height="11" uuid="47c36c79-e3b4-4a71-b871-13274c8eaf4b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Intermiten / Ringan / Beberapa kali]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="715" width="306" height="11" uuid="d8964958-f3c9-485f-a603-961fbaa09ab8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="748" width="14" height="11" uuid="603825ce-df9f-4db7-8bc1-904f86f7f52f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="748" width="306" height="11" uuid="5820e546-6540-43ae-bd9b-b7fe81f76499">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sembuh]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="770" width="14" height="11" uuid="7a5dd1e8-07f8-482f-8f60-b21df43b0ebc"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="770" width="306" height="11" uuid="00252926-37eb-423c-babb-c3e135793081">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada perubahan / memburuk]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="759" width="14" height="11" uuid="11d5f51e-406f-4d26-99cc-2e6d9a175a75"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="759" width="306" height="11" uuid="a2e75f5c-ae57-46e2-b833-ec796c7eecc6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Perbaikan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="781" width="572" height="15" backcolor="rgba(153, 204, 255, 0.50980395)" uuid="7ba153e0-8614-44cd-9973-c522956717cb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[KAPASITAS FUNGSIONAL ( KELELAHAN DAN PROGRESIFITAS KEHILANGAN FUNGSI )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="796" width="14" height="11" uuid="3e9ae35c-f80d-4d1a-baee-7ac78520e748"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="807" width="14" height="11" uuid="f84850eb-654f-4ee7-9ceb-1649ff12a8da"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="796" width="306" height="11" uuid="f6e76bc4-a7fc-43ec-9b53-4dd2be92750f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada disfungsi]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="818" width="296" height="11" uuid="0559ffcd-2ac9-4c60-b0a0-d8f1f5ff45fd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Kesulitan melakukan aktivitas normal / ambulasi]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="807" width="306" height="11" uuid="3917ff35-001e-4a37-8009-ba4753ee5e0a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Penurunan kapasitas fungsional, lamanya perubahan _________________________]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="796" width="180" height="44" uuid="93a0d92d-8e65-42b9-94ff-3e54fb1e091e"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Deskripsi]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="840" width="14" height="11" uuid="d6736cfb-626e-41b9-b019-2af1dcad3577"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="840" width="392" height="33" uuid="0f093a93-cb7f-476a-a1d8-4ac25210f5cc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="851" width="14" height="11" uuid="c0fd9172-6412-48fd-9f88-3affe4dff590"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="840" width="306" height="11" uuid="f8777225-1f42-4ab1-9d3a-81359846037f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Membaik]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="862" width="306" height="11" uuid="4b2fdd12-6570-4ffd-99be-133b1e992a4f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Memburuk]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="862" width="14" height="11" uuid="9f11de74-13df-44e6-810e-a555974c90d1"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="851" width="306" height="11" uuid="cc684665-794d-4120-b9b8-f334928f6f45">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada perubahan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="840" width="180" height="33" uuid="1ba4ea47-e5d5-4176-88ca-2b8ccfec9317"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Kapasitas fungsional dalam 2 minggu terakhir]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="829" width="296" height="11" uuid="d948d904-c464-4d3a-b430-44dce66ef2e7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Hanya dapat duduk / di tempat tidur]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="818" width="10" height="11" uuid="6cf7badf-07d9-474b-a9e5-1a5f8ced71ec"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="829" width="10" height="11" uuid="b1068695-9eee-45b2-9e24-f72030aa5b9a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="80" y="299" width="90" height="10" uuid="4578f36f-203e-488d-9ffb-3935e88819c6"/>
+				<textElement>
+					<font fontName="Segoe UI" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["= .... kg"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="80" y="309" width="90" height="10" uuid="57080e49-ba23-4ca8-a517-83f607a0c063"/>
+				<textElement>
+					<font fontName="Segoe UI" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["= .... kg"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="80" y="319" width="90" height="10" uuid="889476ef-b77e-4f88-92df-7d5fa1d067af"/>
+				<textElement>
+					<font fontName="Segoe UI" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["= .... kg"]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="896">
+			<staticText>
+				<reportElement x="0" y="465" width="572" height="33" uuid="48f14510-d795-4067-90bd-5748743711f7"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Betis]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="741" width="392" height="33" uuid="22682be4-a845-4074-a545-cf0c63a357e3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="528" y="35" width="22" height="739" uuid="a59b111a-b275-4042-b042-340a30005125">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="506" y="35" width="66" height="739" uuid="2bf07d13-fe4d-4efa-b755-416957252303">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="708" width="326" height="33" uuid="7225c64e-4fca-4dcc-be08-ff649b0b64e3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="660" width="392" height="33" uuid="1ace355d-0f86-4598-92f4-437a831f2713">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="627" width="326" height="33" uuid="adf23fcd-f09d-4afb-892d-023bf4078c19">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="579" width="392" height="33" uuid="6ac6c195-5ca2-456d-929b-dcd1d45b8371">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="513" width="326" height="66" uuid="9746475d-bedc-4890-a753-5bf1b4bc7983">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="465" width="326" height="33" uuid="da2de28f-0e3a-4e1c-a68e-c9a5922446cc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="366" width="326" height="33" uuid="459217ab-6d72-47a1-9c4a-50ee9dda0af5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="333" width="392" height="33" uuid="99468d10-dd7b-429c-9afb-8b20a7aab35e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="300" width="326" height="33" uuid="f697ef56-296c-4e3e-a56b-b57b9f0ec6cf">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="267" width="392" height="33" uuid="cdb23061-1ce7-4424-9ef9-d9bc68e2b075">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="234" width="326" height="33" uuid="81348274-a318-4860-a8eb-920107c672bc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="186" width="326" height="33" uuid="56a34f6e-a1f8-46ca-9cf8-8f74ffae42bc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="153" width="392" height="33" uuid="b518e110-7450-44e1-922d-029f55c89b18">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="120" width="326" height="33" uuid="b845c622-6383-4cf7-a4b0-e15e75845118">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="68" width="10" height="11" uuid="82afc70b-cf70-4625-9db1-df2c1e6f7a17"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="20" width="572" height="15" backcolor="rgba(153, 204, 255, 0.50980395)" uuid="32639ac6-178b-45a9-9245-29f6528e620f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[PENYAKIT DAN HUBUNGANNYA DENGAN KEBUTUHAN GIZI]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="35" width="326" height="55" uuid="4eeb1634-924a-4f67-b0db-61aae4e03d32">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="79" width="10" height="11" uuid="91287239-cabd-4ca2-90f7-0ff9c9aba5c7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="57" width="296" height="11" uuid="85f7db0b-7f16-4269-a812-9e06e728ae93">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Rendah ( contoh : hernia inguinal, penyakit kejiwaan, tukak lambung )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="35" width="306" height="11" uuid="f87f8283-09fb-4ad1-87d8-e7280319d420">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="506" y="53" width="22" height="13" uuid="ea188ef7-11bd-4e4c-94e9-ce27893505de">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[MR. KH / I / R.I / 2025]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="35" width="180" height="55" uuid="8ba7d16b-0207-4659-b2e7-79aed208fac2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Secara umum adanya hiperkatabolik. 
+Bila ada, kategorinya : ( Kondisi stress metabolik akut / hipertabolik )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="68" width="296" height="11" uuid="3a52171a-db3a-4237-bb99-c1f97ecbea7e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sedang ( contoh : infeksi, penyakit ginjal kronis, perdarahan saluran cerna )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="528" y="44" width="22" height="13" uuid="ebe7c0e1-3292-4735-844e-75c31786105d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[MR. KH / I / R.I / 2025]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="185" y="46" width="15" height="11" uuid="2b4da03e-ad06-4530-a31c-bad4ef294094"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="550" y="40" width="22" height="13" uuid="4cc7af94-cfef-4970-877f-80d5d1b0963b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[MR. KH / I / R.I / 2025]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="210" y="79" width="296" height="11" uuid="04d47234-5dc0-471e-bfcd-ca74a8f6d50e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tinggi ( contoh : sepsis, kanker, luka besar, TBI, stroke, sakit kritis, trauma multipel )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="46" width="306" height="11" uuid="54415470-0a6d-442d-8706-b41e310b0819">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="185" y="35" width="15" height="11" uuid="c5df5313-ddb8-4512-8624-6c386c51ba67">
+					<property name="com.jaspersoft.studio.unit.spacingBefore" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0" spacingBefore="3" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="57" width="10" height="11" uuid="1291d723-7c36-4598-9356-3fbfdfd395e2"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="90" width="572" height="15" backcolor="rgba(153, 204, 255, 0.50980395)" uuid="0a20e8c5-c464-4245-90d8-b19e61451d13">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[PEMERIKSAAN FISIK]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="105" width="572" height="15" backcolor="#F2F2F2" uuid="81d262ca-425a-44f7-8db0-228296d289a0">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true" isItalic="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Lemak Subkutan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="142" width="306" height="11" uuid="8c2c1bf3-87f0-4b0f-84d3-af6ebb623976">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Mata cekung, lingkar mata gelap, kulit kusam]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="131" width="14" height="11" uuid="b38b4d59-9919-4ff3-b526-4e552079f247"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="120" width="180" height="33" uuid="7419f6b1-be3d-4e58-9b72-ff900abef3b9"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Orbita]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="142" width="14" height="11" uuid="b1a7c31b-75ec-4ac6-a66b-a80eaa3de7fc"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="120" width="306" height="11" uuid="cdfe08e4-8654-4923-9448-76e001c5514c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Terlihat bantalan lemak di sekitar mata ( perhatikan pasien tidak mengalami odema orbita )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="131" width="306" height="11" uuid="67673edd-427d-4364-b6eb-18fb8af1c497">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Lingkar mata agak gelap, agak cekung]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="120" width="14" height="11" uuid="462665e7-b5ff-4708-8645-bc4243aec869"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="164" width="14" height="11" uuid="c414ec2f-e7e5-4dc7-b82b-4b11d8f07eb6"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="175" width="14" height="11" uuid="d354c1df-0aab-4c84-bd8f-5ad91a6dd5e3"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="175" width="306" height="11" uuid="516f9afe-74fa-4881-a7ce-1c2a358f2442">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Massa lemak terasa sedikit sekali / tidak teraba]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="153" width="14" height="11" uuid="33cf9bf1-3296-44e4-9e3e-3cd38b1b1709"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="153" width="180" height="33" uuid="03edcf56-df99-4719-b40b-4afdfadda492"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Lingkar lengan atas ( bisep / trisep )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="153" width="306" height="11" uuid="bcaa13e4-8e46-4c63-a62d-c87534c268f1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Massa lemak teraba cukup]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="164" width="306" height="11" uuid="a454a359-3da4-499f-9ee8-e6d30d879984">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Massa lemak masih terasa, tetapi tidak cukup penuh]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="186" width="306" height="11" uuid="de07f96d-9e89-41a6-8bfd-185e000021bc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Dada tampak penuh, tulang iga tidak terlihat, krista iliaka tidak menonjol]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="208" width="306" height="11" uuid="81fab308-3909-4c37-90e3-55810cf24bae">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Iga gambang, krista iliaka sangat menonjol]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="197" width="306" height="11" uuid="656b3fcd-3f7c-4872-b180-a06664f52ba1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sela iga tampak jauh]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="208" width="14" height="11" uuid="8e875fc5-3e2e-4aed-8e44-9004194910f1"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="186" width="180" height="33" uuid="c1103b49-7f63-4303-a7ba-d8d1a654a0e5"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Daerah dada dan punggung ( iga, punggung bawah dan linea mid aksila )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="197" width="14" height="11" uuid="6f6317d1-d1d6-4e49-91e8-decd7a3a4d0c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="186" width="14" height="11" uuid="4b162bcc-ee78-41a8-b3f1-8617cecb9636"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="219" width="572" height="15" backcolor="#F2F2F2" uuid="813a3727-1710-4229-a491-01db787a9f4d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true" isItalic="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Wasting Otot]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="234" width="180" height="33" uuid="895d110b-72a7-42dc-b2ec-f813d0b3bb62"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Pelipis - muskulus temporalis]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="245" width="14" height="11" uuid="456c24cd-75fe-4098-9f1f-59ce1aeaa3fc"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="234" width="306" height="11" uuid="8b4adc49-e935-4e1c-80ca-598ade44ebaa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak cekung, otot temporal dapat terlihat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="256" width="306" height="11" uuid="22f73cb2-ff93-4bdc-a3a1-147d0e89e07d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Cekung]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="234" width="14" height="11" uuid="4dcd5fcb-e5dd-4470-b138-6375c43a8dfb"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="256" width="14" height="11" uuid="1199a0ec-d839-414b-bc6b-210fbb2e1a51"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="245" width="306" height="11" uuid="c6919332-b848-403a-b12c-bd91416e839d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sedikit cekung]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="278" width="306" height="11" uuid="4e0bf15f-7f62-40b1-aaf3-4f199aa32a90">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Terlihat pada laki-laki, dan agak menonjol pada perempuan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="267" width="180" height="33" uuid="c40ec650-46e5-49cf-98dc-0477dd455d0b"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Klavikula - muskulus pektoralis mayor, deltoid, dan trapezius]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="289" width="306" height="11" uuid="04441f74-676b-40f4-b103-6b8a1b04010d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tulang kalvikula tampak sangat menonjol]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="289" width="14" height="11" uuid="b8d89729-2c5d-496f-9577-a03d123723d7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="267" width="306" height="11" uuid="ad544722-5bcc-4392-9442-9d74a358a878">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak terlihat pada laki-laki, terlihat, tapi tidak menonjol pada perempuan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="267" width="14" height="11" uuid="f4daeea0-68c8-42c2-b9e5-c720bb9fc20c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="278" width="14" height="11" uuid="c4465b14-500a-4d81-90b4-1ccb97749600"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="322" width="306" height="11" uuid="c3435227-a9e7-4c0d-bfc8-7df5a24714c2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sendi bahu tampak menonjol, prosessus akromion sangat menonjol]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="311" width="14" height="11" uuid="5a9237a2-c259-4283-ae96-84fd74f25e43"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="300" width="180" height="33" uuid="3d9659e5-80ea-4c0e-9dae-0ce25fb2d815"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Akromion dan kalvikula]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="300" width="306" height="11" uuid="dc453554-23ea-4d2b-80b3-5a8d2a4609ba">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Area bahu, dada dan leher tampak utuh dan bulat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="311" width="306" height="11" uuid="f04d4de9-2445-44ae-bf12-2e0c7a9c0203">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Prosessus akromion agak menonjol]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="300" width="14" height="11" uuid="cd8b00d4-8c3f-45e9-a06b-4059cf58ce24"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="322" width="14" height="11" uuid="6a2e2721-a3b3-4e7e-85b9-f96e6b79b1d7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="333" width="180" height="33" uuid="13270ffd-1c94-41d6-b4ad-e2e39efcb82f"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Tulang scapular - muskulus trapezius, supraspinus, infraspinus]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="333" width="14" height="11" uuid="68a44b47-5509-4790-a659-debe0ebcb23a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="355" width="14" height="11" uuid="73754999-224f-46b1-8311-aade9e2f8457"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="355" width="306" height="11" uuid="df79988a-a4a0-455e-9528-c3c336dda5b2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tulang tampak menonjol, tampak cekungan antara tulang iga-skapula / bahu tulang belakang]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="333" width="306" height="11" uuid="63f121f1-662f-45a9-8f7f-965528c624ad">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tulang tidak menonjol, tidak ada cekungan tulang]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="344" width="14" height="11" uuid="5642b77d-d264-4f69-bb3c-2ad232c359b4"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="344" width="306" height="11" uuid="6e2aa84b-586b-4ddd-9d4a-93f8c95fa471">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Cekungan ringan atau tulang tampak sedikit menonjol]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="377" width="306" height="11" uuid="f2aa9397-7a0b-4819-9a85-bf0bde483282">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sedikit cekung]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="388" width="14" height="11" uuid="d7c79ae4-290a-432b-a1d9-7a448ddc9a42"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="377" width="14" height="11" uuid="9e795a88-5cbf-408a-89d6-8acc35bbac01"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="388" width="306" height="11" uuid="49edcb6d-fc14-454c-8792-e51566e2870c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tampak penonjolan otot ( tampak datar pada beberapa orang gizi baik )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="366" width="306" height="11" uuid="07c464bc-3559-4f84-80e5-7848e3f0a58d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tangan daerah jempol tampak cekung dan antara jempol dan telunjuk]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="366" width="14" height="11" uuid="f29929f8-ee1b-4e4d-9b60-7c38aa817a4f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="366" width="180" height="33" uuid="1cd6c876-54a8-4e6a-b1c0-a8c3e6f7a8cc"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Punggung ( dorsal ) tangan - musculus interosseus]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="399" width="392" height="33" uuid="b34a4e69-f75c-460b-afee-87a5c0319c3a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="410" width="14" height="11" uuid="560a5329-acf0-4325-a296-9167e5b8421e"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="399" width="180" height="33" uuid="189a17d3-51b9-45e0-804b-55f41d893a65"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Lutut]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="399" width="14" height="11" uuid="36d79a3b-9bb1-4c54-a824-9b2ed8366711"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="410" width="306" height="11" uuid="fddb9c90-e277-403d-93d3-334ff7f64b7e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tempurung lutut agak menonjol]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="399" width="306" height="11" uuid="b7b47fc6-9e4a-41b0-b006-11176edf0c24">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tempurung tidak terlalu menonjol, otot-otot masih tampak]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="421" width="306" height="11" uuid="d821ab0f-cb43-4926-8aa9-83cabd5e4fe7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tempurung lutut menonjol]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="421" width="14" height="11" uuid="304da1c9-c42d-4efc-a121-26a671bd9212"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="432" width="326" height="33" uuid="2ff4647e-941a-4c0b-96bf-b1fe88bd4bff">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="443" width="14" height="11" uuid="605f97ff-c694-4bd4-8b91-2542c14e35ee"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="432" width="306" height="11" uuid="d9ca1702-1f97-4b52-b4cd-33d4d83fb5c8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Paha tampak utuh, dan paha dalam tidak cekung]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="454" width="14" height="11" uuid="0d759691-31c8-4ec5-9184-1689753b4d52"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="432" width="14" height="11" uuid="bdd47045-fe45-4963-8f27-0e71c8598572"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="454" width="306" height="11" uuid="cb5deca6-8618-4c73-a74e-591c130e705c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Paha bagian dalam tampak cekung, kecil dan kurus]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="432" width="180" height="33" uuid="a3d53d6e-4b23-40c8-9f3d-b1d98ebc0842"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Paha Atas]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="443" width="306" height="11" uuid="e9f194cb-6708-4fb8-a3d6-960592d1fe15">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Paha bagian dalam sedikit cekung]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="465" width="306" height="11" uuid="ce8b8e00-3e6c-4186-b342-235bec89b784">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Otot tampak jelas]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="476" width="306" height="11" uuid="5fbf4058-0516-4158-b6e5-8a63b012ba20">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Otot tidak terlalu tampak atau terbentuk]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="487" width="306" height="11" uuid="20bc9a1e-1fea-4914-a7ac-09bd56036e2d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Kurus, otot tampak kecil dan bahkan tidak terlihat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="465" width="14" height="11" uuid="6caf3844-be36-4ce0-af52-6c9ef6b8a498"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="476" width="14" height="11" uuid="1c0d0f80-61fa-4c8a-8aef-009a0a69dbf4"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="487" width="14" height="11" uuid="b46a058b-606f-4301-8421-a56e624e9026"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="498" width="572" height="15" backcolor="#F2F2F2" uuid="d100dc99-2ec7-4163-a36c-162d56d02456">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true" isItalic="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Retensi Cairan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="513" width="14" height="11" uuid="3a8601f1-c349-4908-96c6-342f056a4725"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="535" width="306" height="22" uuid="31420c2b-5026-4d79-95d9-ba425dc8a331"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Edema piting ringan-sedang, ekstremitas superior dan inferior sedikit bengkak, identasi atau cekungan edema segera hilang ( berlangsung 0 - 30 detik )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="557" width="306" height="22" uuid="b52b6217-a0ff-4d95-b161-746ee6608349"/>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Edema piting yang dalam hingga sangat dalam, identasi atau cekungan edema berlangsung 30 - 60 detik, pada wajah dan ekstremitas bilateral tampak bengkak ( +3 sampai +4 )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="535" width="14" height="11" uuid="e57d2bf1-8126-47ab-aab2-cd61538381c9"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="557" width="14" height="11" uuid="412b420f-d4de-4412-8f31-dd3b7b66b087"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="513" width="180" height="66" uuid="6b1cbd3d-3b6b-4ba8-8283-e5b07d102341"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Kaki, wajah, ekstremitas superior, ekstermitas inferior]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="513" width="306" height="22" uuid="67bcb0dc-85d0-4b1c-a80c-0a614b5bb6fe"/>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Edema piting ringan ekstremitas inferior sedikit bengkak, identasi atau cekungan edema segera hilang]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="579" width="14" height="11" uuid="1e5eaa77-f4b7-4b8a-85f2-29da1b07ba71"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="590" width="306" height="11" uuid="33db9d09-197d-455a-a604-6f66ecf6c515">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tampak hanya pada pencitraan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="601" width="306" height="11" uuid="bb070658-6951-4f80-880b-f26f4b02b0de">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="590" width="14" height="11" uuid="9f37e041-b7aa-472d-98c2-81447c83b978"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="601" width="14" height="11" uuid="62666e46-0e17-435f-baae-2f59e7dcca65"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="579" width="180" height="33" uuid="5132f2db-be78-4920-89d9-0d524b24c292"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Ascites]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="579" width="306" height="11" uuid="cb42847f-80e5-4f25-b06f-58e97b2d47bc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="612" width="572" height="15" backcolor="rgba(153, 204, 255, 0.50980395)" uuid="488e0627-361e-471d-9236-062c2a3a2f69">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true" isItalic="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[LABORATORIUM ( BILA ADA )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="627" width="180" height="33" uuid="ee116011-1021-4265-8dd8-28747f43434e"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Albumin]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="649" width="306" height="11" uuid="40565e0e-bcac-4abc-82fd-165916f0a9f6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[< 2,5 g/dl]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="649" width="14" height="11" uuid="ef1ffb4d-8603-48a9-a374-ffc5150f2fa0"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="627" width="14" height="11" uuid="17a23b8b-8c4c-4456-89d5-6a749d71961b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="638" width="306" height="11" uuid="c3f99bc3-5588-4c71-98bd-85f4babf78b8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[2,5 - 2,9 g/dl]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="627" width="306" height="11" uuid="6cbd8c6a-c92f-4b72-8eee-35130cac98bc">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[3,5 - 3,5 g/dl]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="638" width="14" height="11" uuid="c00ba4cb-f646-492b-bce4-b7ec5820658b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="660" width="306" height="11" uuid="74e7992e-3d69-4371-a542-4fe715412a60">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[1.200 - 1.500 /mm3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="671" width="306" height="11" uuid="35d8a2dd-d9e1-4d75-a056-63549f52fd05">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[800 - 1.199 / mm3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="660" width="180" height="33" uuid="39320c56-7542-4688-b059-915627905237"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Total lymphocyte count (TLC)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="682" width="306" height="11" uuid="3a7e6a04-3119-4167-89f4-56c16be5c6fa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[< 800 /mm3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="671" width="14" height="11" uuid="2f1b3903-4da3-4000-bea2-2c8d09bda16d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="682" width="14" height="11" uuid="917b0add-5981-479b-ad8a-7619f5943d9e"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="660" width="14" height="11" uuid="d44f8c78-26b4-4f3c-b650-a457745a79b0"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="693" width="572" height="15" backcolor="rgba(153, 204, 255, 0.50980395)" uuid="00261c63-193b-43cf-b8b2-7c4f844df326">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="true" isItalic="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[FAKTOR KONTRIBUSI]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="708" width="306" height="11" uuid="2dbd389c-ac29-4e58-b0ae-0c27aa2bcfa6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada / ringan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="719" width="306" height="11" uuid="1f542842-352f-4dea-9205-a92aa721f038">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sedang]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="708" width="180" height="33" uuid="ea2f1836-91d8-418a-a12b-06e163ec1c83"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Peradangan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="730" width="306" height="11" uuid="fa7f3668-512f-4085-8f60-eda7c859c310">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Berat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="719" width="14" height="11" uuid="ea5b748d-6cb3-4f79-a71f-d43d3eff45f9"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="730" width="14" height="11" uuid="f6155ec9-3c4c-49b2-b357-435a6d710397"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="708" width="14" height="11" uuid="8b1841fc-1bff-4c5e-9f01-3696739910fa"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="741" width="306" height="11" uuid="74a148cc-bb0b-46a5-8b94-5dac464b34ac">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Bottom">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tidak ada / ringan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="763" width="306" height="11" uuid="1fe6a574-08fc-4eca-874b-a546dfa8abc8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Berat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="752" width="14" height="11" uuid="bf893be4-c9d6-46a3-836f-c0056c96a083"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="763" width="14" height="11" uuid="ad29a56c-e669-4018-8150-285861ef1ed0"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="186" y="741" width="14" height="11" uuid="f76963e0-7c2d-46a7-afdd-a98ff7eaac71"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Webdings" size="6" isBold="false"/>
+					<paragraph lineSpacing="Single" leftIndent="0"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="741" width="180" height="33" uuid="b6eb2a0b-71e6-487c-8357-9e4b4f8f5433"/>
+				<box>
+					<pen lineWidth="0.25"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single" firstLineIndent="0" leftIndent="10" rightIndent="10" spacingBefore="0" spacingAfter="0"/>
+				</textElement>
+				<text><![CDATA[Sarkopenia]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="752" width="306" height="11" uuid="f26f42f7-3cc8-47ab-9a08-daa12c48c952">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="7" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Sedang]]></text>
+			</staticText>
+		</band>
+	</detail>
+	<columnFooter>
+		<band/>
+	</columnFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

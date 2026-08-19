@@ -1,0 +1,380 @@
+package simrskhanza;
+
+import java.awt.Point;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileSystemException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+
+/**
+ * Helper khusus Windows yang dijalankan dari salinan khanza.jar di TEMP.
+ * Karena tidak memakai JAR pada folder aplikasi, khanza.jar dapat diganti
+ * setelah proses utama berhenti.
+ */
+public final class WindowsUpdateHelper {
+
+    private static final long FILE_UNLOCK_TIMEOUT_MS = 30_000L;
+    private static final long FILE_UNLOCK_RETRY_MS = 200L;
+
+    private WindowsUpdateHelper() {
+    }
+
+    public static void main(String[] args) {
+        if (args.length < 11) {
+            System.exit(2);
+            return;
+        }
+
+        try {
+            long parentPid = Long.parseLong(args[0]);
+            Path stagingDirectory = Paths.get(args[1]).toAbsolutePath().normalize();
+            Path applicationDirectory = Paths.get(args[2]).toAbsolutePath().normalize();
+            Path localVersionFile = Paths.get(args[3]).toAbsolutePath().normalize();
+            String newVersion = args[4];
+            Path workDirectory = Paths.get(args[5]).toAbsolutePath().normalize();
+            Path readyFile = Paths.get(args[6]).toAbsolutePath().normalize();
+            Path helperJar = Paths.get(args[7]).toAbsolutePath().normalize();
+            Point location = new Point(Integer.parseInt(args[8]),
+                    Integer.parseInt(args[9]));
+            String javawExecutable = args[10];
+            List<String> restartMemoryArguments =
+                    readRestartMemoryArguments(args);
+
+            validatePaths(stagingDirectory, applicationDirectory, workDirectory);
+            helperJar.toFile().deleteOnExit();
+
+            AtomicReference<UpdateForm> formReference = new AtomicReference<>();
+            SwingUtilities.invokeAndWait(() -> {
+                UpdateForm form = new UpdateForm();
+                form.setLocation(location);
+                form.updateProgress(90, "Menunggu aplikasi versi lama ditutup...");
+                formReference.set(form);
+            });
+
+            Files.write(readyFile,
+                    Collections.singletonList("READY"),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE);
+
+            UpdateForm form = formReference.get();
+            Thread applyThread = new Thread(() -> {
+                try {
+                    waitForParentToExit(parentPid);
+                    form.updateProgress(91,
+                            "Memastikan file aplikasi siap diperbarui...");
+                    applyUpdate(stagingDirectory, applicationDirectory, form);
+
+                    form.updateProgress(99, "Menyimpan versi aplikasi...");
+                    updateLocalVersion(localVersionFile, newVersion);
+                    deleteTree(workDirectory);
+
+                    form.updateProgress(100, "Versi terbaru siap digunakan");
+                    SwingUtilities.invokeLater(() -> launchUpdatedApplication(
+                            form, applicationDirectory, javawExecutable,
+                            restartMemoryArguments));
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    SwingUtilities.invokeLater(() -> handleFailure(form, ex,
+                            applicationDirectory, javawExecutable,
+                            restartMemoryArguments));
+                }
+            }, "Khanza-Windows-Update-Applier");
+            applyThread.start();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.exit(3);
+        }
+    }
+
+    private static void waitForParentToExit(long parentPid)
+            throws InterruptedException {
+        if (parentPid <= 0L) {
+            Thread.sleep(300L);
+            return;
+        }
+
+        while (ProcessHandle.of(parentPid)
+                .map(ProcessHandle::isAlive).orElse(false)) {
+            Thread.sleep(50L);
+        }
+    }
+
+    private static void applyUpdate(Path sourceDirectory, Path targetDirectory,
+            UpdateForm form) throws IOException {
+        List<Path> sources = new ArrayList<>();
+        try (Stream<Path> stream = Files.walk(sourceDirectory)) {
+            stream.filter(Files::isRegularFile).forEach(sources::add);
+        }
+
+        // Ganti khanza.jar terlebih dahulu. Jika ternyata masih dikunci proses
+        // lain, helper belum sempat mengubah file aplikasi yang lainnya.
+        sources.sort((first, second) -> {
+            boolean firstJar = isMainApplicationJar(sourceDirectory, first);
+            boolean secondJar = isMainApplicationJar(sourceDirectory, second);
+            if (firstJar != secondJar) {
+                return firstJar ? -1 : 1;
+            }
+            return first.toString().compareToIgnoreCase(second.toString());
+        });
+
+        long totalBytes = 0L;
+        for (Path source : sources) {
+            totalBytes += Files.size(source);
+        }
+        if (totalBytes == 0L) {
+            throw new IOException("Folder staging tidak memiliki file pembaruan");
+        }
+
+        long copiedBytes = 0L;
+        int lastProgress = 91;
+        for (Path source : sources) {
+            Path relative = sourceDirectory.relativize(source);
+            Path target = targetDirectory.resolve(relative).normalize();
+            if (!target.startsWith(targetDirectory)) {
+                throw new IOException("Target update tidak aman: " + relative);
+            }
+
+            Path parent = target.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            copyWithUnlockRetry(source, target, relative, form, lastProgress);
+            copiedBytes += Files.size(source);
+
+            int progress = 91 + (int) Math.min(7L,
+                    copiedBytes * 7L / totalBytes);
+            if (progress != lastProgress) {
+                lastProgress = progress;
+                form.updateProgress(progress,
+                        "Menerapkan " + relative.toString());
+            }
+        }
+    }
+
+    private static boolean isMainApplicationJar(Path sourceDirectory,
+            Path source) {
+        Path relative = sourceDirectory.relativize(source);
+        return relative.getNameCount() == 1
+                && "khanza.jar".equalsIgnoreCase(relative.toString());
+    }
+
+    /**
+     * Windows kadang belum langsung melepas handle JAR walaupun PID JVM sudah
+     * berakhir. Ulangi penggantian file selama maksimal 30 detik sambil tetap
+     * menampilkan splash, bukan langsung memunculkan pesan gagal.
+     */
+    private static void copyWithUnlockRetry(Path source, Path target,
+            Path relative, UpdateForm form, int progress) throws IOException {
+        long deadline = System.currentTimeMillis() + FILE_UNLOCK_TIMEOUT_MS;
+        long nextStatusUpdate = 0L;
+        FileSystemException lastLockError = null;
+
+        while (true) {
+            try {
+                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+                return;
+            } catch (FileSystemException ex) {
+                if (!isLikelyWindowsFileLock(ex, target)) {
+                    throw ex;
+                }
+                lastLockError = ex;
+
+                long now = System.currentTimeMillis();
+                if (now >= deadline) {
+                    throw new FileLockedException(relative, lastLockError);
+                }
+                if (now >= nextStatusUpdate) {
+                    long remainingSeconds = Math.max(1L,
+                            (deadline - now + 999L) / 1_000L);
+                    form.updateProgress(progress,
+                            "Menunggu " + relative
+                            + " dilepas proses lain (maks. "
+                            + remainingSeconds + " detik)...");
+                    nextStatusUpdate = now + 1_000L;
+                }
+
+                try {
+                    Thread.sleep(FILE_UNLOCK_RETRY_MS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(
+                            "Proses menunggu file aplikasi dibatalkan",
+                            interrupted);
+                }
+            }
+        }
+    }
+
+    private static boolean isLikelyWindowsFileLock(FileSystemException error,
+            Path target) {
+        String detail = (String.valueOf(error.getReason()) + " "
+                + String.valueOf(error.getMessage()))
+                .toLowerCase(java.util.Locale.ROOT);
+        return "khanza.jar".equalsIgnoreCase(
+                    String.valueOf(target.getFileName()))
+                || detail.contains("used by another process")
+                || detail.contains("being used by another process")
+                || detail.contains("process cannot access")
+                || detail.contains("access is denied")
+                || detail.contains("digunakan oleh proses lain");
+    }
+
+    private static void updateLocalVersion(Path localVersionFile,
+            String newVersion) throws IOException {
+        if (!newVersion.matches("[A-Za-z0-9._-]{1,64}")) {
+            throw new IOException("Format versi tidak valid");
+        }
+
+        Path parent = localVersionFile.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        Path temporaryFile = localVersionFile.resolveSibling(
+                localVersionFile.getFileName().toString() + ".tmp");
+        Files.write(temporaryFile,
+                Collections.singletonList(newVersion),
+                StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE);
+        try {
+            Files.move(temporaryFile, localVersionFile,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException ex) {
+            Files.move(temporaryFile, localVersionFile,
+                    StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void launchUpdatedApplication(UpdateForm form,
+            Path applicationDirectory, String javawExecutable,
+            List<String> restartMemoryArguments) {
+        Timer timer = new Timer(120, event -> {
+            ((Timer) event.getSource()).stop();
+            try {
+                Path khanzaJar = applicationDirectory.resolve("khanza.jar");
+                if (!Files.isRegularFile(khanzaJar)) {
+                    throw new IOException("khanza.jar terbaru tidak ditemukan");
+                }
+                List<String> command = new ArrayList<>();
+                command.add(javawExecutable);
+                command.addAll(restartMemoryArguments);
+                command.add("-jar");
+                command.add(khanzaJar.toAbsolutePath().toString());
+                new ProcessBuilder(command)
+                        .directory(applicationDirectory.toFile())
+                        .start();
+                form.dispose();
+                System.exit(0);
+            } catch (Exception ex) {
+                handleFailure(form, ex, applicationDirectory, javawExecutable,
+                        restartMemoryArguments);
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private static void handleFailure(UpdateForm form, Throwable error,
+            Path applicationDirectory, String javawExecutable,
+            List<String> restartMemoryArguments) {
+        form.updateProgress(100, "Pembaruan gagal diterapkan");
+        boolean lockedByAnotherProcess = error instanceof FileLockedException;
+        JOptionPane.showMessageDialog(form,
+                lockedByAnotherProcess
+                        ? safeMessage(error)
+                        : "Pembaruan tidak dapat diselesaikan.\n"
+                        + safeMessage(error),
+                "Pembaruan Gagal", JOptionPane.WARNING_MESSAGE);
+        try {
+            Path khanzaJar = applicationDirectory.resolve("khanza.jar");
+            // Jangan membuka instance ketiga ketika JAR masih dikunci oleh
+            // instance Khanza lain. Untuk kegagalan selain lock, versi yang
+            // masih tersedia tetap dicoba dijalankan.
+            if (!lockedByAnotherProcess && Files.isRegularFile(khanzaJar)) {
+                List<String> command = new ArrayList<>();
+                command.add(javawExecutable);
+                command.addAll(restartMemoryArguments);
+                command.add("-jar");
+                command.add(khanzaJar.toAbsolutePath().toString());
+                new ProcessBuilder(command)
+                        .directory(applicationDirectory.toFile())
+                        .start();
+            }
+        } catch (Exception launchError) {
+            launchError.printStackTrace();
+        } finally {
+            form.dispose();
+            System.exit(4);
+        }
+    }
+
+    private static void validatePaths(Path stagingDirectory,
+            Path applicationDirectory, Path workDirectory) throws IOException {
+        Path settingUpdateDirectory = applicationDirectory.resolve("settingupdate")
+                .normalize();
+        if (!workDirectory.startsWith(settingUpdateDirectory)
+                || !stagingDirectory.startsWith(workDirectory)
+                || stagingDirectory.equals(workDirectory)) {
+            throw new IOException("Lokasi staging pembaruan tidak aman");
+        }
+    }
+
+    private static List<String> readRestartMemoryArguments(String[] args) {
+        List<String> arguments = new ArrayList<>();
+        for (int index = 11; index < args.length; index++) {
+            if (args[index].matches("-X(?:ms|mx|ss).+")) {
+                arguments.add(args[index]);
+            }
+        }
+        return Collections.unmodifiableList(arguments);
+    }
+
+    private static void deleteTree(Path target) throws IOException {
+        if (!Files.exists(target)) {
+            return;
+        }
+        try (Stream<Path> stream = Files.walk(target)) {
+            List<Path> paths = new ArrayList<>();
+            stream.sorted(Comparator.reverseOrder()).forEach(paths::add);
+            for (Path path : paths) {
+                Files.deleteIfExists(path);
+            }
+        }
+    }
+
+    private static String safeMessage(Throwable error) {
+        String message = error == null ? null : error.getMessage();
+        return message == null || message.trim().isEmpty()
+                ? error.getClass().getSimpleName() : message;
+    }
+
+    private static final class FileLockedException extends IOException {
+
+        private static final long serialVersionUID = 1L;
+
+        FileLockedException(Path relative, IOException cause) {
+            super("File " + relative + " masih digunakan proses Khanza/Java "
+                    + "lain setelah 30 detik. Tutup semua instance SIMRS "
+                    + "Khanza, lalu jalankan Aplikasi.bat kembali.", cause);
+        }
+    }
+}

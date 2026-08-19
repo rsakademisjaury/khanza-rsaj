@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rptKwitansiBilling_Billing" pageWidth="595" pageHeight="842" whenNoDataType="NoPages" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="a1f0b90e-7a9c-4c8a-8d45-50859b0e89db">
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="P_NO_RAWAT" class="java.lang.String"/>
+	<parameter name="P_NAMA_RS" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="P_ALAMAT_RS" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="P_KONTAK_RS" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="P_LOGO" class="java.io.InputStream" isForPrompting="false"/>
+	<parameter name="P_PAYER" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["BPJS Kesehatan"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P_TERBILANG" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="P_LOKASI_TGL" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="P_NAMA_PETUGAS" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="P_TTD" class="java.io.InputStream" isForPrompting="false"/>
+	<parameter name="P_PPN" class="java.math.BigDecimal" isForPrompting="false">
+		<defaultValueExpression><![CDATA[new java.math.BigDecimal(0)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+                noindex,
+                no_rawat,
+                tgl_byr,
+                `no`,
+                nm_perawatan,
+                pemisah,
+                biaya,
+                jumlah,
+                tambahan,
+                totalbiaya,
+                status
+            FROM billing
+            WHERE no_rawat = $P{P_NO_RAWAT}
+            ORDER BY noindex ASC]]>
+	</queryString>
+	<field name="noindex" class="java.lang.Integer"/>
+	<field name="no_rawat" class="java.lang.String"/>
+	<field name="tgl_byr" class="java.sql.Date"/>
+	<field name="no" class="java.lang.String"/>
+	<field name="nm_perawatan" class="java.lang.String"/>
+	<field name="pemisah" class="java.lang.String"/>
+	<field name="biaya" class="java.math.BigDecimal"/>
+	<field name="jumlah" class="java.math.BigDecimal"/>
+	<field name="tambahan" class="java.math.BigDecimal"/>
+	<field name="totalbiaya" class="java.math.BigDecimal"/>
+	<field name="status" class="java.lang.String"/>
+	<variable name="V_GRAND_TOTAL" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{totalbiaya} == null ? java.math.BigDecimal.ZERO : $F{totalbiaya}]]></variableExpression>
+		<initialValueExpression><![CDATA[new java.math.BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="V_TAGIHAN_PPN" class="java.math.BigDecimal" calculation="System">
+		<variableExpression><![CDATA[$V{V_GRAND_TOTAL}.add($P{P_PPN})]]></variableExpression>
+	</variable>
+	<title>
+		<band height="120">
+			<image>
+				<reportElement x="0" y="0" width="60" height="60" uuid="42c5ab43-6550-4749-8e7e-7962a9ba2347"/>
+				<imageExpression><![CDATA[$P{P_LOGO}]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="70" y="0" width="410" height="20" uuid="b6501bc4-3e6d-4a37-b424-b0cd74cd5d8b"/>
+				<textElement textAlignment="Center">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{P_NAMA_RS} == null ? "RS. AKADEMIS JAURY JUSUF PUTERA" : $P{P_NAMA_RS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="70" y="22" width="410" height="18" uuid="328c3f88-8ac3-4c4e-aa05-19fdb893bd3b"/>
+				<textElement textAlignment="Center">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{P_ALAMAT_RS} == null ? "Jl. Jend. M. Jusuf No. 57A Makassar, Sulawesi Selatan" : $P{P_ALAMAT_RS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="70" y="40" width="410" height="18" uuid="0fbb8f96-0ca6-4d6a-9c7c-07c1415e0c13"/>
+				<textElement textAlignment="Center">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{P_KONTAK_RS} == null ? "0411 3617343, E-mail : rsaj.jaury@yahoo.com" : $P{P_KONTAK_RS}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="490" y="5" width="85" height="18" uuid="404dcf7d-906f-483f-bbd3-39880fa43dc8"/>
+				<textElement textAlignment="Right">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{P_PAYER}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="65" width="555" height="1" uuid="95db33c5-6b85-4e8c-8d76-cf943b6efbcd"/>
+			</line>
+			<textField>
+				<reportElement x="0" y="80" width="555" height="24" uuid="81d73a32-8527-47ce-bb10-65813b42c482"/>
+				<textElement textAlignment="Center">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["KWITANSI"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<detail>
+		<band height="18">
+			<textField isStretchWithOverflow="true">
+				<reportElement x="0" y="0" width="130" height="18" uuid="358c0135-79d9-4ff9-8d3d-a66990fb8f55"/>
+				<textElement>
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{no} == null ? "" : ($F{no} + "  :")]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="135" y="0" width="235" height="18" uuid="0d1a3ba5-e2f4-432c-b5ab-4652b802019a"/>
+				<textElement>
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nm_perawatan} == null ? "" : $F{nm_perawatan}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0">
+				<reportElement x="375" y="0" width="60" height="18" uuid="4203f06e-f2be-4202-82e3-5ac9c584af7a">
+					<printWhenExpression><![CDATA[$F{biaya} != null && $F{biaya}.doubleValue() != 0]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{biaya}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.##">
+				<reportElement x="440" y="0" width="45" height="18" uuid="1188d496-cb1f-404f-a3d9-19cfb85427c8">
+					<printWhenExpression><![CDATA[$F{jumlah} != null && $F{jumlah}.doubleValue() != 0]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{jumlah}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0">
+				<reportElement x="490" y="0" width="45" height="18" uuid="dcf1e59e-51f3-4997-9dbb-2d59582ac6e5">
+					<printWhenExpression><![CDATA[$F{tambahan} != null && $F{tambahan}.doubleValue() != 0]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tambahan}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0">
+				<reportElement x="515" y="0" width="60" height="18" uuid="c303f819-57d6-45a7-b2c0-ea3b3b9f1895">
+					<printWhenExpression><![CDATA[$F{totalbiaya} != null && $F{totalbiaya}.doubleValue() != 0]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{totalbiaya}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="203">
+			<staticText>
+				<reportElement x="350" y="0" width="130" height="16" uuid="43fe200a-d276-4bcf-aa34-ab8bc6a06039"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[TOTAL TAGIHAN :]]></text>
+			</staticText>
+			<textField pattern="#,##0">
+				<reportElement x="485" y="0" width="90" height="16" uuid="b7902bab-5f52-46d9-afa1-d663b0645cc7"/>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{V_GRAND_TOTAL}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="350" y="20" width="130" height="16" uuid="af756211-8339-434c-8834-d7036911f7d2"/>
+				<textElement textAlignment="Right"/>
+				<text><![CDATA[PPN :]]></text>
+			</staticText>
+			<textField pattern="#,##0">
+				<reportElement x="485" y="20" width="90" height="16" uuid="6085b627-9549-4efc-b21f-c4272b89a1ab"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$P{P_PPN}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="350" y="40" width="130" height="16" uuid="649ae2e5-f689-4f17-a527-e844eb5bf3d4"/>
+				<textElement textAlignment="Right"/>
+				<text><![CDATA[TAGIHAN + PPN :]]></text>
+			</staticText>
+			<textField pattern="#,##0">
+				<reportElement x="485" y="40" width="90" height="16" uuid="ad37c62e-6eaf-4829-807c-c3a04b02bff1"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$V{V_TAGIHAN_PPN}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="350" y="60" width="130" height="16" uuid="abcc8c29-2fb2-467d-94c9-4aa4cd5df51f"/>
+				<textElement textAlignment="Right"/>
+				<text><![CDATA[EKSES :]]></text>
+			</staticText>
+			<textField pattern="#,##0">
+				<reportElement x="485" y="60" width="90" height="16" uuid="27156790-6c83-4be7-aa61-d7a114615cae"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[new java.math.BigDecimal(0)]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="350" y="80" width="130" height="16" uuid="0dfaf9a2-02cd-4f04-a6da-53eafe12fec0"/>
+				<textElement textAlignment="Right" markup="none"/>
+				<text><![CDATA[SISA PIUTANG :]]></text>
+			</staticText>
+			<textField pattern="#,##0">
+				<reportElement x="485" y="80" width="90" height="16" uuid="8731ba00-f632-4a17-9b3d-d94bfbde279e"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$V{V_TAGIHAN_PPN}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="0" y="105" width="320" height="18" uuid="fdb7c62e-1939-4b9e-abf7-1229f95ca66d"/>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Terbilang : " + ($P{P_TERBILANG} == null ? "" : $P{P_TERBILANG})]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="360" y="105" width="215" height="16" uuid="f4509c85-1680-475f-9e88-9083490181d0"/>
+				<textElement textAlignment="Center">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{P_LOKASI_TGL}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="415" y="120" width="105" height="16" uuid="27251521-8a7f-4a32-92a4-4fd2184989d5"/>
+				<textElement textAlignment="Center">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Petugas,"]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement x="415" y="136" width="105" height="32" uuid="b4461600-421b-4857-a00d-4929a6ae5ecd"/>
+				<imageExpression><![CDATA[$P{P_TTD}]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement x="360" y="170" width="215" height="16" uuid="8648a7a7-74f7-4487-a0ce-706f370bcbb7"/>
+				<textElement textAlignment="Center">
+					<font size="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{P_NAMA_PETUGAS} == null ? "" : $P{P_NAMA_PETUGAS}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

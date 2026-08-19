@@ -1,0 +1,1709 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="null" pageWidth="612" pageHeight="936" columnWidth="574" leftMargin="19" rightMargin="19" topMargin="19" bottomMargin="19" uuid="34c13d5a-cd6b-451e-8001-9fd298d2274a">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="0"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="1000"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="localhost"/>
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.unit." value="cm"/>
+	<parameter name="namars" class="java.lang.String"/>
+	<parameter name="alamatrs" class="java.lang.String"/>
+	<parameter name="kotars" class="java.lang.String"/>
+	<parameter name="propinsirs" class="java.lang.String"/>
+	<parameter name="kontakrs" class="java.lang.String"/>
+	<parameter name="emailrs" class="java.lang.String"/>
+	<parameter name="logo2" class="java.lang.String"/>
+	<parameter name="tglRegistrasi" class="java.lang.String"/>
+	<parameter name="finger" class="java.lang.String"/>
+	<parameter name="kamar" class="java.lang.String"/>
+	<parameter name="namakamar" class="java.lang.String"/>
+	<parameter name="alamat" class="java.lang.String"/>
+	<queryString language="SQL">
+		<![CDATA[select reg_periksa.no_rawat,pasien.no_rkm_medis,pasien.nm_pasien,pasien.tgl_lahir,pasien.umur,pasien.jk,
+		hasil_pemeriksaan_echo.tanggal,
+hasil_pemeriksaan_echo.kd_dokter,dokter.nm_dokter,
+hasil_pemeriksaan_echo.AortaRootDiameter, hasil_pemeriksaan_echo.ValveCupsMotion, 
+hasil_pemeriksaan_echo.LeftAtriumDimension, hasil_pemeriksaan_echo.AtriumLAAoRatio, 
+hasil_pemeriksaan_echo.RightVentricleDimension, hasil_pemeriksaan_echo.LeftVentricleED, 
+hasil_pemeriksaan_echo.LeftVentricleES, hasil_pemeriksaan_echo.LeftVentricleEF, 
+hasil_pemeriksaan_echo.FractShorteningFS, hasil_pemeriksaan_echo.LVPWthickeningED, 
+hasil_pemeriksaan_echo.LVPWThickening, hasil_pemeriksaan_echo.LVPWmationPattern, 
+hasil_pemeriksaan_echo.IVSThickeningIVS, hasil_pemeriksaan_echo.IVSthickening, 
+hasil_pemeriksaan_echo.IVSmationPattern, hasil_pemeriksaan_echo.IVSRatio, 
+hasil_pemeriksaan_echo.AnteriorLeaflet, hasil_pemeriksaan_echo.DiastolicMotionTeks, 
+hasil_pemeriksaan_echo.DiastolicMotionCMbox, hasil_pemeriksaan_echo.SystolicMotion, 
+hasil_pemeriksaan_echo.PosteriorLeafletCMbox, hasil_pemeriksaan_echo.PosteriorLeafletTeks, 
+hasil_pemeriksaan_echo.TricuspidValve, hasil_pemeriksaan_echo.PulmonaryValve, 
+hasil_pemeriksaan_echo.PericardialEffusionCMBox, hasil_pemeriksaan_echo.PericardialEffusionTeks, 
+hasil_pemeriksaan_echo.ValvesAO, hasil_pemeriksaan_echo.ValvesMitral, hasil_pemeriksaan_echo.ChambersLAC, 
+hasil_pemeriksaan_echo.ChambersRVC, hasil_pemeriksaan_echo.ChambersRAC, hasil_pemeriksaan_echo.ChambersLVC, 
+hasil_pemeriksaan_echo.Myocardium, hasil_pemeriksaan_echo.PSLAXSegmental, hasil_pemeriksaan_echo.PSLAXDiffuse, 
+hasil_pemeriksaan_echo.PSLAXMass, hasil_pemeriksaan_echo.PSLAXPericardium, hasil_pemeriksaan_echo.PSSAXAorticValve, 
+hasil_pemeriksaan_echo.MitralValve, hasil_pemeriksaan_echo.LeftVentricle, hasil_pemeriksaan_echo.APACWallMotion, 
+hasil_pemeriksaan_echo.APACSegmental, hasil_pemeriksaan_echo.APACDiffuce, hasil_pemeriksaan_echo.APACMitraValve, 
+hasil_pemeriksaan_echo.APACTriscupsidValve, hasil_pemeriksaan_echo.Shunts, hasil_pemeriksaan_echo.ValveInsufficiency, 
+hasil_pemeriksaan_echo.Comments
+from reg_periksa inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis
+inner join hasil_pemeriksaan_echo on reg_periksa.no_rawat=hasil_pemeriksaan_echo.no_rawat
+inner join dokter on hasil_pemeriksaan_echo.kd_dokter=dokter.kd_dokter]]>
+	</queryString>
+	<field name="no_rawat" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="no_rawat"/>
+		<property name="com.jaspersoft.studio.field.label" value="no_rawat"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="reg_periksa"/>
+	</field>
+	<field name="no_rkm_medis" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="no_rkm_medis"/>
+		<property name="com.jaspersoft.studio.field.label" value="no_rkm_medis"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="nm_pasien" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="tgl_lahir" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="tgl_lahir"/>
+		<property name="com.jaspersoft.studio.field.label" value="tgl_lahir"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="tanggal" class="java.sql.Timestamp">
+		<property name="com.jaspersoft.studio.field.name" value="tanggal"/>
+		<property name="com.jaspersoft.studio.field.label" value="tanggal"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="hasil_pemeriksaan_ekg"/>
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="kd_dokter" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="kd_dokter"/>
+		<property name="com.jaspersoft.studio.field.label" value="kd_dokter"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="hasil_pemeriksaan_ekg"/>
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="nm_dokter" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_dokter"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_dokter"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="dokter"/>
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="umur" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="diagnosa_klinis"/>
+		<property name="com.jaspersoft.studio.field.label" value="diagnosa_klinis"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="hasil_pemeriksaan_ekg"/>
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="jk" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="kiriman_dari"/>
+		<property name="com.jaspersoft.studio.field.label" value="kiriman_dari"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="hasil_pemeriksaan_ekg"/>
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="AortaRootDiameter" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="ValveCupsMotion" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="LeftAtriumDimension" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="AtriumLAAoRatio" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="RightVentricleDimension" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="LeftVentricleED" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="LeftVentricleES" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="LeftVentricleEF" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="FractShorteningFS" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="LVPWthickeningED" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="LVPWThickening" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="LVPWmationPattern" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="IVSThickeningIVS" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="IVSthickening" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="IVSmationPattern" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="IVSRatio" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="AnteriorLeaflet" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="DiastolicMotionTeks" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="DiastolicMotionCMbox" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="SystolicMotion" class="java.lang.String"/>
+	<field name="PosteriorLeafletTeks" class="java.lang.String"/>
+	<field name="TricuspidValve" class="java.lang.String"/>
+	<field name="PericardialEffusionCMBox" class="java.lang.String"/>
+	<field name="PulmonaryValve" class="java.lang.String"/>
+	<field name="PosteriorLeafletCMbox" class="java.lang.String"/>
+	<field name="PericardialEffusionTeks" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="ValvesAO" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="ValvesMitral" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="ChambersLAC" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="ChambersRVC" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="ChambersRAC" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="ChambersLVC" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="Myocardium" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="PSLAXSegmental" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="PSLAXDiffuse" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="PSLAXMass" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="PSLAXPericardium" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="PSSAXAorticValve" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="MitralValve" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="LeftVentricle" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="APACWallMotion" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="APACSegmental" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="APACDiffuce" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="APACMitraValve" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="APACTriscupsidValve" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="Shunts" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="ValveInsufficiency" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<field name="Comments" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
+	</field>
+	<title>
+		<band height="898">
+			<staticText>
+				<reportElement x="0" y="223" width="570" height="38" uuid="e37be577-3b32-4714-9886-2a1496176f45"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="12" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[ECHOCARDIOGRAM REPORT
+( 2D - M - Mode - Doppler )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="32" y="187" width="77" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="4af4148f-5644-42a7-89a9-b525e524e242">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Alamat]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="109" y="187" width="6" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="e74439eb-5ce4-4860-9eaa-ede1357149d6"/>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="115" y="187" width="429" height="25" uuid="857e5ce5-abd7-462a-ac40-c322ae3c1c9e">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[PROPER($P{alamat} )]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="115" y="142" width="180" height="14" uuid="4d229602-5f98-4f0e-9e8f-2f0155dad7be"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{no_rkm_medis}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="109" y="142" width="6" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="ca980ad4-9410-402e-afdd-44e41f5e8080"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="32" y="142" width="77" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="b7f5a3e0-441b-4aab-8db8-09fcd392d512">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[No. Rekam Medik]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="115" y="127" width="180" height="14" uuid="a1d5eef1-1c52-483c-9651-e2f89fd5c593">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nm_pasien}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="109" y="127" width="6" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="71572316-df19-4fe9-8d20-651c7dea286e">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="32" y="127" width="77" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="5c152629-d67c-4d85-9449-6068366b6242">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Nama Pasien]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="109" y="157" width="6" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="e5d1c6dd-fa83-4935-8cf0-cca9a1657ddc"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="32" y="157" width="77" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="0df404c3-eb79-48de-ad98-6e9aeae0e24e">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tgl. Lahir / Umur]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="115" y="157" width="180" height="14" uuid="9c1f36c8-f607-4d32-92ee-36b410b5722a"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tgl_lahir}+" / "+$F{umur}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="394" y="154" width="10" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="1938beb6-9a6a-4f9a-b35f-616c2857779b"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="302" y="154" width="92" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="3e65e462-5eb6-407a-857a-5276881cd8db">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tgl. Hasil / Jam]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="404" y="154" width="140" height="14" uuid="e080a487-3f64-4d6b-a39a-9abcf9b43100"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tanggal}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="394" y="142" width="10" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="788379c2-9a7b-43d5-b6b6-fc3d37d8bf93">
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="404" y="142" width="140" height="14" uuid="c2528985-5f27-40b8-b45a-dd22be874be5"/>
+				<textElement verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{namakamar}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="302" y="142" width="92" height="14" uuid="b3a0cd08-6bc9-4f28-b1b8-9fbcb3b184dc">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{kamar}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="394" y="127" width="10" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="da1cb2dd-40cd-48e5-a9c4-ff9c037e2de7"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="302" y="127" width="92" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="73fdd537-5e15-4f02-b31e-9132cf61707c">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Tgl. Registrasi / Jam]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="404" y="127" width="140" height="14" uuid="0ad3533f-67e5-40bf-8961-98972d408a50"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tglRegistrasi}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="109" y="172" width="6" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="14d22464-2706-4268-8b0f-3bb6cff8b897"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="32" y="172" width="77" height="14" forecolor="#000000" backcolor="#F0F0DC" uuid="4c63cab8-8f14-4b21-85cd-85330e139c4d">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Jenis Kelamin]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="115" y="172" width="180" height="14" uuid="07d63c9c-376d-46ac-a0b4-60ed3aff3696"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{jk}.replaceAll("L","Laki-Laki").replaceAll("P","Perempuan")]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="18" y="276" width="87" height="18" uuid="d6bc9b95-7cc5-416e-bb9e-34afa345c9f6"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="11" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[M - Mode]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="330" y="276" width="159" height="18" uuid="a43b8944-2058-4ddc-b7bf-1736384b5c52"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="true" isItalic="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Normal Values]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="20" y="307" width="69" height="18" uuid="6e786afb-5802-4294-b667-49d336e23a9f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[AORTA]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="60" y="307" width="200" height="18" uuid="a33ffb14-e6b2-4ebc-8128-bf56fc99cc89"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Root diameter]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="29" y="325" width="231" height="18" uuid="72601ded-a956-4a20-9e0c-fd0f5d63664a"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Valve Cusp motion :  Normal / other ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="21" y="357" width="88" height="18" uuid="0ecbdd83-f6fc-4ad2-8602-fb70006c3b96"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[LEFT ATRIUM ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="60" y="357" width="200" height="18" uuid="3475d698-c9e1-4c9b-8e4d-8074a2c39be0"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Dimension]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="60" y="375" width="200" height="18" uuid="6c915d29-3488-4446-a33b-278755fae4c5"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[LA / Ao Ratio]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="21" y="406" width="119" height="18" uuid="f33a69a1-749e-4ebd-9ea8-5b737d026919"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[RIGHT VENTRICLE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="60" y="406" width="200" height="18" uuid="19e12fa0-fa7d-4002-953d-e20e4496d378"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Dimension]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="21" y="436" width="119" height="18" uuid="b1dc1338-4cae-4bd5-85db-23fcbfd22cc9"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[LEFT VENTRICLE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="436" width="200" height="18" uuid="10e90466-fe2c-4a85-ba6e-866fa75ce2b3"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Dimension ( ED )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="454" width="200" height="18" uuid="2b27aba8-71bb-4163-8dda-9455d4d455c4"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( ES )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="472" width="200" height="18" uuid="5ecc2e0f-28ce-4b51-9d92-0de99feac481"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Ejection Fraction ( EF )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="490" width="200" height="18" uuid="3955b933-3a22-4e1b-b733-984362fb9456"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Fract. Shortening ( FS )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="508" width="200" height="18" uuid="f1bd47fa-e44f-433f-98e8-9cf26e43188b"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[LVPW thickening ( ED )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="526" width="200" height="18" uuid="37af9e2e-16cc-4663-a1a7-3e698012537b"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[% thickening ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="544" width="200" height="18" uuid="6d7b04ba-0c81-49ab-8a1a-ec16462d82e1"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Mation pattern]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="562" width="200" height="18" uuid="dddf9439-fe72-48e8-93fa-250909beb982"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[IVS thickening]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="580" width="200" height="18" uuid="31da8ec1-5c34-4ea9-8327-8ee41c101807"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[% thickening ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="598" width="200" height="18" uuid="640280cc-0eb2-4c27-932f-5a85a5491943"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Mation pattern]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="61" y="616" width="200" height="18" uuid="eb6cdbe2-31a5-43f0-851b-77ae558a0b87"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[IVS  / LVPW Ratio]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="18" y="647" width="102" height="18" uuid="3a1d936a-f137-4caa-9a45-e9b39c866da7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[MITRAL VALVE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="96" y="647" width="88" height="18" uuid="fadabc2a-4700-46e5-bd7e-7aeaa3130a1d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[anterior leaflet]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="96" y="665" width="88" height="18" uuid="ae06f64d-afc8-419b-8b9a-16cff99f9793"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[diastolic motion]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="161" y="647" width="100" height="18" uuid="1d12cd65-3e8c-4c91-9db9-e41c6d970a18"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Amplitude ( D - E )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="161" y="665" width="100" height="18" uuid="6fea7417-0035-4891-b77d-a0d01ac0d5ee"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Slope ( E - Fo )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="161" y="683" width="100" height="18" uuid="0b8f3583-9f1b-4299-a772-682d0a83c5cd"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Slope ( E - Fo )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="161" y="701" width="100" height="18" uuid="80c28898-cb47-41dc-b8a2-af97a76e5b05"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Slope ( E - Fo )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="96" y="701" width="88" height="18" uuid="885f5123-df8c-4e7d-ae24-42132b20fecf"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[systolic motion]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="96" y="719" width="88" height="18" uuid="f7fe58e5-601e-4996-b3f4-e26146b3a846"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[posterior leaflet]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="21" y="748" width="94" height="18" uuid="c166e4fe-e60d-4463-b744-5f0189d124bb"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[TRICUSPID VALVE]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="21" y="776" width="119" height="18" uuid="59a6a6b0-13b7-44c9-96ed-931bb52fa55d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[PERICARDIAL EFFUSION]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="330" y="307" width="140" height="18" uuid="ddef4037-4e5b-4593-9c17-4a77850fcee6"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( 20 - 30 mm )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="360" y="357" width="110" height="18" uuid="6e92674d-3a5f-4c31-a78a-de990ff93332"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( 20 - 40 mm )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="360" y="375" width="110" height="18" uuid="7ce11636-ce24-4b8d-9a38-42332782a561"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( < 1.3 )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="360" y="406" width="110" height="18" uuid="c9ef5e0c-2c14-4462-bbce-2a0d39be9080"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( < 30 mm )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="436" width="110" height="18" uuid="694b7049-b973-4899-8191-38bb064e88ac"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( 30 - 50 mm )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="454" width="110" height="18" uuid="c162e356-9583-49f7-9bfa-6d43642a0455"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( Variabel )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="472" width="110" height="18" uuid="8a6b7309-8e99-489b-a7cc-65be05559d72"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( > 60 % )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="490" width="110" height="18" uuid="76ea3f4f-9213-41e9-b7b9-d72d98661ebe"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( > 25 % )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="508" width="110" height="18" uuid="6c1d49de-51e6-47db-99af-718f92ab4e46"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( 8 - 12 mm )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="526" width="110" height="18" uuid="ad6006d6-7acd-452e-a138-d47b0c4ce581"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( > 30 % )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="562" width="110" height="18" uuid="1bff796f-4b30-48d7-9440-115d6a14f428"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( 5 - 13 mm )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="580" width="110" height="18" uuid="872dfad5-427a-4edc-aeaf-072d673d4dae"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( > 30 % )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="616" width="110" height="18" uuid="30b040f7-701f-4473-85bb-02f169c72a33"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( < 1.3 )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="647" width="110" height="18" uuid="2b0b2c3e-bd41-4239-b7e2-9cd962110702"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( > 17 mm )]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="361" y="665" width="110" height="18" uuid="a9c59d0a-d475-4532-8c3a-f632ac8eb724"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[( > 70 mm / sec )]]></text>
+			</staticText>
+			<line>
+				<reportElement x="8" y="301" width="557" height="1" uuid="863fb6a4-df7f-4c45-9c2e-4961fe1dc6ce">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="8" y="350" width="557" height="1" uuid="38acd070-f523-4445-99f8-52a0da40a310">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="8" y="399" width="557" height="1" uuid="12e01f42-2b4b-4cfc-8a0e-078eb0203836">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="8" y="429" width="557" height="1" uuid="b32bb155-0248-4405-ae38-78dd990828f6">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="8" y="640" width="557" height="1" uuid="0f3e1b9c-964f-4678-97c3-d44c6895b1b9">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="8" y="743" width="557" height="1" uuid="7a89fa12-c7bb-49ad-80b3-026bf9a13d5c">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="8" y="771" width="557" height="1" uuid="3e72f5e6-c01c-4c4f-8472-a7649aec3471">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="8" y="798" width="557" height="1" uuid="8677dc24-5299-426a-9623-a65ba80c9f9f">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<textField isBlankWhenNull="true">
+				<reportElement x="270" y="307" width="60" height="18" uuid="81deafa2-5e46-4a4c-8f0f-22ab52c10223"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{AortaRootDiameter}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="270" y="325" width="255" height="18" uuid="513adf31-8677-4617-aa8a-2d1481fb24ef"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{ValveCupsMotion}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="270" y="357" width="90" height="18" uuid="f770b6d5-d21f-46a1-ae22-e69f92d8e02f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{LeftAtriumDimension}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="270" y="375" width="90" height="18" uuid="920f7b24-c955-4276-9e64-9477f20c2ecd"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{AtriumLAAoRatio}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="270" y="406" width="90" height="18" uuid="54f305ce-a684-4f0f-9217-874814d2ad50"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{RightVentricleDimension}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="436" width="90" height="18" uuid="cd9036ee-048b-4ffc-a55a-8f7c9fa72e8d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{LeftVentricleED}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="454" width="90" height="18" uuid="edb5e545-be44-4e2e-bbc2-6a3a6403df22"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{LeftVentricleES}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="472" width="90" height="18" uuid="a2daa5e4-9813-49ff-97f2-536e1230c30a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{LeftVentricleEF}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="490" width="90" height="18" uuid="ff1e619f-5bc5-494d-8537-6816e91dc0a5"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{FractShorteningFS}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="508" width="90" height="18" uuid="9de9be52-1d07-4d6c-9618-4a887ade5c25"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{LVPWthickeningED}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="527" width="90" height="18" uuid="a5f9733d-25a4-40e5-ba6a-fcb368a5a998"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{LVPWThickening}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="544" width="158" height="18" uuid="4d0836df-f25f-4bfc-91b5-38228ad9faaa"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{LVPWmationPattern}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="562" width="90" height="18" uuid="15690255-3ef5-41f7-b33b-06110d8c654f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{IVSThickeningIVS}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="580" width="90" height="18" uuid="00628c11-d7dc-4195-92ac-b0bef3e83367"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{IVSthickening}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="598" width="158" height="18" uuid="a7841e22-78c4-4ae9-ae02-7e086a21d3b9"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{IVSmationPattern}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="616" width="90" height="18" uuid="5cf4f9a9-4aed-4837-b582-2f0d4cf282a7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{IVSRatio}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="647" width="89" height="18" uuid="87166a9f-d992-4178-978a-bcca7fd73751"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{AnteriorLeaflet}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="665" width="89" height="18" uuid="8b767794-fd19-410c-a57a-72f7c03d192d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{DiastolicMotionTeks}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="683" width="200" height="18" uuid="14e4bec0-7882-4d5c-bf9d-cbca65c4af68"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{DiastolicMotionCMbox}]]></textFieldExpression>
+			</textField>
+			<image scaleImage="RealHeight" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement x="18" y="0" width="536" height="96" uuid="740ef217-8310-456e-aa62-b661455bee68"/>
+				<imageExpression><![CDATA[$P{logo2}]]></imageExpression>
+			</image>
+			<textField isBlankWhenNull="true">
+				<reportElement x="271" y="701" width="200" height="18" uuid="274841e2-ae6d-4a8f-9cc0-68ac07eba59a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{SystolicMotion}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="180" y="719" width="385" height="18" uuid="96368009-0f8b-489c-9ed9-4b4ae28f2e5d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{SystolicMotion}+ "     "+$F{PosteriorLeafletTeks}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="115" y="748" width="400" height="18" uuid="d1908db1-76e7-4639-b26c-24636947dd4a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{TricuspidValve}+"      PULMONARY VALVE   :     "+$F{PulmonaryValve}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="140" y="776" width="400" height="18" uuid="c2e94ee4-7cef-44c9-9336-4d777f854e03"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{PericardialEffusionCMBox}+"     "+$F{PericardialEffusionTeks}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<detail>
+		<band height="237">
+			<staticText>
+				<reportElement x="23" y="45" width="172" height="18" uuid="b344ff78-e3d7-4555-8027-f3992755067d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="11" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[2D - ECHOCARDIOGRAM :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="25" y="76" width="69" height="18" uuid="c2e3451f-2f72-44ad-8f07-bc47314e3b8c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[PSLAX]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="94" y="76" width="50" height="18" uuid="aa33fea3-803e-4f93-ab19-b2ad628221d8"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Valves]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="166" y="94" width="39" height="18" uuid="0939fec9-5ce2-434d-b3d0-8098bb425893"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false" isItalic="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Mitral]]></text>
+			</staticText>
+			<line>
+				<reportElement x="13" y="70" width="557" height="1" uuid="d6541c61-3425-4e54-bc39-1c6535012036">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<textField isBlankWhenNull="true">
+				<reportElement x="205" y="76" width="325" height="18" uuid="62032918-6797-4a03-901a-94e3390a8252"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{ValvesAO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="205" y="94" width="325" height="18" uuid="70f21dc5-7a96-405a-8e64-3125dcc781cf"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{ValvesMitral}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="166" y="76" width="39" height="18" uuid="161e8515-4a92-4f81-9bcc-1fb944b0657b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[AO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="95" y="121" width="50" height="18" uuid="67b1268a-ba1a-40ff-9f22-c64e7be2b944"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Chambers]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="167" y="121" width="38" height="18" uuid="c55786dc-3222-43f8-88de-8d0a824e43a4"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false" isItalic="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[LAC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="167" y="139" width="38" height="18" uuid="bdd58a3b-f982-4afd-afd1-fb344bf04905"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false" isItalic="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[RAC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="167" y="157" width="38" height="18" uuid="2329cd59-fd87-45a7-adf1-afe3d99d1947"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false" isItalic="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[RVC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="167" y="175" width="38" height="18" uuid="d5ce320c-9c23-4f4e-81b0-8419cf662bb5"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false" isItalic="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[LVC]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="95" y="201" width="71" height="18" uuid="8300c619-f435-478f-865d-ce8057bf7579"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Myocardium]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="166" y="201" width="119" height="18" uuid="e49ed22b-f6a1-4df1-a1e1-95df94dcbf0d"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Wall motion abnormalities]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="166" y="219" width="119" height="18" uuid="1cf404c0-ead4-4ff4-86ae-c1c5b161c125"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Segmental]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="205" y="121" width="325" height="18" uuid="619ba2ff-6ba7-4794-95c1-7e7f72920995"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{ChambersLAC}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="205" y="139" width="325" height="18" uuid="5d77ac42-d75b-49c6-bd13-2f96bed7dbb8"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{ChambersRAC}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="205" y="157" width="325" height="18" uuid="837a7fa6-28ce-4b90-86ee-0bc9753b7818"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{ChambersRVC}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="205" y="175" width="325" height="18" uuid="f1a99263-ca16-425c-a2f0-d4d8ace06e5a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{ChambersLVC}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="295" y="201" width="235" height="18" uuid="3c46ddad-0ffe-411e-a89a-c8459db45924"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{Myocardium}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="315" y="219" width="215" height="18" uuid="10f158bd-2a67-496a-8046-09992f191ac3"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{PSLAXSegmental}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="295" y="219" width="10" height="18" uuid="5aaefb85-43b7-459d-9039-c9891f72b03d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="175">
+			<staticText>
+				<reportElement x="95" y="91" width="71" height="18" uuid="300036e7-d92b-4886-9833-268a7cf2a5de"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Mitral valve]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="175" y="42" width="355" height="18" uuid="d06747fa-fbf1-4b5b-8433-4291f93be9b4"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{PSLAXPericardium}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="12" y="66" width="557" height="1" uuid="5f334851-44d9-4d07-bc33-989713572522">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="315" y="157" width="215" height="18" uuid="f12ab573-dd09-4139-9704-aabc7a3cd415"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{APACSegmental}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="167" y="157" width="120" height="18" uuid="5ba73503-230a-4b1a-b025-f931c7e13d28"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Segmental]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="295" y="139" width="235" height="18" uuid="ca4abd82-fdf9-45c3-993b-3be235dd6786"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{APACWallMotion}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="95" y="42" width="71" height="18" uuid="218f0ed1-3d6d-4407-a9b5-bbc97d8a7349"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Pericardium]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="175" y="73" width="355" height="18" uuid="87039dae-8c55-4dd3-987c-0c090ad7ca74"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{PSSAXAorticValve}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="95" y="109" width="71" height="18" uuid="569d4740-0d83-430f-846f-ee5e0a2a153a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Left ventricle]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="95" y="73" width="71" height="18" uuid="801e370e-a935-4b52-8356-8f8ba29c5b10"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Aortic valve]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="175" y="24" width="355" height="18" uuid="a6ff6d30-dbc2-4516-a081-6749937b17bc"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{PSLAXMass}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="167" y="139" width="120" height="18" uuid="e62b878c-ea50-412e-a570-966f7a9c7802"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Wall motion abnormalities]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="95" y="24" width="71" height="18" uuid="e6571183-96a1-478f-a325-a059d7cd12a7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Mass]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="26" y="73" width="69" height="18" uuid="4c1afbe4-434a-4ba8-a6a9-a20bd6c001b7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[PSSAX]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="175" y="109" width="355" height="18" uuid="2f8178aa-1728-43d9-96e0-ba28977fb432"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{LeftVentricle}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="295" y="0" width="235" height="18" uuid="f244c735-a41b-4375-9634-b1b5222b287c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{PSLAXDiffuse}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="13" y="133" width="557" height="1" uuid="c2deadef-b568-4df2-8948-565a459287a6">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="166" y="0" width="119" height="18" uuid="daebd70b-6c22-46aa-9836-5499d237067f"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Diffuse]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="175" y="91" width="355" height="18" uuid="4eb9d33a-336d-41d2-bfbf-720fc1ca25cf"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{MitralValve}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="26" y="139" width="69" height="18" uuid="e75eac04-5c16-4532-83e5-a66b23aa983a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[PSSAX]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="295" y="157" width="10" height="18" uuid="b987b060-30b3-4b71-9756-7c78e67efbea"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="111">
+			<textField isBlankWhenNull="true">
+				<reportElement x="295" y="0" width="235" height="18" uuid="3890bb10-6225-4d62-ac0f-f1eb5915bbcb"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{APACDiffuce}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="13" y="61" width="557" height="1" uuid="522400cb-6c80-40f3-bd57-91088fee7d27">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement x="167" y="0" width="120" height="18" uuid="593543d8-1877-4eec-9159-32346593a220"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Diffuse]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="95" y="36" width="80" height="18" uuid="4e4d89de-1f5d-4d5e-8454-173e95451323"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Triscuspid valve]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="26" y="67" width="69" height="18" uuid="6908d797-a5f5-4eb7-a202-494245263da2"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[DOPPLER]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="189" y="85" width="365" height="18" uuid="8c743bce-7a1a-4466-8a01-d4fc76afe8a8"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{ValveInsufficiency}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="189" y="67" width="365" height="18" uuid="0a8d9b1d-a6c2-4d92-b558-71767152c383"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{Shunts}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="95" y="18" width="80" height="18" uuid="b42fe37c-d99f-4dc1-a644-50460ffd6b9a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Mitral valve]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="175" y="18" width="364" height="18" uuid="d5a5fd02-375c-43a1-aa95-0df3fdb882a6"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{APACMitraValve}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="95" y="67" width="94" height="18" uuid="7afd27a7-1f74-4674-b064-26f2a2d2c404"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Shunts]]></text>
+			</staticText>
+			<line>
+				<reportElement x="14" y="110" width="557" height="1" uuid="14392355-186a-4b94-b83b-17fc0940a377">
+					<property name="com.jaspersoft.studio.unit.x" value="cm"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.25" lineStyle="Solid" lineColor="#CFCFCF"/>
+				</graphicElement>
+			</line>
+			<textField isBlankWhenNull="true">
+				<reportElement x="175" y="36" width="364" height="18" uuid="0d52df09-4be3-4ab5-a548-88230f53f89d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[":     "+$F{APACTriscupsidValve}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="95" y="85" width="94" height="18" uuid="85ccf78e-619b-42a9-8a59-7eb8fe6c0f79"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Valve insufficiency]]></text>
+			</staticText>
+		</band>
+		<band height="43">
+			<staticText>
+				<reportElement x="25" y="4" width="210" height="18" uuid="1ec2ea7e-6c10-4ba3-949c-c2b3b5415aa2"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[COMMENTS and FINAL CONCLUSION]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="23" y="25" width="530" height="18" isPrintWhenDetailOverflows="true" uuid="3d7def3e-7eb3-4e7e-9a85-d4fa113d7614"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{Comments}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="217">
+			<staticText>
+				<reportElement x="295" y="40" width="259" height="16" uuid="41af10e0-d363-44f9-9c6a-a2f4b877d649">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Dokter Pemeriksa,]]></text>
+			</staticText>
+			<textField pattern="MMM, dd/MM/yyyy hh:mm:ss z">
+				<reportElement mode="Transparent" x="295" y="20" width="259" height="16" uuid="7a11dbe9-718f-4c87-ab41-18aaa31bb10f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{kotars}+",   "+$F{tanggal}]]></textFieldExpression>
+			</textField>
+			<componentElement>
+				<reportElement x="382" y="56" width="84" height="84" isRemoveLineWhenBlank="true" uuid="e9b279b9-08a5-4697-aa1c-be7d366e2025">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<jr:QRCode xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd" errorCorrectionLevel="H">
+					<jr:codeExpression><![CDATA[$P{finger}]]></jr:codeExpression>
+				</jr:QRCode>
+			</componentElement>
+			<textField>
+				<reportElement mode="Transparent" x="294" y="140" width="259" height="20" uuid="839e0b32-2a73-48a0-ab14-629bd157bf9f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="true" isUnderline="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nm_dokter}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

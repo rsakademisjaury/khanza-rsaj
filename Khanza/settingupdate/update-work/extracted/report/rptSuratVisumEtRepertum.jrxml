@@ -1,0 +1,1571 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rptSuratVisumEtRepertum" pageWidth="612" pageHeight="936" columnWidth="572" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="9f31a999-19c7-4f5a-8c74-9747d93faf31">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	<parameter name="namars" class="java.lang.String"/>
+	<parameter name="alamatrs" class="java.lang.String"/>
+	<parameter name="kotars" class="java.lang.String"/>
+	<parameter name="propinsirs" class="java.lang.String"/>
+	<parameter name="kontakrs" class="java.lang.String"/>
+	<parameter name="emailrs" class="java.lang.String"/>
+	<parameter name="logo2" class="java.lang.String"/>
+	<parameter name="finger" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select * from surat_visum_et_repertum limit 1]]>
+	</queryString>
+	<field name="id" class="java.lang.String"/>
+	<field name="no_rawat" class="java.lang.String"/>
+	<field name="no_rkm_medis" class="java.lang.String"/>
+	<field name="no_surat_ver" class="java.lang.String"/>
+	<field name="no_surat_permintaan" class="java.lang.String"/>
+	<field name="tgl_terima_spv" class="java.lang.String"/>
+	<field name="tgl_terima_spv_fmt" class="java.lang.String"/>
+	<field name="pihak_pembuat_spv" class="java.lang.String"/>
+	<field name="jenis_pemeriksaan_diminta" class="java.lang.String"/>
+	<field name="tempat_pemeriksaan" class="java.lang.String"/>
+	<field name="tgl_pemeriksaan" class="java.lang.String"/>
+	<field name="tgl_pemeriksaan_fmt" class="java.lang.String"/>
+	<field name="tempat_tanggal_pemeriksaan" class="java.lang.String"/>
+	<field name="nama_pasien" class="java.lang.String"/>
+	<field name="tgl_lahir" class="java.lang.String"/>
+	<field name="tgl_lahir_fmt" class="java.lang.String"/>
+	<field name="umur" class="java.lang.String"/>
+	<field name="tgl_lahir_umur" class="java.lang.String"/>
+	<field name="alamat" class="java.lang.String"/>
+	<field name="no_bukti_identitas" class="java.lang.String"/>
+	<field name="anamnesis" class="java.lang.String"/>
+	<field name="kesadaran" class="java.lang.String"/>
+	<field name="denyut_nadi" class="java.lang.String"/>
+	<field name="pernapasan" class="java.lang.String"/>
+	<field name="tekanan_darah" class="java.lang.String"/>
+	<field name="suhu_tubuh" class="java.lang.String"/>
+	<field name="pakaian" class="java.lang.String"/>
+	<field name="tinggi_badan" class="java.lang.String"/>
+	<field name="berat_badan" class="java.lang.String"/>
+	<field name="ciri_khusus" class="java.lang.String"/>
+	<field name="kepala" class="java.lang.String"/>
+	<field name="leher" class="java.lang.String"/>
+	<field name="bahu" class="java.lang.String"/>
+	<field name="dada" class="java.lang.String"/>
+	<field name="punggung" class="java.lang.String"/>
+	<field name="perut" class="java.lang.String"/>
+	<field name="pinggang" class="java.lang.String"/>
+	<field name="bokong" class="java.lang.String"/>
+	<field name="dubur" class="java.lang.String"/>
+	<field name="alat_kelamin" class="java.lang.String"/>
+	<field name="anggota_gerak_atas" class="java.lang.String"/>
+	<field name="anggota_gerak_bawah" class="java.lang.String"/>
+	<field name="pemeriksaan_laboratorium" class="java.lang.String"/>
+	<field name="pemeriksaan_radiologi" class="java.lang.String"/>
+	<field name="pemeriksaan_odontogram" class="java.lang.String"/>
+	<field name="pemeriksaan_lain_lain" class="java.lang.String"/>
+	<field name="ringkasan_pemeriksaan" class="java.lang.String"/>
+	<field name="kesimpulan" class="java.lang.String"/>
+	<field name="lampiran_hasil_pemeriksaan_klinis" class="java.lang.String"/>
+	<field name="lampiran_pemeriksaan_toksikologi" class="java.lang.String"/>
+	<field name="lampiran_pemeriksaan_histopatologi" class="java.lang.String"/>
+	<field name="lampiran_foto" class="java.lang.String"/>
+	<field name="lampiran_video" class="java.lang.String"/>
+	<field name="lampiran_lain_lain" class="java.lang.String"/>
+	<field name="tempat_keluar_ver" class="java.lang.String"/>
+	<field name="tgl_keluar_ver" class="java.lang.String"/>
+	<field name="tgl_keluar_ver_fmt" class="java.lang.String"/>
+	<field name="kd_dokter" class="java.lang.String"/>
+	<field name="nama_dokter" class="java.lang.String"/>
+	<field name="nip_dokter" class="java.lang.String"/>
+	<field name="dokter_nip" class="java.lang.String"/>
+	<field name="jabatan_kompetensi" class="java.lang.String"/>
+	<field name="created_at" class="java.lang.String"/>
+	<field name="updated_at" class="java.lang.String"/>
+	<field name="created_by" class="java.lang.String"/>
+	<field name="updated_by" class="java.lang.String"/>
+	<field name="status_data" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="234" splitType="Stretch">
+			<staticText>
+				<reportElement positionType="Float" x="0" y="110" width="572" height="18" uuid="ad08e3f7-b60f-4cf3-a16c-a709530e31a2"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="12" isBold="true" isItalic="false" isUnderline="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[SURAT KETERANGAN VISUM ET REPERTUM]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="0" y="132" width="572" height="16" uuid="96503f64-937f-4aec-a41a-2d126c940040"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="10" isBold="true" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[PRO JUSTITIA]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="0" y="152" width="572" height="18" uuid="19261354-f76c-4b74-a489-cdc41d70e137"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="10" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["No. Surat Keterangan VeR: "+($F{no_surat_ver}==null || $F{no_surat_ver}.trim().equals("") ? "-" : $F{no_surat_ver})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="9" y="184" width="550" height="18" uuid="4e16119f-4d19-42cb-818c-742cc6126d27"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="10" isBold="true" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[I.  Surat Permintaan VeR]]></text>
+			</staticText>
+			<line>
+				<reportElement positionType="Float" x="0" y="203" width="572" height="1" forecolor="#808080" uuid="84e24840-09ad-45bb-9f9e-8ed67e74129b"/>
+			</line>
+			<staticText>
+				<reportElement positionType="Float" x="20" y="214" width="150" height="20" uuid="b77193da-7a30-461f-8ef0-395c69914fca"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[a) Nomor Surat Permintaan VeR]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="214" width="380" height="20" uuid="323f82d8-5a22-4a0f-bfa2-9590fb574a5d"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{no_surat_permintaan}==null || $F{no_surat_permintaan}.trim().equals("") ? "-" : $F{no_surat_permintaan})]]></textFieldExpression>
+			</textField>
+			<image hAlign="Center">
+				<reportElement x="19" y="0" width="536" height="99" uuid="df3981c1-541b-4741-aa44-1d2051859d57">
+					<property name="com.jaspersoft.studio.unit.width" value="cm"/>
+					<property name="com.jaspersoft.studio.unit.height" value="cm"/>
+				</reportElement>
+				<imageExpression><![CDATA[$P{logo2}]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="214" width="10" height="20" uuid="ce3a7259-0be5-48ee-843b-d5da4899cb3f"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="20" y="0" width="150" height="20" uuid="a5c6d2b7-b5af-4880-b1e0-3ec87fd39ea6"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[b) Tanggal dan Waktu SPV diterima]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="380" height="20" uuid="b7fdcc6f-91d9-41e8-a73e-1ae633dc71cf"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{tgl_terima_spv_fmt}==null || $F{tgl_terima_spv_fmt}.trim().equals("") ? "-" : $F{tgl_terima_spv_fmt})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="53927bea-600e-4aba-ac41-bb017796bdf8"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="380" height="20" uuid="a31114fa-fc60-4e0d-9792-c3091f688570">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pihak_pembuat_spv}==null || $F{pihak_pembuat_spv}.trim().equals("") ? "-" : $F{pihak_pembuat_spv})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="20" y="0" width="150" height="20" uuid="464f2402-9e78-41b3-812e-a4163ae7291c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[c) Pihak yang membuat SPV]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="a9dbd4b8-66c5-419e-82da-95350d39b6c4"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="20" y="0" width="150" height="20" uuid="fa14d505-4538-409f-9aee-da799deaac8d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[d) Jenis pemeriksaan yang diminta]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="380" height="20" uuid="1a7ef1b4-f659-42b5-85be-c899c72e1c31">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{jenis_pemeriksaan_diminta}==null || $F{jenis_pemeriksaan_diminta}.trim().equals("") ? "-" : $F{jenis_pemeriksaan_diminta})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="21de69b1-1e3e-4ad7-b2fa-68a1fa31d536"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="60">
+			<staticText>
+				<reportElement positionType="Float" x="5" y="10" width="554" height="18" uuid="7b4cf679-e9e0-47b8-bae6-1237ccbacf7a"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="10" isBold="true" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[II.  Laporan Visum et Repertum]]></text>
+			</staticText>
+			<line>
+				<reportElement positionType="Float" x="0" y="30" width="572" height="1" forecolor="#808080" uuid="fcc39767-b3c1-480c-81ed-f5ec8c1c6697"/>
+			</line>
+			<staticText>
+				<reportElement positionType="Float" x="20" y="40" width="190" height="20" uuid="9c0ac407-7eaa-4aee-8796-a171f5328a30">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[a)   Tempat, Tanggal, dan Waktu Pemeriksaan :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="210" y="40" width="349" height="20" uuid="bb019478-8acd-4771-a56a-3ff4ae444ab4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["a) Tempat dan Tanggal dikeluarkan Surat Visum et Repertum :   "+(($F{tempat_keluar_ver}==null || $F{tempat_keluar_ver}.trim().equals("") ? "-" : $F{tempat_keluar_ver}.trim())+", "+($F{tgl_keluar_ver_fmt}==null || $F{tgl_keluar_ver_fmt}.trim().equals("") ? "-" : $F{tgl_keluar_ver_fmt}.trim()))]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="38">
+			<staticText>
+				<reportElement positionType="Float" x="20" y="0" width="539" height="18" uuid="f3ca479b-f7ca-4e27-90c8-573d38355013"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[b)   Identitas Pasien/Korban (KTP/SIM/Paspor/SPV)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="35" y="18" width="134" height="20" uuid="0cd7d28d-8f98-464f-9804-2df004c5b5d9"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[1.   Nama :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="18" width="379" height="20" uuid="d889db9d-7ac2-487e-9021-928575398c86"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{nama_pasien}==null || $F{nama_pasien}.trim().equals("") ? "-" : $F{nama_pasien})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="18" width="10" height="20" uuid="58ae8602-165c-4ea7-89a4-9567adfcb7da"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="35" y="0" width="134" height="20" uuid="1e40ae5c-069d-4e74-8e38-ba47dd1f63e7"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[2.   Tanggal Lahir/Umur :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="6a94a7ab-0822-4739-bbcf-81cf102d0b2e"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{tgl_lahir_umur}==null || $F{tgl_lahir_umur}.trim().equals("") ? "-" : $F{tgl_lahir_umur})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="e4192822-2cf0-4235-ba81-8be95c07f371"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="35" y="0" width="134" height="20" uuid="dd5a77f4-c7f1-4b18-bd19-4c9365ea4343">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[3.   Alamat :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="90ebe714-9af0-4bca-8165-3a6d02984b87">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{alamat}==null || $F{alamat}.trim().equals("") ? "-" : $F{alamat})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="22948f72-ac7a-4230-919c-079e439999b5"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="35" y="0" width="134" height="20" uuid="215e6685-bae7-47f2-b646-aac8c6214724"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[4.   No. Bukti Identitas :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="866d4056-eaab-41e7-9f1b-268f92c6c66d"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{no_bukti_identitas}==null || $F{no_bukti_identitas}.trim().equals("") ? "-" : $F{no_bukti_identitas})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="6eb348bc-2931-44fc-a019-47f6da57c5fb"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="38">
+			<staticText>
+				<reportElement positionType="Float" x="20" y="0" width="539" height="18" uuid="4d6f9c45-dbb0-4080-9679-9134460b3bbc"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[c)   Hasil Pemeriksaan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="35" y="18" width="135" height="20" uuid="1d928c96-79cd-478d-a329-e364bb143d47">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[1.   Anamnesis :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="18" width="379" height="20" uuid="735f55db-4ed9-4ab0-a30c-4960765e75a3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{anamnesis}==null || $F{anamnesis}.trim().equals("") ? "-" : $F{anamnesis})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="18" width="10" height="20" uuid="b584baf3-2c28-4aa8-9d95-86b6b40660f7"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="38">
+			<staticText>
+				<reportElement positionType="Float" x="35" y="0" width="524" height="18" uuid="e8e727fb-6162-4ef2-b714-29b7bb250945"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[2.   Pemeriksaan Fisis]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="18" width="379" height="20" uuid="b246ea80-3ee3-4e67-8f3b-264523c42bee">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{kesadaran}==null || $F{kesadaran}.trim().equals("") ? "-" : $F{kesadaran})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="50" y="18" width="120" height="20" uuid="1330fd3d-66ab-45d4-b3bf-5bcffe1ed8d2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(a) Kesadaran :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="18" width="10" height="20" uuid="2cbc1842-d737-42e3-bb62-4f63279d77bf"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="b4688612-b2ad-49b9-af91-d490309629e1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(b) Denyut nadi :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="1ab76918-f907-4690-97f5-e90ba2608e23">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{denyut_nadi}==null || $F{denyut_nadi}.trim().equals("") ? "-" : $F{denyut_nadi})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="699cfd1a-edd4-4f94-9ff5-4928f251db04"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="3b47142b-d0ce-4cb8-9835-6e6b739e716e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(c) Pernapasan :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="9d967839-5e6e-41a7-afe5-73f27070ca71">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pernapasan}==null || $F{pernapasan}.trim().equals("") ? "-" : $F{pernapasan})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="f90f61b2-cc6c-4bb4-ae52-9d23c3c57024"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="38f222fd-7af6-4326-974e-02a06f781c6a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(d) Tekanan darah :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="31546a22-b90b-4901-a138-b409a4166b45">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{tekanan_darah}==null || $F{tekanan_darah}.trim().equals("") ? "-" : $F{tekanan_darah})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="19227444-a006-429b-9bdc-2c72c9ed54c7"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="c59e89d6-1fd8-4d10-a80f-6d26d5d91219">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{suhu_tubuh}==null || $F{suhu_tubuh}.trim().equals("") ? "-" : $F{suhu_tubuh})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="7ab6801e-1eda-4044-bfd3-97ec29da4e30">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(e) Suhu tubuh :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="c2497f01-1f7c-4da8-94f3-f45540f94a07"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="8c7b3cb3-7c97-4657-a5a4-6ae647e6c89b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(f) Pakaian :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="cf925b6d-edd6-48ab-b9ef-650a430ddbf0">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pakaian}==null || $F{pakaian}.trim().equals("") ? "-" : $F{pakaian})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="5e78041d-9955-4733-bc0e-10577f0c8355"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="bf97fd52-c560-4bd5-af72-7920347d5466">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(g) Tinggi badan :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="2fffbca8-76a3-42b7-aebd-cc81219ceb16">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{tinggi_badan}==null || $F{tinggi_badan}.trim().equals("") ? "-" : $F{tinggi_badan})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="4e5f2ee5-04ad-4abf-9712-28aa65b541d9"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="10d44186-c93d-47a5-a9f8-826928d4889c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{berat_badan}==null || $F{berat_badan}.trim().equals("") ? "-" : $F{berat_badan})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="ca8b7570-4c23-4d51-ba02-05c1ee0f48de">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(h) Berat badan :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="3867cdc9-6c99-4de7-b196-7eb7f94fac57"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="2ff8b890-5722-41a9-a15b-2fa38c647095">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{ciri_khusus}==null || $F{ciri_khusus}.trim().equals("") ? "-" : $F{ciri_khusus})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="3ecf1be8-a7df-45ab-999b-d909311d06cd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(i) Ciri khusus :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="22dda069-61dc-4154-9fc7-81220ce608e0"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="dd78e695-46ca-483b-a8c2-54472c40aad1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{kepala}==null || $F{kepala}.trim().equals("") ? "-" : $F{kepala})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="627307b0-8966-463e-8fa9-4728285ea229">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(j) Kepala :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="9d0f9013-79ed-45c9-b51b-be8c1645759a"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="19b6273b-4049-4716-ba8c-17695b7ce10d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(k) Leher :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="54ac6b47-bb24-4fbd-b95c-fd9466dc7a26">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{leher}==null || $F{leher}.trim().equals("") ? "-" : $F{leher})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="b5d8af8b-b876-4e37-89ab-e959b2ccd89e"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="5f5d30b3-d2ec-4fff-8a09-a26a7cb281d9">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(l) Bahu :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="ba64ebd2-42d5-4ec2-b244-9374da8377ba">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{bahu}==null || $F{bahu}.trim().equals("") ? "-" : $F{bahu})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="e1e3daa2-19dc-495a-9d00-269f90371306"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="9e85f6e5-c175-46f6-bf63-8127043355e6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(m) Dada :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="ef5b3c0c-6dbc-4c4d-a083-d4aaa16e554e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{dada}==null || $F{dada}.trim().equals("") ? "-" : $F{dada})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="7b598e99-7fa4-46cd-abc1-d98f1b0511ec"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="19f33714-d85b-4153-822e-8e5d98560a4e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{punggung}==null || $F{punggung}.trim().equals("") ? "-" : $F{punggung})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="ec693b4b-584b-4d77-b0f2-492435c0fbb4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(n) Punggung :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="6fa08c9d-a8a8-4c7c-8723-b7cb36752c74"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="643025d8-1a8f-4174-9f25-528fe72d7bdd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(o) Perut :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="9c835182-304b-4a95-935e-dceacd3218e2"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="76e21488-79b7-4e94-95b5-40f820548c4b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{perut}==null || $F{perut}.trim().equals("") ? "-" : $F{perut})]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="a77ee617-8b37-4917-bf89-daf2da5292eb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(p) Pinggang :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="d50119ef-3c88-4eec-9196-41e798a8f1d9"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="98f8081e-f8b8-4008-87d5-5acacec82451">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pinggang}==null || $F{pinggang}.trim().equals("") ? "-" : $F{pinggang})]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="40602362-0c73-4363-ba21-71598b8da23f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(q) Bokong :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="4a4b4d21-9ec5-4903-a907-5e7e67106e74">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{bokong}==null || $F{bokong}.trim().equals("") ? "-" : $F{bokong})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="2b7c4bff-67ed-4471-8d6c-310ea4cadea5"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="e8caae01-515f-4987-9a6d-76785d7ddce3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(r) Dubur :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="ca1551b0-6ce2-4139-ad11-0da8151a39d4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{dubur}==null || $F{dubur}.trim().equals("") ? "-" : $F{dubur})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="d1726d70-726b-4bde-9a13-d580b176d8ae"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="b3e6acd9-10c0-4cd5-a4ef-fa2e1fa77177">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(s) Alat kelamin :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="d722f2f1-5ec5-4715-a2c1-b6da53a1b790"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="9772ccae-e090-405c-bac1-04f9a3cc6442">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{alat_kelamin}==null || $F{alat_kelamin}.trim().equals("") ? "-" : $F{alat_kelamin})]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="3198deaf-1c8a-4a6a-81b5-5fccda26502d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(t) Anggota gerak atas :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="ca75e480-604c-4e8b-ac8f-26ceeab2beca"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="e9d1129a-4722-4906-9e4f-47cf8abc60b1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{anggota_gerak_atas}==null || $F{anggota_gerak_atas}.trim().equals("") ? "-" : $F{anggota_gerak_atas})]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="031aff1a-672e-4151-be4a-944ae96968cd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(u) Anggota gerak bawah :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="379" height="20" uuid="28f5b42e-6713-4679-8206-419d91d22a30">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{anggota_gerak_bawah}==null || $F{anggota_gerak_bawah}.trim().equals("") ? "-" : $F{anggota_gerak_bawah})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="05b3aaa6-7531-476c-be06-a10723eaa67c"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="38">
+			<staticText>
+				<reportElement positionType="Float" x="35" y="0" width="524" height="18" uuid="0a2e79e6-8527-4ab4-87ab-70c0feb9e8e3"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[3.   Pemeriksaan Penunjang]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="50" y="18" width="120" height="20" uuid="1b65e4be-3e44-4870-8990-7ccd69266e70">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(a) Laboratorium :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="18" width="378" height="20" uuid="fbcc5c09-cffb-4bef-9c31-18139af445ed">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pemeriksaan_laboratorium}==null || $F{pemeriksaan_laboratorium}.trim().equals("") ? "-" : $F{pemeriksaan_laboratorium})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="18" width="10" height="20" uuid="373ceea8-7b88-4509-a6be-1073896270ad"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="04bc982f-63e1-4fdc-9db8-28612a5611a5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(b) Radiologi :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="378" height="20" uuid="5af2c77e-00ef-4b56-bcec-c7a4b2b227d4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pemeriksaan_radiologi}==null || $F{pemeriksaan_radiologi}.trim().equals("") ? "-" : $F{pemeriksaan_radiologi})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="3abc7591-7199-4f80-a05f-e1f0fe0429e6"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="248e7ad8-2fbd-42e0-8890-b3264992a081">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(c) Odontogram :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="378" height="20" uuid="82f69c71-e583-4410-a5b2-af4eb73f017d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pemeriksaan_odontogram}==null || $F{pemeriksaan_odontogram}.trim().equals("") ? "-" : $F{pemeriksaan_odontogram})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="370ab058-43bd-4299-92b0-3c86a9c606b5"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="50" y="0" width="120" height="20" uuid="d96b570c-b19c-4087-885b-38f621e1df6a">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(d) Lain-lain :]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="378" height="20" uuid="f11bccf5-4a32-4507-a54a-b86423cd52eb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{pemeriksaan_lain_lain}==null || $F{pemeriksaan_lain_lain}.trim().equals("") ? "-" : $F{pemeriksaan_lain_lain})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="da3fd5fa-162e-439a-b30d-8834fd2355a6"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="35" y="0" width="135" height="20" uuid="c3e434bd-5eeb-4602-90ca-7449020a833d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[4.   Ringkasan Pemeriksaan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="2c698f1f-d6cb-42b6-9b1a-53544f384ad4"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="378" height="20" uuid="7046e32d-e410-4b9d-929e-dc14189e9db3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{ringkasan_pemeriksaan}==null || $F{ringkasan_pemeriksaan}.trim().equals("") ? "-" : $F{ringkasan_pemeriksaan})]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="35" y="0" width="135" height="20" uuid="814651d9-0825-4696-825c-bdde40681597">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[5.   Kesimpulan]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="180" y="0" width="378" height="20" uuid="5e12a0d8-ed6d-4931-99fc-950ffab2f2a5">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{kesimpulan}==null || $F{kesimpulan}.trim().equals("") ? "-" : $F{kesimpulan})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="170" y="0" width="10" height="20" uuid="c384cb02-33f0-4e71-a404-b76f10915a8e"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="80">
+			<staticText>
+				<reportElement positionType="Float" x="19" y="30" width="539" height="29" uuid="03c5e259-8242-4084-8c95-11de5b46d216"/>
+				<textElement textAlignment="Justified" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Demikian surat keterangan ini dibuat berdasarkan dengan penguraian yang sejujur-jujurnya dan menggunakan pengetahuan yang sebaik-baiknya serta mengingat sumpah pada saat menerima jabatan.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="5" y="10" width="554" height="18" uuid="c54886e6-e07d-4f9e-b7d8-d75dd69aca09"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="10" isBold="true" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[III. Penutup]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="20" y="60" width="538" height="20" uuid="9a2f3a3e-fcd4-4879-8fce-5ac94b82a860"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["a) Tempat dan Tanggal dikeluarkan Surat Visum et Repertum :   "+ $F{tempat_keluar_ver} 
++ ", " 
++ $F{tgl_keluar_ver_fmt}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="20" y="0" width="538" height="20" uuid="122dd716-0cdf-4861-b94b-49592f56bbd1">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["b) Nama lengkap dan Nomor Induk Kepegawaian dokter/dokter gigi :   "+($F{dokter_nip}==null || $F{dokter_nip}.trim().equals("") ? "-" : $F{dokter_nip})]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="20" y="0" width="538" height="20" uuid="f22569e7-6b6d-47ab-ab91-26275ceb3024">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["c) Jabatan dan kompetensi dari (b) :   "+($F{jabatan_kompetensi}==null || $F{jabatan_kompetensi}.trim().equals("") ? "-" : $F{jabatan_kompetensi})]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="130">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="100" y="0" width="180" height="72" forecolor="#000000" uuid="d3906a88-cf94-4542-a0c3-9f53ebb08387"/>
+				<box>
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="8" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="20" y="0" width="190" height="18" uuid="16f55661-c945-43ab-8e47-288bd0e53a36"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[d) Tanda tangan :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="5" y="90" width="567" height="18" uuid="37b7db3e-6eac-4516-a27b-fb122142b517"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="10" isBold="true" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[IV. Lampiran Pemeriksaan]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="20" y="110" width="170" height="20" uuid="5cc820d7-7691-45ab-8fc2-ab6ea3bc4144">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[a) Lampiran Hasil Pemeriksaan Klinis]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="200" y="110" width="358" height="20" uuid="bb90339f-f604-4cdc-bd34-9f84073836b7">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{lampiran_hasil_pemeriksaan_klinis}==null || $F{lampiran_hasil_pemeriksaan_klinis}.trim().equals("") ? "-" : $F{lampiran_hasil_pemeriksaan_klinis})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="190" y="110" width="10" height="20" uuid="d503c3a2-e58d-4b6d-a5f9-ef7883343341"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="19" y="0" width="171" height="20" uuid="203dc466-45a4-48e7-890f-e7264ccb0483">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[b) Lampiran Pemeriksaan Toksikologi]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="200" y="0" width="358" height="20" uuid="2dfb277d-78cd-467b-9c72-c8b270efbb68">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{lampiran_pemeriksaan_toksikologi}==null || $F{lampiran_pemeriksaan_toksikologi}.trim().equals("") ? "-" : $F{lampiran_pemeriksaan_toksikologi})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="190" y="0" width="10" height="20" uuid="e675c785-22d9-4e7e-a144-6bdd48c29b02"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="200" y="0" width="358" height="20" uuid="5edada9e-e766-4227-910d-fd84b65a8966">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{lampiran_pemeriksaan_histopatologi}==null || $F{lampiran_pemeriksaan_histopatologi}.trim().equals("") ? "-" : $F{lampiran_pemeriksaan_histopatologi})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="19" y="0" width="171" height="20" uuid="5ce2e783-541e-4e4e-8b59-ea27f06e0ef2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[c) Lampiran Pemeriksaan Histopatologi]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="190" y="0" width="10" height="20" uuid="3df532f3-2df3-4695-9d4a-ca1686784469"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="200" y="0" width="358" height="20" uuid="b6a9d639-f283-4e26-8dbb-4eec417536aa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{lampiran_foto}==null || $F{lampiran_foto}.trim().equals("") ? "-" : $F{lampiran_foto})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="19" y="0" width="171" height="20" uuid="ae5d88a1-60cd-4b2b-ae85-eba3df78a3dd">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[d) Lampiran Foto]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="190" y="0" width="10" height="20" uuid="0a94f6b6-8837-4f04-87ed-21183178d5ee"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="19" y="0" width="171" height="20" uuid="83c6fdd4-d789-40e9-b244-691c446bd8aa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[e) Lampiran Video]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="200" y="0" width="358" height="20" uuid="f76ce884-4527-482d-a407-54ebb5dc8cdb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{lampiran_video}==null || $F{lampiran_video}.trim().equals("") ? "-" : $F{lampiran_video})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="190" y="0" width="10" height="20" uuid="259c71aa-282e-40b9-aa9c-63e66d7047e9"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="20">
+			<staticText>
+				<reportElement positionType="Float" x="19" y="0" width="171" height="20" uuid="be595fc4-29b5-4ec8-89d1-3f3e4e02fdf0">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[f) Lampiran lain-lain]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="200" y="0" width="358" height="20" uuid="e2c0b19a-7711-4e2d-a77c-d2f0557d3cfa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{lampiran_lain_lain}==null || $F{lampiran_lain_lain}.trim().equals("") ? "-" : $F{lampiran_lain_lain})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="190" y="0" width="10" height="20" uuid="7a25cc14-3ed9-49b2-84ea-b228e77e523a"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="193">
+			<staticText>
+				<reportElement positionType="Float" x="19" y="0" width="171" height="20" uuid="a572a9bf-3d0b-43dc-878a-b1d08092f5e8">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="true" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[(Akhir dari surat keterangan)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="80" y="64" width="200" height="15" uuid="61a61c38-b314-4969-82db-f2921e286b39"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Mengetahui :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="80" y="79" width="200" height="15" uuid="a1e6c693-dd2a-4da8-89ac-20d39aa58a78"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[An. DIREKTUR,]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="80" y="144" width="200" height="15" uuid="d23d521f-c937-40ca-8557-a158243fbf6d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="true" isItalic="false" isUnderline="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Dr.   N U R W A H Y U D I]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="124" y="157" width="140" height="15" uuid="cf44e92b-4716-4a2c-9947-11d6d5b9ee67">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Pangkat : Pembina TK. I, IV/b]]></text>
+			</staticText>
+			<staticText>
+				<reportElement positionType="Float" x="124" y="172" width="140" height="15" uuid="4b79c0da-b77f-40c8-b273-5316f4e6b811">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI" size="9" isBold="false" isItalic="false" isUnderline="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[NIP : 198208282010011026]]></text>
+			</staticText>
+		</band>
+	</detail>
+</jasperReport>

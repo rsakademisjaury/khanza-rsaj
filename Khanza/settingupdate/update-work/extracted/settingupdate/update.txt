@@ -1,0 +1,1325 @@
+Versi : 26.0812.133.0
+
+Update*
+
+* Perbaikan form Pindah Kamar
+* Perbaikan form Pemulangan Pasien
+
+---
+
+Versi : 26.0812.132.0
+
+Update*
+
+* Fitur Lihat Foto PACS
+* Fitur Kirim Hasil Rad/Lab ke WA pasien
+* Fitur Lihat Hasil Rad/Lab
+* Fitur Pengaduan/Keluhan
+* Fitur Pengembangan SIMRS
+* Fitur Badge Hak Kelas Rawat Pasien BPJS di Menu Rawat Inap
+* Perbaikan form Pindah Kamar
+* Perbaikan form Pemulangan Pasien
+* Perbaikan Resep Pulang Racikan
+* Perbaikan Upload Laporan Tindakan
+* Perbaikan Upload Jawaban Konsultasi
+* Perbaikan Edit data 2x24 Jam
+* Perbaikan Diagnosa Upload Lepas Rawat
+* Perbaikan Validasi Simpan hasil periksa radiologi
+
+---
+
+Versi : 26.0724.131.0
+
+Update*
+
+- Penambahan tombol Lihat Foto via RM dan Via PACS
+- Tombol Generate Token dan Salin Token
+
+---
+
+Versi : 26.0723.130.1
+
+Update*
+
+- menghilangkan animasi loading
+
+---
+
+Versi : 26.0723.130.0
+
+Update*
+
+- Penambahan Tombol Lihat foto DICOM
+- Penambahan Proses loading saat pembukaan form
+- Penambahan Penanda untuk pasien <17 tahun
+
+---
+
+Versi : 26.0721.129.0
+
+Update*
+
+- Penambahan Validasi Buka Kunci Biling Ranap / Ralan
+- Penambahan Tombol 'Sudah Bio/Finger' di Menu IGD
+- Penambahan Warna penanda yang sudah finger di Menu IGD
+
+---
+
+Versi : 26.0721.128.0
+
+Update*
+
+- Penambahan Menu Laporan HT - Diare
+- Penambahan Tombol Cari Surat Kontrol di Menu Registrasi
+- Penambahan Tombol Tambah Adm di Billing Ranap (pasien instansi)
+
+---
+
+Versi : 26.0719.127.0
+
+Update*
+
+- pemutakhiran form login, form tentang simrs khanza
+
+---
+
+Versi : 26.0718.126.0
+
+Update*
+
+- mempercepat proses splash screen dan update
+
+---
+
+Versi : 26.0718.125.2
+
+Update*
+
+- mempercepat proses splash screen dan update
+
+---
+
+Versi : 26.0718.125.0
+
+Update*
+
+- perbaikan report hasil lab
+
+---
+
+Versi : 26.0717.124.1
+
+Update*
+
+- perbaikan report pesanan obat & bhp
+
+---
+
+Versi : 26.0717.124.0
+
+Update*
+
+- perbaikan nilai kritis HGB
+
+---
+
+Versi : 26.0716.123.1
+
+Update*
+
+- perbaikan nilai kritis HGB
+
+---
+
+Versi : 26.0716.123.0
+
+Update*
+
+- perbaikan SIPA farmasi
+- perbaikan report sumsumg tulang
+- perbaikan report hasil lab
+- penambahan fitur input catatan pada hasil lab
+- perbaikan tombol upload
+- perbaikan berkas digital perawatan
+
+---
+
+Versi : 26.0716.122.0
+
+Update*
+
+- perbaikan hasil lab / repor 
+- perbaikan idrg
+- penambahan pencarian rujukan di menu registrasi
+
+---
+
+
+Versi : 26.0712.121.0
+
+Update*
+
+- Penambahan tombol 'Monitoring Hasil Lab'
+
+---
+
+Versi : 26.0711.120.1
+
+Update*
+
+- Perbaikan kirim hasil lab
+- Perbaikan cetakan hasil lab
+
+---
+
+Versi : 26.0711.120.0
+
+Update*
+
+- Perbaikan kirim hasil lab
+- Perbaikan cetakan hasil lab
+
+---
+
+Versi : 26.0710.119.2
+
+Update*
+
+- Perbaikan kirim hasil lab
+- Perbaikan cetakan hasil lab
+
+---
+
+Versi : 26.0710.119.1
+
+Update*
+
+- Perbaikan kolom asal rujukan menu Registrasi
+- Perbaikan cetakan hasil lab
+
+---
+
+Versi : 26.0710.119.0
+
+Update*
+
+- Perbaikan upload hasil lab
+- perbaikan lihat hasil lab
+
+---
+
+Versi : 26.0709.118.0
+
+Update*
+
+- Penambahan tombol 'Lihat Hasil Lab / Rad' di menu IGD
+- perbaikan query di Riwayat Perawatan
+- Penambahan tombol 'Kirimm Hasil Lab ke wa pasien' di menu lab
+- perbaikan inputan sumsum tulang belakang
+- Perbaikan tombol upload lab
+- Perbaikan lihat hasil lab yang belum selesai	
+
+---
+
+Versi : 26.0708.117.0
+
+Update*
+
+- Penambahan tombol 'Salin dan kirim hasil lab & rad ke WA pasien.
+	
+---
+
+Versi : 26.0707.116.0
+
+Update*
+
+- Penambahan tombol 'Riwayat Hasil Lab / Rad' di menu Rawat Inap dan Rawat Jalan
+	
+---
+
+Versi : 26.0706.115.2
+
+Update*
+
+- Penambahan tombol 'Lihat Hasil Lab / Rad' di menu Rawat Inap dan Rawat Jalan
+	
+---
+
+Versi : 26.0706.115.1
+
+Update*
+
+- Perbaikan bug Upload Permintaan / Jawaban Konsultasi Medik
+	
+---
+
+Versi : 26.0706.115.0
+
+Update*
+
+- Perbaikan bug menu iDRG
+	
+---
+
+Versi : 26.0705.114.0
+
+Update*
+
+- Perbaikan bug tab Racikan Obat Pulang
+	
+---
+
+Versi : 26.0704.113.0
+
+Update*
+
+- Perbaikan bug tab Racikan Obat Pulang
+- Perbaikan tujuan upload berkas Konsultasi Medik ke dokter tujuan
+- Perbaikan kolom poli dan dokter di menu registrasi dan igd
+	
+---
+
+Versi : 26.0702.112.1
+
+Update*
+
+- Perbaikan warna dimenu iDRG
+	
+---
+
+Versi : 26.0702.112.0
+
+Update*
+
+- Penambahan fitur Obat Racikan obat pulang
+- Perbaikan bug saat topup idrg
+	
+---
+
+Versi : 26.0630.111.0
+
+Update*
+
+- Penambahan tombol upload lepas rawat
+- Perubahan tgl. cetak sukon menjadi tgl. entri
+	
+---
+
+Versi : 26.0625.110.0
+
+Update*
+
+- Penambahan SIP dokter, umur, jk, no.tepon, alamat pada e-resep pasien
+- validasi pendeteksi gelar / sapaan pada nama pasien
+	
+---
+
+Versi : 26.0624.109.1
+
+Update*
+
+- Penambahan fitur sinkron data KTP pasien 
+- Pemuktahiran query tampil IGD
+- Penambahan tombol 'Panggil Pasien' di menu Resep Obat
+- Perbaikan menu iDRG kolom obat
+	
+---
+
+Versi : 26.0620.108.0
+
+Update*
+
+- revisi tampilan KTP pasien pada menu registrasi
+	
+---
+
+Versi : 26.0620.107.0
+
+Update*
+
+- revisi tampilan KTP pasien pada menu registrasi
+	
+---
+
+Versi : 26.0619.106.0
+
+Update*
+
+- Perbaikan etiket obat dari 6.0 tablet jadi 6 tablet
+- Penambahan tampilan KTP pasien pada menu registrasi
+- Set biaya registrasi otomatis sesuai jenis penjab
+	
+---
+
+Versi : 26.0612.105.0
+
+Update*
+
+- Perbaikan tombol Pantau Bio/Finger BPJS
+- Perbaikan laporan RL 5 dan RL 4 
+	
+---
+
+Versi : 26.0602.104.1
+
+Update*
+
+- Penambahan tombol sudah bio/finger
+	
+---
+
+Versi : 26.0526.103.1
+
+Update*
+
+- Perubahan sercretkey bpjs
+	
+---
+
+Versi : 26.0520.102.1
+
+Update*
+
+- Perbaikan cetakan lab, hapus nama dr. gunawan arsyadi
+	
+---
+
+Versi : 26.0520.102.0
+
+Update*
+
+- Perbaikan display poli
+- Perbaikan menu dokter
+	
+---
+
+Versi : 26.0512.101.0
+
+Update*
+
+- Perbaikan bug IDRG
+	
+---
+
+Versi : 26.0506.100.4
+
+Update*
+
+- Penambahan menu rujukan satu sehat
+	
+---
+
+Versi : 26.0506.100.0
+
+Update*
+
+- Penambahan topup prosedur di idrg bpjs
+	
+---
+
+Versi : 26.0502.98.0
+
+Update*
+
+- Perbaikan RL 3.2 dan RL 4.1
+- Perbaikan tombol Upload SKDP BPJS
+- Penambahan tombol Upload SKDP ANTAR POLI 
+	
+---
+
+Versi : 26.0501.97.0
+
+Update*
+
+- Penambahan validasi dobel cetak sep
+	
+---
+
+Versi : 26.0430.96.0
+
+Update*
+
+- Perbaikan mapping obat bpjs
+- Penambahan tombol ceklis pada bridging apol
+	
+---
+
+Versi : 26.0422.95.1
+
+Update*
+
+- Perbaikan lama rawat
+	
+---
+
+Versi : 26.0422.95.0
+
+Update*
+
+- Perbaikan billing ralan
+	
+---
+
+Versi : 26.0422.94.0
+
+Update*
+
+- Perbaikan billing ranap
+	
+---
+
+Versi : 26.0420.93.0
+
+Update*
+
+- Penambahan menu rekap igd dan rekap rawat jalan
+	
+---
+
+Versi : 26.0415.92.0
+
+Update*
+
+- Penambahan menu dobel bed
+	
+---
+
+Versi : 26.0414.91.0
+
+Update*
+
+- Perbaikan menu keuangan pembayaran ranap
+- Perbaikan billing ranap dan ralan
+- Perbaikan tarif ranap
+- Perbaikan pencarian tindakan
+	
+---
+
+Versi : 26.0410.90.0
+
+Update*
+
+- Perbaikan menu permintaan barang medis
+- Penambahan kode apotek online di database.xml
+	
+---
+
+Versi : 26.0331.89.0
+
+Update*
+
+- Perbaikan Tarif Karyawan pada Penjualan langsung
+- Perbaikan Menu RL
+	
+---
+Versi : 26.0311.88.0
+
+Update*
+
+- Perbaikan daftar dokter di SKDP Vclaim
+	
+---
+
+Versi : 26.0212.87.0
+
+Update*
+
+- Perbaikan edit CPPT
+	
+---
+
+Versi : 25.1227.86.0
+
+Update*
+
+- Perbaikan kolom akomodasi dan rawat intensif menu IDRG
+- Perbaikan menu Data Laporan Operasi Ralan dan Ranap
+	
+---
+
+Versi : 25.1218.85.0
+
+Update*
+
+- Penambahan kolom berkas, penanda sudah gabung berkas di menu IDRG
+	
+---
+
+Versi : 25.1213.84.0
+
+Update*
+
+- Perbaikan berkas klaim, otomatis menimpa sep lama
+	
+---
+
+Versi : 25.1212.83.1
+
+Update*
+
+- Perbaikan SEP Ranap
+	
+---
+
+Versi : 25.1212.83.0
+
+Update*
+
+- Penambahan Barcode pada SEP
+	
+---
+
+Versi : 25.1210.82.0
+
+Update*
+
+- Perbaikan lembar dan formular FKR
+- Auto hapus individual lama
+	
+---
+
+Versi : 25.1209.81.0
+
+Update*
+
+- Penabahan lembar dan formular FKR
+- Pengecekan billing sebelum mmebuka IDRG
+	
+---
+
+Versi : 25.1206.80.0
+
+Update*
+
+- Perbaikan upload otomatis billing
+	
+---
+
+Versi : 25.1204.79.2
+
+Update*
+
+- Perbaikan upload otomatis billing
+	
+---
+
+Versi : 25.1204.79.1
+
+Update*
+
+- Perbaikan upload otomatis billing
+	
+---
+
+Versi : 25.1204.79.0
+
+Update*
+
+- Perbaikan cetakan label permintaan lab ( penambahan nama ruangan )
+- Perbaikan tombol berkas klaim idrg
+- Upload otomatis billing saat mencetak nota
+- Pemutakhiran pengiriman satusehat obat
+	
+---
+
+Versi : 25.1202.78.0
+
+Update*
+
+- Perbaikan cetakan label permintaan lab
+- Perbaikan tombol berkas klaim idrg
+- Perubahan layout form permintaan lab
+	
+---
+
+Versi : 25.1129.77.0
+
+Update*
+
+- Perubahan src buka kunci ke database
+- Penambahan menu input hasil evaluasi sumsum tulang di laboratorium
+- Perbaikan cetakan stiker barcode lab
+- Perbaikan src billing IDRG
+- penambahan catatan di form IDRG
+- Penambahan kolom 'kirim online' dan 'individual'
+- Perbaikan status coding menurut progress terakhir
+- Menghilangkan tombol OK di Notif RESPON idrg 
+- Perbaikan tombol 'Kirim Online' tersimpan ke database
+- Penambahan total belum coding
+	
+---
+
+Versi : 25.1118.76.0
+
+Update*
+
+- Penambahan tombol simpan di bridging onboarding
+	
+---
+
+Versi : 25.1117.75.3
+
+Update*
+
+- Perbaikan RVP
+	
+---
+
+Versi : 25.1117.75.2
+
+Update*
+
+- Perbaikan Piutang Ralan
+	
+---
+
+Versi : 25.1117.75.1
+
+Update*
+
+- Perbaikan billing poli jiwa idrg
+	
+---
+
+Versi : 25.1117.75.0
+
+Update*
+
+- Pemisahan filter tgl. regis dan tgl. bayar
+	
+---
+
+Versi : 25.1116.74.0
+
+Update*
+
+- Perbaikan simpan catatan
+	
+---
+
+Versi : 25.1115.73.3
+
+Update*
+
+- Penambahan Tab Buka Kunci
+	
+---
+
+Versi : 25.1115.73.2
+
+Update*
+
+- Perbaikan pengecekan coder
+	
+---
+
+Versi : 25.1115.73.1
+
+Update*
+
+- Perbaikan tampilan nama2 poli
+	
+---
+
+Versi : 25.1115.73.0
+
+Update*
+
+- Penambahan pasien COB di bridging eklaim
+	
+---
+
+Versi : 25.1114.72.1
+
+Update*
+
+- Perbaikan cetakan Piutang Pasien Rawat Jalan
+	
+---
+
+Versi : 25.1114.72.0
+
+Update*
+
+- Perbaikan menu eklaim onboarding
+	- lihat berkas sudah tampil
+	- tambahan menu catatan berkas
+	- perbaikan billing
+- perbaikan hapus nota salah ranap/ralan ke kabid keuangan via table 'dokter_mpp=5'
+	
+---
+
+Versi : 25.1113.71.0
+
+Update*
+
+- Perbaikan menu eklaim onboarding
+	- lihat billing
+	- berkas perawatan
+	- berkas digital
+	- input obat kronis, obat kemo	
+	- gabung pdf
+	- upload individual
+---
+
+Versi : 25.1111.70.0
+
+Update*
+
+- Perbaikan menu eklaim onboarding
+	- lihat billing
+	- berkas perawatan
+	- berkas digital
+	- input obat kronis, obat kemo	
+	- gabung pdf
+	- upload individual
+---
+
+Versi : 25.1110.69.0
+
+Update*
+
+- Perbaikan Managemen Berkas Klaim
+	- warna sudah coding, belum closing, dll
+- Perbaikan menu eklaim onboarding
+	- lihat billing
+	- berkas perawatan
+	- berkas digital
+	- input obat kronis, obat kemo	
+	- gabung pdf
+	- upload individual
+
+---
+
+Versi : 25.0411.68.1
+
+Update*
+
+- Perbaikan Managemen Berkas Klaim
+
+---
+
+Versi : 25.0411.68.0
+
+Update*
+
+- Perbaikan Managemen Berkas Klaim
+
+---
+
+Versi : 25.1030.67.1
+
+Update*
+
+- Perbaikan tombol ganti resume ralan
+
+---
+
+Versi : 25.1030.67.0
+
+Update*
+
+- Perbaikan tombol clip dr. resume ralan
+- Penambahan menu iDRG
+- Penambahan toast notifikasi SO
+
+---
+
+Versi : 25.1006.66.0
+
+Update*
+
+- Perbaikan pencarian dokter
+- Penambahan pesan di menu IGD pasien masuk berulang
+- Penambahan warna pada baris pasien di menu IGD pasiek masuk berulang
+
+---
+
+Versi : 25.1001.66.0
+
+Update*
+
+- Rincian detail pemeriksaan pada menu Biling Ralan dan Ranap
+- Penambahan kolom no. sep di menu kunjungan lab ranap / ralan
+- Penambahan menu pembayaran pasien umum lab ranap / ralan
+- Perbaikan menu Lama Pelayanan Poli
+- Langsung menampilkan Dokter DPJP Ranap
+
+---
+
+Versi : 25.0926.65.0
+
+Update*
+
+- Perbaikan menu Checklist Rehab
+- Penambahan filter poli dan kamar di menu Pengguna Obat/BHP
+- Perbaikan RL 3.13 Pelayanan Kegiatan Rehabilitasi Medik
+- Pengaturan Waktu otomatis pada saat pengisian soap (otomatis berkas diterima)
+- Rincian detail pemeriksaan pada menu Biling Ralan dan Ranap
+
+---
+
+Versi : 25.0922.64.0
+
+Update*
+
+- Penambahan menu Verifikasi TB
+- Penambahan menu Checklist Rehab
+- Penambahan No. SITB di Resume Ranap/Ralan
+- Perbaikan RL 3.13 Pelayanan Kegiatan Rehabilitasi Medik
+
+---
+
+Versi : 25.0917.63.0
+
+Update*
+
+- Perbaikan bug panggil pasien
+
+---
+
+Versi : 25.0909.62.0
+
+Update*
+
+- Perbaikan bug ganti diagnose dan ganti prioritas
+- Penambahan Notifikasi Permintaan Konsultasi Medik 
+- Penambahan Notifikasi Jawaban Konsultasi Medik
+- Revisi Menu Keuangan Pembayaran Ralan
+- Penambahan Kolom Echo/Doppler di menu Keuangan Pembayaran Ranap
+- Penambahan tombol Ganti Ruangan di menu permintaan barang non medis
+- Perbaikan tombol Ubah Pemberian di menu permintaan barang non medis
+- Perbaikan cetakan surat sebab kematian
+- Perbaikan cetakan etiket penjualan obat langsung
+
+---
+
+Versi : 25.0806.61.0
+
+Update*
+
+- Perbaikan menu diagnose pasien ( penambahan nik, tgl. lahir, alamat )
+
+---
+
+Versi : 25.0805.61.0
+
+Update*
+
+- Perbaikan surat pemesanan non medis ke supplier dan kepegawaian
+- perbaikan Validasi dobel input Tindakan dr, petugas, dr/petugas
+- Penambahan menu surat pemeriksaan THT
+
+---
+
+Versi : 25.0728.60.0
+
+Update*
+
+- Perbaikan update pulang bpjs
+- Validasi dobel input Tindakan dr, petugas, dr/petugas
+- Perbaikan report Surat kematian
+
+---
+
+Versi : 25.0724.59.0
+
+Update*
+
+- Menghilangkan batc dan tgl expire pada cetakan penerimaan barang
+- perbaikan cetakan hasil lab ( otomatis H/L/Kritis dan eGFR )
+- Penambahan menu input monev cito dan kritis
+- perbaikan bug hapus diagnose
+- penambahan tombol tukar prioritas diagnose
+- penambahan tombol ubah diagnose singkron resume
+- penambahan filter cari kode penyakit dan prosedur
+
+---
+
+Versi : 25.0709.57.1
+
+Update*
+
+- Perbaikan penginputan surat berbadan sehat
+
+---
+
+Versi : 25.0709.57.0
+
+Update*
+
+- Perbaikan Cetakan Permintaan barang non medis
+
+---
+
+Versi : 25.0707.57.0
+
+Update*
+
+- Perbaikan scroll penginputan hasil doopler
+- Penambahan tab Monev Hasil Cito dan Cetakan Rekap Cito
+- Penambahan tab Monev Hasil Kritis dan Cetakan Rekap Kritis
+
+---
+
+Versi : 25.0704.56.0
+
+Update*
+
+- Perbaikan cetakan hasil lab ( tgl / jam sampel )
+- Perbaikan cetakan permintaan barang non medis nama petugas sarana
+
+---
+
+Versi : 25.0703.56.0
+
+Update*
+
+- Perbaikan cetakan Permintaan Barang Non Medis
+- Menghilangkan tombol hapus Permintaan Lab, Hasil Lab
+- Pengurangan 3 hari tanggal expired
+
+---
+
+Versi : 25.0702.56.0
+
+Update*
+
+- Perbaikan cetakan Permintaan Barang Non Medis
+- Penambahan menu stok keluar barang non medis
+
+---
+
+Versi : 25.0701.55.0
+
+Update*
+
+- Penambahan Filter Jenis Barang pada menu Sirkulasi Barang Non Medis 2
+- Perbaikan Cetakan Etiket Obat
+- Penambahan Waktu input operasi
+
+---
+
+Versi : 25.0630.54.0
+
+Update*
+
+- Perbaikan bug Cetakan hasil Echo
+- Penambahan Validasi hapus nota salah untuk pasien umum
+- Penambahan menu Ubah Pemberian barang non medis
+
+---
+
+Versi : 25.0628.53.1
+
+Update*
+
+- Perbaikan bug Menu Resep tampil double
+
+---
+
+Versi : 25.0628.53.0
+
+Update*
+
+- Perbaikan bug Ruangan permintaan resep
+- Perbaikan bug Diet Pasien
+- Perbaikan bug Filter Jenis Barang pada menu Sirkulasi Barang Non Medis
+
+---
+
+Versi : 25.0626.53.0
+
+Update*
+
+- Penambahan Filter Jenis Barang pada menu Sirkulasi Barang Non Medis
+
+---
+
+Versi : 25.0624.52.0
+
+Update*
+
+- Perbaikan bug menu Diet Pasien
+- Perbaikan bug menu Permintaan Resep Ranap filter ruangan
+- Perbaikan bug menu Rekap Pembayaran Dokter Per Pasien
+
+---
+
+Versi : 25.0623.52.1
+
+Update*
+
+- Penambahan tombol copy No.SEP Ralan dan Ranap
+
+---
+
+Versi : 25.0623.52.0
+
+Update*
+
+- Perbaikan bug cetak etiket obat
+
+---
+
+Versi : 25.0621.52.1
+
+Update*
+
+- Perbaikan Cetakan Rekap Pemberian Obat
+
+---
+
+Versi : 25.0621.52.0
+
+Update*
+
+- Perbaikan Cetakan etiket obat pulang
+- Perbaikan cetakan label makanan
+
+---
+
+Versi : 25.0616.52.1
+
+Update*
+
+- Perbaikan bug Cetak Hasil USG Doopler
+
+---
+
+Versi : 25.0616.52.0
+
+Update*
+
+- Perbaikan bug Input Hasil USG Doopler
+- Perbaikan bug Formulir SGA
+
+---
+
+Versi : 25.0614.52.0
+
+Update*
+
+- Penambahan Menu Surat Pemberian Obat + Billing + SEP
+- Perbaikan bug Permintaan Diagnostik
+
+---
+
+Versi : 25.0613.51.0
+
+Update*
+
+- Penambahan Menu Formulir SGA
+- Perbaikan cetakan Surat Pemesanan Obat Farmasi
+
+---
+
+Versi : 25.0608.50.0
+
+Update*
+
+- Penambahan Menu Permintaan Diagnostik
+- Penyesuaian Surat Pesanan Obat Farmasi
+- Perbaikan bug No. Permintaan Konsultasi Medik
+- Perbaikan bug penambahan user dan hak akses
+- Update menu dapur
+
+---
+
+
+Versi : 25.0527.49.3
+
+Update*
+
+- Penambahan Kolom Jatuh Tempo pada form Penerimaan dan Report
+- Perbaikan bug cetak pemberian obat & Billing
+- Penambahan Menu Satu Sehat Kirim Questionnaire Request
+
+---
+
+
+Versi : 25.0519.48.0
+
+Update*
+
+- Penambahan Form Input Hasil Pemeriksaan Echo
+- Penambahan Form Input Hasil Pemeriksaan Doopler
+- Penambahan Menu Satu Sehat Kirim Questionnaire Request
+
+---
+
+
+Versi : 25.0513.47.0
+
+Update*
+
+- Penambahan Menu Monitoring CITO
+
+---
+
+
+Versi : 25.0510.46.0
+
+Update*
+
+- Penambahan Menu Monitoring Keluhan
+- Fitur Input Keluhan otomatis terkirim ke WA Grup
+
+---
+
+Versi : 25.0508.45.0
+
+Update*
+
+- Penambahan Menu Monev Laboratorium
+- Perbaikan Nomor Surat Kematian dari /MR.RSAJ/ menjadi /MR-RSA/
+- Penambahan tombol cetak pada form Rekap Pembayaran Dokter
+- Penambahan Menu Penginputan Keluhan/Perbaikan/Penggantian/Pengembangan
+- Perbaikan Menu Penginputan SBAR di Rawat Inap
+- Penambahan penanda pasien geriatri pada menu Registrasi/Rawat Jalan
+
+---
+
+Versi : 25.0411.44.0
+
+Update*
+
+- Penambahan Menu Tabelaris Pembayaran Jasa Medik Dokter pada menu Keuangan
+
+---
+
+Versi : 25.0409.43.0
+
+Update*
+
+- Perbaikan tombol Upload Riwayat Perawatan 
+- Perbaikan tombol Upload Hasil Radiologi menjadi nama tindakan
+- Perbaikan tombol Upload SO Digital
+- Penambahan menu Rekapitulasi Laporan ( RL )
+  RL 3.1 s.d 3.19
+  RL 4.1 s.d 4.3
+  RL 5.1 s.d 5.3
+
+---
+
+Versi : 25.0310.42.0
+
+Update*
+
+- Perbaikan tombol Upload Riwayat Perawatan 
+- unlock validasi jam
+
+---
+
+Versi : 25.0308.41.0
+
+Update*
+
+- Penambahan tombol Riwayat Pasien di menu pengisian soap
+- Penambahan tombol Upload di menu Riwayat Perawatan
+
+---
+
+Versi : 25.0305.40.0
+
+Update*
+
+- Penambahan Menu Surat Persetujuan Rehabilitasi Medik Rawat Jalan
+- Penambahan Menu Surat Keterangan Berbadan Sehat
+
+---
+
+Versi : 25.0304.39.0
+
+Update*
+
+- Perbaikan bug menu permintaan radiologi dan laboratorium
+- Penambahan jenis permintaan "Cito Konsul" di menu Konsultasi Medik
+
+---
+
+Versi : 25.0303.39.0
+
+Update*
+
+- Penambahan notifikasi pendaftaran online di menu registrasi
+- Penambahan tombol checkin untuk pasien umum ( daftar online )
+
+---
+
+Versi : 25.0227.38.0
+
+Update*
+
+- Perbaikan alarm Permintaan Radiologi dan Permintaan Laboratorium
+- Perbaikan Ruangan Peresepan Obat
+
+---
+
+Versi : 25.0224.37.0
+
+Update*
+
+- Perbaikan Upload lebih dari 1 lembar
+- penyempurnaan Menu Triase, Resume RI / RJ, Laporan Tindakan Operasi, dimana jika data sudah dibuat maka akan langsung menampilkan data, jika belum dibuat maka akan menampilkan form penginputan
+- Perbaikan menu penginputan Laporan Tindakan Operasi yang lebih dari 1x tindakan ( Rawat Inap )
+- Penambahan tombol Upload pada menu Surat Jaminan Penunjang Diagnostik
+- Penambahan tombol Upload pada menu Surat Dosis Hemofilia
+- Penambahan tombol Upload Formulir Persetujuan Hemodialisis
+- Penambahan data / kolom ( NIK/ No. ktp, No. telepon, Tgl. lahir, Total Bayar) pada menu Kunjungan Radiologi Rawat Jalan dan Kunjungan Radiologi Rawat Inap
+- Penambahan Menu RL sesuai SIRS 6.3 2025
+- RL 3.3 Rekapitulasi Kegiatan Rawat Darurat SIRS 6.3
+- RL 3.11 Rekapitulasi Kegiatan Pelayanan Gigi dan Mulut SIRS 6.3
+- RL 3.9 Rekapitulasi Kegiatan Pelayanan Radiologi SIRS 6.3
+- RL 3.8 Rekapitulasi Kegiatan Pelayanan Laboratorium SIRS 6.3
+- RL 3.6 Rekapitulasi Kegiatan Pelayanan Kebidanan SIRS 6.3
+- Formulir RL 3.12 Rekapitulasi Kegiatan Pelayanan Pembedahan SIRS 6.3
+
+---
+
+Versi : 25.0213.36.0
+
+Update*
+Perbaikan Auto Upload file JPG
+- SO Digital 
+- Resume RJ dan RI
+- Laporan Operasi
+- Hasil Laboratorium
+- Hasil Radiologi
+- Konsultasi Medik
+- Triase IGD
+
+---
+
+Versi : 25.0211.35.0
+
+Update*
+- Perbaikan Auto Upload ke file PDF ke JPG
+  ( SO Digital, Resume RJ dan RI )
+- Perbaikan menu Dosisi Hemofilia
+
+---
+
+Versi : 25.0207.34.0
+
+Update*
+- Auto Upload ke Menu Berkas Digital Keperawatan
+  ( SO Digital, Resume RJ dan RI )
+
+---
+
+Versi : 25.0203.33.0
+
+Update*
+- Menu Laporan Tindakan Operasi
+- Perbaikan Tampilan Menu Bayar Pemesanan Barang Obat & BHP
+- Perbaikan Tampilan Menu Bayar Pemesanan Barang Non Medis
+- Penambahan Tombol Cetak BPB ( Bukti Pengeluaran Bank ) Barang Non Medis
+- Perbaikan Bug Permintaan Rawat Inap ( Sudah Bayar )
+- Perbaikan Tampil Konsultasi Medis Akun dr. IGD
+- Penambahan Kolom di Menu Rekapan Ranap ( Laporan RL )
+  Tgl. Masuk, Jam masuk, Tgl. Keluar, Jam Keluar, Spesialis, Lama Rawat,
+   Status Pulang, Keterangan Meninggal, Kelas.
+- Revisi Cetakan Menu Penerimaan Obat & BHP
+   
+   

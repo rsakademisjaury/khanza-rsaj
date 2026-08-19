@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Review Tindakan & Permintaan — Modern</title>
+  <style>
+    :root{
+      --bg:#0b1222; --bg2:#0f2247; --card:#0f2247;
+      --line:#133b7a; --text:#e8f1ff; --muted:#cfe4ff; --accent:#3ea3ff;
+      --good:#39D98A; --warn:#ffce3a; --bad:#ff6b6b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Inter", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;}
+    .wrap{max-width:1400px;margin:auto;padding:20px}
+    .header{display:grid;grid-template-columns:1fr 280px;gap:16px;margin-bottom:18px}
+    .hcard{background:#0e1d3a;border:1px solid var(--line);border-radius:14px;padding:16px}
+    .kv{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .kv div small{display:block;color:var(--muted);opacity:.95}
+    .kv div strong{display:block;font-size:18px}
+    .filter input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0b2a5b;color:#fff;outline:none}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    @media (max-width:1200px){ .grid{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width:800px){ .header{grid-template-columns:1fr} .grid{grid-template-columns:1fr} }
+
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-height:240px}
+    .card h3{margin:0;padding:12px 16px;background:#0b2a5b;border-bottom:1px solid var(--line);font-size:15px}
+    .table-wrap{overflow:auto}
+    table{border-collapse:separate;border-spacing:0;width:100%;min-width:680px}
+    th,td{padding:10px 12px;border-bottom:1px solid #1e3b70}
+    th{position:sticky;top:0;background:#0b2a5b;text-align:left}
+    tbody tr:nth-child(even){background:#102a5c}
+    .badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#0b2a5b}
+    .ok{color:var(--good);border-color:#1b6b4a}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="hcard">
+        <div class="kv">
+          <div><small>No. Rawat</small> <strong id="noRawat">2025/09/09/000234</strong></div>
+          <div><small>No. RM</small> <strong id="noRM">305017</strong></div>
+          <div><small>Nama Pasien</small> <strong id="nm">ILHAM</strong></div>
+          <div><small>No. SEP</small> <strong id="sep">0342R040925V001375</strong></div>
+        </div>
+      </div>
+      <div class="hcard filter">
+        <small style="display:block;color:var(--muted);margin-bottom:6px">Quick Filter</small>
+        <input type="search" id="filter" placeholder="Ketik untuk memfilter semua tabel ...">
+      </div>
+    </div>
+
+    <div class="grid" id="grid">
+      <div class="card">
+        <h3>🩺 Tindakan Dokter</h3>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Tanggal</th><th>Jam</th><th>Nama Pemeriksaan</th><th>Total</th><th>Biaya dr.</th><th>Dokter</th></tr></thead>
+            <tbody>
+              <tr><td>2025-09-17</td><td>08:35:22</td><td>Visite Dokter ...</td><td>50.000</td><td>50.000</td><td>dr. Fritz</td></tr>
+              <tr><td>2025-09-16</td><td>10:35:22</td><td>Visite Dokter ...</td><td>50.000</td><td>50.000</td><td>dr. Nasrum</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>👩‍⚕️ Tindakan Petugas</h3>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Tanggal</th><th>Jam</th><th>Nama Pemeriksaan</th><th>Petugas</th></tr></thead>
+            <tbody>
+              <tr><td>2025-09-17</td><td>16:01:46</td><td>Administrasi Rawat Inap</td><td>REK I</td></tr>
+              <tr><td>2025-09-17</td><td>15:48:24</td><td>Menyuntik</td><td>HELLY</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🤝 Dokter & Petugas</h3>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Tanggal</th><th>Jam</th><th>Nama Pemeriksaan</th><th>Dokter</th><th>Petugas</th></tr></thead>
+            <tbody>
+              <tr><td>2025-09-17</td><td>10:02:17</td><td>HEMODIALISA (BPJS)</td><td>dr. Nasrum</td><td>ALFIYANTI</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🧪 Permintaan Laboratorium</h3>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>No. Permintaan</th><th>Tanggal</th><th>Jam</th><th>Nama Pemeriksaan</th><th>Dokter Perujuk</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>PK202509090136</td><td>2025-09-09</td><td>23:17:50</td><td>KIMIA DARAH DIABETES</td><td>dr. Nasrum</td><td><span class="badge ok">Sudah Terlayani</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🩻 Permintaan Radiologi</h3>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>No. Permintaan</th><th>Tanggal</th><th>Jam</th><th>Nama Pemeriksaan</th><th>Dokter Perujuk</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>PR202509090031</td><td>2025-09-09</td><td>20:47:47</td><td>Foto Thorax AP/PA</td><td>dr. Hj. Rachmawati</td><td><span class="badge ok">Sudah Terlayani</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>💊 Permintaan Resep</h3>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>No. Resep</th><th>Tanggal</th><th>Jam</th><th>Dokter Peresep</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>20250917000855</td><td>2025-09-17</td><td>10:37:02</td><td>dr. Fritz</td><td><span class="badge ok">Sudah Terlayani</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Quick filter across all tables
+    const input = document.getElementById('filter');
+    const tables = Array.from(document.querySelectorAll('table.tbl tbody'));
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      tables.forEach(tbody => {
+        for(const tr of tbody.rows){
+          const show = tr.innerText.toLowerCase().includes(q);
+          tr.style.display = show ? '' : 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

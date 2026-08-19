@@ -1,0 +1,729 @@
+package simrskhanza;
+
+import fungsi.koneksiDB;
+import fungsi.sekuel;
+import keuangan.DlgKamar;
+import widget.TextBox;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import java.awt.Color;
+import java.awt.Dialog;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+
+public class DlgInputDobelBed extends JDialog {
+    // TODO DOBEL BED FINAL FIX: dialog dibuat terpisah dan modeless agar popup kamar langsung muncul
+
+    private final Connection koneksi = koneksiDB.condb();
+    private final sekuel Sequel = new sekuel();
+    private final Dialog parentDialog;
+    private final Object ownerObj;
+    private final DlgKamar popupKamar;
+
+    private String noRawatAsal = "";
+    private String kdKamarAsal = "";
+    private String tglMasukAsal = "";
+    private String jamMasukAsal = "";
+
+    private double batasJamMinimal = 0;
+    private String hariAwal = "No";
+
+    private TextBox txtNoRawatBaru;
+    private TextBox txtNoRM;
+    private TextBox txtNamaPasien;
+    private TextBox txtKdKamar;
+    private TextBox txtStatusKamar;
+    private TextBox txtKdBangsal;
+    private TextBox txtBangsal;
+    private TextBox txtTarif;
+    private TextBox txtLama;
+    private TextBox txtTotal;
+    private JComboBox<String> cmbTglMasuk;
+    private JComboBox<String> cmbBlnMasuk;
+    private JComboBox<String> cmbThnMasuk;
+    private JComboBox<String> cmbJamMasuk;
+    private JComboBox<String> cmbMntMasuk;
+    private JComboBox<String> cmbDtkMasuk;
+    private JComboBox<String> cmbTglKeluar;
+    private JComboBox<String> cmbBlnKeluar;
+    private JComboBox<String> cmbThnKeluar;
+    private JComboBox<String> cmbJamKeluar;
+    private JComboBox<String> cmbMntKeluar;
+    private JComboBox<String> cmbDtkKeluar;
+    private JComboBox<String> cmbStatusPulang;
+
+    private boolean listenerPopupKamarTerpasang = false;
+
+    public DlgInputDobelBed(Dialog parent) {
+        super(parent);
+        this.parentDialog = parent;
+        this.ownerObj = parent;
+
+        // TODO DOBEL BED FINAL FIX: modeless supaya dialog daftar kamar tidak tertahan oleh modal dobel bed
+        setModalityType(Dialog.ModalityType.MODELESS);
+
+        Frame frameOwner = null;
+        try {
+            if (parent != null && parent.getOwner() instanceof Frame) {
+                frameOwner = (Frame) parent.getOwner();
+            }
+        } catch (Exception e) {
+            System.out.println("Notif Owner Frame Dobel Bed : " + e);
+        }
+        this.popupKamar = new DlgKamar(frameOwner, false);
+
+        initDialog();
+        loadSetJamMinimal();
+        initPopupKamar();
+        isiDataPasienDariOwner();
+        hitungLamaDanBiaya();
+    }
+
+    // kompatibel jika user memakai patch init baru yang memanggil method ini
+    public void bukaDariKamarInap(String noRawatAsal, String noRM, String namaPasien,
+                                  String kdKamarAsal, String tglMasukAsal, String jamMasukAsal) {
+        this.noRawatAsal = noRawatAsal;
+        this.kdKamarAsal = kdKamarAsal;
+        this.tglMasukAsal = tglMasukAsal;
+        this.jamMasukAsal = jamMasukAsal;
+
+        txtNoRM.setText(noRM);
+        txtNamaPasien.setText(namaPasien);
+        resetKamarDanBiaya();
+        setTanggalDefaultSekarang();
+        generateNoRawatBaru();
+        hitungLamaDanBiaya();
+
+        setLocationRelativeTo(parentDialog);
+        setVisible(true);
+    }
+
+    private void initDialog() {
+        // TODO DOBEL BED FINAL FIX: tampilan dibuat lebih dekat dengan form check in lama
+        setTitle("Informasi Kamar Pasien");
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setResizable(false);
+        setSize(785, 370);
+        setLocationRelativeTo(parentDialog);
+
+        JPanel panel = new JPanel(null);
+        panel.setBackground(new Color(245, 245, 245));
+        panel.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)));
+
+        JLabel lblTitle = new JLabel("Input Double Bed / Pakai Kamar");
+        lblTitle.setFont(new Font("Tahoma", Font.PLAIN, 18));
+        lblTitle.setBounds(20, 12, 340, 25);
+        panel.add(lblTitle);
+
+        addLabel(panel, "No.Rawat :", 52, 52, 80);
+        txtNoRawatBaru = addText(panel, 135, 52, 190, false);
+
+        addLabel(panel, "No. RM / Nama :", 20, 82, 112);
+        txtNoRM = addText(panel, 135, 82, 70, false);
+        txtNamaPasien = addText(panel, 210, 82, 500, false);
+
+        addLabel(panel, "Kamar :", 60, 112, 72);
+        txtKdKamar = addText(panel, 135, 112, 95, false);
+        txtStatusKamar = addText(panel, 235, 112, 95, false);
+        txtKdBangsal = addText(panel, 335, 112, 95, false);
+        txtBangsal = addText(panel, 435, 112, 275, false);
+
+        JButton btnPilihKamar = new JButton("...");
+        btnPilihKamar.setBounds(715, 112, 30, 23);
+        btnPilihKamar.addActionListener(e -> pilihKamar());
+        panel.add(btnPilihKamar);
+
+        addLabel(panel, "Biaya :", 68, 142, 64);
+        txtTarif = addText(panel, 135, 142, 95, false);
+        JLabel lblX = new JLabel("X", SwingConstants.CENTER);
+        lblX.setBounds(235, 142, 18, 23);
+        panel.add(lblX);
+        txtLama = addText(panel, 258, 142, 160, false);
+        JLabel lblSama = new JLabel("=", SwingConstants.CENTER);
+        lblSama.setBounds(423, 142, 18, 23);
+        panel.add(lblSama);
+        txtTotal = addText(panel, 446, 142, 264, false);
+
+        addLabel(panel, "Tgl. Masuk :", 45, 172, 87);
+        cmbTglMasuk = addCombo(panel, hari(), 135, 172, 50);
+        cmbBlnMasuk = addCombo(panel, bulan(), 190, 172, 55);
+        cmbThnMasuk = addCombo(panel, tahun(), 250, 172, 80);
+
+        addLabel(panel, "Tgl. Pulang :", 395, 172, 80);
+        cmbTglKeluar = addCombo(panel, hari(), 478, 172, 50);
+        cmbBlnKeluar = addCombo(panel, bulan(), 533, 172, 55);
+        cmbThnKeluar = addCombo(panel, tahun(), 593, 172, 80);
+
+        addLabel(panel, "Jam Masuk :", 45, 202, 87);
+        cmbJamMasuk = addCombo(panel, jam(), 135, 202, 50);
+        cmbMntMasuk = addCombo(panel, menitDetik(), 190, 202, 55);
+        cmbDtkMasuk = addCombo(panel, menitDetik(), 250, 202, 55);
+
+        addLabel(panel, "Jam Pulang :", 395, 202, 80);
+        cmbJamKeluar = addCombo(panel, jam(), 478, 202, 50);
+        cmbMntKeluar = addCombo(panel, menitDetik(), 533, 202, 55);
+        cmbDtkKeluar = addCombo(panel, menitDetik(), 593, 202, 55);
+
+        addLabel(panel, "Status Pulang :", 22, 240, 110);
+        cmbStatusPulang = addCombo(panel, statusPulang(), 135, 240, 290);
+
+        JButton btnSimpan = new JButton("Simpan");
+        btnSimpan.setBounds(540, 288, 95, 28);
+        btnSimpan.addActionListener(e -> simpanDobelBed());
+        panel.add(btnSimpan);
+
+        JButton btnTutup = new JButton("Tutup");
+        btnTutup.setBounds(650, 288, 95, 28);
+        btnTutup.addActionListener(e -> dispose());
+        panel.add(btnTutup);
+
+        setContentPane(panel);
+        pasangListenerPerhitungan();
+    }
+
+    private void initPopupKamar() {
+        if (listenerPopupKamarTerpasang) {
+            return;
+        }
+        listenerPopupKamarTerpasang = true;
+
+        popupKamar.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                try {
+                    if (popupKamar.getTable().getSelectedRow() != -1) {
+                        txtKdKamar.setText(popupKamar.getTable().getValueAt(popupKamar.getTable().getSelectedRow(), 1).toString());
+                        isiDataKamar();
+                    }
+                } catch (Exception ex) {
+                    System.out.println("Notif Popup Kamar Dobel Bed : " + ex);
+                }
+                // TODO DOBEL BED FINAL FIX: fokus kembali ke dialog dobel bed setelah popup kamar ditutup
+                try {
+                    setVisible(true);
+                    toFront();
+                    requestFocus();
+                } catch (Exception ex) {
+                    System.out.println("Notif Balik Fokus Dobel Bed : " + ex);
+                }
+            }
+        });
+    }
+
+    private void pilihKamar() {
+        // TODO DOBEL BED FINAL FIX: sembunyikan dialog dobel bed dulu agar popup kamar tampil saat itu juga
+        try {
+            setVisible(false);
+        } catch (Exception e) {
+            System.out.println("Notif Hide Dobel Bed Sebelum Popup Kamar : " + e);
+        }
+
+        try {
+            popupKamar.load();
+            popupKamar.isCek();
+            popupKamar.emptTeks();
+            popupKamar.tampil();
+            popupKamar.setSize(900, 500);
+            popupKamar.setLocationRelativeTo(parentDialog);
+            popupKamar.setVisible(true);
+        } catch (Exception e) {
+            setVisible(true);
+            JOptionPane.showMessageDialog(this, "Gagal membuka daftar kamar : " + e.getMessage());
+        }
+    }
+
+    private void loadSetJamMinimal() {
+        try (PreparedStatement ps = koneksi.prepareStatement("select lamajam,hariawal from set_jam_minimal");
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                batasJamMinimal = rs.getDouble("lamajam");
+                hariAwal = rs.getString("hariawal");
+            }
+        } catch (Exception e) {
+            System.out.println("Notif load set_jam_minimal Dobel Bed : " + e);
+        }
+    }
+
+    private void isiDataPasienDariOwner() {
+        if (ownerObj == null) {
+            return;
+        }
+
+        try {
+            Object ada = invokeOwner("adaPasienTerpilihUntukDobelBed");
+            if (ada instanceof Boolean && !((Boolean) ada)) {
+                JOptionPane.showMessageDialog(this, "Maaf, silahkan pilih dulu pasien pada tabel...!!!");
+                return;
+            }
+        } catch (Exception e) {
+            System.out.println("Notif validasi owner dobel bed : " + e);
+        }
+
+        try {
+            noRawatAsal = str(invokeOwner("getNoRawatDobelBed"));
+            txtNoRM.setText(str(invokeOwner("getNoRMDobelBed")));
+            txtNamaPasien.setText(str(invokeOwner("getNamaPasienDobelBed")));
+            kdKamarAsal = str(invokeOwner("getKdKamarUtamaDobelBed"));
+            tglMasukAsal = str(invokeOwner("getTglMasukUtamaDobelBed"));
+            jamMasukAsal = str(invokeOwner("getJamMasukUtamaDobelBed"));
+        } catch (Exception e) {
+            System.out.println("Notif isiDataPasienDariOwner Dobel Bed : " + e);
+        }
+
+        resetKamarDanBiaya();
+        setTanggalDefaultSekarang();
+        generateNoRawatBaru();
+    }
+
+    private void resetKamarDanBiaya() {
+        txtKdKamar.setText("");
+        txtStatusKamar.setText("");
+        txtKdBangsal.setText("");
+        txtBangsal.setText("");
+        txtTarif.setText("0");
+        txtLama.setText("0");
+        txtTotal.setText("0");
+        cmbStatusPulang.setSelectedItem("Sehat");
+    }
+
+    private void setTanggalDefaultSekarang() {
+        Calendar cal = Calendar.getInstance();
+        String dd = String.format("%02d", cal.get(Calendar.DAY_OF_MONTH));
+        String mm = String.format("%02d", cal.get(Calendar.MONTH) + 1);
+        String yyyy = String.valueOf(cal.get(Calendar.YEAR));
+        String hh = String.format("%02d", cal.get(Calendar.HOUR_OF_DAY));
+        String mi = String.format("%02d", cal.get(Calendar.MINUTE));
+        String ss = String.format("%02d", cal.get(Calendar.SECOND));
+
+        cmbTglMasuk.setSelectedItem(dd);
+        cmbBlnMasuk.setSelectedItem(mm);
+        cmbThnMasuk.setSelectedItem(yyyy);
+        cmbJamMasuk.setSelectedItem(hh);
+        cmbMntMasuk.setSelectedItem(mi);
+        cmbDtkMasuk.setSelectedItem(ss);
+
+        cmbTglKeluar.setSelectedItem(dd);
+        cmbBlnKeluar.setSelectedItem(mm);
+        cmbThnKeluar.setSelectedItem(yyyy);
+        cmbJamKeluar.setSelectedItem(hh);
+        cmbMntKeluar.setSelectedItem(mi);
+        cmbDtkKeluar.setSelectedItem(ss);
+    }
+
+    private Object invokeOwner(String methodName) throws Exception {
+        Method m = ownerObj.getClass().getMethod(methodName);
+        return m.invoke(ownerObj);
+    }
+
+    private String str(Object obj) {
+        return obj == null ? "" : String.valueOf(obj);
+    }
+
+    private JLabel addLabel(JPanel panel, String text, int x, int y, int w) {
+        JLabel lbl = new JLabel(text);
+        lbl.setBounds(x, y, w, 23);
+        panel.add(lbl);
+        return lbl;
+    }
+
+    private TextBox addText(JPanel panel, int x, int y, int w, boolean editable) {
+        TextBox txt = new TextBox();
+        txt.setBounds(x, y, w, 23);
+        txt.setEditable(editable);
+        panel.add(txt);
+        return txt;
+    }
+
+    private JComboBox<String> addCombo(JPanel panel, String[] data, int x, int y, int w) {
+        JComboBox<String> cmb = new JComboBox<String>(data);
+        cmb.setBounds(x, y, w, 23);
+        panel.add(cmb);
+        return cmb;
+    }
+
+    private void pasangListenerPerhitungan() {
+        ItemListener item = new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    generateNoRawatBaru();
+                    hitungLamaDanBiaya();
+                }
+            }
+        };
+
+        cmbTglMasuk.addItemListener(item);
+        cmbBlnMasuk.addItemListener(item);
+        cmbThnMasuk.addItemListener(item);
+        cmbJamMasuk.addItemListener(item);
+        cmbMntMasuk.addItemListener(item);
+        cmbDtkMasuk.addItemListener(item);
+        cmbTglKeluar.addItemListener(item);
+        cmbBlnKeluar.addItemListener(item);
+        cmbThnKeluar.addItemListener(item);
+        cmbJamKeluar.addItemListener(item);
+        cmbMntKeluar.addItemListener(item);
+        cmbDtkKeluar.addItemListener(item);
+    }
+
+    private String[] hari() {
+        String[] data = new String[31];
+        for (int i = 1; i <= 31; i++) {
+            data[i - 1] = String.format("%02d", i);
+        }
+        return data;
+    }
+
+    private String[] bulan() {
+        String[] data = new String[12];
+        for (int i = 1; i <= 12; i++) {
+            data[i - 1] = String.format("%02d", i);
+        }
+        return data;
+    }
+
+    private String[] tahun() {
+        int tahunNow = Calendar.getInstance().get(Calendar.YEAR);
+        String[] data = new String[11];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = String.valueOf(tahunNow - 5 + i);
+        }
+        return data;
+    }
+
+    private String[] jam() {
+        String[] data = new String[24];
+        for (int i = 0; i <= 23; i++) {
+            data[i] = String.format("%02d", i);
+        }
+        return data;
+    }
+
+    private String[] menitDetik() {
+        String[] data = new String[60];
+        for (int i = 0; i <= 59; i++) {
+            data[i] = String.format("%02d", i);
+        }
+        return data;
+    }
+
+    private String[] statusPulang() {
+        return new String[]{
+                "Sehat", "Rujuk", "APS", "+", "Meninggal", "Sembuh", "Membaik",
+                "Pulang Paksa", "-", "Pindah Kamar", "Status Belum Lengkap",
+                "Atas Persetujuan Dokter", "Atas Permintaan Sendiri", "Isoman", "Lain-lain"
+        };
+    }
+
+    private String getTglMasuk() {
+        return cmbThnMasuk.getSelectedItem() + "-" + cmbBlnMasuk.getSelectedItem() + "-" + cmbTglMasuk.getSelectedItem();
+    }
+
+    private String getJamMasuk() {
+        return cmbJamMasuk.getSelectedItem() + ":" + cmbMntMasuk.getSelectedItem() + ":" + cmbDtkMasuk.getSelectedItem();
+    }
+
+    private String getTglKeluar() {
+        return cmbThnKeluar.getSelectedItem() + "-" + cmbBlnKeluar.getSelectedItem() + "-" + cmbTglKeluar.getSelectedItem();
+    }
+
+    private String getJamKeluar() {
+        return cmbJamKeluar.getSelectedItem() + ":" + cmbMntKeluar.getSelectedItem() + ":" + cmbDtkKeluar.getSelectedItem();
+    }
+
+    private LocalDateTime getMulai() {
+        return LocalDateTime.parse(getTglMasuk() + " " + getJamMasuk(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    private LocalDateTime getSelesai() {
+        return LocalDateTime.parse(getTglKeluar() + " " + getJamKeluar(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    private void generateNoRawatBaru() {
+        String prefix = getTglMasuk().replace("-", "/") + "/";
+        String hasil = prefix + "000001";
+        try (PreparedStatement ps = koneksi.prepareStatement(
+                "select ifnull(max(convert(right(no_rawat,6),signed)),0)+1 from reg_periksa where tgl_registrasi=?")) {
+            ps.setString(1, getTglMasuk());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    hasil = prefix + String.format("%06d", rs.getInt(1));
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Notif generate no rawat dobel bed : " + e);
+        }
+        txtNoRawatBaru.setText(hasil);
+    }
+
+    private void isiDataKamar() {
+        if (txtKdKamar.getText().trim().equals("")) {
+            txtStatusKamar.setText("");
+            txtKdBangsal.setText("");
+            txtBangsal.setText("");
+            txtTarif.setText("0");
+            txtLama.setText("0");
+            txtTotal.setText("0");
+            return;
+        }
+
+        double tarif = 0;
+        try (PreparedStatement ps = koneksi.prepareStatement(
+                "select kamar.status,bangsal.kd_bangsal,bangsal.nm_bangsal,kamar.trf_kamar " +
+                        "from kamar inner join bangsal on kamar.kd_bangsal=bangsal.kd_bangsal where kamar.kd_kamar=?")) {
+            ps.setString(1, txtKdKamar.getText().trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    txtStatusKamar.setText(rs.getString("status"));
+                    txtKdBangsal.setText(rs.getString("kd_bangsal"));
+                    txtBangsal.setText(rs.getString("nm_bangsal"));
+                    tarif = rs.getDouble("trf_kamar");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Kamar tidak ditemukan.");
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal membaca data kamar: " + e.getMessage());
+            return;
+        }
+
+        try (PreparedStatement ps2 = koneksi.prepareStatement(
+                "select tarif from set_harga_kamar where kd_kamar=? and kd_pj='001'")) {
+            ps2.setString(1, txtKdKamar.getText().trim());
+            try (ResultSet rs2 = ps2.executeQuery()) {
+                if (rs2.next()) {
+                    tarif = rs2.getDouble("tarif");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Notif tarif umum dobel bed : " + e);
+        }
+
+        txtTarif.setText(String.valueOf(tarif));
+        hitungLamaDanBiaya();
+    }
+
+    private void hitungLamaDanBiaya() {
+        try {
+            LocalDateTime mulai = getMulai();
+            LocalDateTime selesai = getSelesai();
+            if (selesai.isBefore(mulai)) {
+                txtLama.setText("0");
+                txtTotal.setText("0");
+                return;
+            }
+
+            long selisihHari = ChronoUnit.DAYS.between(mulai.toLocalDate(), selesai.toLocalDate());
+            long selisihDetik = Duration.between(mulai, selesai).getSeconds();
+            int lamaRawat;
+            if (selisihHari == 0) {
+                lamaRawat = selisihDetik > (long) (batasJamMinimal * 3600D) ? 1 : 0;
+            } else {
+                lamaRawat = (int) selisihHari;
+                if ("Yes".equalsIgnoreCase(hariAwal)) {
+                    lamaRawat = lamaRawat + 1;
+                }
+            }
+
+            txtLama.setText(String.valueOf(lamaRawat));
+            txtTotal.setText(String.valueOf(parseDouble(txtTarif.getText()) * lamaRawat));
+        } catch (Exception e) {
+            txtLama.setText("0");
+            txtTotal.setText("0");
+        }
+    }
+
+    private double parseDouble(String isi) {
+        try {
+            return Double.parseDouble(isi.replace(",", "").trim());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private boolean adaDuplikatRentang() {
+        String sql = "select ki.no_rawat,ki.tgl_masuk,ki.jam_masuk,ki.tgl_keluar,ki.jam_keluar " +
+                "from kamar_inap ki inner join reg_periksa rp on ki.no_rawat=rp.no_rawat " +
+                "where rp.no_rkm_medis=? and ki.kd_kamar=? and " +
+                "(concat(ki.tgl_masuk,' ',ki.jam_masuk) < ?) and " +
+                "(concat(if(ki.tgl_keluar='0000-00-00',ki.tgl_masuk,ki.tgl_keluar),' '," +
+                "if(ki.jam_keluar='00:00:00','23:59:59',ki.jam_keluar)) > ?) limit 1";
+
+        try (PreparedStatement ps = koneksi.prepareStatement(sql)) {
+            ps.setString(1, txtNoRM.getText().trim());
+            ps.setString(2, txtKdKamar.getText().trim());
+            ps.setString(3, getTglKeluar() + " " + getJamKeluar());
+            ps.setString(4, getTglMasuk() + " " + getJamMasuk());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String pesan = "Sudah ada dobel bed/riwayat kamar yang sama pada rentang waktu tersebut.\n"
+                            + "No.Rawat : " + rs.getString("no_rawat") + "\n"
+                            + "Masuk    : " + rs.getString("tgl_masuk") + " " + rs.getString("jam_masuk") + "\n"
+                            + "Keluar   : " + rs.getString("tgl_keluar") + " " + rs.getString("jam_keluar");
+                    JOptionPane.showMessageDialog(this, pesan);
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Notif validasi duplikat dobel bed : " + e);
+        }
+        return false;
+    }
+
+    private void simpanDobelBed() {
+        if (noRawatAsal.trim().equals("")) {
+            JOptionPane.showMessageDialog(this, "No. rawat asal belum terbaca.");
+            return;
+        }
+        if (txtKdKamar.getText().trim().equals("")) {
+            JOptionPane.showMessageDialog(this, "Kamar belum dipilih.");
+            return;
+        }
+        if (txtKdKamar.getText().trim().equals(kdKamarAsal.trim())) {
+            JOptionPane.showMessageDialog(this, "Kamar dobel bed harus berbeda dengan kamar utama.");
+            return;
+        }
+
+        hitungLamaDanBiaya();
+        if ("0".equals(txtLama.getText())) {
+            JOptionPane.showMessageDialog(this, "Lama dobel bed masih 0 hari.");
+            return;
+        }
+        if (adaDuplikatRentang()) {
+            return;
+        }
+
+        boolean autoCommitLama = true;
+        try {
+            autoCommitLama = koneksi.getAutoCommit();
+            koneksi.setAutoCommit(false);
+
+            Map<String, Object> overrideReg = new HashMap<String, Object>();
+            overrideReg.put("no_rawat", txtNoRawatBaru.getText());
+            overrideReg.put("tgl_registrasi", getTglMasuk());
+            overrideReg.put("jam_reg", getJamMasuk());
+            overrideReg.put("biaya_reg", "0");
+            overrideReg.put("kd_pj", "001");
+            overrideReg.put("status_lanjut", "Ranap");
+
+            duplikasiBarisDenganOverride(
+                    "reg_periksa",
+                    "no_rawat=?",
+                    new Object[]{noRawatAsal},
+                    overrideReg
+            );
+
+            Map<String, Object> overrideKamar = new HashMap<String, Object>();
+            overrideKamar.put("no_rawat", txtNoRawatBaru.getText());
+            overrideKamar.put("kd_kamar", txtKdKamar.getText().trim());
+            overrideKamar.put("trf_kamar", parseDouble(txtTarif.getText()));
+            overrideKamar.put("tgl_masuk", getTglMasuk());
+            overrideKamar.put("jam_masuk", getJamMasuk());
+            overrideKamar.put("tgl_keluar", getTglKeluar());
+            overrideKamar.put("jam_keluar", getJamKeluar());
+            overrideKamar.put("lama", Integer.parseInt(txtLama.getText()));
+            overrideKamar.put("ttl_biaya", parseDouble(txtTotal.getText()));
+            overrideKamar.put("stts_pulang", String.valueOf(cmbStatusPulang.getSelectedItem()));
+
+            duplikasiBarisDenganOverride(
+                    "kamar_inap",
+                    "no_rawat=? and kd_kamar=? and tgl_masuk=? and jam_masuk=?",
+                    new Object[]{noRawatAsal, kdKamarAsal, tglMasukAsal, jamMasukAsal},
+                    overrideKamar
+            );
+
+            koneksi.commit();
+            JOptionPane.showMessageDialog(this, "Data dobel bed berhasil disimpan.");
+            refreshOwner();
+            dispose();
+        } catch (Exception e) {
+            try {
+                koneksi.rollback();
+            } catch (Exception ex) {
+                System.out.println("Rollback Dobel Bed : " + ex);
+            }
+            JOptionPane.showMessageDialog(this, "Gagal menyimpan dobel bed : " + e.getMessage());
+            System.out.println("Notif simpan dobel bed : " + e);
+        } finally {
+            try {
+                koneksi.setAutoCommit(autoCommitLama);
+            } catch (Exception ex) {
+                System.out.println("AutoCommit Dobel Bed : " + ex);
+            }
+        }
+    }
+
+    private void refreshOwner() {
+        try {
+            invokeOwner("reloadDataDobelBed");
+            return;
+        } catch (Exception ignored) {
+        }
+        try {
+            invokeOwner("refreshDariDobelBedInitBaru");
+        } catch (Exception ignored) {
+        }
+    }
+
+    private int duplikasiBarisDenganOverride(String tabel, String whereSql, Object[] params, Map<String, Object> override) throws Exception {
+        String sqlSelect = "select * from " + tabel + " where " + whereSql + " limit 1";
+        try (PreparedStatement psSumber = koneksi.prepareStatement(sqlSelect)) {
+            for (int i = 0; i < params.length; i++) {
+                psSumber.setObject(i + 1, params[i]);
+            }
+
+            try (ResultSet rsSumber = psSumber.executeQuery()) {
+                if (!rsSumber.next()) {
+                    throw new Exception("Data sumber tabel " + tabel + " tidak ditemukan");
+                }
+
+                ResultSetMetaData meta = rsSumber.getMetaData();
+                int jumlahKolom = meta.getColumnCount();
+                StringBuilder kolom = new StringBuilder();
+                StringBuilder nilai = new StringBuilder();
+
+                for (int i = 1; i <= jumlahKolom; i++) {
+                    if (i > 1) {
+                        kolom.append(",");
+                        nilai.append(",");
+                    }
+                    kolom.append(meta.getColumnName(i));
+                    nilai.append("?");
+                }
+
+                String sqlInsert = "insert into " + tabel + " (" + kolom + ") values (" + nilai + ")";
+                try (PreparedStatement psInsert = koneksi.prepareStatement(sqlInsert)) {
+                    for (int i = 1; i <= jumlahKolom; i++) {
+                        String namaKolom = meta.getColumnName(i).toLowerCase();
+                        Object isi = override.containsKey(namaKolom) ? override.get(namaKolom) : rsSumber.getObject(i);
+                        psInsert.setObject(i, isi);
+                    }
+                    return psInsert.executeUpdate();
+                }
+            }
+        }
+    }
+}

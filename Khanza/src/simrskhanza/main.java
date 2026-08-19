@@ -1,0 +1,358 @@
+package simrskhanza;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.RoundRectangle2D;
+import java.util.List;
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
+
+public class main extends javax.swing.JFrame {
+    private int animationFrame = 0;
+    private Timer animationTimer;
+    
+    public main() {
+        initComponents();
+        buildModernSplash();
+        setLocationRelativeTo(null);
+        try { setIconImage(new ImageIcon(getClass().getResource("/picture/yaski24.png")).getImage()); } catch (Exception ignore) {}
+        new RealLoadingWorker().execute();
+    }
+
+    private void buildModernSplash() {
+        setSize(720, 420);
+        setPreferredSize(new java.awt.Dimension(720, 420));
+        setMinimumSize(new java.awt.Dimension(720, 420));
+        try {
+            setBackground(new Color(0, 0, 0, 0));
+        } catch (Exception unsupportedTransparency) {
+            setBackground(new Color(8, 66, 119));
+        }
+
+        ModernSplashPanel modernPanel = new ModernSplashPanel();
+        modernPanel.setLayout(null);
+        setContentPane(modernPanel);
+        jPanel1 = modernPanel;
+
+        JLabel appBadge = new JLabel("SIMRS  KHANZA");
+        appBadge.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 13));
+        appBadge.setForeground(new Color(199, 238, 255));
+        appBadge.setBounds(72, 55, 210, 24);
+        modernPanel.add(appBadge);
+
+        JLabel welcome = new JLabel("Selamat datang di");
+        welcome.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        welcome.setForeground(new Color(221, 245, 255));
+        welcome.setBounds(72, 98, 300, 28);
+        modernPanel.add(welcome);
+
+        JLabel hospital = new JLabel("RS. Akademis Jaury Jusuf Putera");
+        hospital.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 31));
+        hospital.setForeground(Color.WHITE);
+        hospital.setBounds(72, 126, 590, 48);
+        modernPanel.add(hospital);
+
+        JLabel subtitle = new JLabel("Sistem Informasi Manajemen Rumah Sakit");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        subtitle.setForeground(new Color(203, 237, 250));
+        subtitle.setBounds(74, 174, 430, 28);
+        modernPanel.add(subtitle);
+
+        loadingnum1 = new JLabel("Memulai aplikasi...");
+        loadingnum1.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        loadingnum1.setForeground(Color.WHITE);
+        loadingnum1.setBounds(74, 276, 510, 25);
+        modernPanel.add(loadingnum1);
+
+        loadingnum = new JLabel("0%");
+        loadingnum.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 14));
+        loadingnum.setForeground(Color.WHITE);
+        loadingnum.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        loadingnum.setBounds(590, 276, 58, 25);
+        modernPanel.add(loadingnum);
+
+        progressBar = new ModernProgressBar();
+        progressBar.setMinimum(0);
+        progressBar.setMaximum(100);
+        progressBar.setValue(0);
+        progressBar.setBounds(74, 310, 574, 14);
+        modernPanel.add(progressBar);
+
+        JLabel footer = new JLabel("Powered by SIMKES Khanza  |  TIM IT RS AJJP");
+        footer.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        footer.setForeground(new Color(181, 225, 243));
+        footer.setBounds(74, 349, 400, 22);
+        modernPanel.add(footer);
+
+        animationTimer = new Timer(35, e -> {
+            animationFrame = (animationFrame + 1) % 240;
+            progressBar.repaint();
+            modernPanel.repaint();
+        });
+        animationTimer.start();
+    }
+
+    private void updateProgress(int percent, String message) {
+        int safePercent = Math.max(0, Math.min(100, percent));
+        progressBar.setValue(safePercent);
+        loadingnum.setText(safePercent + "%");
+        loadingnum1.setText(message == null || message.trim().isEmpty()
+                ? "Menyiapkan aplikasi..." : message);
+    }
+    
+    private class RealLoadingWorker extends SwingWorker<frmUtama, StartupUpdate> {
+        private final long mulaiStartup = System.nanoTime();
+
+        @Override
+        protected frmUtama doInBackground() throws Exception {
+            publish(new StartupUpdate(1, "Memulai layanan SIMRS..."));
+            long mulaiTahap = System.nanoTime();
+            frmUtama utama = frmUtama.getInstance((percent, message) ->
+                    publish(new StartupUpdate(percent, message)));
+            catatDurasi("Pembuatan frmUtama", mulaiTahap);
+
+            publish(new StartupUpdate(98, "Memuat identitas dan wallpaper rumah sakit..."));
+            mulaiTahap = System.nanoTime();
+            utama.isWall();
+            catatDurasi("Identitas dan wallpaper", mulaiTahap);
+            publish(new StartupUpdate(100, "SIMRS siap digunakan"));
+            return utama;
+        }
+        
+        @Override
+        protected void process(List<StartupUpdate> chunks) {
+            StartupUpdate latest = chunks.get(chunks.size() - 1);
+            updateProgress(latest.percent, latest.message);
+        }
+
+        @Override
+        protected void done() {
+            try {
+                final frmUtama utama = get();
+                updateProgress(100, "SIMRS siap digunakan");
+                if (animationTimer != null) {
+                    animationTimer.stop();
+                }
+                dispose();
+                utama.setVisible(true);
+                utama.tampilkanLoginAwal();
+                catatDurasi("Total startup sampai aplikasi tampil", mulaiStartup);
+            } catch (Exception ex) {
+                if (animationTimer != null) {
+                    animationTimer.stop();
+                }
+                updateProgress(0, "Gagal memuat aplikasi");
+                Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+                JOptionPane.showMessageDialog(main.this,
+                        "SIMRS gagal dimuat.\n" + cause.getMessage(),
+                        "Kesalahan Startup", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private static void catatDurasi(String tahap, long mulaiNano) {
+        long durasiMs = (System.nanoTime() - mulaiNano) / 1_000_000L;
+        System.out.println("[PERFORMA] " + tahap + " selesai dalam " + durasiMs + " ms");
+    }
+
+    private static final class StartupUpdate {
+        private final int percent;
+        private final String message;
+
+        private StartupUpdate(int percent, String message) {
+            this.percent = percent;
+            this.message = message;
+        }
+    }
+
+    private class ModernSplashPanel extends JPanel {
+        ModernSplashPanel() {
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            GradientPaint background = new GradientPaint(
+                    0, 0, new Color(8, 66, 119),
+                    getWidth(), getHeight(), new Color(0, 157, 211));
+            g2.setPaint(background);
+            g2.fill(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 28, 28));
+
+            g2.setColor(new Color(255, 255, 255, 18));
+            g2.fill(new Ellipse2D.Double(getWidth() - 210, -92, 290, 290));
+            g2.setColor(new Color(255, 255, 255, 12));
+            g2.fill(new Ellipse2D.Double(-115, getHeight() - 150, 270, 270));
+
+            double pulse = 7 + (Math.sin(animationFrame / 12.0) + 1) * 2;
+            g2.setColor(new Color(108, 231, 255, 65));
+            g2.setStroke(new BasicStroke(2f));
+            g2.draw(new Ellipse2D.Double(616 - pulse, 54 - pulse,
+                    28 + pulse * 2, 28 + pulse * 2));
+            g2.setColor(new Color(255, 255, 255, 220));
+            g2.fill(new Ellipse2D.Double(626, 64, 28, 28));
+            g2.setColor(new Color(0, 138, 190));
+            g2.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 11));
+            g2.drawString("RS", 632, 83);
+
+            g2.dispose();
+            super.paintComponent(graphics);
+        }
+    }
+
+    private class ModernProgressBar extends JProgressBar {
+        ModernProgressBar() {
+            setOpaque(false);
+            setBorderPainted(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int width = getWidth();
+            int height = getHeight();
+            int arc = height;
+
+            g2.setColor(new Color(255, 255, 255, 55));
+            g2.fillRoundRect(0, 0, width, height, arc, arc);
+
+            int fillWidth = (int) Math.round(width * (getValue() / 100.0));
+            if (fillWidth > 0) {
+                g2.setPaint(new GradientPaint(0, 0, new Color(117, 238, 255),
+                        width, 0, Color.WHITE));
+                g2.fillRoundRect(0, 0, fillWidth, height, arc, arc);
+
+                java.awt.Shape oldClip = g2.getClip();
+                g2.clip(new RoundRectangle2D.Double(0, 0, fillWidth, height, arc, arc));
+                int shimmerX = (animationFrame * 5) % (Math.max(width, 1) + 90) - 70;
+                g2.setPaint(new GradientPaint(shimmerX, 0, new Color(255, 255, 255, 0),
+                        shimmerX + 65, 0, new Color(255, 255, 255, 165), true));
+                g2.fillRect(shimmerX, 0, 70, height);
+                g2.setClip(oldClip);
+            }
+            g2.dispose();
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        jPanel1 = new javax.swing.JPanel();
+        jLabel4 = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
+        jLabel6 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        loadingnum1 = new javax.swing.JLabel();
+        loadingnum = new javax.swing.JLabel();
+        progressBar = new javax.swing.JProgressBar();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setMinimumSize(new java.awt.Dimension(600, 350));
+        setModalExclusionType(java.awt.Dialog.ModalExclusionType.APPLICATION_EXCLUDE);
+        setUndecorated(true);
+        setPreferredSize(new java.awt.Dimension(600, 350));
+        setType(java.awt.Window.Type.POPUP);
+        getContentPane().setLayout(null);
+
+        jPanel1.setBackground(new java.awt.Color(0, 156, 215));
+        jPanel1.setForeground(new java.awt.Color(255, 255, 255));
+        jPanel1.setLayout(null);
+
+        jLabel4.setFont(new java.awt.Font("Segoe UI", 0, 30)); // NOI18N
+        jLabel4.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel4.setText("RS. Akademis Jaury Jusuf Putera");
+        jLabel4.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        jPanel1.add(jLabel4);
+        jLabel4.setBounds(70, 130, 470, 50);
+
+        jLabel5.setFont(new java.awt.Font("Segoe UI", 0, 15)); // NOI18N
+        jLabel5.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel5.setText("Sistem Informasi Managemen");
+        jLabel5.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        jPanel1.add(jLabel5);
+        jLabel5.setBounds(70, 110, 200, 30);
+
+        jLabel6.setFont(new java.awt.Font("Segoe UI", 0, 15)); // NOI18N
+        jLabel6.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel6.setText("Selamat datang di");
+        jLabel6.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        jPanel1.add(jLabel6);
+        jLabel6.setBounds(70, 50, 200, 30);
+
+        jLabel3.setFont(new java.awt.Font("Lucida Sans Unicode", 0, 12)); // NOI18N
+        jLabel3.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel3.setText("Powered by SIMKES Khanza");
+        jLabel3.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        jPanel1.add(jLabel3);
+        jLabel3.setBounds(330, 170, 170, 20);
+
+        loadingnum1.setBackground(new java.awt.Color(0, 156, 215));
+        loadingnum1.setFont(new java.awt.Font("Segoe UI", 0, 13)); // NOI18N
+        loadingnum1.setForeground(new java.awt.Color(255, 255, 255));
+        loadingnum1.setText("Sedang memuat data ...");
+        jPanel1.add(loadingnum1);
+        loadingnum1.setBounds(50, 270, 150, 30);
+
+        loadingnum.setBackground(new java.awt.Color(0, 156, 215));
+        loadingnum.setFont(new java.awt.Font("Segoe UI", 0, 13)); // NOI18N
+        loadingnum.setForeground(new java.awt.Color(255, 255, 255));
+        loadingnum.setText("100%");
+        jPanel1.add(loadingnum);
+        loadingnum.setBounds(190, 270, 50, 30);
+
+        progressBar.setBackground(new java.awt.Color(204, 204, 204));
+        progressBar.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        progressBar.setForeground(new java.awt.Color(51, 204, 0));
+        progressBar.setToolTipText("Loading");
+        progressBar.setBorderPainted(false);
+        progressBar.setFocusable(false);
+        progressBar.setName("Loading"); // NOI18N
+        progressBar.setOpaque(true);
+        progressBar.setPreferredSize(new java.awt.Dimension(146, 10));
+        jPanel1.add(progressBar);
+        progressBar.setBounds(50, 297, 500, 10);
+        progressBar.getAccessibleContext().setAccessibleName("Loading");
+        progressBar.getAccessibleContext().setAccessibleParent(progressBar);
+
+        getContentPane().add(jPanel1);
+        jPanel1.setBounds(0, 0, 600, 350);
+
+        getAccessibleContext().setAccessibleDescription("");
+
+        pack();
+    }// </editor-fold>//GEN-END:initComponents
+
+    /**
+     * @param args the command line arguments
+     */
+    
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    public javax.swing.JPanel jPanel1;
+    public javax.swing.JLabel loadingnum;
+    public javax.swing.JLabel loadingnum1;
+    public javax.swing.JProgressBar progressBar;
+    // End of variables declaration//GEN-END:variables
+}

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="rptGabunganResepSEP" pageWidth="595" pageHeight="842" columnWidth="555"
+              leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20"
+              uuid="master-report-uuid">
+
+    <parameter name="SUBREPORT_DIR" class="java.lang.String"/>
+    <parameter name="REPORT_CONNECTION" class="java.sql.Connection"/>
+    <parameter name="param1" class="java.lang.String"/>
+    <parameter name="param2" class="java.lang.String"/>
+
+    <detail>
+        <band height="20">
+            <subreport>
+                <reportElement x="0" y="0" width="555" height="20" uuid="subreport-1"/>
+                <subreportParameter name="param1">
+                    <subreportParameterExpression><![CDATA[$P{param1}]]></subreportParameterExpression>
+                </subreportParameter>
+                <subreportParameter name="REPORT_CONNECTION">
+                    <subreportParameterExpression><![CDATA[$P{REPORT_CONNECTION}]]></subreportParameterExpression>
+                </subreportParameter>
+                <subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "rptLembarObat2.jasper"]]></subreportExpression>
+            </subreport>
+        </band>
+        <band height="20" splitType="Stretch">
+            <break>
+                <breakType>Page_Break</breakType>
+            </break>
+        </band>
+        <band height="20">
+            <subreport>
+                <reportElement x="0" y="0" width="555" height="20" uuid="subreport-2"/>
+                <subreportParameter name="param2">
+                    <subreportParameterExpression><![CDATA[$P{param2}]]></subreportParameterExpression>
+                </subreportParameter>
+                <subreportParameter name="REPORT_CONNECTION">
+                    <subreportParameterExpression><![CDATA[$P{REPORT_CONNECTION}]]></subreportParameterExpression>
+                </subreportParameter>
+                <subreportExpression><![CDATA[$P{SUBREPORT_DIR} + "rptBridgingSEP.jasper"]]></subreportExpression>
+            </subreport>
+        </band>
+    </detail>
+</jasperReport>

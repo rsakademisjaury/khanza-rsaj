@@ -1,0 +1,3249 @@
+package simrskhanza;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fungsi.akses;
+import fungsi.koneksiDB;
+import fungsi.sekuel;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import wa.HasilPenunjangWhatsapp;
+
+/**
+ * Viewer hasil Laboratorium dan Radiologi bersama.
+ * Seluruh query detail, riwayat, pembuatan HTML dan integrasi WA dipindahkan
+ * dari DlgIGD, DlgKamarInap dan DlgKasirRalan ke class ini.
+ */
+public final class DlgHasilPenunjang extends JDialog {
+    public static final String JENIS_LAB = "LAB";
+    public static final String JENIS_RAD = "RAD";
+
+    private final Connection koneksi = koneksiDB.condb();
+    private final sekuel Sequel = new sekuel();
+    private String noRawat = "";
+    private String jenisAwal = JENIS_LAB;
+    private final JLabel LStatus = new JLabel("Pilih hasil yang ingin ditampilkan", SwingConstants.CENTER);
+    private final widget.Button BtnLab = new widget.Button();
+    private final widget.Button BtnRad = new widget.Button();
+    private final widget.Button BtnTutup = new widget.Button();
+    private SwingWorker<Void,Void> workerMuat;
+
+    private static final long MASA_CACHE_STATUS_MS = 60000L;
+    private static final Map<String,StatusRingkas> CACHE_STATUS = new ConcurrentHashMap<String,StatusRingkas>();
+    // Cache DICOM hanya hidup selama instance viewer dipakai. Tujuannya agar satu tanggal
+    // yang berisi beberapa berkas radiologi tidak meminta daftar Series ke Orthanc berulang kali.
+    private final Map<String,ArrayList<String>> cacheSeriesDicomPenunjang =
+            new ConcurrentHashMap<String,ArrayList<String>>();
+    // Accession aktual dari study Orthanc disimpan bersama cache Series. Data ini
+    // menjadi verifikasi akhir sebelum link GIP Launcher dibuat.
+    private final Map<String,java.util.LinkedHashMap<String,DataPacsRadiologi>>
+            cacheAccessionOrthancPenunjang =
+            new ConcurrentHashMap<String,java.util.LinkedHashMap<String,DataPacsRadiologi>>();
+    // Ringkasan jam hanya untuk membantu user membedakan sesi pada tanggal yang sama.
+    private final Map<String,String> cacheJamRadiologiPenunjang =
+            new ConcurrentHashMap<String,String>();
+
+    // Proxy lokal Orthanc untuk menanam Web Viewer di halaman hasil Radiologi.
+    // Server hanya mendengarkan 127.0.0.1 sehingga tidak diekspos ke jaringan.
+    private static final Object KUNCI_PROXY_ORTHANC = new Object();
+    private static volatile HttpServer serverProxyOrthanc;
+    private static volatile ExecutorService executorProxyOrthanc;
+    private static volatile int portProxyOrthanc = -1;
+    private static final String USER_PROXY_ORTHANC = "orthanc";
+    private static final String PASSWORD_PROXY_ORTHANC = "orthanc";
+
+    private static final class StatusRingkas {
+        private boolean labSaatIni;
+        private boolean radSaatIni;
+        private boolean labRiwayat;
+        private boolean radRiwayat;
+        private long dibuatPada = System.currentTimeMillis();
+    }
+
+    public DlgHasilPenunjang(Window parent, String noRawat, String jenisAwal) {
+        super(parent, ModalityType.MODELESS);
+        this.noRawat = noRawat == null ? "" : noRawat.trim();
+        this.jenisAwal = JENIS_RAD.equalsIgnoreCase(jenisAwal) ? JENIS_RAD : JENIS_LAB;
+        initComponentsRingan();
+    }
+
+    private void initComponentsRingan() {
+        setTitle("Hasil Penunjang Pasien");
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setMinimumSize(new Dimension(520,170));
+        setSize(560,190);
+        setLayout(new BorderLayout(10,10));
+
+        JLabel judul = new JLabel("HASIL PENUNJANG PASIEN", SwingConstants.CENTER);
+        judul.setFont(new java.awt.Font("Segoe UI Semibold", 0, 16));
+        judul.setBorder(BorderFactory.createEmptyBorder(16,10,2,10));
+        add(judul, BorderLayout.NORTH);
+
+        LStatus.setFont(new java.awt.Font("Segoe UI", 0, 12));
+        LStatus.setText(noRawat.equals("") ? "No. rawat belum dipilih" : "No. Rawat : " + noRawat);
+        add(LStatus, BorderLayout.CENTER);
+
+        BtnLab.setText("Lihat Hasil Lab");
+        BtnLab.setPreferredSize(new Dimension(135,30));
+        try { BtnLab.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/hasil_lab.png"))); } catch (Exception ex) {}
+        BtnLab.addActionListener(new ActionListener(){ @Override public void actionPerformed(ActionEvent e){ muatHasil(JENIS_LAB); }});
+
+        BtnRad.setText("Lihat Hasil Rad");
+        BtnRad.setPreferredSize(new Dimension(135,30));
+        try { BtnRad.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/hasil_rad.png"))); } catch (Exception ex) {}
+        BtnRad.addActionListener(new ActionListener(){ @Override public void actionPerformed(ActionEvent e){ muatHasil(JENIS_RAD); }});
+
+        BtnTutup.setText("Tutup");
+        BtnTutup.setPreferredSize(new Dimension(90,30));
+        BtnTutup.addActionListener(new ActionListener(){ @Override public void actionPerformed(ActionEvent e){ dispose(); }});
+
+        JPanel tombol = new JPanel(new FlowLayout(FlowLayout.CENTER,8,8));
+        tombol.add(BtnLab); tombol.add(BtnRad); tombol.add(BtnTutup);
+        tombol.setBorder(BorderFactory.createEmptyBorder(0,8,12,8));
+        add(tombol, BorderLayout.SOUTH);
+        setLocationRelativeTo(getOwner());
+    }
+
+    /**
+     * Membuka hasil penunjang secara langsung sesuai tombol yang diklik.
+     * Dialog pemilih Lab/Radiologi tidak pernah ditampilkan; class ini hanya
+     * menjadi penampung proses bersama agar DlgIGD, DlgKamarInap dan
+     * DlgKasirRalan tetap ringan.
+     */
+    public static void buka(Window parent, String noRawat, String jenis) {
+        if (noRawat == null || noRawat.trim().equals("")) {
+            JOptionPane.showMessageDialog(parent, "Maaf, silahkan pilih dulu data pasien...!!!");
+            return;
+        }
+        final DlgHasilPenunjang proses = new DlgHasilPenunjang(parent, noRawat, jenis);
+        // Jangan tampilkan form perantara. Tombol asal sudah menentukan LAB/RAD.
+        SwingUtilities.invokeLater(new Runnable(){
+            @Override public void run(){
+                proses.muatHasil(proses.jenisAwal);
+            }
+        });
+    }
+
+    private void muatHasil(final String jenis) {
+        if (workerMuat != null && !workerMuat.isDone()) return;
+        final boolean lab = JENIS_LAB.equalsIgnoreCase(jenis);
+        final String kode = lab ? "005" : "006";
+        final String judul = lab ? "Hasil Laboratorium" : "Hasil Radiologi";
+        final String tabel = lab ? "periksa_lab" : "periksa_radiologi";
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        BtnLab.setEnabled(false); BtnRad.setEnabled(false);
+        LStatus.setText("Memuat " + judul + "...");
+        workerMuat = new SwingWorker<Void,Void>() {
+            @Override protected Void doInBackground() {
+                tampilkanBerkasDigitalPenunjang(noRawat, kode, judul, tabel);
+                return null;
+            }
+            @Override protected void done() {
+                setCursor(Cursor.getDefaultCursor());
+                BtnLab.setEnabled(true); BtnRad.setEnabled(true);
+                // Instance ini tidak ditampilkan. Setelah proses selesai langsung dibuang.
+                dispose();
+            }
+        };
+        workerMuat.execute();
+    }
+
+    private void tampilkanBerkasDigitalPenunjang(String noRawatTerpilih, String kodeBerkas, String judul, String tabelPeriksa) {
+        if (noRawatTerpilih == null || noRawatTerpilih.trim().equals("")) {
+            tampilkanPesan("Maaf, silahkan pilih dulu data pasien...!!!");
+            return;
+        }
+
+        ArrayList<DataBerkasHasilPenunjang> daftarBerkas = ambilDaftarBerkasDigitalPenunjang(noRawatTerpilih, kodeBerkas);
+        ArrayList<DataHasilLabSementaraPenunjang> daftarLabSementara = new ArrayList<DataHasilLabSementaraPenunjang>();
+        if (kodeBerkasLaboratorium(kodeBerkas)) {
+            daftarLabSementara = ambilDaftarHasilLabSementaraPenunjang(noRawatTerpilih);
+            if (!daftarBerkas.isEmpty()) daftarLabSementara = saringLabSementaraBelumLengkapPenunjang(daftarLabSementara);
+        }
+        boolean adaHasilSaatIni = (!daftarBerkas.isEmpty() && adaHasilDigitalPenunjang(noRawatTerpilih, kodeBerkas, tabelPeriksa)) || !daftarLabSementara.isEmpty();
+        ArrayList<DataKunjunganSebelumnyaPenunjang> kunjunganSebelumnya = ambilLimaKunjunganSebelumnyaPenunjang(noRawatTerpilih, kodeBerkas, tabelPeriksa);
+        boolean adaHasilRiwayat = adaKunjunganRiwayatDenganHasilPenunjang(kunjunganSebelumnya);
+        if (!adaHasilSaatIni && !adaHasilRiwayat) {
+            tampilkanPesan("Maaf, berkas " + judul + " belum ada untuk pasien ini maupun 5 kunjungan sebelumnya...!!!");
+            return;
+        }
+        if (!adaHasilSaatIni) { daftarBerkas.clear(); daftarLabSementara.clear(); }
+        String namaPasienTerpilih = getNamaPasienBerkasTerpilih(noRawatTerpilih);
+        String tanggalRegistrasi = getTanggalRegistrasiPenunjang(noRawatTerpilih);
+        bukaSemuaHasilBerkasDigital(daftarBerkas, daftarLabSementara, judul, noRawatTerpilih, namaPasienTerpilih, tanggalRegistrasi, kunjunganSebelumnya, kodeBerkas);
+    }
+
+    private String getNamaPasienBerkasTerpilih(String noRawatTerpilih) {
+        try {
+            String nama = Sequel.cariIsi("select pasien.nm_pasien from reg_periksa inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis where reg_periksa.no_rawat=? limit 1", noRawatTerpilih);
+            if (nama != null && !nama.trim().equals("")) return nama.trim();
+        } catch (Exception ex) {
+            System.out.println("Notifikasi ambil nama pasien hasil penunjang : " + ex);
+        }
+        return "Pasien";
+    }
+
+    private void tampilkanPesan(final String pesan) {
+        SwingUtilities.invokeLater(new Runnable(){ @Override public void run(){ JOptionPane.showMessageDialog(DlgHasilPenunjang.this, pesan); }});
+    }
+
+    public static void batalkanRefreshTombol(widget.Button btnLab, widget.Button btnRad, JComponent container) {
+        long token = System.nanoTime();
+        if (btnLab != null) {
+            btnLab.putClientProperty("hasilPenunjangToken", Long.valueOf(token));
+            btnLab.setVisible(false);
+        }
+        if (btnRad != null) btnRad.setVisible(false);
+        if (container != null) { container.revalidate(); container.repaint(); }
+    }
+
+    public static void refreshTombolAsync(final String noRawat, final widget.Button btnLab, final widget.Button btnRad, final JComponent container, final int tinggi) {
+        if (btnLab == null || btnRad == null) return;
+        btnLab.setVisible(false); btnRad.setVisible(false);
+        if (container != null) { container.revalidate(); container.repaint(); }
+        if (noRawat == null || noRawat.trim().equals("")) return;
+        final String kunci = noRawat.trim();
+        final long token = System.nanoTime();
+        btnLab.putClientProperty("hasilPenunjangToken", Long.valueOf(token));
+        StatusRingkas cache = CACHE_STATUS.get(kunci);
+        if (cache != null && (System.currentTimeMillis()-cache.dibuatPada) <= MASA_CACHE_STATUS_MS) {
+            terapkanStatusTombol(btnLab, btnRad, container, cache, tinggi);
+            return;
+        }
+        new SwingWorker<StatusRingkas,Void>() {
+            @Override protected StatusRingkas doInBackground(){ return cekStatusRingkas(kunci); }
+            @Override protected void done(){
+                try {
+                    Object nilaiToken = btnLab.getClientProperty("hasilPenunjangToken");
+                    if (!(nilaiToken instanceof Long) || ((Long)nilaiToken).longValue()!=token) return;
+                    StatusRingkas status=get();
+                    if(status!=null){ CACHE_STATUS.put(kunci,status); terapkanStatusTombol(btnLab,btnRad,container,status,tinggi); }
+                } catch(Exception ex){ System.out.println("Notifikasi cek status hasil penunjang : "+ex); }
+            }
+        }.execute();
+    }
+
+    private static void terapkanStatusTombol(widget.Button lab, widget.Button rad, JComponent container, StatusRingkas s, int tinggi){
+        aturTombol(lab,s.labSaatIni,s.labRiwayat,"Lab","Laboratorium",tinggi);
+        aturTombol(rad,s.radSaatIni,s.radRiwayat,"Rad","Radiologi",tinggi);
+        if(container!=null){ container.revalidate(); container.repaint(); }
+    }
+
+    private static void aturTombol(widget.Button tombol, boolean saatIni, boolean riwayat, String singkat, String lengkap, int tinggi){
+        tombol.setVisible(saatIni || riwayat);
+        if(saatIni){
+            tombol.setText("Lihat Hasil "+singkat);
+            tombol.setToolTipText("Lihat Hasil "+lengkap+" Kunjungan Saat Ini");
+            tombol.setPreferredSize(new Dimension(135,tinggi));
+        }else if(riwayat){
+            tombol.setText("Riwayat Hasil "+singkat);
+            tombol.setToolTipText("Lihat Riwayat Hasil "+lengkap+" dari 5 Kunjungan Terakhir");
+            tombol.setPreferredSize(new Dimension(160,tinggi));
+        }
+    }
+
+    private static StatusRingkas cekStatusRingkas(String noRawat){
+        StatusRingkas status=new StatusRingkas();
+        Connection con=koneksiDB.condb();
+        PreparedStatement ps=null; ResultSet rs=null;
+        try{
+            ps=con.prepareStatement("select " +
+                "exists(select 1 from berkas_digital_perawatan b where b.no_rawat=? and b.kode='005' and trim(ifnull(b.lokasi_file,''))<>'' limit 1) as lab_digital,"+
+                "exists(select 1 from detail_periksa_lab d where d.no_rawat=? and trim(ifnull(d.nilai,''))<>'' limit 1) as lab_detail,"+
+                "exists(select 1 from berkas_digital_perawatan b where b.no_rawat=? and b.kode='006' and trim(ifnull(b.lokasi_file,''))<>'' limit 1) as rad_digital");
+            ps.setString(1,noRawat); ps.setString(2,noRawat); ps.setString(3,noRawat); rs=ps.executeQuery();
+            if(rs.next()){ status.labSaatIni=rs.getBoolean("lab_digital")||rs.getBoolean("lab_detail"); status.radSaatIni=rs.getBoolean("rad_digital"); }
+        }catch(Exception ex){ System.out.println("Notifikasi cek hasil aktif penunjang : "+ex); }
+        finally{ try{if(rs!=null)rs.close();}catch(Exception ex){} try{if(ps!=null)ps.close();}catch(Exception ex){} }
+        if(status.labSaatIni && status.radSaatIni) return status;
+        ArrayList<String> riwayat=new ArrayList<String>();
+        try{
+            ps=con.prepareStatement("select rp.no_rawat from reg_periksa rp where rp.no_rkm_medis=(select no_rkm_medis from reg_periksa where no_rawat=? limit 1) and rp.no_rawat<>? order by rp.tgl_registrasi desc,rp.jam_reg desc,rp.no_rawat desc limit 5");
+            ps.setString(1,noRawat); ps.setString(2,noRawat); rs=ps.executeQuery(); while(rs.next())riwayat.add(rs.getString(1));
+        }catch(Exception ex){ System.out.println("Notifikasi cek riwayat hasil penunjang : "+ex); }
+        finally{ try{if(rs!=null)rs.close();}catch(Exception ex){} try{if(ps!=null)ps.close();}catch(Exception ex){} }
+        if(riwayat.isEmpty()) return status;
+        StringBuilder ph=new StringBuilder(); for(int i=0;i<riwayat.size();i++){if(i>0)ph.append(',');ph.append('?');}
+        try{
+            ps=con.prepareStatement("select " +
+                "exists(select 1 from berkas_digital_perawatan b where b.no_rawat in ("+ph+") and b.kode='005' and trim(ifnull(b.lokasi_file,''))<>'' limit 1) as lab_digital,"+
+                "exists(select 1 from detail_periksa_lab d where d.no_rawat in ("+ph+") and trim(ifnull(d.nilai,''))<>'' limit 1) as lab_detail,"+
+                "exists(select 1 from berkas_digital_perawatan b where b.no_rawat in ("+ph+") and b.kode='006' and trim(ifnull(b.lokasi_file,''))<>'' limit 1) as rad_digital");
+            int idx=1; for(int blok=0;blok<3;blok++)for(String nr:riwayat)ps.setString(idx++,nr);
+            rs=ps.executeQuery(); if(rs.next()){ status.labRiwayat=!status.labSaatIni&&(rs.getBoolean("lab_digital")||rs.getBoolean("lab_detail")); status.radRiwayat=!status.radSaatIni&&rs.getBoolean("rad_digital"); }
+        }catch(Exception ex){ System.out.println("Notifikasi cek batch riwayat penunjang : "+ex); }
+        finally{ try{if(rs!=null)rs.close();}catch(Exception ex){} try{if(ps!=null)ps.close();}catch(Exception ex){} }
+        return status;
+    }
+
+private static class DataBerkasHasilPenunjang {
+         private String urlFile = "";
+         private String namaFile = "";
+         private String tanggalShortcut = "Tanpa Tanggal";
+         private String lokasiFile = "";
+         private String waId = "";
+
+         private DataBerkasHasilPenunjang(String urlFile, String namaFile, String tanggalShortcut, String lokasiFile) {
+             this.urlFile = urlFile;
+             this.namaFile = namaFile;
+             this.tanggalShortcut = tanggalShortcut;
+             this.lokasiFile = lokasiFile;
+         }
+     }
+
+     /** Data hasil lab sementara/parsial dari tabel database sebelum berkas final di-upload. */
+     private static class DataHasilLabSementaraPenunjang {
+         private String noOrder = "";
+         private String tanggalShortcut = "Tanpa Tanggal";
+         private String tglPermintaan = "-";
+         private String tglHasil = "-";
+         private String namaPemeriksaanInduk = "";
+         private String pemeriksaan = "";
+         private String nilai = "";
+         private String satuan = "";
+         private String nilaiRujukan = "";
+         private String keterangan = "";
+         private String kdJenisPrw = "";
+         private String idTemplate = "";
+         private String status = "Menunggu Hasil";
+
+         private DataHasilLabSementaraPenunjang(String noOrder, String tanggalShortcut,
+                 String tglPermintaan, String tglHasil, String namaPemeriksaanInduk,
+                 String pemeriksaan, String nilai, String satuan, String nilaiRujukan,
+                 String keterangan, String kdJenisPrw, String idTemplate, String status) {
+             this.noOrder = noOrder == null ? "" : noOrder;
+             this.tanggalShortcut = tanggalShortcut == null || tanggalShortcut.trim().equals("") ? "Tanpa Tanggal" : tanggalShortcut;
+             this.tglPermintaan = tglPermintaan == null || tglPermintaan.trim().equals("") ? "-" : tglPermintaan;
+             this.tglHasil = tglHasil == null || tglHasil.trim().equals("") ? "-" : tglHasil;
+             this.namaPemeriksaanInduk = namaPemeriksaanInduk == null ? "" : namaPemeriksaanInduk;
+             this.pemeriksaan = pemeriksaan == null ? "" : pemeriksaan;
+             this.nilai = nilai == null ? "" : nilai;
+             this.satuan = satuan == null ? "" : satuan;
+             this.nilaiRujukan = nilaiRujukan == null ? "" : nilaiRujukan;
+             this.keterangan = keterangan == null ? "" : keterangan;
+             this.kdJenisPrw = kdJenisPrw == null ? "" : kdJenisPrw;
+             this.idTemplate = idTemplate == null ? "" : idTemplate;
+             this.status = status == null || status.trim().equals("") ? "Menunggu Hasil" : status;
+         }
+     }
+
+     /** Data untuk tabel Monitoring Hasil Lab longitudinal. */
+     private static class DataMonitoringLabPenunjang {
+        private String noRawat = "";
+        private String kolom = "";
+        private String tglPeriksa = "";
+        private String jam = "";
+        private String namaPemeriksaanInduk = "";
+        private String pemeriksaan = "";
+        private String nilai = "";
+        private String satuan = "";
+        private String nilaiRujukan = "";
+        private String keterangan = "";
+        private String kdJenisPrw = "";
+        private String idTemplate = "";
+        private String status = "";
+        private DataMonitoringLabPenunjang(String noRawat, String kolom, String tglPeriksa, String jam,
+                String namaPemeriksaanInduk, String pemeriksaan, String nilai, String satuan,
+                String nilaiRujukan, String keterangan, String kdJenisPrw, String idTemplate, String status) {
+            this.noRawat = noRawat == null ? "" : noRawat;
+            this.kolom = kolom == null || kolom.trim().equals("") ? "Tanpa Tanggal" : kolom;
+            this.tglPeriksa = tglPeriksa == null ? "" : tglPeriksa;
+            this.jam = jam == null ? "" : jam;
+            this.namaPemeriksaanInduk = namaPemeriksaanInduk == null ? "" : namaPemeriksaanInduk;
+            this.pemeriksaan = pemeriksaan == null ? "" : pemeriksaan;
+            this.nilai = nilai == null ? "" : nilai;
+            this.satuan = satuan == null ? "" : satuan;
+            this.nilaiRujukan = nilaiRujukan == null ? "" : nilaiRujukan;
+            this.keterangan = keterangan == null ? "" : keterangan;
+            this.kdJenisPrw = kdJenisPrw == null ? "" : kdJenisPrw;
+            this.idTemplate = idTemplate == null ? "" : idTemplate;
+            this.status = status == null || status.trim().equals("") ? "Sudah Keluar" : status;
+        }
+    }
+
+
+    /** Data maksimal lima kunjungan sebelumnya untuk navigasi hasil penunjang. */
+     private static class DataKunjunganSebelumnyaPenunjang {
+         private String noRawat = "";
+         private String tanggalRegistrasi = "-";
+         private boolean hasilTersedia = false;
+         private ArrayList<DataBerkasHasilPenunjang> daftarBerkas = new ArrayList<DataBerkasHasilPenunjang>();
+         private ArrayList<DataHasilLabSementaraPenunjang> daftarLabSementara = new ArrayList<DataHasilLabSementaraPenunjang>();
+
+         private DataKunjunganSebelumnyaPenunjang(String noRawat, String tanggalRegistrasi) {
+             this.noRawat = noRawat;
+             this.tanggalRegistrasi = tanggalRegistrasi;
+         }
+     }
+
+    /**
+     * Menampilkan tombol hasil kunjungan aktif. Jika kunjungan aktif belum mempunyai
+     * hasil, namun salah satu dari lima kunjungan sebelumnya mempunyai hasil, tombol
+     * diubah menjadi tombol riwayat agar hasil lama tetap dapat dibuka.
+     */
+     
+
+     
+
+     private boolean adaRiwayatHasilDigitalPenunjang(String noRawatTerpilih, String kodeBerkas, String tabelPeriksa) {
+         ArrayList<DataKunjunganSebelumnyaPenunjang> riwayat =
+                 ambilLimaKunjunganSebelumnyaPenunjang(noRawatTerpilih, kodeBerkas, tabelPeriksa);
+         return adaKunjunganRiwayatDenganHasilPenunjang(riwayat);
+     }
+
+     private boolean adaKunjunganRiwayatDenganHasilPenunjang(
+             ArrayList<DataKunjunganSebelumnyaPenunjang> riwayat) {
+         if (riwayat == null) return false;
+         for (int i = 0; i < riwayat.size(); i++) {
+             if (riwayat.get(i).hasilTersedia) return true;
+         }
+         return false;
+     }
+
+     private boolean adaHasilDigitalPenunjang(String noRawatTerpilih, String kodeBerkas, String tabelPeriksa) {
+         if (noRawatTerpilih == null || noRawatTerpilih.trim().equals("")) {
+             return false;
+         }
+
+         PreparedStatement psCek = null;
+         ResultSet rsCek = null;
+         try {
+             /*
+             * Satu record berkas_digital_perawatan dengan kode 005/006 adalah hasil yang
+             * valid untuk ditampilkan. Ini penting setelah hasil riwayat disalin: pada
+             * kunjungan tujuan belum tentu ada baris periksa_lab/periksa_radiologi baru,
+             * sehingga validasi lama membuat berkas salinan tersembunyi walaupun file dan
+             * datanya sudah sukses tersimpan.
+             */
+            psCek = koneksi.prepareStatement(
+                 "select 1 from berkas_digital_perawatan "
+                 + "where no_rawat=? and kode=? and trim(ifnull(lokasi_file,''))<>'' "
+                 + "limit 1"
+             );
+             psCek.setString(1, noRawatTerpilih);
+             psCek.setString(2, kodeBerkas);
+             rsCek = psCek.executeQuery();
+             return rsCek.next();
+         } catch (Exception ex) {
+             System.out.println("Notifikasi cek hasil digital penunjang : " + ex);
+             return false;
+         } finally {
+             try { if (rsCek != null) rsCek.close(); } catch (Exception ex) {}
+             try { if (psCek != null) psCek.close(); } catch (Exception ex) {}
+         }
+     }
+
+     private boolean kodeBerkasLaboratorium(String kodeBerkas) {
+         return "005".equals(kodeBerkas);
+     }
+
+     private boolean kodeBerkasRadiologi(String kodeBerkas) {
+         return "006".equals(kodeBerkas);
+     }
+
+     /** Data penghubung satu hasil Radiologi dengan Accession Number PACS. */
+     private static final class DataPacsRadiologi {
+         private String tglPeriksa = "";
+         private String jamPeriksa = "";
+         private String noOrder = "";
+         private String kdJenisPrw = "";
+         private String accessionNumber = "";
+         private String orthancStudyId = "";
+         private String namaPemeriksaan = "";
+     }
+
+     /** Kandidat PACS yang tepat pada tanggal pemeriksaan pilihan user. */
+     private static final class KandidatPacsRadiologi {
+         private final java.util.LinkedHashMap<String, DataPacsRadiologi> cocokTanggal =
+                 new java.util.LinkedHashMap<String, DataPacsRadiologi>();
+         private final java.util.LinkedHashMap<String, DataPacsRadiologi> semua =
+                 new java.util.LinkedHashMap<String, DataPacsRadiologi>();
+     }
+
+     private String teksPacs(String nilai) {
+         return nilai == null ? "" : nilai.trim();
+     }
+
+     /** Mengambil bagian nama tindakan dari nama berkas hasil Radiologi. */
+     private String ambilNamaTindakanDariBerkas(String namaFile) {
+         if (namaFile == null) return "";
+         String nama = ambilNamaFileBerkas(namaFile);
+         nama = nama.replaceFirst("(?i)\\.(jpg|jpeg|png|pdf)$", "");
+         nama = nama.replaceFirst("(?i)_page_\\d+$", "");
+         java.util.regex.Matcher matcher = java.util.regex.Pattern
+                 .compile("^\\d{8}_\\d{6}_\\d+_(.+)$")
+                 .matcher(nama);
+         return matcher.find() ? matcher.group(1).trim() : "";
+     }
+
+     /** Menyamakan tanggal pilihan user menjadi format SQL yyyy-MM-dd. */
+     private String normalisasiTanggalPacs(String tanggalPemeriksaan) {
+         String tanggal = teksPacs(tanggalPemeriksaan).replace('/', '-');
+         if (tanggal.matches("\\d{4}-\\d{2}-\\d{2}")) return tanggal;
+         if (tanggal.matches("\\d{2}-\\d{2}-\\d{4}")) {
+             String[] bagian = tanggal.split("-");
+             return bagian[2] + "-" + bagian[1] + "-" + bagian[0];
+         }
+         return "";
+     }
+
+     /**
+      * Menampilkan jam sesi radiologi tanpa menjadikannya bagian dari URL.
+      * Sumber utama sama dengan baris yang dipilih pada DlgCariPeriksaRadiologi;
+      * bila belum ada baris pelaksanaan, jam hasil pada permintaan dipakai.
+      */
+     private String ambilRingkasanJamRadiologi(
+             String noRawatViewer, String tanggalPemeriksaan) {
+         String noRawatPacs = teksPacs(noRawatViewer);
+         String tanggalPacs = normalisasiTanggalPacs(tanggalPemeriksaan);
+         if (noRawatPacs.equals("") || tanggalPacs.equals("")) return "";
+
+         String kunci = noRawatPacs + "|" + tanggalPacs;
+         String cache = cacheJamRadiologiPenunjang.get(kunci);
+         if (cache != null) return cache;
+
+         java.util.LinkedHashSet<String> daftarJam =
+                 new java.util.LinkedHashSet<String>();
+         PreparedStatement psJam = null;
+         ResultSet rsJam = null;
+         try {
+             psJam = koneksi.prepareStatement(
+                     "select distinct time_format(jam,'%H:%i:%s') as jam_periksa "
+                     + "from periksa_radiologi "
+                     + "where no_rawat=? and tgl_periksa=? "
+                     + "and trim(ifnull(jam,''))<>'' "
+                     + "order by jam"
+             );
+             psJam.setString(1, noRawatPacs);
+             psJam.setString(2, tanggalPacs);
+             rsJam = psJam.executeQuery();
+             while (rsJam.next()) {
+                 String jam = teksPacs(rsJam.getString("jam_periksa"));
+                 if (!jam.equals("")) daftarJam.add(jam);
+             }
+         } catch (Exception ex) {
+             System.out.println("Notifikasi ambil jam periksa Radiologi : " + ex);
+         } finally {
+             try { if (rsJam != null) rsJam.close(); } catch (Exception ex) {}
+             try { if (psJam != null) psJam.close(); } catch (Exception ex) {}
+         }
+
+         if (daftarJam.isEmpty()) {
+             try {
+                 psJam = koneksi.prepareStatement(
+                         "select distinct time_format(jam_hasil,'%H:%i:%s') as jam_periksa "
+                         + "from permintaan_radiologi "
+                         + "where no_rawat=? and tgl_hasil=? "
+                         + "and trim(ifnull(jam_hasil,''))<>'' "
+                         + "order by jam_hasil"
+                 );
+                 psJam.setString(1, noRawatPacs);
+                 psJam.setString(2, tanggalPacs);
+                 rsJam = psJam.executeQuery();
+                 while (rsJam.next()) {
+                     String jam = teksPacs(rsJam.getString("jam_periksa"));
+                     if (!jam.equals("")) daftarJam.add(jam);
+                 }
+             } catch (Exception ex) {
+                 System.out.println("Notifikasi ambil jam hasil Radiologi : " + ex);
+             } finally {
+                 try { if (rsJam != null) rsJam.close(); } catch (Exception ex) {}
+                 try { if (psJam != null) psJam.close(); } catch (Exception ex) {}
+             }
+         }
+
+         StringBuilder ringkasan = new StringBuilder();
+         for (String jam : daftarJam) {
+             if (ringkasan.length() > 0) ringkasan.append(", ");
+             ringkasan.append(jam);
+         }
+         String hasil = ringkasan.toString();
+         cacheJamRadiologiPenunjang.put(kunci, hasil);
+         return hasil;
+     }
+
+     private String tagStudyOrthancPenunjang(JsonNode study, String namaTag) {
+         if (study == null || namaTag == null) return "";
+         String nilai = "";
+         JsonNode mainTags = study.path("MainDicomTags");
+         if (mainTags != null) {
+             nilai = teksPacs(mainTags.path(namaTag).asText());
+         }
+         if (nilai.equals("")) {
+             JsonNode requestedTags = study.path("RequestedTags");
+             if (requestedTags != null) {
+                 nilai = teksPacs(requestedTags.path(namaTag).asText());
+             }
+         }
+         return nilai;
+     }
+
+     private String formatJamDicomPenunjang(String jamDicom) {
+         String jam = teksPacs(jamDicom);
+         int posisiPecahan = jam.indexOf('.');
+         if (posisiPecahan > -1) jam = jam.substring(0, posisiPecahan);
+         jam = jam.replaceAll("[^0-9]", "");
+         if (jam.length() >= 6) {
+             return jam.substring(0, 2) + ":" + jam.substring(2, 4)
+                     + ":" + jam.substring(4, 6);
+         }
+         return "";
+     }
+
+     private java.util.LinkedHashMap<String, DataPacsRadiologi>
+             salinDaftarPacs(
+                     java.util.LinkedHashMap<String, DataPacsRadiologi> sumber) {
+         java.util.LinkedHashMap<String, DataPacsRadiologi> hasil =
+                 new java.util.LinkedHashMap<String, DataPacsRadiologi>();
+         if (sumber != null) hasil.putAll(sumber);
+         return hasil;
+     }
+
+     private void tambahKandidatPacs(
+             java.util.LinkedHashMap<String, DataPacsRadiologi> tujuan,
+             DataPacsRadiologi data) {
+         if (data == null || data.accessionNumber.equals("")) return;
+         if (!tujuan.containsKey(data.accessionNumber)) {
+             tujuan.put(data.accessionNumber, data);
+         }
+     }
+
+     /**
+      * Membaca mapping yang sudah diverifikasi oleh DlgCariPeriksaRadiologi.
+      * token_pacs tidak dipakai lagi; acuan pemanggilan citra adalah kolom
+      * accession_number.
+     */
+     private KandidatPacsRadiologi ambilMappingAccessionPacs(
+             String noRawatViewer, String tanggalPemeriksaan) {
+         KandidatPacsRadiologi hasil = new KandidatPacsRadiologi();
+         PreparedStatement psPacs = null;
+         ResultSet rsPacs = null;
+         try {
+             psPacs = koneksi.prepareStatement(
+                     "select date_format(token.tgl_periksa,'%Y-%m-%d') as tgl_periksa,"
+                     + "time_format(token.jam,'%H:%i:%s') as jam_periksa,"
+                     + "ifnull(token.noorder,'') as noorder,"
+                     + "ifnull(token.kd_jenis_prw,'') as kd_jenis_prw,"
+                     + "ifnull(token.accession_number,'') as accession_number,"
+                     + "ifnull(token.orthanc_study_id,'') as orthanc_study_id,"
+                     + "ifnull(jenis.nm_perawatan,'') as nm_perawatan "
+                     + "from radiologi_pacs_token token "
+                     + "left join jns_perawatan_radiologi jenis "
+                     + "on jenis.kd_jenis_prw=token.kd_jenis_prw "
+                     + "where token.no_rawat=? "
+                     + "and token.tgl_periksa=? "
+                     + "and trim(ifnull(token.accession_number,''))<>'' "
+                     + "order by token.tgl_periksa desc,token.jam desc,"
+                     + "token.kd_jenis_prw"
+             );
+             psPacs.setString(1, noRawatViewer);
+             psPacs.setString(2, tanggalPemeriksaan);
+             rsPacs = psPacs.executeQuery();
+             while (rsPacs.next()) {
+                 DataPacsRadiologi data = new DataPacsRadiologi();
+                 data.tglPeriksa = teksPacs(rsPacs.getString("tgl_periksa"));
+                 data.jamPeriksa = teksPacs(rsPacs.getString("jam_periksa"));
+                 data.noOrder = teksPacs(rsPacs.getString("noorder"));
+                 data.kdJenisPrw = teksPacs(rsPacs.getString("kd_jenis_prw"));
+                 data.accessionNumber = teksPacs(rsPacs.getString("accession_number"));
+                 data.orthancStudyId = teksPacs(
+                         rsPacs.getString("orthanc_study_id"));
+                 data.namaPemeriksaan = teksPacs(rsPacs.getString("nm_perawatan"));
+                 if (data.accessionNumber.equals("")) continue;
+                 tambahKandidatPacs(hasil.cocokTanggal, data);
+                 tambahKandidatPacs(hasil.semua, data);
+             }
+         } catch (Exception ex) {
+             /*
+              * Instalasi lama mungkin belum mempunyai kolom accession_number.
+              * Halaman hasil tetap dibuat dan dilanjutkan ke sumber permintaan.
+              */
+             System.out.println("Notifikasi cek mapping Accession hasil penunjang : " + ex);
+         } finally {
+             try { if (rsPacs != null) rsPacs.close(); } catch (Exception ex) {}
+             try { if (psPacs != null) psPacs.close(); } catch (Exception ex) {}
+         }
+         return hasil;
+     }
+
+     /**
+      * Fallback mengikuti sumber resmi Accession di DlgCariPeriksaRadiologi:
+      * permintaan_radiologi.no_rawat -> noorder. Format baru memakai noorder
+      * langsung, sedangkan noorder.kd_jenis_prw tetap menjadi kandidat
+      * fallback agar foto lama masih dapat dibuka.
+      */
+     private KandidatPacsRadiologi ambilAccessionDariPermintaanPacs(
+             String noRawatViewer, String tanggalPemeriksaan) {
+         KandidatPacsRadiologi hasil = new KandidatPacsRadiologi();
+         PreparedStatement psPermintaan = null;
+         ResultSet rsPermintaan = null;
+         try {
+             psPermintaan = koneksi.prepareStatement(
+                     "select distinct ppr.noorder,ppr.kd_jenis_prw,"
+                     + "ifnull(jenis.nm_perawatan,'') as nm_perawatan,"
+                     + "date_format(pr.tgl_hasil,'%Y-%m-%d') as tgl_hasil,"
+                     + "time_format(pr.jam_hasil,'%H:%i:%s') as jam_hasil,"
+                     + "case when pr.tgl_hasil=? then 0 else 1 end as prioritas "
+                     + "from permintaan_pemeriksaan_radiologi ppr "
+                     + "inner join permintaan_radiologi pr "
+                     + "on pr.noorder=ppr.noorder "
+                     + "left join jns_perawatan_radiologi jenis "
+                     + "on jenis.kd_jenis_prw=ppr.kd_jenis_prw "
+                     + "where pr.no_rawat=? "
+                     + "order by prioritas,pr.tgl_hasil desc,pr.jam_hasil desc,"
+                     + "ppr.noorder desc,ppr.kd_jenis_prw"
+             );
+             psPermintaan.setString(1, tanggalPemeriksaan);
+             psPermintaan.setString(2, noRawatViewer);
+             rsPermintaan = psPermintaan.executeQuery();
+             while (rsPermintaan.next()) {
+                 DataPacsRadiologi data = new DataPacsRadiologi();
+                 data.tglPeriksa = teksPacs(rsPermintaan.getString("tgl_hasil"));
+                 data.jamPeriksa = teksPacs(rsPermintaan.getString("jam_hasil"));
+                 data.noOrder = teksPacs(rsPermintaan.getString("noorder"));
+                 data.kdJenisPrw = teksPacs(rsPermintaan.getString("kd_jenis_prw"));
+                 data.namaPemeriksaan = teksPacs(
+                         rsPermintaan.getString("nm_perawatan"));
+                 if (data.noOrder.equals("")) {
+                     continue;
+                 }
+                 data.accessionNumber = data.noOrder;
+                 tambahKandidatPacs(hasil.semua, data);
+                 if (tanggalPemeriksaan.equals(data.tglPeriksa)) {
+                     tambahKandidatPacs(hasil.cocokTanggal, data);
+                 }
+
+                 if (!data.kdJenisPrw.equals("")) {
+                     DataPacsRadiologi dataLama = new DataPacsRadiologi();
+                     dataLama.tglPeriksa = data.tglPeriksa;
+                     dataLama.jamPeriksa = data.jamPeriksa;
+                     dataLama.noOrder = data.noOrder;
+                     dataLama.kdJenisPrw = data.kdJenisPrw;
+                     dataLama.namaPemeriksaan = data.namaPemeriksaan;
+                     dataLama.accessionNumber =
+                             data.noOrder + "." + data.kdJenisPrw;
+                     tambahKandidatPacs(hasil.semua, dataLama);
+                     if (tanggalPemeriksaan.equals(dataLama.tglPeriksa)) {
+                         tambahKandidatPacs(
+                                 hasil.cocokTanggal, dataLama);
+                     }
+                 }
+             }
+         } catch (Exception ex) {
+             System.out.println("Notifikasi ambil Accession permintaan Radiologi : " + ex);
+         } finally {
+             try { if (rsPermintaan != null) rsPermintaan.close(); } catch (Exception ex) {}
+             try { if (psPermintaan != null) psPermintaan.close(); } catch (Exception ex) {}
+         }
+         return hasil;
+     }
+
+     /**
+      * Mengambil Accession yang benar-benar tersimpan di Orthanc untuk pasien
+      * dan tanggal terpilih. Method ambilSeriesDicomPenunjang mengisi cache
+      * Series sekaligus cache Accession dalam satu request /tools/find.
+      */
+     private java.util.LinkedHashMap<String, DataPacsRadiologi>
+             ambilAccessionOrthancTanggal(
+                     String noRawatViewer, String tanggalPemeriksaan) {
+         java.util.LinkedHashMap<String, DataPacsRadiologi> kosong =
+                 new java.util.LinkedHashMap<String, DataPacsRadiologi>();
+         String tanggalOrthanc = ubahTanggalKeOrthanc(tanggalPemeriksaan);
+         String noRm = teksPacs(Sequel.cariIsi(
+                 "select reg_periksa.no_rkm_medis from reg_periksa "
+                 + "where reg_periksa.no_rawat=? limit 1",
+                 noRawatViewer
+         ));
+         if (noRm.equals("") || tanggalOrthanc.equals("")) return kosong;
+
+         String kunci = noRm + "|" + tanggalOrthanc;
+         if (!cacheAccessionOrthancPenunjang.containsKey(kunci)) {
+             ambilSeriesDicomPenunjang(noRawatViewer, tanggalPemeriksaan);
+         }
+         return salinDaftarPacs(cacheAccessionOrthancPenunjang.get(kunci));
+     }
+
+     private boolean jamPacsValid(String jam) {
+         return teksPacs(jam).matches("\\d{2}:\\d{2}:\\d{2}");
+     }
+
+     /**
+      * Memilih jam yang kompatibel dengan primary key radiologi_pacs_token.
+      * Jam hasil yang tepat diprioritaskan, lalu jam pelaksanaan pada tanggal
+      * tersebut. Jika ada beberapa sesi dan tidak dapat dibedakan, mapping
+      * tidak disimpan otomatis agar tidak salah sasaran.
+      */
+     private String pilihJamMappingPacs(
+             String noRawatViewer, String tanggalPemeriksaan,
+             DataPacsRadiologi data) {
+         String tanggalPacs = normalisasiTanggalPacs(tanggalPemeriksaan);
+         String jamKandidat = data == null ? "" : teksPacs(data.jamPeriksa);
+
+         java.util.LinkedHashSet<String> sesi =
+                 new java.util.LinkedHashSet<String>();
+         PreparedStatement psSesi = null;
+         ResultSet rsSesi = null;
+         try {
+             psSesi = koneksi.prepareStatement(
+                     "select distinct time_format(jam,'%H:%i:%s') as jam_periksa "
+                     + "from periksa_radiologi "
+                     + "where no_rawat=? and tgl_periksa=? "
+                     + "and trim(ifnull(jam,''))<>'' order by jam"
+             );
+             psSesi.setString(1, noRawatViewer);
+             psSesi.setString(2, tanggalPacs);
+             rsSesi = psSesi.executeQuery();
+             while (rsSesi.next()) {
+                 String jam = teksPacs(rsSesi.getString("jam_periksa"));
+                 if (jamPacsValid(jam)) sesi.add(jam);
+             }
+         } catch (Exception ex) {
+             System.out.println(
+                     "Notifikasi pilih jam auto-mapping PACS : " + ex);
+         } finally {
+             try { if (rsSesi != null) rsSesi.close(); } catch (Exception ex) {}
+             try { if (psSesi != null) psSesi.close(); } catch (Exception ex) {}
+         }
+
+         if (jamPacsValid(jamKandidat) && sesi.contains(jamKandidat)) {
+             return jamKandidat;
+         }
+         if (sesi.size() == 1) return sesi.iterator().next();
+         if (sesi.isEmpty() && jamPacsValid(jamKandidat)) {
+             return jamKandidat;
+         }
+         return "";
+     }
+
+     /**
+      * Menyimpan hasil pencarian yang sudah terverifikasi Orthanc. Upsert hanya
+      * mengisi mapping kosong dan tidak pernah menimpa Accession lama yang
+      * berbeda; kasus tersebut tetap menjadi tugas tombol Perbaiki Accession.
+      */
+     private void simpanMappingPacsOtomatis(
+             String noRawatViewer, String tanggalPemeriksaan,
+             DataPacsRadiologi data, boolean accessionTunggalTanggal) {
+         if (data == null) return;
+         String noRawatPacs = teksPacs(noRawatViewer);
+         String tanggalPacs = normalisasiTanggalPacs(tanggalPemeriksaan);
+         String accession = teksPacs(data.accessionNumber);
+         String studyId = teksPacs(data.orthancStudyId);
+         String noOrder = teksPacs(data.noOrder);
+         String kodePermintaan = teksPacs(data.kdJenisPrw);
+         int pemisah = accession.lastIndexOf('.');
+         if (noOrder.equals("")) {
+             noOrder = pemisah > 0
+                     ? accession.substring(0, pemisah).trim()
+                     : accession;
+         }
+         if (kodePermintaan.equals("")
+                 && pemisah > 0 && pemisah < accession.length() - 1) {
+             kodePermintaan = accession.substring(pemisah + 1).trim();
+         }
+         String jamPacs = pilihJamMappingPacs(
+                 noRawatPacs, tanggalPacs, data);
+         if (noRawatPacs.equals("") || tanggalPacs.equals("")
+                 || !jamPacsValid(jamPacs) || noOrder.equals("")
+                 || kodePermintaan.equals("") || accession.equals("")
+                 || studyId.equals("")) {
+             System.out.println(
+                     "Notifikasi auto-mapping PACS dilewati karena data "
+                     + "belum lengkap : " + noRawatPacs + " | "
+                     + tanggalPacs + " " + jamPacs + " | " + accession);
+             return;
+         }
+
+         java.util.LinkedHashSet<String> kodeMapping =
+                 new java.util.LinkedHashSet<String>();
+         kodeMapping.add(kodePermintaan);
+
+         /*
+          * Bila hanya ada satu Accession pada tanggal/sesi ini, seluruh tindakan
+          * pelaksanaan pada jam yang sama boleh menunjuk study tersebut.
+          */
+         if (accessionTunggalTanggal) {
+             PreparedStatement psTindakan = null;
+             ResultSet rsTindakan = null;
+             try {
+                 psTindakan = koneksi.prepareStatement(
+                         "select distinct kd_jenis_prw "
+                         + "from periksa_radiologi "
+                         + "where no_rawat=? and tgl_periksa=? and jam=? "
+                         + "order by kd_jenis_prw"
+                 );
+                 psTindakan.setString(1, noRawatPacs);
+                 psTindakan.setString(2, tanggalPacs);
+                 psTindakan.setString(3, jamPacs);
+                 rsTindakan = psTindakan.executeQuery();
+                 while (rsTindakan.next()) {
+                     String kode = teksPacs(
+                             rsTindakan.getString("kd_jenis_prw"));
+                     if (!kode.equals("")) kodeMapping.add(kode);
+                 }
+             } catch (Exception ex) {
+                 System.out.println(
+                         "Notifikasi ambil tindakan auto-mapping PACS : " + ex);
+             } finally {
+                 try { if (rsTindakan != null) rsTindakan.close(); } catch (Exception ex) {}
+                 try { if (psTindakan != null) psTindakan.close(); } catch (Exception ex) {}
+             }
+         }
+
+         String pengguna = teksPacs(akses.getkode());
+         if (pengguna.equals("")) pengguna = "AUTO_DLG_HASIL";
+         String sql = "insert into radiologi_pacs_token "
+                 + "(no_rawat,tgl_periksa,jam,token_pacs,noorder,"
+                 + "kd_jenis_prw,accession_number,orthanc_study_id,"
+                 + "tgl_buat,pembuat,tgl_kirim,pengirim) "
+                 + "values (?,?,?,null,?,?,?,?,now(),?,now(),?) "
+                 + "on duplicate key update "
+                 + "noorder=if(trim(ifnull(accession_number,''))='',"
+                 + "values(noorder),noorder),"
+                 + "orthanc_study_id=if(trim(ifnull(accession_number,''))='',"
+                 + "values(orthanc_study_id),orthanc_study_id),"
+                 + "tgl_kirim=if(trim(ifnull(accession_number,''))='',"
+                 + "now(),tgl_kirim),"
+                 + "pengirim=if(trim(ifnull(accession_number,''))='',"
+                 + "values(pengirim),pengirim),"
+                 + "accession_number=if(trim(ifnull(accession_number,''))='',"
+                 + "values(accession_number),accession_number)";
+         PreparedStatement psSimpan = null;
+         try {
+             psSimpan = koneksi.prepareStatement(sql);
+             for (String kode : kodeMapping) {
+                 psSimpan.setString(1, noRawatPacs);
+                 psSimpan.setString(2, tanggalPacs);
+                 psSimpan.setString(3, jamPacs);
+                 psSimpan.setString(4, noOrder);
+                 psSimpan.setString(5, kode);
+                 psSimpan.setString(6, accession);
+                 psSimpan.setString(7, studyId);
+                 psSimpan.setString(8, pengguna);
+                 psSimpan.setString(9, pengguna);
+                 psSimpan.addBatch();
+             }
+             psSimpan.executeBatch();
+             System.out.println(
+                     "Auto-mapping PACS tersimpan : " + noRawatPacs
+                     + " | " + tanggalPacs + " " + jamPacs
+                     + " | " + accession);
+         } catch (Exception ex) {
+             /*
+              * Kegagalan menyimpan mapping tidak boleh menggagalkan link GIP;
+              * foto tetap dapat dibuka dari Accession yang sudah terverifikasi.
+              */
+             System.out.println(
+                     "Notifikasi simpan auto-mapping PACS : " + ex);
+         } finally {
+             try { if (psSimpan != null) psSimpan.close(); } catch (Exception ex) {}
+         }
+     }
+
+     /**
+      * DlgHasilPenunjang tidak memilih baris tindakan seperti
+      * DlgCariPeriksaRadiologi. Karena itu kandidat PACS wajib dibatasi oleh
+      * no_rawat + tanggal pemeriksaan yang dipilih user. Kandidat database
+      * diverifikasi dengan Accession aktual pada study Orthanc di tanggal itu.
+      */
+     private java.util.LinkedHashMap<String, DataPacsRadiologi>
+             ambilDataPacsRadiologi(String noRawatViewer,
+                     String tanggalPemeriksaan) {
+         java.util.LinkedHashMap<String, DataPacsRadiologi> kosong =
+                 new java.util.LinkedHashMap<String, DataPacsRadiologi>();
+         String noRawatPacs = teksPacs(noRawatViewer);
+         String tanggalPacs = normalisasiTanggalPacs(tanggalPemeriksaan);
+         if (noRawatPacs.equals("") || tanggalPacs.equals("")) return kosong;
+
+         KandidatPacsRadiologi permintaan = ambilAccessionDariPermintaanPacs(
+                 noRawatPacs, tanggalPacs);
+         KandidatPacsRadiologi mapping = ambilMappingAccessionPacs(
+                 noRawatPacs, tanggalPacs);
+
+         // Daftar semua permintaan dipakai hanya untuk dicocokkan dengan study
+         // Orthanc. Ini mengatasi tgl_hasil kosong/berbeda tanpa menebak study.
+         java.util.LinkedHashMap<String, DataPacsRadiologi>
+                 kandidatDatabaseSemua =
+                 salinDaftarPacs(permintaan.semua);
+         for (DataPacsRadiologi data : mapping.semua.values()) {
+             tambahKandidatPacs(kandidatDatabaseSemua, data);
+         }
+
+         // Bila Orthanc tidak dapat dijangkau, fallback tetap dibatasi tanggal
+         // agar kandidat dari pemeriksaan lain tidak ikut dibuka.
+         java.util.LinkedHashMap<String, DataPacsRadiologi>
+                 kandidatDatabaseTanggal =
+                 salinDaftarPacs(permintaan.cocokTanggal);
+         for (DataPacsRadiologi data : mapping.cocokTanggal.values()) {
+             tambahKandidatPacs(kandidatDatabaseTanggal, data);
+         }
+
+         // Foto Orthanc dan Foto PACS harus menunjuk kumpulan study yang sama.
+         // Karena itu Accession aktual Orthanc menjadi hasil akhir bila tersedia.
+         java.util.LinkedHashMap<String, DataPacsRadiologi> aktualOrthanc =
+                 ambilAccessionOrthancTanggal(noRawatPacs, tanggalPacs);
+         if (!aktualOrthanc.isEmpty()) {
+             java.util.LinkedHashMap<String, DataPacsRadiologi> terverifikasi =
+                     new java.util.LinkedHashMap<String, DataPacsRadiologi>();
+             for (DataPacsRadiologi aktual : aktualOrthanc.values()) {
+                 DataPacsRadiologi database =
+                         kandidatDatabaseSemua.get(aktual.accessionNumber);
+                 if (database == null) continue;
+                 DataPacsRadiologi data = new DataPacsRadiologi();
+                 data.accessionNumber = aktual.accessionNumber;
+                 data.orthancStudyId = aktual.orthancStudyId;
+                 data.tglPeriksa = tanggalPacs;
+                 data.jamPeriksa = aktual.jamPeriksa;
+                 data.namaPemeriksaan = aktual.namaPemeriksaan;
+                 data.noOrder = database.noOrder;
+                 data.kdJenisPrw = database.kdJenisPrw;
+                 if (tanggalPacs.equals(database.tglPeriksa)
+                         && jamPacsValid(database.jamPeriksa)) {
+                     data.jamPeriksa = database.jamPeriksa;
+                 }
+                 if (!database.namaPemeriksaan.equals("")) {
+                     data.namaPemeriksaan = database.namaPemeriksaan;
+                 }
+                 tambahKandidatPacs(terverifikasi, data);
+             }
+             if (!terverifikasi.isEmpty()) {
+                 boolean accessionTunggalTanggal =
+                         terverifikasi.size() == 1
+                         && aktualOrthanc.size() == 1;
+                 for (DataPacsRadiologi data : terverifikasi.values()) {
+                     simpanMappingPacsOtomatis(
+                             noRawatPacs, tanggalPacs, data,
+                             accessionTunggalTanggal);
+                 }
+                 return terverifikasi;
+             }
+
+             /*
+              * Database lama dapat menyimpan mapping yang keliru. Bila tidak
+              * ada satu pun Accession database yang cocok, gunakan study aktual
+              * pasien pada tanggal tersebut agar GIP tidak membuka Accession
+              * yang memang tidak ada. Jam dan deskripsi tetap ditampilkan saat
+              * terdapat lebih dari satu study agar user dapat membedakannya.
+              */
+             return aktualOrthanc;
+         }
+
+         // Orthanc sedang tidak dapat dijangkau: jangan menghilangkan tombol
+         // yang masih bisa dibuka oleh GIP Launcher melalui kandidat database.
+         return kandidatDatabaseTanggal;
+     }
+
+     /** Membentuk URL GIP Launcher menggunakan Accession Number, bukan Patient ID. */
+     private String buatUrlFotoPacsViaAccession(String accessionNumber)
+             throws Exception {
+         String accession = teksPacs(accessionNumber);
+         if (accession.equals("")) return "";
+         return "http://192.168.10.4:8080/gipLauncher#/monitorConfig"
+                 + "?uname=klinisi&pass=klinisi&accno="
+                 + java.net.URLEncoder.encode(accession, "UTF-8");
+     }
+
+     /**
+      * Tautan PACS selalu dibuka oleh browser. Satu Accession langsung dibuka;
+      * beberapa Accession berbeda ditampilkan sebagai pilihan agar study tidak
+      * tertukar. Tidak ada lagi fallback pid/Patient ID.
+      */
+     private void appendTombolLihatFotoPacs(StringBuilder html,
+             java.util.LinkedHashMap<String, DataPacsRadiologi> daftar,
+             String tanggalPemeriksaan) {
+         if (daftar.isEmpty()) {
+             html.append("<button class=\"btnLihatFoto btnPacs\" type=\"button\" disabled "
+                     + "title=\"Accession Number pada tanggal pemeriksaan ")
+                     .append(escapeHtml(formatTanggalTampilHasilPenunjang(
+                             tanggalPemeriksaan)))
+                     .append(" tidak ditemukan\">Foto PACS</button>");
+             return;
+         }
+
+         if (daftar.size() == 1) {
+             DataPacsRadiologi data = daftar.values().iterator().next();
+             try {
+                 String urlViewer = buatUrlFotoPacsViaAccession(
+                         data.accessionNumber);
+                 if (!urlViewer.equals("")) {
+                     html.append("<a class=\"btnLihatFoto btnPacs\" href=\"")
+                             .append(escapeHtml(urlViewer))
+                             .append("\" target=\"_blank\" rel=\"noopener noreferrer\" "
+                                     + "title=\"Buka PACS berdasarkan Accession Number ")
+                             .append(escapeHtml(data.accessionNumber))
+                             .append(data.jamPeriksa.equals("")
+                                     ? "" : " pada jam "
+                                     + escapeHtml(data.jamPeriksa))
+                             .append("\">Foto PACS</a>");
+                     return;
+                 }
+             } catch (Exception ex) {
+                 System.out.println("Notifikasi siapkan URL PACS hasil radiologi : " + ex);
+             }
+             html.append("<button class=\"btnLihatFoto btnPacs\" type=\"button\" disabled "
+                     + "title=\"URL PACS tidak dapat dibentuk\">Foto PACS</button>");
+             return;
+         }
+
+         html.append("<details class=\"dicom-pilih pacs-pilih\" "
+                 + "ontoggle=\"aturPosisiMenuDicom(this)\">"
+                 + "<summary class=\"btnLihatFoto btnPacs\" "
+                 + "title=\"Pilih citra pada tanggal pemeriksaan\">"
+                 + "Foto PACS</summary><div class=\"dicom-menu\">");
+         for (DataPacsRadiologi data : daftar.values()) {
+             try {
+                 String urlViewer = buatUrlFotoPacsViaAccession(
+                         data.accessionNumber);
+                 if (urlViewer.equals("")) continue;
+                 String label = data.namaPemeriksaan.equals("")
+                         ? data.accessionNumber
+                         : data.namaPemeriksaan + " - " + data.accessionNumber;
+                 if (!data.jamPeriksa.equals("")) {
+                     label = data.jamPeriksa + " | " + label;
+                 }
+                 html.append("<a href=\"")
+                         .append(escapeHtml(urlViewer))
+                         .append("\" target=\"_blank\" rel=\"noopener noreferrer\" "
+                                 + "title=\"Buka Accession Number ")
+                         .append(escapeHtml(data.accessionNumber))
+                         .append("\">")
+                         .append(escapeHtml(label))
+                         .append("</a>");
+             } catch (Exception ex) {
+                 System.out.println("Notifikasi siapkan pilihan PACS hasil radiologi : " + ex);
+             }
+         }
+         html.append("</div></details>");
+     }
+
+     /**
+      * Mengikuti cara kerja Integrasi Orthanc pada DlgCariPeriksaRadiologi:
+      * PatientID diambil dari no_rkm_medis, lalu Series dicari pada tanggal pemeriksaan.
+      * Tidak ada query ini yang dijalankan saat DlgIGD/DlgKamarInap/DlgKasirRalan dibuka;
+      * proses hanya terjadi setelah user benar-benar membuka Hasil Radiologi.
+      */
+     private ArrayList<String> ambilSeriesDicomPenunjang(String noRawatDicom, String tanggalPemeriksaan) {
+         ArrayList<String> hasil = new ArrayList<String>();
+         if (noRawatDicom == null || noRawatDicom.trim().equals("")) return hasil;
+
+         String noRm = Sequel.cariIsi(
+                 "select reg_periksa.no_rkm_medis from reg_periksa where reg_periksa.no_rawat=? limit 1",
+                 noRawatDicom
+         );
+         String tanggalOrthanc = ubahTanggalKeOrthanc(tanggalPemeriksaan);
+         if (noRm == null || noRm.trim().equals("") || tanggalOrthanc.equals("")) return hasil;
+
+         String kunci = noRm.trim() + "|" + tanggalOrthanc;
+         ArrayList<String> cache = cacheSeriesDicomPenunjang.get(kunci);
+         if (cache != null
+                 && cacheAccessionOrthancPenunjang.containsKey(kunci)) {
+             return new ArrayList<String>(cache);
+         }
+
+         java.util.LinkedHashMap<String, DataPacsRadiologi> accessionOrthanc =
+                 new java.util.LinkedHashMap<String, DataPacsRadiologi>();
+
+         /*
+          * Jangan memakai ApiOrthanc.AmbilSeries() di sini. Class tersebut mengambil
+          * username/password dari konfigurasi koneksiDB.USERORTHANC()/PASSORTHANC().
+          * Untuk viewer hasil penunjang RSAJ, autentikasi Orthanc ditetapkan langsung
+          * menggunakan akun orthanc/orthanc agar pencarian Series konsisten dengan
+          * reverse proxy viewer di bawah.
+          */
+         try {
+             JsonNode rootDicom = ambilStudyOrthancDenganAuth(noRm.trim(), tanggalOrthanc);
+             if (rootDicom != null && rootDicom.isArray()) {
+                 for (JsonNode study : rootDicom) {
+                     String accession = tagStudyOrthancPenunjang(
+                             study, "AccessionNumber");
+                     if (!accession.equals("")) {
+                         DataPacsRadiologi dataPacs = new DataPacsRadiologi();
+                         dataPacs.accessionNumber = accession;
+                         dataPacs.orthancStudyId =
+                                 teksPacs(study.path("ID").asText());
+                         dataPacs.tglPeriksa =
+                                 normalisasiTanggalPacs(tanggalPemeriksaan);
+                         dataPacs.jamPeriksa = formatJamDicomPenunjang(
+                                 tagStudyOrthancPenunjang(study, "StudyTime"));
+                         dataPacs.namaPemeriksaan =
+                                 tagStudyOrthancPenunjang(
+                                         study, "StudyDescription");
+                         int titik = accession.lastIndexOf('.');
+                         if (titik > 0 && titik < accession.length() - 1) {
+                             dataPacs.noOrder = accession.substring(0, titik);
+                             dataPacs.kdJenisPrw =
+                                     accession.substring(titik + 1);
+                         } else {
+                             dataPacs.noOrder = accession;
+                         }
+                         tambahKandidatPacs(accessionOrthanc, dataPacs);
+                     }
+
+                     JsonNode series = study.path("Series");
+                     if (series != null && series.isArray()) {
+                         for (JsonNode idSeries : series) {
+                             String id = idSeries.asText();
+                             if (id != null && !id.trim().equals("") && !hasil.contains(id.trim())) {
+                                 hasil.add(id.trim());
+                             }
+                         }
+                     }
+                 }
+             }
+         } catch (Exception ex) {
+             // Tidak memunculkan popup global dari ApiOrthanc agar halaman hasil radiologi
+             // tetap dapat dibuka meskipun server Orthanc sedang tidak dapat diakses.
+             System.out.println("Notifikasi ambil Series DICOM hasil radiologi dengan autentikasi : " + ex);
+         }
+
+         cacheSeriesDicomPenunjang.put(kunci, new ArrayList<String>(hasil));
+         cacheAccessionOrthancPenunjang.put(
+                 kunci, salinDaftarPacs(accessionOrthanc));
+         return hasil;
+     }
+
+     /**
+      * Mengambil Study Orthanc dengan Basic Authentication yang eksplisit.
+      * Request dibuat sama seperti ApiOrthanc.AmbilSeries(), tetapi kredensial
+      * tidak bergantung pada setting USERORTHANC/PASSORTHANC.
+      */
+     private JsonNode ambilStudyOrthancDenganAuth(String noRm, String tanggalOrthanc) throws Exception {
+         HttpURLConnection conn = null;
+         InputStream input = null;
+         OutputStream output = null;
+         ByteArrayOutputStream buffer = null;
+         try {
+             String baseOrthanc = koneksiDB.URLORTHANC() + ":" + koneksiDB.PORTORTHANC();
+             if (baseOrthanc.endsWith("/")) {
+                 baseOrthanc = baseOrthanc.substring(0, baseOrthanc.length() - 1);
+             }
+
+             URL url = new URL(baseOrthanc + "/tools/find");
+             conn = (HttpURLConnection) url.openConnection();
+             conn.setConnectTimeout(10000);
+             conn.setReadTimeout(30000);
+             conn.setUseCaches(false);
+             conn.setDoOutput(true);
+             conn.setRequestMethod("POST");
+             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+             conn.setRequestProperty("Accept", "application/json");
+
+             String token = Base64.getEncoder().encodeToString(
+                     (USER_PROXY_ORTHANC + ":" + PASSWORD_PROXY_ORTHANC)
+                             .getBytes(StandardCharsets.UTF_8));
+             conn.setRequestProperty("Authorization", "Basic " + token);
+
+             String patientId = noRm == null ? "" : noRm.trim()
+                     .replace("\\", "\\\\").replace("\"", "\\\"");
+             String studyDate = tanggalOrthanc == null ? "" : tanggalOrthanc.trim()
+                     .replace("\\", "\\\\").replace("\"", "\\\"");
+
+             String requestJson = "{"
+                     + "\"Level\":\"Study\","
+                     + "\"Expand\":true,"
+                     + "\"Query\":{"
+                     + "\"StudyDate\":\"" + studyDate + "-" + studyDate + "\","
+                     + "\"PatientID\":\"" + patientId + "\""
+                     + "}"
+                     + "}";
+
+             output = conn.getOutputStream();
+             output.write(requestJson.getBytes(StandardCharsets.UTF_8));
+             output.flush();
+             output.close();
+             output = null;
+
+             int status = conn.getResponseCode();
+             input = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
+             if (input == null) {
+                 throw new java.io.IOException("Orthanc tidak memberi respons. HTTP " + status);
+             }
+
+             buffer = new ByteArrayOutputStream();
+             byte[] data = new byte[8192];
+             int dibaca;
+             while ((dibaca = input.read(data)) != -1) {
+                 buffer.write(data, 0, dibaca);
+             }
+
+             String response = new String(buffer.toByteArray(), StandardCharsets.UTF_8);
+             if (status < 200 || status >= 300) {
+                 throw new java.io.IOException(
+                         "Gagal mengambil data Orthanc. HTTP " + status + " - " + response);
+             }
+
+             return new ObjectMapper().readTree(response);
+         } finally {
+             try { if (input != null) input.close(); } catch (Exception ex) {}
+             try { if (output != null) output.close(); } catch (Exception ex) {}
+             try { if (buffer != null) buffer.close(); } catch (Exception ex) {}
+             if (conn != null) conn.disconnect();
+         }
+     }
+
+     private String ubahTanggalKeOrthanc(String tanggal) {
+         if (tanggal == null) return "";
+         String t = tanggal.trim();
+         try {
+             if (t.matches("\\d{2}-\\d{2}-\\d{4}")) {
+                 String[] b = t.split("-");
+                 return b[2] + b[1] + b[0];
+             }
+             if (t.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                 return t.replace("-", "");
+             }
+             String angka = t.replaceAll("[^0-9]", "");
+             if (angka.length() == 8) return angka;
+         } catch (Exception ex) {
+             System.out.println("Notifikasi format tanggal Orthanc : " + ex);
+         }
+         return "";
+     }
+
+     private String buatUrlViewerDicomPenunjang(String idSeries) {
+         if (idSeries == null || idSeries.trim().equals("")) return "";
+         try {
+             int port = pastikanProxyOrthancAktif();
+             if (port <= 0) return "";
+             return "http://127.0.0.1:" + port
+                     + "/web-viewer/app/viewer.html?series="
+                     + java.net.URLEncoder.encode(idSeries.trim(), "UTF-8");
+         } catch (Exception ex) {
+             System.out.println("Notifikasi siapkan URL proxy DICOM : " + ex);
+             return "";
+         }
+     }
+
+     /**
+      * Reverse proxy mini khusus Orthanc. Semua resource viewer dan REST API
+      * diteruskan dengan Basic Authentication otomatis agar iframe tidak meminta login.
+      */
+     private static int pastikanProxyOrthancAktif() throws Exception {
+         synchronized (KUNCI_PROXY_ORTHANC) {
+             if (serverProxyOrthanc != null && portProxyOrthanc > 0) return portProxyOrthanc;
+
+             serverProxyOrthanc = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+             serverProxyOrthanc.createContext("/", new HttpHandler() {
+                 @Override
+                 public void handle(HttpExchange exchange) {
+                     layaniProxyOrthanc(exchange);
+                 }
+             });
+             executorProxyOrthanc = Executors.newCachedThreadPool(new ThreadFactory() {
+                 private int nomor = 0;
+                 @Override
+                 public Thread newThread(Runnable r) {
+                     Thread t = new Thread(r, "Khanza-Orthanc-Proxy-" + (++nomor));
+                     t.setDaemon(true);
+                     return t;
+                 }
+             });
+             serverProxyOrthanc.setExecutor(executorProxyOrthanc);
+             serverProxyOrthanc.start();
+             portProxyOrthanc = serverProxyOrthanc.getAddress().getPort();
+             System.out.println("Proxy Orthanc hasil penunjang aktif di 127.0.0.1:" + portProxyOrthanc);
+             return portProxyOrthanc;
+         }
+     }
+
+     private static void layaniProxyOrthanc(HttpExchange exchange) {
+         HttpURLConnection koneksiOrthanc = null;
+         InputStream input = null;
+         OutputStream output = null;
+         try {
+             String baseOrthanc = koneksiDB.URLORTHANC() + ":" + koneksiDB.PORTORTHANC();
+             if (baseOrthanc.endsWith("/")) baseOrthanc = baseOrthanc.substring(0, baseOrthanc.length() - 1);
+             String uri = exchange.getRequestURI() == null ? "/" : exchange.getRequestURI().toASCIIString();
+             URL urlTujuan = new URL(baseOrthanc + uri);
+
+             koneksiOrthanc = (HttpURLConnection) urlTujuan.openConnection();
+             koneksiOrthanc.setConnectTimeout(10000);
+             koneksiOrthanc.setReadTimeout(120000);
+             koneksiOrthanc.setUseCaches(false);
+             koneksiOrthanc.setInstanceFollowRedirects(true);
+             koneksiOrthanc.setRequestMethod(exchange.getRequestMethod());
+
+             String token = Base64.getEncoder().encodeToString(
+                     (USER_PROXY_ORTHANC + ":" + PASSWORD_PROXY_ORTHANC).getBytes(StandardCharsets.UTF_8));
+             koneksiOrthanc.setRequestProperty("Authorization", "Basic " + token);
+
+             for (Map.Entry<String,List<String>> entry : exchange.getRequestHeaders().entrySet()) {
+                 String nama = entry.getKey();
+                 if (nama == null || nama.equalsIgnoreCase("Host") || nama.equalsIgnoreCase("Connection")
+                         || nama.equalsIgnoreCase("Content-Length") || nama.equalsIgnoreCase("Authorization")
+                         || nama.equalsIgnoreCase("Accept-Encoding") || nama.equalsIgnoreCase("Origin")
+                         || nama.equalsIgnoreCase("Referer")) continue;
+                 for (String nilai : entry.getValue()) {
+                     if (nilai != null) koneksiOrthanc.addRequestProperty(nama, nilai);
+                 }
+             }
+
+             String metode = exchange.getRequestMethod();
+             if ("OPTIONS".equalsIgnoreCase(metode)) {
+                 Headers h = exchange.getResponseHeaders();
+                 h.set("Access-Control-Allow-Origin", "*");
+                 h.set("Access-Control-Allow-Headers", "*");
+                 h.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                 exchange.sendResponseHeaders(204, -1);
+                 return;
+             }
+
+             boolean adaBody = "POST".equalsIgnoreCase(metode) || "PUT".equalsIgnoreCase(metode)
+                     || "PATCH".equalsIgnoreCase(metode);
+             if (adaBody) {
+                 koneksiOrthanc.setDoOutput(true);
+                 input = exchange.getRequestBody();
+                 output = koneksiOrthanc.getOutputStream();
+                 salinStreamProxyOrthanc(input, output);
+                 output.close();
+                 output = null;
+                 input.close();
+                 input = null;
+             }
+
+             int status = koneksiOrthanc.getResponseCode();
+             Headers headerBalasan = exchange.getResponseHeaders();
+             Map<String,List<String>> semuaHeader = koneksiOrthanc.getHeaderFields();
+             if (semuaHeader != null) {
+                 for (Map.Entry<String,List<String>> entry : semuaHeader.entrySet()) {
+                     String nama = entry.getKey();
+                     if (nama == null || nama.equalsIgnoreCase("Transfer-Encoding")
+                             || nama.equalsIgnoreCase("Connection") || nama.equalsIgnoreCase("Content-Length")
+                             || nama.equalsIgnoreCase("X-Frame-Options")
+                             || nama.equalsIgnoreCase("Content-Security-Policy")) continue;
+                     for (String nilai : entry.getValue()) {
+                         if (nilai != null) headerBalasan.add(nama, nilai);
+                     }
+                 }
+             }
+             headerBalasan.set("Access-Control-Allow-Origin", "*");
+             headerBalasan.set("Access-Control-Allow-Headers", "*");
+             headerBalasan.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+
+             if ("HEAD".equalsIgnoreCase(metode) || status == 204 || status == 304) {
+                 exchange.sendResponseHeaders(status, -1);
+                 return;
+             }
+
+             input = status >= 400 ? koneksiOrthanc.getErrorStream() : koneksiOrthanc.getInputStream();
+             if (input == null) {
+                 exchange.sendResponseHeaders(status, -1);
+                 return;
+             }
+             exchange.sendResponseHeaders(status, 0);
+             output = exchange.getResponseBody();
+             salinStreamProxyOrthanc(input, output);
+         } catch (Exception ex) {
+             try {
+                 byte[] pesan = ("Proxy Orthanc gagal: " + ex.getMessage()).getBytes(StandardCharsets.UTF_8);
+                 exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+                 exchange.sendResponseHeaders(502, pesan.length);
+                 OutputStream keluarError = exchange.getResponseBody();
+                 keluarError.write(pesan);
+                 keluarError.close();
+             } catch (Exception abaikan) {}
+             System.out.println("Notifikasi proxy Orthanc hasil penunjang : " + ex);
+         } finally {
+             try { if (input != null) input.close(); } catch (Exception ex) {}
+             try { if (output != null) output.close(); } catch (Exception ex) {}
+             if (koneksiOrthanc != null) koneksiOrthanc.disconnect();
+             try { exchange.close(); } catch (Exception ex) {}
+         }
+     }
+
+     private static void salinStreamProxyOrthanc(InputStream input, OutputStream output) throws Exception {
+         byte[] buffer = new byte[32768];
+         int dibaca;
+         while ((dibaca = input.read(buffer)) != -1) {
+             output.write(buffer, 0, dibaca);
+         }
+         output.flush();
+     }
+
+     private void appendTombolLihatFotoDicom(StringBuilder html, ArrayList<String> daftarSeries) {
+         if (daftarSeries == null || daftarSeries.isEmpty()) {
+             html.append("<button class=\"btnLihatFoto\" type=\"button\" disabled title=\"Foto DICOM belum ditemukan di Orthanc untuk tanggal pemeriksaan ini\">Lihat Foto Orthanc</button>");
+             return;
+         }
+         if (daftarSeries.size() == 1) {
+             String urlViewer = buatUrlViewerDicomPenunjang(daftarSeries.get(0));
+             if (urlViewer.equals("")) {
+                 html.append("<button class=\"btnLihatFoto\" type=\"button\" disabled title=\"Proxy DICOM tidak dapat dijalankan\">Lihat Foto Orthanc</button>");
+             } else {
+                 html.append("<a class=\"btnLihatFoto\" href=\"#\" data-dicom-url=\"")
+                         .append(escapeHtml(urlViewer))
+                         .append("\" onclick=\"bukaViewerDicom(this.getAttribute('data-dicom-url'));return false;\">Lihat Foto Orthanc</a>");
+             }
+             return;
+         }
+
+         html.append("<details class=\"dicom-pilih\" ontoggle=\"aturPosisiMenuDicom(this)\"><summary class=\"btnLihatFoto\">Lihat Foto Orthanc</summary><div class=\"dicom-menu\">");
+         for (int i = 0; i < daftarSeries.size(); i++) {
+             String urlViewer = buatUrlViewerDicomPenunjang(daftarSeries.get(i));
+             if (urlViewer.equals("")) continue;
+             html.append("<a href=\"#\" data-dicom-url=\"")
+                     .append(escapeHtml(urlViewer))
+                     .append("\" onclick=\"bukaViewerDicom(this.getAttribute('data-dicom-url'));return false;\">Foto DICOM ")
+                     .append(i + 1).append("</a>");
+         }
+         html.append("</div></details>");
+     }
+
+     private boolean adaHasilLabSementaraPenunjang(String noRawat) {
+         if (noRawat == null || noRawat.trim().equals("")) return false;
+         PreparedStatement psCek = null;
+         ResultSet rsCek = null;
+         try {
+             psCek = koneksi.prepareStatement(
+                 "select 1 from detail_periksa_lab "
+                 + "where no_rawat=? and trim(ifnull(nilai,''))<>'' limit 1"
+             );
+             psCek.setString(1, noRawat);
+             rsCek = psCek.executeQuery();
+             return rsCek.next();
+         } catch (Exception ex) {
+             System.out.println("Notifikasi cek hasil lab sementara : " + ex);
+             return false;
+         } finally {
+             try { if (rsCek != null) rsCek.close(); } catch (Exception ex) {}
+             try { if (psCek != null) psCek.close(); } catch (Exception ex) {}
+         }
+     }
+
+     private ArrayList<DataHasilLabSementaraPenunjang> ambilDaftarHasilLabSementaraPenunjang(String noRawat) {
+         ArrayList<DataHasilLabSementaraPenunjang> daftar = new ArrayList<DataHasilLabSementaraPenunjang>();
+         if (!adaHasilLabSementaraPenunjang(noRawat)) return daftar;
+
+         PreparedStatement psLab = null;
+         ResultSet rsLab = null;
+         try {
+             psLab = koneksi.prepareStatement(
+                 "select ifnull(permintaan_lab.noorder,'') as noorder, "
+                 + "if(permintaan_lab.tgl_hasil is null or permintaan_lab.tgl_hasil='0000-00-00',date_format(permintaan_lab.tgl_permintaan,'%d-%m-%Y'),date_format(permintaan_lab.tgl_hasil,'%d-%m-%Y')) as tgl_group, "
+                 + "date_format(permintaan_lab.tgl_permintaan,'%d-%m-%Y') as tgl_permintaan, "
+                 + "if(permintaan_lab.tgl_hasil is null or permintaan_lab.tgl_hasil='0000-00-00','-',date_format(permintaan_lab.tgl_hasil,'%d-%m-%Y')) as tgl_hasil, "
+                 + "ifnull(jns_perawatan_lab.nm_perawatan,'') as nm_perawatan, "
+                 + "ifnull(template_laboratorium.Pemeriksaan,ifnull(jns_perawatan_lab.nm_perawatan,'Pemeriksaan Lab')) as pemeriksaan, "
+                 + "ifnull(detail_periksa_lab.nilai,'') as nilai, ifnull(template_laboratorium.satuan,'') as satuan, "
+                 + "ifnull(detail_periksa_lab.nilai_rujukan,'') as nilai_rujukan, ifnull(detail_periksa_lab.keterangan,'') as keterangan, ifnull(permintaan_detail_permintaan_lab.kd_jenis_prw,permintaan_pemeriksaan_lab.kd_jenis_prw) as kd_jenis_prw, ifnull(permintaan_detail_permintaan_lab.id_template,'') as id_template, "
+                 + "if(trim(ifnull(detail_periksa_lab.nilai,''))='','Menunggu Hasil','Sudah Keluar') as status "
+                 + "from permintaan_lab "
+                 + "left join permintaan_pemeriksaan_lab on permintaan_pemeriksaan_lab.noorder=permintaan_lab.noorder "
+                 + "left join jns_perawatan_lab on jns_perawatan_lab.kd_jenis_prw=permintaan_pemeriksaan_lab.kd_jenis_prw "
+                 + "left join permintaan_detail_permintaan_lab on permintaan_detail_permintaan_lab.noorder=permintaan_lab.noorder "
+                 + "and permintaan_detail_permintaan_lab.kd_jenis_prw=permintaan_pemeriksaan_lab.kd_jenis_prw "
+                 + "left join template_laboratorium on template_laboratorium.id_template=permintaan_detail_permintaan_lab.id_template "
+                 + "and template_laboratorium.kd_jenis_prw=permintaan_detail_permintaan_lab.kd_jenis_prw "
+                 + "left join detail_periksa_lab on detail_periksa_lab.no_rawat=permintaan_lab.no_rawat "
+                 + "and detail_periksa_lab.kd_jenis_prw=permintaan_detail_permintaan_lab.kd_jenis_prw "
+                 + "and detail_periksa_lab.id_template=permintaan_detail_permintaan_lab.id_template "
+                 + "where permintaan_lab.no_rawat=? "
+                 + "order by permintaan_lab.tgl_permintaan,permintaan_lab.jam_permintaan,permintaan_lab.noorder,jns_perawatan_lab.nm_perawatan,template_laboratorium.urut,template_laboratorium.Pemeriksaan"
+             );
+             psLab.setString(1, noRawat);
+             rsLab = psLab.executeQuery();
+             while (rsLab.next()) {
+                 String pemeriksaan = rsLab.getString("pemeriksaan");
+                 String nilai = rsLab.getString("nilai");
+                 if ((pemeriksaan == null || pemeriksaan.trim().equals("")) && (nilai == null || nilai.trim().equals(""))) continue;
+                 daftar.add(new DataHasilLabSementaraPenunjang(
+                         rsLab.getString("noorder"), rsLab.getString("tgl_group"),
+                         rsLab.getString("tgl_permintaan"), rsLab.getString("tgl_hasil"),
+                         rsLab.getString("nm_perawatan"), pemeriksaan, nilai,
+                         rsLab.getString("satuan"), rsLab.getString("nilai_rujukan"),
+                         rsLab.getString("keterangan"), rsLab.getString("kd_jenis_prw"), rsLab.getString("id_template"), rsLab.getString("status")));
+             }
+         } catch (Exception ex) {
+             System.out.println("Notifikasi ambil hasil lab sementara dari permintaan : " + ex);
+         } finally {
+             try { if (rsLab != null) rsLab.close(); } catch (Exception ex) {}
+             try { if (psLab != null) psLab.close(); } catch (Exception ex) {}
+         }
+
+         boolean adaNilaiKeluar = false;
+         for (DataHasilLabSementaraPenunjang data : daftar) {
+             if ("Sudah Keluar".equalsIgnoreCase(data.status)) {
+                 adaNilaiKeluar = true;
+                 break;
+             }
+         }
+         if (daftar.isEmpty() || !adaNilaiKeluar) {
+             daftar = ambilDaftarHasilLabSementaraLangsung(noRawat);
+         }
+         return daftar;
+     }
+
+     private ArrayList<DataHasilLabSementaraPenunjang> ambilDaftarHasilLabSementaraLangsung(String noRawat) {
+         ArrayList<DataHasilLabSementaraPenunjang> daftar = new ArrayList<DataHasilLabSementaraPenunjang>();
+         PreparedStatement psLab = null;
+         ResultSet rsLab = null;
+         try {
+             psLab = koneksi.prepareStatement(
+                 "select date_format(detail_periksa_lab.tgl_periksa,'%d-%m-%Y') as tgl_group, "
+                 + "date_format(detail_periksa_lab.tgl_periksa,'%d-%m-%Y') as tgl_permintaan, "
+                 + "date_format(detail_periksa_lab.tgl_periksa,'%d-%m-%Y') as tgl_hasil, "
+                 + "ifnull(jns_perawatan_lab.nm_perawatan,'') as nm_perawatan, "
+                 + "ifnull(template_laboratorium.Pemeriksaan,ifnull(jns_perawatan_lab.nm_perawatan,'Pemeriksaan Lab')) as pemeriksaan, "
+                 + "ifnull(detail_periksa_lab.nilai,'') as nilai, ifnull(template_laboratorium.satuan,'') as satuan, "
+                 + "ifnull(detail_periksa_lab.nilai_rujukan,'') as nilai_rujukan, ifnull(detail_periksa_lab.keterangan,'') as keterangan, ifnull(detail_periksa_lab.kd_jenis_prw,'') as kd_jenis_prw, ifnull(detail_periksa_lab.id_template,'') as id_template "
+                 + "from detail_periksa_lab "
+                 + "left join template_laboratorium on template_laboratorium.id_template=detail_periksa_lab.id_template "
+                 + "and template_laboratorium.kd_jenis_prw=detail_periksa_lab.kd_jenis_prw "
+                 + "left join jns_perawatan_lab on jns_perawatan_lab.kd_jenis_prw=detail_periksa_lab.kd_jenis_prw "
+                 + "where detail_periksa_lab.no_rawat=? and trim(ifnull(detail_periksa_lab.nilai,''))<>'' "
+                 + "order by detail_periksa_lab.tgl_periksa,detail_periksa_lab.jam,jns_perawatan_lab.nm_perawatan,template_laboratorium.urut,template_laboratorium.Pemeriksaan"
+             );
+             psLab.setString(1, noRawat);
+             rsLab = psLab.executeQuery();
+             while (rsLab.next()) {
+                 daftar.add(new DataHasilLabSementaraPenunjang("", rsLab.getString("tgl_group"),
+                         rsLab.getString("tgl_permintaan"), rsLab.getString("tgl_hasil"),
+                         rsLab.getString("nm_perawatan"), rsLab.getString("pemeriksaan"),
+                         rsLab.getString("nilai"), rsLab.getString("satuan"),
+                         rsLab.getString("nilai_rujukan"), rsLab.getString("keterangan"), rsLab.getString("kd_jenis_prw"), rsLab.getString("id_template"), "Sudah Keluar"));
+             }
+         } catch (Exception ex) {
+             System.out.println("Notifikasi ambil hasil lab sementara langsung : " + ex);
+         } finally {
+             try { if (rsLab != null) rsLab.close(); } catch (Exception ex) {}
+             try { if (psLab != null) psLab.close(); } catch (Exception ex) {}
+         }
+         return daftar;
+     }
+
+     /**
+     * Jika sudah ada berkas final Lab pada kunjungan yang sama, bagian tabel sementara
+     * hanya menampilkan permintaan Lab yang belum lengkap. Ini mencegah hasil final yang
+     * sudah terwakili oleh upload PDF/JPG tampil ulang sebagai tabel sementara.
+     */
+    private ArrayList<DataHasilLabSementaraPenunjang> saringLabSementaraBelumLengkapPenunjang(
+            ArrayList<DataHasilLabSementaraPenunjang> daftar) {
+        ArrayList<DataHasilLabSementaraPenunjang> hasil = new ArrayList<DataHasilLabSementaraPenunjang>();
+        if (daftar == null || daftar.isEmpty()) return hasil;
+
+        java.util.LinkedHashMap<String, Boolean> orderBelumLengkap =
+                new java.util.LinkedHashMap<String, Boolean>();
+        for (DataHasilLabSementaraPenunjang data : daftar) {
+            if (data == null) continue;
+            String noOrder = data.noOrder == null ? "" : data.noOrder.trim();
+            if (noOrder.equals("")) continue;
+            if (!orderBelumLengkap.containsKey(noOrder)) orderBelumLengkap.put(noOrder, Boolean.FALSE);
+            boolean belumLengkap = !"Sudah Keluar".equalsIgnoreCase(data.status)
+                    || (data.nilai == null || data.nilai.trim().equals(""))
+                    || (data.tglHasil == null || data.tglHasil.trim().equals("-") || data.tglHasil.trim().equals(""));
+            if (belumLengkap) orderBelumLengkap.put(noOrder, Boolean.TRUE);
+        }
+
+        for (DataHasilLabSementaraPenunjang data : daftar) {
+            if (data == null) continue;
+            String noOrder = data.noOrder == null ? "" : data.noOrder.trim();
+            if (noOrder.equals("")) continue;
+            Boolean belumLengkap = orderBelumLengkap.get(noOrder);
+            if (belumLengkap != null && belumLengkap.booleanValue()) hasil.add(data);
+        }
+        return hasil;
+    }
+
+    private java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> kelompokkanLabSementaraPerTanggal(
+             ArrayList<DataHasilLabSementaraPenunjang> daftarLab) {
+         java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> kelompok =
+                 new java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>>();
+         if (daftarLab == null) return kelompok;
+         for (DataHasilLabSementaraPenunjang data : daftarLab) {
+             String tanggal = data.tanggalShortcut == null || data.tanggalShortcut.trim().equals("") ? "Tanpa Tanggal" : data.tanggalShortcut;
+             if (!kelompok.containsKey(tanggal)) kelompok.put(tanggal, new java.util.ArrayList<DataHasilLabSementaraPenunjang>());
+             kelompok.get(tanggal).add(data);
+         }
+         return kelompok;
+     }
+
+
+    private boolean lewatiMenungguHasilMonitoringLab(String kdJenisPrw, String idTemplate) {
+        String kd = kdJenisPrw == null ? "" : kdJenisPrw.trim();
+        String id = idTemplate == null ? "" : idTemplate.trim();
+        if (kd.equals("J000020")) {
+            return id.equals("3410") || id.equals("3411") || id.equals("3413");
+        } else if (kd.equals("J000045")) {
+            return id.equals("3499") || id.equals("3500") || id.equals("3502");
+        } else if (kd.equals("J000046")) {
+            return id.equals("3535") || id.equals("3536") || id.equals("3538");
+        }
+        return false;
+    }
+
+     /** Ambil data monitoring lab lintas kunjungan berdasarkan No. RM pasien yang sama. */
+     private ArrayList<DataMonitoringLabPenunjang> ambilDataMonitoringLabPenunjang(String noRawat) {
+        ArrayList<DataMonitoringLabPenunjang> daftar = new ArrayList<DataMonitoringLabPenunjang>();
+        if (noRawat == null || noRawat.trim().equals("")) return daftar;
+
+        java.util.HashSet<String> kunciData = new java.util.HashSet<String>();
+        PreparedStatement psMon = null;
+        ResultSet rsMon = null;
+        try {
+            psMon = koneksi.prepareStatement(
+                "select reg_periksa.no_rawat, "
+                + "date_format(if(permintaan_lab.tgl_hasil is null or permintaan_lab.tgl_hasil='0000-00-00',permintaan_lab.tgl_permintaan,permintaan_lab.tgl_hasil),'%d-%m-%Y') as tgl_tampil, "
+                + "if(permintaan_lab.jam_hasil is null or permintaan_lab.jam_hasil='' or permintaan_lab.jam_hasil='00:00:00',ifnull(permintaan_lab.jam_permintaan,''),permintaan_lab.jam_hasil) as jam, "
+                + "ifnull(jns_perawatan_lab.nm_perawatan,'') as nm_perawatan, "
+                + "ifnull(template_laboratorium.Pemeriksaan,ifnull(jns_perawatan_lab.nm_perawatan,'Pemeriksaan Lab')) as pemeriksaan, "
+                + "ifnull(detail_periksa_lab.nilai,'') as nilai, ifnull(template_laboratorium.satuan,'') as satuan, "
+                + "ifnull(detail_periksa_lab.nilai_rujukan,'') as nilai_rujukan, ifnull(detail_periksa_lab.keterangan,'') as keterangan, ifnull(permintaan_detail_permintaan_lab.kd_jenis_prw,permintaan_pemeriksaan_lab.kd_jenis_prw) as kd_jenis_prw, ifnull(permintaan_detail_permintaan_lab.id_template,'') as id_template, "
+                + "ifnull(permintaan_detail_permintaan_lab.kd_jenis_prw,ifnull(permintaan_pemeriksaan_lab.kd_jenis_prw,'')) as kd_jenis_prw, "
+                + "ifnull(template_laboratorium.id_template,'') as id_template, "
+                + "if(trim(ifnull(detail_periksa_lab.nilai,''))='','Menunggu Hasil','Sudah Keluar') as status "
+                + "from permintaan_lab "
+                + "inner join reg_periksa on reg_periksa.no_rawat=permintaan_lab.no_rawat "
+                + "left join permintaan_pemeriksaan_lab on permintaan_pemeriksaan_lab.noorder=permintaan_lab.noorder "
+                + "left join jns_perawatan_lab on jns_perawatan_lab.kd_jenis_prw=permintaan_pemeriksaan_lab.kd_jenis_prw "
+                + "left join permintaan_detail_permintaan_lab on permintaan_detail_permintaan_lab.noorder=permintaan_lab.noorder "
+                + "and permintaan_detail_permintaan_lab.kd_jenis_prw=permintaan_pemeriksaan_lab.kd_jenis_prw "
+                + "left join template_laboratorium on template_laboratorium.id_template=permintaan_detail_permintaan_lab.id_template "
+                + "and template_laboratorium.kd_jenis_prw=permintaan_detail_permintaan_lab.kd_jenis_prw "
+                + "left join detail_periksa_lab on detail_periksa_lab.no_rawat=permintaan_lab.no_rawat "
+                + "and detail_periksa_lab.kd_jenis_prw=permintaan_detail_permintaan_lab.kd_jenis_prw "
+                + "and detail_periksa_lab.id_template=permintaan_detail_permintaan_lab.id_template "
+                + "where reg_periksa.no_rkm_medis=(select no_rkm_medis from reg_periksa where no_rawat=? limit 1) "
+                + "and (template_laboratorium.Pemeriksaan is not null or jns_perawatan_lab.nm_perawatan is not null) "
+                + "order by if(permintaan_lab.tgl_hasil is null or permintaan_lab.tgl_hasil='0000-00-00',permintaan_lab.tgl_permintaan,permintaan_lab.tgl_hasil) desc, "
+                + "if(permintaan_lab.jam_hasil is null or permintaan_lab.jam_hasil='' or permintaan_lab.jam_hasil='00:00:00',ifnull(permintaan_lab.jam_permintaan,''),permintaan_lab.jam_hasil) desc, "
+                + "jns_perawatan_lab.nm_perawatan,template_laboratorium.urut,template_laboratorium.Pemeriksaan limit 1500"
+            );
+            psMon.setString(1, noRawat);
+            rsMon = psMon.executeQuery();
+            while (rsMon.next()) {
+                String jam = rsMon.getString("jam") == null ? "" : rsMon.getString("jam");
+                String jamPendek = jam.length() >= 5 ? jam.substring(0, 5) : jam;
+                String tglTampil = rsMon.getString("tgl_tampil") == null ? "" : rsMon.getString("tgl_tampil");
+                String kolom = tglTampil + (jamPendek.equals("") ? "" : " " + jamPendek);
+                String kd = rsMon.getString("kd_jenis_prw") == null ? "" : rsMon.getString("kd_jenis_prw");
+                String idTemplate = rsMon.getString("id_template") == null ? "" : rsMon.getString("id_template");
+                String statusMonitoring = rsMon.getString("status") == null ? "" : rsMon.getString("status");
+                if (statusMonitoring.equalsIgnoreCase("Menunggu Hasil") && lewatiMenungguHasilMonitoringLab(kd, idTemplate)) continue;
+                String pemeriksaan = rsMon.getString("pemeriksaan") == null ? "" : rsMon.getString("pemeriksaan");
+                String kunci = rsMon.getString("no_rawat") + "|" + tglTampil + "|" + jam + "|" + kd + "|" + idTemplate + "|" + pemeriksaan;
+                if (kunciData.contains(kunci)) continue;
+                kunciData.add(kunci);
+                daftar.add(new DataMonitoringLabPenunjang(rsMon.getString("no_rawat"), kolom,
+                        tglTampil, jam, rsMon.getString("nm_perawatan"), pemeriksaan,
+                        rsMon.getString("nilai"), rsMon.getString("satuan"),
+                        rsMon.getString("nilai_rujukan"), rsMon.getString("keterangan"),
+                        kd, idTemplate, statusMonitoring));
+            }
+        } catch (Exception ex) {
+            System.out.println("Notifikasi ambil monitoring hasil lab dari permintaan : " + ex);
+        } finally {
+            try { if (rsMon != null) rsMon.close(); } catch (Exception ex) {}
+            try { if (psMon != null) psMon.close(); } catch (Exception ex) {}
+        }
+
+        psMon = null;
+        rsMon = null;
+        try {
+            psMon = koneksi.prepareStatement(
+                "select reg_periksa.no_rawat, date_format(detail_periksa_lab.tgl_periksa,'%d-%m-%Y') as tgl_tampil, "
+                + "ifnull(detail_periksa_lab.jam,'') as jam, ifnull(jns_perawatan_lab.nm_perawatan,'') as nm_perawatan, "
+                + "ifnull(template_laboratorium.Pemeriksaan,ifnull(jns_perawatan_lab.nm_perawatan,'Pemeriksaan Lab')) as pemeriksaan, "
+                + "ifnull(detail_periksa_lab.nilai,'') as nilai, ifnull(template_laboratorium.satuan,'') as satuan, "
+                + "ifnull(detail_periksa_lab.nilai_rujukan,'') as nilai_rujukan, ifnull(detail_periksa_lab.keterangan,'') as keterangan, ifnull(permintaan_detail_permintaan_lab.kd_jenis_prw,permintaan_pemeriksaan_lab.kd_jenis_prw) as kd_jenis_prw, ifnull(permintaan_detail_permintaan_lab.id_template,'') as id_template, "
+                + "ifnull(detail_periksa_lab.kd_jenis_prw,'') as kd_jenis_prw, ifnull(detail_periksa_lab.id_template,'') as id_template "
+                + "from detail_periksa_lab inner join reg_periksa on reg_periksa.no_rawat=detail_periksa_lab.no_rawat "
+                + "left join template_laboratorium on template_laboratorium.id_template=detail_periksa_lab.id_template "
+                + "left join jns_perawatan_lab on jns_perawatan_lab.kd_jenis_prw=detail_periksa_lab.kd_jenis_prw "
+                + "where reg_periksa.no_rkm_medis=(select no_rkm_medis from reg_periksa where no_rawat=? limit 1) "
+                + "and trim(ifnull(detail_periksa_lab.nilai,''))<>'' "
+                + "order by detail_periksa_lab.tgl_periksa desc, detail_periksa_lab.jam desc, jns_perawatan_lab.nm_perawatan, template_laboratorium.urut limit 1500"
+            );
+            psMon.setString(1, noRawat);
+            rsMon = psMon.executeQuery();
+            while (rsMon.next()) {
+                String jam = rsMon.getString("jam") == null ? "" : rsMon.getString("jam");
+                String jamPendek = jam.length() >= 5 ? jam.substring(0, 5) : jam;
+                String tglTampil = rsMon.getString("tgl_tampil") == null ? "" : rsMon.getString("tgl_tampil");
+                String kolom = tglTampil + (jamPendek.equals("") ? "" : " " + jamPendek);
+                String kd = rsMon.getString("kd_jenis_prw") == null ? "" : rsMon.getString("kd_jenis_prw");
+                String idTemplate = rsMon.getString("id_template") == null ? "" : rsMon.getString("id_template");
+                String pemeriksaan = rsMon.getString("pemeriksaan") == null ? "" : rsMon.getString("pemeriksaan");
+                String kunci = rsMon.getString("no_rawat") + "|" + tglTampil + "|" + jam + "|" + kd + "|" + idTemplate + "|" + pemeriksaan;
+                if (kunciData.contains(kunci)) continue;
+                kunciData.add(kunci);
+                daftar.add(new DataMonitoringLabPenunjang(rsMon.getString("no_rawat"), kolom,
+                        tglTampil, jam, rsMon.getString("nm_perawatan"), pemeriksaan,
+                        rsMon.getString("nilai"), rsMon.getString("satuan"),
+                        rsMon.getString("nilai_rujukan"), rsMon.getString("keterangan"),
+                        kd, idTemplate, "Sudah Keluar"));
+            }
+        } catch (Exception ex) {
+            System.out.println("Notifikasi ambil monitoring hasil lab langsung : " + ex);
+        } finally {
+            try { if (rsMon != null) rsMon.close(); } catch (Exception ex) {}
+            try { if (psMon != null) psMon.close(); } catch (Exception ex) {}
+        }
+        return daftar;
+    }
+
+
+    private ArrayList<DataBerkasHasilPenunjang> ambilDaftarBerkasDigitalPenunjang(String noRawat, String kodeBerkas) {
+         ArrayList<DataBerkasHasilPenunjang> daftarBerkas = new ArrayList<DataBerkasHasilPenunjang>();
+         PreparedStatement psBerkas = null;
+         ResultSet rsBerkas = null;
+         try {
+             psBerkas = koneksi.prepareStatement(
+                 "select berkas_digital_perawatan.lokasi_file "
+                 + "from berkas_digital_perawatan "
+                 + "where berkas_digital_perawatan.no_rawat=? and berkas_digital_perawatan.kode=? "
+                 + "and trim(ifnull(berkas_digital_perawatan.lokasi_file,''))<>'' "
+                 + "order by berkas_digital_perawatan.lokasi_file"
+             );
+             psBerkas.setString(1, noRawat);
+             psBerkas.setString(2, kodeBerkas);
+             rsBerkas = psBerkas.executeQuery();
+             while (rsBerkas.next()) {
+                 String lokasi = rsBerkas.getString("lokasi_file");
+                 if (lokasi != null && !lokasi.trim().equals("")) {
+                     String namaFile = ambilNamaFileBerkas(lokasi);
+                     daftarBerkas.add(new DataBerkasHasilPenunjang(
+                         buatUrlBerkasRawatUpload(lokasi), namaFile, ambilTanggalShortcutBerkas(namaFile), lokasi
+                     ));
+                 }
+             }
+         } catch (Exception ex) {
+             System.out.println("Notifikasi ambil berkas hasil penunjang : " + ex);
+         } finally {
+             try { if (rsBerkas != null) rsBerkas.close(); } catch (Exception ex) {}
+             try { if (psBerkas != null) psBerkas.close(); } catch (Exception ex) {}
+         }
+         urutkanDaftarBerkasPenunjang(daftarBerkas);
+         return daftarBerkas;
+     }
+
+     private void urutkanDaftarBerkasPenunjang(ArrayList<DataBerkasHasilPenunjang> daftarBerkas) {
+         java.util.Collections.sort(daftarBerkas, new java.util.Comparator<DataBerkasHasilPenunjang>() {
+             @Override
+             public int compare(DataBerkasHasilPenunjang data1, DataBerkasHasilPenunjang data2) {
+                 long urut1 = nilaiUrutTanggalShortcut(data1.tanggalShortcut);
+                 long urut2 = nilaiUrutTanggalShortcut(data2.tanggalShortcut);
+                 if (urut1 < urut2) return -1;
+                 if (urut1 > urut2) return 1;
+                 return data1.namaFile.compareToIgnoreCase(data2.namaFile);
+             }
+         });
+     }
+
+     
+
+     /** Mengambil maksimal lima no_rawat sebelumnya berdasarkan no_rkm_medis pasien yang sama. */
+     private ArrayList<DataKunjunganSebelumnyaPenunjang> ambilLimaKunjunganSebelumnyaPenunjang(
+             String noRawatSekarang, String kodeBerkas, String tabelPeriksa) {
+         ArrayList<DataKunjunganSebelumnyaPenunjang> hasil = new ArrayList<DataKunjunganSebelumnyaPenunjang>();
+         PreparedStatement psKunjungan = null;
+         ResultSet rsKunjungan = null;
+         try {
+             psKunjungan = koneksi.prepareStatement(
+                 "select reg_periksa.no_rawat, date_format(reg_periksa.tgl_registrasi,'%d-%m-%Y') as tgl_registrasi "
+                 + "from reg_periksa where reg_periksa.no_rkm_medis=(select no_rkm_medis from reg_periksa where no_rawat=? limit 1) "
+                 + "and reg_periksa.no_rawat<>? "
+                 + "order by reg_periksa.tgl_registrasi desc, reg_periksa.jam_reg desc, reg_periksa.no_rawat desc limit 5"
+             );
+             psKunjungan.setString(1, noRawatSekarang);
+             psKunjungan.setString(2, noRawatSekarang);
+             rsKunjungan = psKunjungan.executeQuery();
+             while (rsKunjungan.next()) {
+                 DataKunjunganSebelumnyaPenunjang kunjungan = new DataKunjunganSebelumnyaPenunjang(
+                         rsKunjungan.getString("no_rawat"), rsKunjungan.getString("tgl_registrasi"));
+                 kunjungan.daftarBerkas = ambilDaftarBerkasDigitalPenunjang(kunjungan.noRawat, kodeBerkas);
+                 if (kodeBerkasLaboratorium(kodeBerkas)) {
+
+                     kunjungan.daftarLabSementara = ambilDaftarHasilLabSementaraPenunjang(kunjungan.noRawat);
+
+                     if (!kunjungan.daftarBerkas.isEmpty()) {
+
+                         kunjungan.daftarLabSementara = saringLabSementaraBelumLengkapPenunjang(kunjungan.daftarLabSementara);
+
+                     }
+
+                 }
+                 kunjungan.hasilTersedia = !kunjungan.daftarBerkas.isEmpty()
+                         || !kunjungan.daftarLabSementara.isEmpty();
+                 hasil.add(kunjungan);
+             }
+         } catch (Exception ex) {
+             System.out.println("Notifikasi ambil riwayat hasil penunjang : " + ex);
+         } finally {
+             try { if (rsKunjungan != null) rsKunjungan.close(); } catch (Exception ex) {}
+             try { if (psKunjungan != null) psKunjungan.close(); } catch (Exception ex) {}
+         }
+         return hasil;
+     }
+
+     /** Mengambil nama pasien agar identitas selalu sesuai dengan no_rawat hasil yang dibuka. */
+     
+
+     private String getTanggalRegistrasiPenunjang(String noRawat) {
+         PreparedStatement psTanggal = null;
+         ResultSet rsTanggal = null;
+         try {
+             psTanggal = koneksi.prepareStatement(
+                     "select date_format(tgl_registrasi,'%d-%m-%Y') as tgl_registrasi from reg_periksa where no_rawat=? limit 1");
+             psTanggal.setString(1, noRawat);
+             rsTanggal = psTanggal.executeQuery();
+             if (rsTanggal.next()) return rsTanggal.getString("tgl_registrasi");
+         } catch (Exception ex) {
+             System.out.println("Notifikasi ambil tanggal registrasi hasil penunjang : " + ex);
+         } finally {
+             try { if (rsTanggal != null) rsTanggal.close(); } catch (Exception ex) {}
+             try { if (psTanggal != null) psTanggal.close(); } catch (Exception ex) {}
+         }
+         return "-";
+     }
+
+     private String ambilNamaFileBerkas(String lokasiFile) {
+         if (lokasiFile == null) return "";
+         String namaFile = lokasiFile.replace('\\', '/').trim();
+         int posisiSlash = namaFile.lastIndexOf('/');
+         if (posisiSlash > -1 && posisiSlash < namaFile.length() - 1) namaFile = namaFile.substring(posisiSlash + 1);
+         return namaFile;
+     }
+
+     private String ambilTanggalShortcutBerkas(String namaFile) {
+         if (namaFile != null) {
+             java.util.regex.Matcher matcherRadiologi = java.util.regex.Pattern
+                     .compile("^(\\d{2})(\\d{2})(\\d{4})_")
+                     .matcher(namaFile);
+             if (matcherRadiologi.find()) {
+                 return matcherRadiologi.group(1) + "-" + matcherRadiologi.group(2)
+                         + "-" + matcherRadiologi.group(3);
+             }
+
+             /*
+              * Nama berkas Lab diawali no_rawat tanpa garis miring, lalu
+              * yyyyMMdd_HHmmss. Contoh:
+              * 20260724000163_20260724_174234_..._HasilLab.jpg
+              */
+             java.util.regex.Matcher matcherLaboratorium = java.util.regex.Pattern
+                     .compile("^\\d+_(\\d{4})(\\d{2})(\\d{2})_\\d{6}(?:_|\\.)")
+                     .matcher(namaFile);
+             if (matcherLaboratorium.find()) {
+                 return matcherLaboratorium.group(3) + "-" + matcherLaboratorium.group(2)
+                         + "-" + matcherLaboratorium.group(1);
+             }
+         }
+         return "Tanpa Tanggal";
+     }
+
+     private String ambilJamShortcutBerkas(String namaFile) {
+         if (namaFile == null) return "";
+
+         java.util.regex.Matcher matcherRadiologi = java.util.regex.Pattern
+                 .compile("^\\d{8}_(\\d{2})(\\d{2})(\\d{2})_")
+                 .matcher(namaFile);
+         if (matcherRadiologi.find()) {
+             return matcherRadiologi.group(1) + ":" + matcherRadiologi.group(2)
+                     + ":" + matcherRadiologi.group(3);
+         }
+
+         java.util.regex.Matcher matcherLaboratorium = java.util.regex.Pattern
+                 .compile("^\\d+_\\d{8}_(\\d{2})(\\d{2})(\\d{2})(?:_|\\.)")
+                 .matcher(namaFile);
+         if (matcherLaboratorium.find()) {
+             return matcherLaboratorium.group(1) + ":" + matcherLaboratorium.group(2)
+                     + ":" + matcherLaboratorium.group(3);
+         }
+         return "";
+     }
+
+     private String ambilRingkasanJamBerkas(
+             java.util.ArrayList<DataBerkasHasilPenunjang> daftarBerkas) {
+         if (daftarBerkas == null || daftarBerkas.isEmpty()) return "";
+         java.util.LinkedHashSet<String> daftarJam = new java.util.LinkedHashSet<String>();
+         for (DataBerkasHasilPenunjang data : daftarBerkas) {
+             String jam = data == null ? "" : ambilJamShortcutBerkas(data.namaFile);
+             if (!jam.equals("")) daftarJam.add(jam);
+         }
+         StringBuilder hasil = new StringBuilder();
+         for (String jam : daftarJam) {
+             if (hasil.length() > 0) hasil.append(", ");
+             hasil.append(jam);
+         }
+         return hasil.toString();
+     }
+
+     private long nilaiUrutTanggalShortcut(String tanggalShortcut) {
+         try {
+             if (tanggalShortcut != null && tanggalShortcut.matches("\\d{2}-\\d{2}-\\d{4}")) {
+                 String[] bagian = tanggalShortcut.split("-");
+                 return Long.parseLong(bagian[2] + bagian[1] + bagian[0]);
+             }
+         } catch (Exception ex) {}
+         return Long.MAX_VALUE;
+     }
+
+     private String buatUrlBerkasRawatUpload(String lokasiFile) {
+         String lokasi = lokasiFile.replace('\\', '/').trim();
+         while (lokasi.startsWith("/")) lokasi = lokasi.substring(1);
+         if (lokasi.startsWith("http://") || lokasi.startsWith("https://")) {
+             if (lokasi.contains("/berkasrawat/pages/upload/")) return lokasi;
+             if (lokasi.contains("/berkasrawat/")) {
+                 lokasi = lokasi.substring(lokasi.indexOf("/berkasrawat/") + "/berkasrawat/".length());
+                 while (lokasi.startsWith("/")) lokasi = lokasi.substring(1);
+             } else return lokasi;
+         }
+         if (lokasi.startsWith(koneksiDB.HYBRIDWEB() + "/")) lokasi = lokasi.substring((koneksiDB.HYBRIDWEB() + "/").length());
+         if (lokasi.startsWith("berkasrawat/")) lokasi = lokasi.substring("berkasrawat/".length());
+         if (lokasi.startsWith("pages/upload/")) lokasi = lokasi.substring("pages/upload/".length());
+         else if (lokasi.startsWith("upload/")) lokasi = lokasi.substring("upload/".length());
+         else if (lokasi.startsWith("pages/")) {
+             lokasi = lokasi.substring("pages/".length());
+             if (lokasi.startsWith("upload/")) lokasi = lokasi.substring("upload/".length());
+         }
+         return "http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB() + "/"
+                 + koneksiDB.HYBRIDWEB() + "/berkasrawat/pages/upload/" + lokasi;
+     }
+
+     private java.util.LinkedHashMap<String, java.util.ArrayList<DataBerkasHasilPenunjang>> kelompokkanBerkasPerTanggal(
+             ArrayList<DataBerkasHasilPenunjang> daftarBerkas) {
+         java.util.LinkedHashMap<String, java.util.ArrayList<DataBerkasHasilPenunjang>> kelompok =
+                 new java.util.LinkedHashMap<String, java.util.ArrayList<DataBerkasHasilPenunjang>>();
+         for (int i = 0; i < daftarBerkas.size(); i++) {
+             DataBerkasHasilPenunjang data = daftarBerkas.get(i);
+             String tanggal = data.tanggalShortcut == null || data.tanggalShortcut.trim().equals("") ? "Tanpa Tanggal" : data.tanggalShortcut;
+             if (!kelompok.containsKey(tanggal)) kelompok.put(tanggal, new java.util.ArrayList<DataBerkasHasilPenunjang>());
+             kelompok.get(tanggal).add(data);
+         }
+         return kelompok;
+     }
+
+     /** Menyiapkan sesi browser lokal untuk mengirim satu PDF hasil melalui WhatsApp. */
+     private String siapkanSesiWhatsappHasilPenunjang(String noRawat, String namaPasien, String judul,
+             ArrayList<DataBerkasHasilPenunjang> daftarBerkas,
+             ArrayList<DataKunjunganSebelumnyaPenunjang> kunjunganSebelumnya, String kodeBerkas) {
+         try {
+             java.util.ArrayList<HasilPenunjangWhatsapp.Berkas> daftarKirim =
+                     new java.util.ArrayList<HasilPenunjangWhatsapp.Berkas>();
+             int nomor = 1;
+             if (daftarBerkas != null) {
+                 for (DataBerkasHasilPenunjang data : daftarBerkas) {
+                     data.waId = "wa_" + nomor++;
+                     daftarKirim.add(new HasilPenunjangWhatsapp.Berkas(data.waId, data.urlFile, data.namaFile,
+                             data.lokasiFile, noRawat, kodeBerkas));
+                 }
+             }
+             if (kunjunganSebelumnya != null) {
+                 for (DataKunjunganSebelumnyaPenunjang kunjungan : kunjunganSebelumnya) {
+                     if (kunjungan == null || kunjungan.daftarBerkas == null) continue;
+                     for (DataBerkasHasilPenunjang data : kunjungan.daftarBerkas) {
+                         data.waId = "wa_" + nomor++;
+                         daftarKirim.add(new HasilPenunjangWhatsapp.Berkas(data.waId, data.urlFile, data.namaFile,
+                             data.lokasiFile, kunjungan.noRawat, kodeBerkas));
+                     }
+                 }
+             }
+             if (daftarKirim.isEmpty()) return "";
+             String noHp = Sequel.cariIsi("select pasien.no_tlp from reg_periksa inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis where reg_periksa.no_rawat=? limit 1", noRawat);
+             return HasilPenunjangWhatsapp.buatSesi(noRawat, namaPasien, noHp, judul, daftarKirim);
+         } catch (Exception ex) {
+             System.out.println("Notifikasi siapkan WhatsApp hasil penunjang : " + ex);
+             return "";
+         }
+     }
+
+          private void bukaSemuaHasilBerkasDigital(final ArrayList<DataBerkasHasilPenunjang> daftarBerkas,
+             final ArrayList<DataHasilLabSementaraPenunjang> daftarLabSementara, String judul,
+             String noRawatTerpilih, String namaPasienTerpilih, String tanggalRegistrasi,
+             ArrayList<DataKunjunganSebelumnyaPenunjang> kunjunganSebelumnya, String kodeBerkas) {
+         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+         try {
+             java.io.File folderTemp = new java.io.File(System.getProperty("java.io.tmpdir"), "KhanzaHasilPenunjang");
+             if (!folderTemp.exists()) folderTemp.mkdirs();
+             bersihkanHtmlHasilPenunjangLama(folderTemp);
+             java.io.File fileHtml = java.io.File.createTempFile("Hasil_" + namaAmanFile(judul) + "_", ".html", folderTemp);
+             fileHtml.deleteOnExit();
+             java.io.Writer writer = new java.io.BufferedWriter(new java.io.OutputStreamWriter(
+                     new java.io.FileOutputStream(fileHtml), "UTF-8"));
+             try {
+                 writer.write(buatHtmlHasilPenunjang(judul, noRawatTerpilih, namaPasienTerpilih, tanggalRegistrasi,
+                         daftarBerkas, daftarLabSementara, kunjunganSebelumnya, kodeBerkas));
+             } finally {
+                 writer.close();
+             }
+             bukaFileHtmlDiBrowser(fileHtml);
+         } catch (Exception ex) {
+             System.out.println("Notifikasi buka hasil penunjang di browser : " + ex);
+             JOptionPane.showMessageDialog(null, "Maaf, halaman hasil tidak dapat dibuka di browser.\n"
+                     + "Pastikan browser default Windows tersedia.\n\nDetail : " + ex.getMessage());
+         } finally {
+             this.setCursor(Cursor.getDefaultCursor());
+         }
+     }
+
+     private String getUrlEndpointSalinHasilPenunjang() {
+         return "http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB() + "/"
+                 + koneksiDB.HYBRIDWEB() + "/berkasrawat/pages/salin_hasil_penunjang_v2.php";
+     }
+
+     private String getOriginEndpointSalinHasilPenunjang() {
+         String host = koneksiDB.HOSTHYBRIDWEB();
+         String port = koneksiDB.PORTWEB();
+         // Browser menormalkan origin HTTP port 80 menjadi tanpa ":80".
+         // Samakan agar balasan postMessage dari endpoint V2 selalu diterima.
+         if (port == null || port.trim().equals("") || port.trim().equals("80")) {
+             return "http://" + host;
+         }
+         return "http://" + host + ":" + port;
+     }
+
+     private String formatTanggalTampilHasilPenunjang(String tanggal) {
+         if (tanggal == null) return "-";
+         return tanggal.replace('-', '/');
+     }
+
+     private String formatTanggalPanjangHasilPenunjang(String tanggal) {
+         if (tanggal == null || tanggal.trim().equals("")) return "-";
+         String nilai = tanggal.trim();
+         String[] bagian = nilai.split("-");
+         int tahun;
+         int bulan;
+         int hari;
+         try {
+             if (bagian.length != 3) return formatTanggalTampilHasilPenunjang(nilai);
+             if (bagian[0].length() == 4) {
+                 tahun = Integer.parseInt(bagian[0]);
+                 bulan = Integer.parseInt(bagian[1]);
+                 hari = Integer.parseInt(bagian[2]);
+             } else {
+                 hari = Integer.parseInt(bagian[0]);
+                 bulan = Integer.parseInt(bagian[1]);
+                 tahun = Integer.parseInt(bagian[2]);
+             }
+         } catch (Exception ex) {
+             return formatTanggalTampilHasilPenunjang(nilai);
+         }
+         String[] namaBulan = {
+             "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+             "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+         };
+         if (bulan < 1 || bulan > 12) return formatTanggalTampilHasilPenunjang(nilai);
+         return hari + " " + namaBulan[bulan] + " " + tahun;
+     }
+
+     private String judulTampilanBerkasPenunjang(String namaFile, String judulDefault) {
+         String judul = ambilNamaTindakanDariBerkas(namaFile);
+         if (judul.equals("")) return judulDefault == null ? "Hasil Pemeriksaan" : judulDefault;
+         judul = judul.replace('_', ' ').replaceAll("\\s+", " ").trim();
+         judul = judul.replaceAll(
+                 "(?i)\\b(AP|PA|LAT|LATERAL|OBL|OBLIQUE)\\s+(AP|PA|LAT|LATERAL|OBL|OBLIQUE)\\b",
+                 "$1/$2");
+         return judul;
+     }
+
+     /**
+      * Halaman browser hasil penunjang berbentuk Split Workspace:
+      * navigasi kunjungan di sidebar dan hasil kunjungan terpilih di area utama.
+      */
+     private String buatHtmlHasilPenunjang(String judul, String noRawatTerpilih, String namaPasienTerpilih,
+             String tanggalRegistrasi, ArrayList<DataBerkasHasilPenunjang> daftarBerkas,
+             ArrayList<DataHasilLabSementaraPenunjang> daftarLabSementara,
+             ArrayList<DataKunjunganSebelumnyaPenunjang> kunjunganSebelumnya, String kodeBerkas) {
+         StringBuilder html = new StringBuilder();
+         java.util.LinkedHashMap<String, java.util.ArrayList<DataBerkasHasilPenunjang>> kelompokSaatIni =
+                 kelompokkanBerkasPerTanggal(daftarBerkas);
+         java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> kelompokLabSaatIni =
+                 kelompokkanLabSementaraPerTanggal(daftarLabSementara);
+         java.util.LinkedHashMap<String, String> idTanggalSaatIni = new java.util.LinkedHashMap<String, String>();
+         int nomorIdSaatIni = 1;
+         java.util.LinkedHashSet<String> tanggalSaatIni = new java.util.LinkedHashSet<String>();
+         tanggalSaatIni.addAll(kelompokSaatIni.keySet());
+         tanggalSaatIni.addAll(kelompokLabSaatIni.keySet());
+         for (String tanggal : tanggalSaatIni) {
+             idTanggalSaatIni.put(tanggal, "saat_ini_tgl_" + nomorIdSaatIni++);
+         }
+
+         java.util.ArrayList<java.util.LinkedHashMap<String, String>> idTanggalRiwayat =
+                 new java.util.ArrayList<java.util.LinkedHashMap<String, String>>();
+         boolean adaHasilSaatIni = !daftarBerkas.isEmpty() || !daftarLabSementara.isEmpty();
+         int indeksRiwayatAwal = 0;
+         if (kunjunganSebelumnya != null) {
+             for (int i = 0; i < kunjunganSebelumnya.size(); i++) {
+                 if (kunjunganSebelumnya.get(i).hasilTersedia) {
+                     indeksRiwayatAwal = i + 1;
+                     break;
+                 }
+             }
+             for (int i = 0; i < kunjunganSebelumnya.size(); i++) {
+                 java.util.LinkedHashMap<String, String> ids = new java.util.LinkedHashMap<String, String>();
+                 DataKunjunganSebelumnyaPenunjang kunjungan = kunjunganSebelumnya.get(i);
+                 if (kunjungan.hasilTersedia) {
+                     java.util.LinkedHashMap<String, java.util.ArrayList<DataBerkasHasilPenunjang>> kelompok =
+                             kelompokkanBerkasPerTanggal(kunjungan.daftarBerkas);
+                     java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> kelompokLab =
+                             kelompokkanLabSementaraPerTanggal(kunjungan.daftarLabSementara);
+                     int nomor = 1;
+                     java.util.LinkedHashSet<String> tanggalRiwayat = new java.util.LinkedHashSet<String>();
+                     tanggalRiwayat.addAll(kelompok.keySet());
+                     tanggalRiwayat.addAll(kelompokLab.keySet());
+                     for (String tanggal : tanggalRiwayat) {
+                         ids.put(tanggal, "sebelumnya_" + (i + 1) + "_tgl_" + nomor++);
+                     }
+                 }
+                 idTanggalRiwayat.add(ids);
+             }
+         }
+         int jumlahHasilSaatIni = daftarBerkas.size() + daftarLabSementara.size();
+         int jumlahRiwayatTersedia = 0;
+         if (kunjunganSebelumnya != null) {
+             for (DataKunjunganSebelumnyaPenunjang kunjungan : kunjunganSebelumnya) {
+                 if (kunjungan.hasilTersedia) jumlahRiwayatTersedia++;
+             }
+         }
+
+         String endpointSalin = getUrlEndpointSalinHasilPenunjang();
+         String originEndpoint = getOriginEndpointSalinHasilPenunjang();
+         String sesiWhatsapp = siapkanSesiWhatsappHasilPenunjang(noRawatTerpilih, namaPasienTerpilih, judul, daftarBerkas, kunjunganSebelumnya, kodeBerkas);
+         String endpointWhatsapp = sesiWhatsapp.equals("") ? "" : HasilPenunjangWhatsapp.getEndpointPopup();
+         html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
+         html.append("<title>").append(escapeHtml(judul)).append(" - ").append(escapeHtml(noRawatTerpilih)).append("</title>");
+         html.append("<style>body{margin:0;background:#eef2f6;color:#203040;font-family:'Segoe UI',Arial,sans-serif}button,input,select,textarea,table{font-family:'Segoe UI',Arial,sans-serif}b,strong,th,.title,.kunjungan-label,.shortcut-group a,.btnMonitoringHasil,.btnKirimWAHasil,.status-wa-terkirim,.riwayat summary,.riwayat-menu-title,.pilih-semua-option label,.btnSalinHasil,.kunjungan-title,.tanggal h2,.lab-info,.lab-status-ok,.lab-status-pending,.monitor-head h1,.monitor-kicker,.btnTutupMonitoring,.monitor-search-wrap label,.btnResetMonitoring,.btnSortMonitoring,.btnRangeMonitoring,.monitor-summary,.monitor-note,.monitor-param b,.monitor-value,.monitor-flag,.monitor-legend{font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif}.bar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #cbd5df;box-shadow:0 2px 7px rgba(0,0,0,.08);padding:12px 24px}.header-grid{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start}.title{font-size:19px;font-weight:700;color:#173f60;line-height:1.35}.kunjungan-label{font-size:13px;font-weight:700;color:#415b71;margin-top:7px}.shortcut-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.shortcut-group a{background:#1684d0;color:#fff;text-decoration:none;border-radius:5px;padding:7px 10px;font-size:12px;font-weight:700}.shortcut-group a:hover{filter:brightness(.9)}.header-kanan{text-align:right;min-width:355px}.btnMonitoringHasil{border:0;border-radius:5px;background:linear-gradient(135deg,#673ab7,#0077c8);color:#fff;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;margin-left:8px;box-shadow:0 3px 8px rgba(20,55,110,.22)}.btnMonitoringHasil:hover{filter:brightness(.95)}.btnKirimWAHasil{border:0;border-radius:5px;background:#13854e;color:#fff;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto}.btnKirimWAHasil:disabled{opacity:.48;cursor:not-allowed}.aksi-kanan{margin-left:auto;display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:6px;min-width:0;white-space:nowrap}.aksi-kanan .btnKirimWAHasil{margin-left:0;width:auto;flex:0 0 auto}.btnLihatFoto{box-sizing:border-box;border:0;border-radius:5px;background:#0b73b7;color:#fff;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;flex:0 0 auto}.btnLihatFoto:hover{filter:brightness(.92)}.btnPacs{background:#5b4db7}button.btnLihatFoto:disabled{opacity:.48;cursor:not-allowed;filter:none}.dicom-pilih{position:relative;width:auto;display:inline-block;flex:0 0 auto}.dicom-pilih summary{list-style:none}.dicom-pilih summary::-webkit-details-marker{display:none}.dicom-menu{position:fixed;left:8px;top:8px;right:auto;z-index:2147483000;background:#fff;border:1px solid #c8d4de;border-radius:6px;box-shadow:0 12px 30px rgba(0,0,0,.35);padding:6px;min-width:190px;display:none;flex-direction:column;gap:5px}.dicom-pilih[open] .dicom-menu{display:flex}.copy-option,.file,.tanggal,.kunjungan{overflow:visible}.dicom-menu a{background:#0b73b7;color:#fff;text-decoration:none;border-radius:4px;padding:7px 9px;font-size:12px;text-align:left}.dicom-menu a:hover{filter:brightness(.9)}.dicom-viewer-panel{display:none;margin:12px;background:#101820;border:1px solid #2c4458;border-radius:8px;overflow:hidden;box-shadow:0 5px 18px rgba(0,0,0,.20);scroll-margin-top:110px}.dicom-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;background:#173f60;color:#fff}.dicom-viewer-title{font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:13px}.btnTutupDicom{border:0;border-radius:5px;background:#fff;color:#173f60;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer}.btnTutupDicom:hover{background:#eef4f8}.dicom-viewer-frame{display:block;width:100%;height:calc(100vh - 165px);min-height:620px;border:0;background:#000}.status-wa-terkirim{color:#13854e;font-size:12px;font-weight:700;white-space:nowrap}.riwayat{display:inline-block;text-align:left}.riwayat summary{cursor:pointer;list-style:none;background:#0575bd;color:#fff;border-radius:5px;padding:9px 12px;font-size:12px;font-weight:700}.riwayat summary::-webkit-details-marker{display:none}.riwayat-menu{position:absolute;right:24px;margin-top:6px;background:#fff;border:1px solid #c8d4de;border-radius:6px;box-shadow:0 7px 18px rgba(0,0,0,.16);padding:8px;min-width:310px;z-index:20;display:flex;flex-direction:column;gap:6px}.riwayat-menu-title{font-size:12px;font-weight:700;color:#526273;margin-bottom:2px}.riwayat-menu a{text-decoration:none;color:#fff;border-radius:5px;padding:7px 10px;font-size:12px;font-weight:600}.riwayat-menu a:hover{filter:brightness(.88)}.riwayat-menu small{display:block;font-weight:400}.riwayat-menu .tidak-ada,.tidak-ada-saat-ini{background:#eef1f4;color:#66727f;padding:8px 10px;border-radius:5px;font-size:12px;margin-top:8px}.menu-warna-1{background:#167a57}.menu-warna-2{background:#8050b5}.menu-warna-3{background:#b66a09}.menu-warna-4{background:#008c95}.menu-warna-5{background:#b8325d}.riwayat-panel{display:none;margin-top:8px}.riwayat-panel .shortcut-group{justify-content:flex-end}.copy-option{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;padding:8px 10px;background:#fff8ee;border-top:1px solid #f0d8b9;font-size:12px;color:#65420c;overflow-x:auto}.copy-option label{display:inline-flex;align-items:center;cursor:pointer}.copy-option input{vertical-align:middle;margin-right:6px}.pilih-semua-option{display:flex;justify-content:flex-end;align-items:center;padding:0 0 9px;font-size:12px;color:#485867}.pilih-semua-option label{display:inline-flex;align-items:center;cursor:pointer;font-weight:700}.pilih-semua-option input{vertical-align:middle;margin-right:6px}.btnSalinHasil{border:0;border-radius:5px;background:#d56500;color:#fff;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer}.btnSalinHasil:disabled{opacity:.48;cursor:not-allowed}.container{padding:12px}.kunjungan{scroll-margin-top:190px;background:#fff;border:1px solid #cfd8e1;border-radius:7px;margin-bottom:18px;padding:10px}.kunjungan-riwayat{display:none}.kunjungan-title{font-size:16px;color:#123a5b;margin:0 0 10px;border-bottom:1px solid #e3e8ee;padding-bottom:8px}.kunjungan-meta{font-size:12px;color:#556270;margin:-3px 0 10px}.tanggal{scroll-margin-top:200px;background:#fff;border:1px solid #d7e0e8;border-radius:6px;margin-bottom:14px;padding:10px}.tanggal h2{font-size:15px;color:#123a5b;margin:0 0 10px;border-bottom:1px solid #e3e8ee;padding-bottom:8px}.file{position:relative;border:1px solid #e0e6eb;margin-bottom:14px}.file-title{padding:8px 10px;background:#f7f9fb;font-size:12px;font-weight:600;word-break:break-all}.image-wrap{position:relative;text-align:center;background:#f4f6f8;padding:8px}.file-counter{position:absolute;left:8px;top:8px;z-index:2;color:#fff;background:rgba(24,57,81,.88);border-radius:0 0 5px 0;padding:5px 8px;font-size:12px;font-weight:700;line-height:1}img.hasil{width:70%;max-width:100%;height:auto;background:#fff}.hidden-frame{display:none}.lab-info{background:#fff8db;border:1px solid #efd27a;color:#6b4b00;border-radius:6px;padding:9px 11px;margin:10px 0;font-size:12px;font-weight:600}.lab-table{width:100%;border-collapse:collapse;background:#fff;font-size:12px}.lab-table th,.lab-table td{border:1px solid #d8e0e8;padding:7px 8px;text-align:left;vertical-align:top}.lab-table th{background:#eef4f9;color:#183b5a}.lab-status-ok{color:#13854e;font-weight:700;white-space:nowrap}.lab-status-pending{color:#b7791f;font-weight:700;white-space:nowrap}.lab-hasil-normal{color:#111827}.lab-hasil-abnormal{color:#c00000;font-weight:700}.lab-hasil-critical{color:#b00000;font-weight:800;background:#fff0f0;border-radius:3px;padding:2px 4px}.lab-hasil-pending{color:#111827}.lab-muted{color:#7a8794}.lab-hasil-head,.lab-hasil-cell{text-align:center!important}.lab-hasil-cell{vertical-align:middle!important}.lab-group-name{display:block;color:#1f4b6e;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:12px;font-weight:600;margin-bottom:2px}.lab-ref-unit{font-family:'Segoe UI',Arial,sans-serif;white-space:nowrap}.lab-trend-arrow{display:inline-block;font-family:'Segoe UI Semibold','Segoe UI Symbol','Segoe UI',Arial,sans-serif;font-size:18px;font-weight:800;line-height:1;margin-right:4px;vertical-align:-1px}.monitoring-panel{scroll-margin-top:0;background:linear-gradient(180deg,#ffffff,#f8fbff);border:1px solid #cbd8e6;border-radius:0;margin:0;box-shadow:0 10px 28px rgba(15,50,90,.10);overflow:hidden;height:100vh;min-height:100vh;display:flex;flex-direction:column;box-sizing:border-box}.monitor-head{display:flex;flex:0 0 auto;justify-content:space-between;gap:16px;align-items:flex-start;padding:18px 20px;background:linear-gradient(135deg,#123a5b,#0b83c5);color:#fff}.monitor-head h1{font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:22px;font-weight:800;margin:3px 0 4px;line-height:1.35}.monitor-title-line{display:inline;letter-spacing:-.01em}.monitor-title-sep{opacity:.62;font-weight:700;margin:0 5px}.monitor-head p{margin:0;font-size:13px;opacity:.92}.monitor-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;opacity:.84}.btnTutupMonitoring{border:0;border-radius:7px;background:#fff;color:#123a5b;padding:9px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}.monitor-tools{display:flex;flex:0 0 auto;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 16px 8px;padding:12px;background:#fff;border:1px solid #d7e1ea;border-radius:11px;box-shadow:0 4px 14px rgba(15,50,90,.06)}.monitor-search-wrap{display:flex;flex-direction:row;align-items:center;gap:8px;min-width:320px;flex:1}.monitor-search-wrap label{font-size:12px;font-weight:800;color:#31526c;white-space:nowrap}.monitor-search{height:36px;border:1px solid #cbd8e6;border-radius:8px;padding:0 12px;font-size:13px;outline:none;background:#f8fbff;color:#102a43;min-width:250px;flex:1}.monitor-search:focus{border-color:#1684d0;box-shadow:0 0 0 3px rgba(22,132,208,.13);background:#fff}.btnResetMonitoring,.btnSortMonitoring,.btnRangeMonitoring{border:0;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}.btnSortIconOnly{width:42px;height:38px;padding:0;display:inline-flex;align-items:center;justify-content:center}.sort-only-icon{font-size:20px;line-height:1}.btnResetMonitoring{background:#eef2f6;color:#244761;border:1px solid #cbd8e6}.btnSortMonitoring{background:#0f7ab8;color:#fff;box-shadow:0 3px 9px rgba(15,122,184,.24)}.monitor-range-group{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.btnRangeMonitoring{background:#f7fbff;color:#244761;border:1px solid #cbd8e6;padding:9px 10px}.btnRangeMonitoring.active{background:#123a5b;color:#fff;border-color:#123a5b;box-shadow:0 3px 9px rgba(18,58,91,.20)}.btnResetMonitoring:hover,.btnSortMonitoring:hover,.btnRangeMonitoring:hover{filter:brightness(.96)}.monitor-summary{margin:0 16px 10px;color:#526273;font-size:12px;font-weight:700}.monitor-note{margin:14px 16px;background:#eef7ff;border-left:4px solid #1684d0;color:#244761;border-radius:8px;padding:10px 12px;font-size:12px;font-weight:600}.monitor-empty{margin:16px;background:#f2f5f8;border:1px solid #d7e0e8;border-radius:8px;padding:14px;color:#66727f;font-size:13px}.monitor-scroll{overflow-x:hidden;overflow-y:auto;padding:0 16px 4px;border-top:1px solid #e4ebf1;box-sizing:border-box;flex:1 1 auto;min-height:0;max-height:none}.monitor-table{width:auto;min-width:0;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #d7e1ea;border-radius:10px;overflow:visible;font-size:12px;table-layout:fixed}.monitor-table th,.monitor-table td{box-sizing:border-box}.monitor-table th{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,#f7fbff,#e8f2fb);color:#183b5a;border-bottom:1px solid #c8d8e8;padding:11px 10px;text-align:center;white-space:nowrap;box-shadow:0 2px 0 rgba(15,50,90,.06)}.monitor-head-icon{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:#e0effb;margin-right:5px}.monitor-col,.monitor-cell{width:var(--monitor-col-w,145px);min-width:var(--monitor-col-w,145px);max-width:var(--monitor-col-w,145px)}.monitor-scroll-hint{margin:0 16px 10px;color:#48647c;font-size:12px;font-weight:800;background:#f7fbff;border:1px dashed #c5d8e8;border-radius:9px;padding:8px 10px;display:inline-flex;align-items:center;gap:7px}.monitor-col-title{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif}.monitor-date-line,.monitor-time-line{display:inline-flex;align-items:center;gap:5px;line-height:1.1}.monitor-time-line{font-size:11px;color:#516a82}.monitor-svg-icon{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:6px;background:#e0effb;color:#116aa2}.monitor-svg-icon svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.monitor-time-icon{background:#edf5ff;color:#4f6476}.monitor-table td{border-bottom:1px solid #e4ebf1;border-right:1px solid #e4ebf1;padding:9px;vertical-align:middle;text-align:center}.monitor-table tr:hover td{background:#fbfdff}.monitor-sticky{position:sticky!important;left:0;z-index:12;text-align:left!important;background:#fff!important;box-shadow:2px 0 0 #d7e1ea;overflow:hidden}.monitor-table th.monitor-sticky{z-index:30!important;background:linear-gradient(180deg,#f7fbff,#e8f2fb)!important;width:var(--monitor-first-w,240px)!important;min-width:var(--monitor-first-w,240px)!important;max-width:var(--monitor-first-w,240px)!important}.monitor-param{background:#fff!important;width:var(--monitor-first-w,240px)!important;min-width:var(--monitor-first-w,240px)!important;max-width:var(--monitor-first-w,240px)!important}.monitor-param span{display:block;color:#64748b;font-size:11px;margin-bottom:3px}.monitor-param b{display:block;color:#102a43;font-size:13px}.monitor-param small{display:block;color:#64748b;margin-top:4px}.monitor-value{font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:17px;font-weight:800;color:#111827;white-space:nowrap}.monitor-value em{font-style:normal;font-size:15px;margin-left:2px}.monitor-flag{display:inline-block;margin-left:4px;border-radius:999px;padding:1px 6px;background:#fee2e2;color:#b00000;font-size:10px;font-weight:900;vertical-align:middle}.monitor-flag-critical{background:#b00000;color:#fff}.monitor-ref{font-size:10px;color:#718096;line-height:1.35;margin-top:3px}.monitor-empty-cell{color:#b4bfca;background:#fafafa}.lab-hasil-critical.monitor-value,.monitor-value.lab-hasil-critical{display:inline-block;color:#b00000;background:#fff0f0;border-radius:6px;padding:2px 6px}.monitor-legend{position:relative;z-index:70;display:flex;flex-wrap:nowrap;gap:5px;align-items:center;margin:0 16px;padding:7px 9px;white-space:nowrap;overflow:hidden;background:rgba(255,255,255,.98);border:1px solid #d7e1ea;border-radius:10px 10px 0 0;box-shadow:0 -8px 20px rgba(15,50,90,.10);color:#28475f;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;backdrop-filter:blur(6px);flex:0 0 auto}.monitor-legend span{display:inline-flex;align-items:center;gap:5px}.monitor-legend b{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:18px;border-radius:999px;background:#fee2e2;color:#b00000;font-size:10px;font-weight:900}.monitor-legend b.legend-pending{min-width:auto;padding:0 8px;background:#fff7df;color:#9a6400}.monitor-legend b.legend-up{background:#fee2e2;color:#dc2626}.monitor-legend b.legend-down{background:#dcfce7;color:#15803d}.monitor-footer-hint{margin-left:auto;color:#48647c;background:#f7fbff;border:1px dashed #c5d8e8;border-radius:999px;padding:3px 8px;white-space:nowrap}.monitor-xbar{position:relative;z-index:75;height:18px;margin:0 16px 8px;overflow-x:auto;overflow-y:hidden;background:#fff;border:1px solid #d7e1ea;border-top:0;border-radius:0 0 10px 10px;box-shadow:0 -2px 8px rgba(15,50,90,.06);flex:0 0 auto}.monitor-xbar-inner{height:1px;min-width:1px}@media(max-width:760px){.header-grid{display:block}.header-kanan{min-width:0;text-align:left;margin-top:12px}.riwayat-panel .shortcut-group{justify-content:flex-start}.riwayat-menu{left:0;right:auto;width:calc(100% - 16px)}img.hasil{width:100%}}@media print{.bar{position:static}.riwayat,.copy-option,.btnKirimWAHasil,.btnMonitoringHasil,.btnTutupMonitoring,.monitor-tools,.monitor-summary{display:none}.container{padding:0}.kunjungan,.tanggal{border:0}}.monitoring-tab-body{margin:0;background:#eef2f6;overflow:hidden}.monitoring-tab-main{height:100vh;overflow:hidden}.monitoring-tab-main .monitoring-panel{display:block!important;height:100vh;margin:0;border-radius:0;border:0;box-shadow:none}.monitoring-tab-main .monitor-head{position:sticky;top:0;z-index:50}.monitoring-tab-main .monitor-scroll{height:calc(100vh - 300px);max-height:none;overflow-x:hidden;overflow-y:auto;padding-bottom:8px;box-sizing:border-box}.monitoring-tab-main .monitor-table{overflow:visible!important}.monitoring-tab-main .monitor-table thead th{position:sticky!important;top:0!important;z-index:35!important;box-shadow:0 2px 0 #d7e1ea}.monitoring-tab-main .monitor-table th.monitor-sticky{left:0;z-index:60!important}.monitoring-tab-main .monitor-param.monitor-sticky{left:0;z-index:25}.trend-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:5px;vertical-align:middle;font-size:16px;line-height:1;background:transparent!important;box-shadow:none!important;border:0!important}.trend-up{color:#dc2626}.trend-down{color:#15803d}.monitor-pending-value{display:inline-block;color:#9a6400;background:#fff7df;border:1px solid #f1d38a;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:900}.monitor-pending-cell{background:#fffdf4}.monitoring-tab-main .btnTutupMonitoring{background:#ffffff;color:#123a5b}</style>");
+         html.append("<script>var ORIGIN_SALIN='").append(escapeHtml(originEndpoint)).append("';var WA_SESI='").append(escapeHtml(sesiWhatsapp)).append("';var WA_POPUP='").append(escapeHtml(endpointWhatsapp)).append("';function pilihKunjungan(n){var mon=document.getElementById('monitoring_hasil_lab');if(mon){mon.style.display='none';}var p=document.querySelectorAll('.riwayat-panel');for(var i=0;i<p.length;i++){p[i].style.display='none';}var k=document.querySelectorAll('.kunjungan-riwayat');for(var j=0;j<k.length;j++){k[j].style.display='none';}var panel=document.getElementById('riwayat_panel_'+n);if(panel){panel.style.display='block';}var hasil=document.getElementById('kunjungan_sebelumnya_'+n);var hasilLab=document.getElementById('kunjungan_sebelumnya_'+n+'_lab');if(hasil){hasil.style.display='block';}if(hasilLab){hasilLab.style.display='block';}var target=hasil?hasil:hasilLab;if(target){setTimeout(function(){target.scrollIntoView({behavior:'smooth',block:'start'});},20);}var m=document.getElementById('menuRiwayat');if(m){m.removeAttribute('open');}}function bukaMonitoringHasil(){var mon=document.getElementById('monitoring_hasil_lab');if(!mon){alert('Data monitoring hasil lab belum tersedia.');return;}var w=window.open('','MonitoringHasilLab');if(!w){alert('Popup/tab monitoring diblokir browser. Izinkan popup lalu klik Monitoring Hasil kembali.');return;}w.document.open();w.document.write('<!DOCTYPE html><html><head>'+document.head.innerHTML+'</head><body class=\"monitoring-tab-body\"><main class=\"monitoring-tab-main\">'+mon.outerHTML+'</main></body></html>');w.document.close();setTimeout(function(){try{var m=w.document.getElementById('monitoring_hasil_lab');if(m){m.style.display='block';}var btn=w.document.querySelector('.btnTutupMonitoring');if(btn){btn.innerHTML='Tutup Tab';btn.onclick=function(){w.close();};}if(w.setMonitoringMode){w.setMonitoringMode('latest6');}if(w.filterMonitoringHasil){w.filterMonitoringHasil();}if(w.setupMonitoringXScroll){w.setupMonitoringXScroll();}}catch(ex){}},250);var menu=document.getElementById('menuRiwayat');if(menu){menu.removeAttribute('open');}}function tutupMonitoringHasil(){var mon=document.getElementById('monitoring_hasil_lab');if(mon){mon.style.display='none';}var s=document.querySelectorAll('.kunjungan-saat-ini');for(var i=0;i<s.length;i++){s[i].style.display='block';}if(s.length>0){setTimeout(function(){s[0].scrollIntoView({behavior:'smooth',block:'start'});},20);}}var MONITOR_SORT_DESC=true;var MONITOR_MODE='latest6';function filterMonitoringHasil(){var s=document.getElementById('monitorSearch');var q=(s?s.value:'').toLowerCase().trim();var rows=document.querySelectorAll('#monitoring_hasil_lab .monitor-row');var visibleCount=0;for(var i=0;i<rows.length;i++){var ok=!q||((rows[i].getAttribute('data-search')||'').toLowerCase().indexOf(q)>=0);rows[i].style.display=ok?'':'none';if(ok)visibleCount++;}applyMonitoringColumnFilter(q);var info=document.getElementById('monitorInfo');if(info){info.innerHTML='';}setupMonitoringXScroll();}function resetMonitoringHasil(){var s=document.getElementById('monitorSearch');if(s){s.value='';}var rows=document.querySelectorAll('#monitoring_hasil_lab .monitor-row');for(var i=0;i<rows.length;i++){rows[i].style.display='';}setMonitoringMode('latest6');}function parseTanggalMonitoring(k){var teks=(k||'').split(' ')[0];var p=teks.split('-');if(p.length===3){var d=parseInt(p[0],10),m=parseInt(p[1],10)-1,y=parseInt(p[2],10);if(!isNaN(d)&&!isNaN(m)&&!isNaN(y))return new Date(y,m,d).getTime();}return 0;}function latestTanggalMonitoring(table){var latest=0;var h=table.querySelectorAll('th[data-kolom]');for(var i=0;i<h.length;i++){var v=parseTanggalMonitoring(h[i].getAttribute('data-kolom')||'');if(v>latest)latest=v;}return latest;}function kolomMasukMode(k,order,table){if(MONITOR_MODE==='all')return true;if(MONITOR_MODE==='latest6')return order<6;var hari=parseInt(MONITOR_MODE,10);if(isNaN(hari)||hari<=0)return true;var ms=parseTanggalMonitoring(k);var latest=latestTanggalMonitoring(table);if(ms===0||latest===0)return true;return ms>=latest-((hari-1)*86400000);}function setMonitoringMode(mode){MONITOR_MODE=mode||'latest6';var b=document.querySelectorAll('#monitoring_hasil_lab .btnRangeMonitoring');for(var i=0;i<b.length;i++){b[i].className=b[i].className.replace(/\s*active/g,'');if(b[i].getAttribute('data-mode')===MONITOR_MODE){b[i].className+=' active';}}var s=document.getElementById('monitorSearch');var q=(s?s.value:'').toLowerCase().trim();applyMonitoringColumnFilter(q);setupMonitoringXScroll();}function applyMonitoringColumnFilter(q){var table=document.getElementById('monitorTable');if(!table)return;var all=table.querySelectorAll('[data-kolom]');var modeShow={};var headers=table.querySelectorAll('th[data-kolom]');for(var h=0;h<headers.length;h++){var hk=headers[h].getAttribute('data-kolom');var ho=parseInt(headers[h].getAttribute('data-order')||'0',10);modeShow[hk]=kolomMasukMode(hk,ho,table);}var searchShow={};if(q){var rows=table.querySelectorAll('.monitor-row');for(var i=0;i<rows.length;i++){if(rows[i].style.display==='none')continue;var cells=rows[i].querySelectorAll('.monitor-cell[data-has=\"1\"]');for(var c=0;c<cells.length;c++){searchShow[cells[c].getAttribute('data-kolom')]=true;}}}for(var j=0;j<all.length;j++){var k=all[j].getAttribute('data-kolom');var ok=(modeShow[k]!==false)&&(!q||searchShow[k]);all[j].style.display=ok?'':'none';}updateMonitoringTableWidth();}function updateMonitoringTableWidth(){var table=document.getElementById('monitorTable');if(!table)return;var area=document.querySelector('#monitoring_hasil_lab .monitor-scroll');var heads=table.querySelectorAll('th[data-kolom]');var visible=0;for(var i=0;i<heads.length;i++){if(heads[i].style.display!=='none')visible++;}var rawWidth=area?area.clientWidth:(window.innerWidth||1200);var contentWidth=Math.max(640,rawWidth-38);var first=Math.round(Math.max(170,Math.min(240,contentWidth*0.20)));var col=Math.floor((contentWidth-first)/6);col=Math.max(84,Math.min(190,col));var lebar=first+(Math.max(1,visible)*col)+2;table.style.setProperty('--monitor-first-w',first+'px');table.style.setProperty('--monitor-col-w',col+'px');table.style.minWidth=lebar+'px';table.style.width=lebar+'px';table.style.maxWidth='none';setupMonitoringXScroll();}function setupMonitoringXScroll(){var area=document.querySelector('#monitoring_hasil_lab .monitor-scroll');var x=document.getElementById('monitorXScroll');var inner=document.getElementById('monitorXScrollInner');if(!area||!x||!inner)return;setTimeout(function(){inner.style.width=Math.max(area.scrollWidth,area.clientWidth)+'px';x.style.display=(area.scrollWidth>area.clientWidth+2)?'block':'block';x.scrollLeft=area.scrollLeft;},30);if(!x.getAttribute('data-sync')){x.setAttribute('data-sync','1');x.addEventListener('scroll',function(){area.scrollLeft=x.scrollLeft;});area.addEventListener('scroll',function(){x.scrollLeft=area.scrollLeft;});window.addEventListener('resize',function(){updateMonitoringTableWidth();});}}function toggleSortMonitoringHasil(){MONITOR_SORT_DESC=!MONITOR_SORT_DESC;sortMonitoringColumns();var b=document.getElementById('btnSortMonitoring');if(b){var t=MONITOR_SORT_DESC?'Urut tanggal terbaru ke lama':'Urut tanggal lama ke terbaru';b.title=t;b.setAttribute('aria-label',t);}filterMonitoringHasil();}function sortMonitoringColumns(){var table=document.getElementById('monitorTable');if(!table)return;var rows=table.rows;for(var r=0;r<rows.length;r++){var arr=[];for(var c=1;c<rows[r].cells.length;c++){arr.push(rows[r].cells[c]);}arr.sort(function(a,b){var aa=parseInt(a.getAttribute('data-order')||'0',10);var bb=parseInt(b.getAttribute('data-order')||'0',10);return MONITOR_SORT_DESC?(aa-bb):(bb-aa);});for(var i=0;i<arr.length;i++){rows[r].appendChild(arr[i]);}}}function tutupMenuDicomLain(kecuali){var daftar=document.querySelectorAll('.dicom-pilih[open]');for(var i=0;i<daftar.length;i++){if(daftar[i]!==kecuali){daftar[i].removeAttribute('open');}}}function aturPosisiMenuDicom(detail){if(!detail||!detail.open)return;tutupMenuDicomLain(detail);var tombol=detail.querySelector('summary');var menu=detail.querySelector('.dicom-menu');if(!tombol||!menu)return;setTimeout(function(){var r=tombol.getBoundingClientRect();var lebar=Math.max(190,menu.offsetWidth||190);var tinggi=Math.max(50,menu.offsetHeight||50);var kiri=r.right-lebar;if(kiri<8)kiri=8;if(kiri+lebar>window.innerWidth-8)kiri=Math.max(8,window.innerWidth-lebar-8);var atas=r.bottom+6;if(atas+tinggi>window.innerHeight-8)atas=Math.max(8,r.top-tinggi-6);menu.style.left=Math.round(kiri)+'px';menu.style.top=Math.round(atas)+'px';},0);}document.addEventListener('click',function(e){var n=e.target;while(n&&n!==document){if(n.classList&&n.classList.contains('dicom-pilih'))return;n=n.parentNode;}tutupMenuDicomLain(null);});window.addEventListener('resize',function(){tutupMenuDicomLain(null);});window.addEventListener('scroll',function(){tutupMenuDicomLain(null);},true);function bukaViewerDicom(url){var panel=document.getElementById('dicomViewerPanel');var frame=document.getElementById('dicomViewerFrame');if(!panel||!frame||!url)return;panel.style.display='block';if(frame.getAttribute('data-url')!==url){frame.src='about:blank';frame.setAttribute('data-url',url);setTimeout(function(){frame.src=url;},20);}setTimeout(function(){panel.scrollIntoView({behavior:'smooth',block:'start'});},40);var menu=document.querySelectorAll('.dicom-pilih[open]');for(var i=0;i<menu.length;i++){menu[i].removeAttribute('open');}}function tutupViewerDicom(){var panel=document.getElementById('dicomViewerPanel');var frame=document.getElementById('dicomViewerFrame');if(frame){frame.src='about:blank';frame.removeAttribute('data-url');}if(panel){panel.style.display='none';}}function updateTombolAksi(){var pilihanWA=document.querySelectorAll('.file-choice:checked');var c=pilihanWA.length;var semuaWASudah=(c>0);for(var s=0;s<pilihanWA.length;s++){if(pilihanWA[s].getAttribute('data-wa-sudah')!=='1'){semuaWASudah=false;break;}}var b=document.querySelectorAll('.btnSalinHasil');var r=document.querySelectorAll('.copy-file:checked').length;for(var x=0;x<b.length;x++){b[x].disabled=(r===0);b[x].innerHTML=r===0?'Salin Hasil Terpilih ke Kunjungan Saat Ini':'Salin '+r+' Hasil Terpilih ke Kunjungan Saat Ini';}var w=document.querySelectorAll('.btnKirimWAHasil');for(var y=0;y<w.length;y++){w[y].disabled=(c===0);w[y].innerHTML=(c>0&&semuaWASudah)?'Kirim Ulang Hasil ke Pasien':'Kirim Hasil ke Pasien';}var a=document.querySelectorAll('.kunjungan');for(var z=0;z<a.length;z++){var master=a[z].querySelector('.pilih-semua-berkas');var semua=a[z].querySelectorAll('.file-choice');if(master&&semua.length>0){var terpilih=0;for(var q=0;q<semua.length;q++){if(semua[q].checked){terpilih++;}}master.checked=(terpilih===semua.length);master.indeterminate=(terpilih>0&&terpilih<semua.length);}}}function pilihSemuaBerkas(master,idKunjungan){var area=document.getElementById(idKunjungan);if(!area){return;}var semua=area.querySelectorAll('.file-choice');for(var i=0;i<semua.length;i++){semua[i].checked=master.checked;}updateTombolAksi();}function updateTombolSalin(){updateTombolAksi();}function kirimSalinHasil(){var pilih=document.querySelectorAll('.copy-file:checked');if(pilih.length===0){alert('Pilih minimal satu hasil kunjungan sebelumnya.');return;}if(!confirm('Salin '+pilih.length+' hasil terpilih ke kunjungan saat ini?'))return;var f=document.getElementById('formSalinHasil');f.innerHTML='';function add(n,v){var x=document.createElement('input');x.type='hidden';x.name=n;x.value=v;f.appendChild(x);}add('no_rawat_tujuan','").append(escapeHtml(noRawatTerpilih)).append("');add('kode','").append(escapeHtml(kodeBerkas)).append("');for(var i=0;i<pilih.length;i++){add('asal[]',pilih[i].getAttribute('data-asal'));add('lokasi[]',pilih[i].getAttribute('data-lokasi'));}f.submit();}function kirimWAPasien(){var pilih=document.querySelectorAll('.file-choice:checked');if(pilih.length===0){alert('Pilih minimal satu berkas hasil yang akan dikirim ke pasien.');return;}if(!WA_SESI||!WA_POPUP){alert('Popup pengiriman WhatsApp tidak dapat disiapkan. Tutup lalu buka kembali halaman hasil.');return;}var ids=[];for(var i=0;i<pilih.length;i++){ids.push(pilih[i].getAttribute('data-waid'));}var w=window.open(WA_POPUP+'?sesi='+encodeURIComponent(WA_SESI)+'&ids='+encodeURIComponent(ids.join(',')),'KirimHasilWAPasien','width=720,height=650,resizable=yes,scrollbars=yes');if(!w){alert('Popup diblokir browser. Izinkan popup lalu klik Kirim Hasil ke Pasien kembali.');}}window.addEventListener('message',function(e){if(e.origin!==ORIGIN_SALIN)return;var d=e.data;if(!d||d.type!=='salinHasilPenunjang')return;alert(d.message+(d.ok?'\\n\\nTutup lalu buka kembali hasil ini untuk melihat salinan sebagai hasil kunjungan saat ini.':''));if(d.ok){var c=document.querySelectorAll('.copy-file:checked');for(var i=0;i<c.length;i++){c[i].checked=false;}updateTombolAksi();}});</script></head><body>");
+         if (!adaHasilSaatIni && indeksRiwayatAwal > 0) {
+             html.append("<script>window.addEventListener('DOMContentLoaded',function(){pilihKunjungan(").append(indeksRiwayatAwal).append(");});</script>");
+         } else if (adaHasilSaatIni) {
+             html.append("<script>window.addEventListener('DOMContentLoaded',function(){var pertama=document.querySelector('#sidebarCurrentDates .sidebar-date-link');if(pertama){pilihTanggalSaatIni(pertama);}else{pilihKunjunganSaatIni();}});</script>");
+         }
+         /*
+          * Split Workspace hanya mengubah susunan visual halaman browser.
+          * Selector fungsi lama dipertahankan agar WhatsApp, salin hasil,
+          * monitoring, Orthanc dan PACS tetap menggunakan alur yang sama.
+          */
+         html.append("<style>")
+                 .append("html,body{height:100%;overflow:hidden}.workspace-shell{height:100vh;display:grid;grid-template-columns:292px minmax(0,1fr);background:#e7edf1;transition:grid-template-columns .2s ease}.workspace-sidebar{position:relative;z-index:40;display:flex;flex-direction:column;min-width:0;height:100vh;overflow-x:hidden;overflow-y:auto;background:#173b59;color:#fff;box-shadow:3px 0 12px rgba(16,45,67,.13)}.workspace-content{min-width:0;height:100vh;overflow-x:hidden;overflow-y:auto;background:#e7edf1}.sidebar-brand{position:relative;display:flex;align-items:center;gap:11px;min-height:76px;padding:15px 48px 15px 18px;border-bottom:1px solid rgba(255,255,255,.11)}.sidebar-brand-icon{display:flex;align-items:center;justify-content:center;width:34px;height:34px;flex:0 0 auto;border-radius:9px;background:rgba(255,255,255,.12);color:#fff;font-size:18px}.sidebar-brand-title{font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;white-space:nowrap}.sidebar-brand-sub{margin-top:3px;color:#afc7d8;font-size:10px;white-space:nowrap}.sidebar-toggle{position:absolute;right:12px;top:20px;width:32px;height:32px;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:19px;line-height:1;cursor:pointer}.sidebar-toggle:hover{background:rgba(255,255,255,.16)}.sidebar-patient{padding:18px;border-bottom:1px solid rgba(255,255,255,.11)}.sidebar-patient-row{display:flex;align-items:center;gap:11px}.sidebar-avatar{display:flex;align-items:center;justify-content:center;width:45px;height:45px;flex:0 0 auto;border-radius:11px;background:#edf7fc;color:#176894;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:14px;font-weight:800}.sidebar-patient-name{font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:14px;font-weight:700;line-height:1.3}.sidebar-patient-meta{margin-top:4px;color:#b8cedd;font-size:10px;line-height:1.35}.sidebar-navigation{padding:12px 10px 20px}.sidebar-section{margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}.sidebar-section>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;padding:10px 8px;color:#d9e8f2;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.055em;cursor:pointer}.sidebar-section>summary::-webkit-details-marker{display:none}.sidebar-chevron{font-size:15px;transition:transform .18s ease}.sidebar-section[open] .sidebar-chevron{transform:rotate(180deg)}.sidebar-section-body{padding:0 2px 10px}.sidebar-visit-group{margin-bottom:5px}.sidebar-visit{display:block;width:100%;box-sizing:border-box;border:0;border-left:3px solid transparent;border-radius:7px;background:transparent;color:#d7e6f1;padding:10px 11px;text-align:left;text-decoration:none;cursor:pointer}.sidebar-visit:hover{background:rgba(255,255,255,.07)}.sidebar-visit.active{border-left-color:#2db0ee;background:#265a79;color:#fff}.sidebar-visit strong{display:block;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:12px;font-weight:700}.sidebar-visit small{display:block;margin-top:4px;color:#a9c3d5;font-size:10px;font-weight:400}.sidebar-visit.active small{color:#d2e5f1}.sidebar-dates{display:flex;flex-direction:column;gap:4px;margin:5px 5px 2px 17px}.sidebar-date-link{display:block;border-radius:6px;background:rgba(255,255,255,.08);color:#d7e7f1;padding:7px 9px;text-decoration:none;font-size:10px;font-weight:600}.sidebar-date-link:hover{background:#f5fbff;color:#173b59}.sidebar-empty{margin:4px 6px 8px;padding:9px;border-radius:7px;background:rgba(255,255,255,.07);color:#b9cedc;font-size:10px;line-height:1.45}.sidebar-footer{margin-top:auto;padding:12px 18px 17px;border-top:1px solid rgba(255,255,255,.10);color:#91adbf;font-size:9px;line-height:1.45}.workspace-topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:15px;min-height:76px;padding:12px 20px;background:#fff;border-bottom:1px solid #d7e1e8;box-shadow:0 2px 8px rgba(26,57,79,.06)}.workspace-topbar-title{font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:17px;font-weight:700;color:#173f60}.workspace-topbar-meta{margin-top:5px;color:#687887;font-size:11px}.workspace-topbar-actions{display:flex;align-items:center;gap:7px}.workspace-shell.sidebar-collapsed{grid-template-columns:68px minmax(0,1fr)}.sidebar-collapsed .sidebar-brand{justify-content:center;padding:15px 8px}.sidebar-collapsed .sidebar-brand-text,.sidebar-collapsed .sidebar-patient,.sidebar-collapsed .sidebar-navigation,.sidebar-collapsed .sidebar-footer{display:none}.sidebar-collapsed .sidebar-toggle{right:18px;top:60px;transform:rotate(180deg);background:#173b59;box-shadow:0 4px 12px rgba(0,0,0,.22)}")
+                 .append(".workspace-content .container{min-height:calc(100vh - 76px);padding:0;background:#e7edf1}.workspace-content .kunjungan{scroll-margin-top:76px;margin:0;padding:0;border:0;border-radius:0;background:transparent}.workspace-content .kunjungan-title{margin:0;padding:15px 22px 4px;border:0;background:#fff;color:#123a5b;font-size:15px}.workspace-content .kunjungan-meta{margin:0;padding:0 22px 13px;border-bottom:1px solid #dbe4eb;background:#fff;color:#647482}.workspace-content .pilih-semua-option{margin:0;padding:9px 22px;border-bottom:1px solid #e2e9ee;background:#fff}.workspace-content .tanggal{scroll-margin-top:76px;margin:0;padding:0;border:0;border-radius:0;background:transparent}.workspace-content .tanggal h2{margin:0;padding:11px 22px;border-bottom:1px solid #dbe4eb;background:#f8fbfd;color:#214a68;font-size:13px}.workspace-content .file{margin:0;border:0;background:#fff}.workspace-content .file+.file{border-top:12px solid #e7edf1}.workspace-content .file-title{padding:9px 22px;border-bottom:1px solid #e4eaef;background:#fff;color:#203b4f}.workspace-content .copy-option{padding:8px 22px;border-top:0;border-bottom:1px solid #dfe7ed;background:#fff;box-shadow:0 2px 7px rgba(24,54,75,.04)}.workspace-content .image-wrap{padding:18px 18px 28px;background:#e7edf1}.workspace-content img.hasil{width:78%;max-width:1000px;height:auto;background:#fff;box-shadow:0 8px 24px rgba(31,56,72,.13)}.workspace-content .file-counter{left:20px;top:18px;border-radius:5px}.workspace-content .lab-info{margin:12px 22px}.workspace-content .lab-table{width:calc(100% - 44px);margin:0 22px 22px}.workspace-content .dicom-viewer-panel{scroll-margin-top:76px;margin:0;border-width:0 0 1px;border-radius:0}.workspace-content .dicom-viewer-frame{height:calc(100vh - 124px)}.workspace-content .riwayat-panel{display:none}.workspace-content .monitoring-panel{position:relative;z-index:90}.sidebar-navigation .riwayat-panel{display:none;margin:4px 0 7px}.sidebar-navigation .riwayat-panel .sidebar-dates{margin-left:17px}.sidebar-navigation .riwayat-panel .kunjungan-label{display:none}.sidebar-navigation .riwayat-panel .shortcut-group{display:flex;flex-direction:column;gap:4px;margin:0 5px 0 17px}.sidebar-navigation .riwayat-panel .shortcut-group a{display:block;border-radius:6px;background:rgba(255,255,255,.08);color:#d7e7f1;padding:7px 9px;text-decoration:none;font-size:10px;font-weight:600}.sidebar-navigation .riwayat-panel .shortcut-group a:hover{background:#f5fbff;color:#173b59}.monitoring-tab-body .workspace-shell{display:block;height:auto}.monitoring-tab-body .workspace-sidebar,.monitoring-tab-body .workspace-topbar{display:none}")
+                 .append("@media(max-width:980px){.workspace-shell{grid-template-columns:248px minmax(0,1fr)}.workspace-content img.hasil{width:92%}.aksi-kanan{flex-wrap:wrap;white-space:normal}.copy-option{flex-wrap:wrap}}@media(max-width:720px){html,body{overflow:auto}.workspace-shell{display:block;height:auto}.workspace-sidebar{position:relative;width:100%;height:auto;max-height:none}.sidebar-toggle{display:none}.workspace-content{height:auto;overflow:visible}.workspace-topbar{position:sticky}.sidebar-navigation{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sidebar-section{min-width:0}.workspace-content img.hasil{width:100%}.workspace-content .copy-option{align-items:flex-start}.workspace-topbar-actions{flex-wrap:wrap;justify-content:flex-end}}@media print{html,body{height:auto!important;overflow:visible!important}.workspace-shell,.workspace-content{display:block!important;height:auto!important;overflow:visible!important}.workspace-sidebar,.workspace-topbar{display:none!important}.workspace-content .container{min-height:0}.workspace-content img.hasil{width:100%;max-width:none;box-shadow:none}}")
+                 .append("</style>");
+         html.append("<script>")
+                 .append("function aturTanggalAktif(el){var daftar=document.querySelectorAll('.sidebar-date-link');for(var i=0;i<daftar.length;i++){daftar[i].classList.remove('active');}if(el){el.classList.add('active');}}")
+                 .append("function aturNavigasiAktif(el){var daftar=document.querySelectorAll('.sidebar-visit');for(var i=0;i<daftar.length;i++){daftar[i].classList.remove('active');}if(!el)return;el.classList.add('active');var judul=document.getElementById('workspaceVisitTitle');var meta=document.getElementById('workspaceVisitMeta');if(judul){judul.textContent=el.getAttribute('data-title')||'';}if(meta){meta.textContent=el.getAttribute('data-meta')||'';}}")
+                 .append("function sembunyikanSemuaKunjungan(){var semua=document.querySelectorAll('.kunjungan');for(var i=0;i<semua.length;i++){semua[i].style.display='none';}}")
+                 .append("function tampilkanTanggalTarget(targetId){var semua=document.querySelectorAll('.tanggal');var target=null;for(var i=0;i<semua.length;i++){var cocok=!!targetId&&semua[i].getAttribute('data-date-target')===targetId;semua[i].style.display=cocok?'block':'none';semua[i].setAttribute('aria-hidden',cocok?'false':'true');if(!cocok){var pilihanTersembunyi=semua[i].querySelectorAll('.file-choice:checked,.pilih-semua-berkas:checked');for(var p=0;p<pilihanTersembunyi.length;p++){pilihanTersembunyi[p].checked=false;}}if(cocok&&!target){target=semua[i];}}if(typeof updateTombolAksi==='function'){updateTombolAksi();}if(typeof tutupViewerDicom==='function'){tutupViewerDicom();}var area=document.querySelector('.workspace-content');if(area){area.scrollTop=0;}if(target){setTimeout(function(){var konten=document.querySelector('.workspace-content');if(konten){konten.scrollTop=Math.max(0,target.offsetTop-2);}},0);}}")
+                 .append("function bukaKunjunganSaatIni(elTanggal,paksaBuka){var mon=document.getElementById('monitoring_hasil_lab');if(mon){mon.style.display='none';}sembunyikanSemuaKunjungan();var panel=document.querySelectorAll('.riwayat-panel');for(var p=0;p<panel.length;p++){panel[p].style.display='none';}var saatIni=document.querySelectorAll('.kunjungan-saat-ini');for(var i=0;i<saatIni.length;i++){saatIni[i].style.display='block';}var current=document.getElementById('sidebarCurrent');if(current&&paksaBuka){current.open=true;}var hist=document.getElementById('sidebarHistory');if(hist){hist.open=false;}aturNavigasiAktif(document.getElementById('navKunjunganSaatIni'));var pilihan=elTanggal||document.querySelector('#sidebarCurrentDates .sidebar-date-link.active')||document.querySelector('#sidebarCurrentDates .sidebar-date-link');aturTanggalAktif(pilihan);tampilkanTanggalTarget(pilihan?pilihan.getAttribute('data-target'):'');}")
+                 .append("function aktifkanKunjunganSaatIni(){bukaKunjunganSaatIni(null,false);}function pilihKunjunganSaatIni(){bukaKunjunganSaatIni(null,true);}")
+                 .append("pilihKunjungan=function(n,elTanggal){var mon=document.getElementById('monitoring_hasil_lab');if(mon){mon.style.display='none';}sembunyikanSemuaKunjungan();var p=document.querySelectorAll('.riwayat-panel');for(var i=0;i<p.length;i++){p[i].style.display='none';}var panel=document.getElementById('riwayat_panel_'+n);if(panel){panel.style.display='block';}var hasil=document.getElementById('kunjungan_sebelumnya_'+n);var hasilLab=document.getElementById('kunjungan_sebelumnya_'+n+'_lab');if(hasil){hasil.style.display='block';}if(hasilLab){hasilLab.style.display='block';}var current=document.getElementById('sidebarCurrent');if(current){current.open=false;}var hist=document.getElementById('sidebarHistory');if(hist){hist.open=true;}aturNavigasiAktif(document.getElementById('navKunjungan_'+n));var pilihan=elTanggal||(panel?panel.querySelector('.sidebar-date-link'):null);aturTanggalAktif(pilihan);tampilkanTanggalTarget(pilihan?pilihan.getAttribute('data-target'):'');};")
+                 .append("function pilihTanggalSaatIni(el){bukaKunjunganSaatIni(el,true);}function pilihTanggalRiwayat(el,n){pilihKunjungan(n,el);}")
+                 .append("var updateTombolAksiSplit=updateTombolAksi;updateTombolAksi=function(){updateTombolAksiSplit();var masterTanggal=document.querySelectorAll('.pilih-semua-berkas');for(var m=0;m<masterTanggal.length;m++){var areaMaster=masterTanggal[m].closest('.tanggal')||masterTanggal[m].closest('.kunjungan');var pilihanMaster=areaMaster?areaMaster.querySelectorAll('.file-choice'):[];var jumlahMaster=0;for(var n=0;n<pilihanMaster.length;n++){if(pilihanMaster[n].checked){jumlahMaster++;}}masterTanggal[m].checked=pilihanMaster.length>0&&jumlahMaster===pilihanMaster.length;masterTanggal[m].indeterminate=jumlahMaster>0&&jumlahMaster<pilihanMaster.length;}var wa=document.querySelectorAll('.workspace-dokumen .btnKirimWAHasil');for(var i=0;i<wa.length;i++){wa[i].innerHTML=wa[i].innerHTML.indexOf('Ulang')>=0?'Kirim Ulang':'Kirim Hasil';}var salin=document.querySelectorAll('.workspace-dokumen .btnSalinHasil');var jumlah=document.querySelectorAll('.workspace-dokumen .copy-file:checked').length;for(var j=0;j<salin.length;j++){salin[j].innerHTML=jumlah>0?'Salin '+jumlah+' Hasil':'Salin ke Kunjungan Saat Ini';}};")
+                 .append("</script>");
+         html.append("<style>")
+                 .append(".workspace-shell{grid-template-columns:292px minmax(0,1fr);background:#e6edf2}.workspace-sidebar{box-shadow:none;background:#173f5d}.sidebar-brand{min-height:92px;box-sizing:border-box;padding:20px 22px;gap:10px}.sidebar-brand-icon{width:18px;height:18px;border-radius:0;background:transparent;font-size:14px}.sidebar-brand-title{font-size:17px}.sidebar-brand-sub{margin-top:8px;color:#b8ccda;font-size:10px}.sidebar-patient{min-height:132px;box-sizing:border-box;padding:20px 22px 17px}.sidebar-patient-row{display:block}.sidebar-avatar{width:48px;height:48px;border-radius:10px;font-size:14px}.sidebar-patient-name{margin-top:11px;font-size:16px;text-transform:uppercase}.sidebar-patient-meta{font-size:10px}.sidebar-navigation{padding:17px 12px 24px}.sidebar-nav-title{padding:0 10px 10px;color:#8fb0c6;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.sidebar-visit{margin:4px 0;padding:11px 13px;border-radius:8px}.sidebar-visit.active{background:#285f80}.sidebar-visit strong{font-size:12px}.sidebar-visit small{font-size:10px}.sidebar-dates{gap:4px;margin:4px 0 12px 16px}.sidebar-date-link{padding:10px 12px;border-radius:7px;background:transparent;color:#bed1df;font-size:11px}.sidebar-date-link small{display:block;margin-top:4px;color:#91afc2;font-size:9px;font-weight:400}.sidebar-date-link.active{background:#f3f9fd;color:#173f5d;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-weight:700}.sidebar-date-link.active small{color:#55758b}.sidebar-history{margin-top:7px}.sidebar-history>summary{display:block;list-style:none;margin:0;padding:11px 16px;color:#dce9f1;cursor:pointer}.sidebar-history>summary::-webkit-details-marker{display:none}.sidebar-history>summary strong{display:block;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:12px}.sidebar-history>summary small{display:block;margin-top:4px;color:#9fbdcf;font-size:10px}.sidebar-history>summary:hover{background:rgba(255,255,255,.05);border-radius:8px}.sidebar-history-list{padding:2px 0 8px}.sidebar-history .sidebar-visit{margin-left:4px}.sidebar-history .riwayat-panel{margin-left:4px}.sidebar-empty{margin:4px 0 8px}.sidebar-footer{padding:14px 22px 20px;color:#91afc2}.workspace-dokumen .container{min-height:100vh;padding:0}.workspace-dokumen .kunjungan-title,.workspace-dokumen .kunjungan-meta,.workspace-dokumen .tanggal>h2,.workspace-dokumen .pilih-semua-option{display:none}.workspace-dokumen .tanggal,.workspace-dokumen .file{margin:0;padding:0;border:0;background:transparent}.workspace-dokumen .file+.file{border-top:12px solid #dce6ed}.file-workspace-head{position:static;top:auto;z-index:25;display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:76px;box-sizing:border-box;padding:12px 44px 12px 22px;background:#fff;border-bottom:1px solid #d6e1e8}.file-workspace-title{margin:0;color:#173f60;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:18px;font-weight:700}.file-workspace-meta{margin-top:5px;color:#687c8d;font-size:10px}.file-workspace-head .aksi-kanan{gap:8px}.file-workspace-head .btnKirimWAHasil{margin:0;background:#edf8f4;color:#08744b;border:1px solid #c9e8dc;padding:10px 22px}.file-workspace-head .btnLihatFoto{padding:10px 22px}.file-workspace-head .btnSalinHasil{padding:10px 14px}.workspace-dokumen .copy-option{position:sticky;top:76px;z-index:24;display:grid;grid-template-columns:auto minmax(160px,1fr) auto auto;gap:16px;align-items:center;min-height:62px;box-sizing:border-box;padding:8px 22px;background:#fff;border:0;border-bottom:1px solid #dce5eb;color:#5c6d7b;overflow:visible}.workspace-dokumen .copy-option label{white-space:nowrap}.workspace-dokumen .file-title{min-width:0;padding:5px 16px;border:0;border-left:1px solid #dce5eb;background:#fff;color:#233c50;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.workspace-dokumen .status-wa-terkirim{display:inline-flex;align-items:center;gap:6px;color:#13855d;font-size:11px}.workspace-dokumen .status-wa-terkirim:before{content:'';width:8px;height:8px;border:4px solid #d9f2e8;border-radius:50%;background:#28a978}.workspace-dokumen .file-counter{position:static;display:block;min-width:34px;padding:0;background:transparent;color:#647587;text-align:right;font-size:11px}.workspace-dokumen .image-wrap{min-height:calc(100vh - 138px);box-sizing:border-box;padding:20px 32px 48px;background:#e6edf2}.workspace-dokumen img.hasil{display:block;width:calc(100% - 64px);max-width:790px;height:auto;margin:0 auto;background:#fff;box-shadow:0 8px 22px rgba(31,56,72,.12)}.pilih-semua-inline{display:inline-flex;align-items:center;gap:5px;color:#617180;font-size:10px;white-space:nowrap}.pilih-semua-inline input{margin:0}.workspace-dokumen .dicom-viewer-panel{position:relative;z-index:50;margin:0}.workspace-dokumen .dicom-viewer-frame{height:calc(100vh - 44px)}")
+                 .append(".file-select-group{display:flex;align-items:center;gap:10px}.file-select-group .pilih-semua-inline{color:#738290;font-size:9px}.file-workspace-head .btnMonitoringHasil{margin:0;padding:10px 18px;box-shadow:none}.workspace-laboratorium .lab-info{margin:18px 22px 12px}.workspace-laboratorium .lab-table{width:calc(100% - 44px);margin:0 22px 28px}")
+                 .append(".sidebar-patient{min-height:auto;padding:18px 22px 16px}.sidebar-patient-row{display:block}.sidebar-patient-name{margin-top:0}.sidebar-current{margin:4px 0 8px}.sidebar-current>summary.sidebar-visit{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none}.sidebar-current>summary::-webkit-details-marker{display:none}.sidebar-summary-copy{display:block;min-width:0;flex:1}.sidebar-accordion-arrow{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex:0 0 auto;color:#c7dbe8}.sidebar-accordion-arrow:before{content:'';display:block;width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);transition:transform .2s ease}.sidebar-current[open]>summary .sidebar-accordion-arrow:before,.sidebar-history[open]>summary .sidebar-accordion-arrow:before{transform:rotate(-135deg)}.sidebar-current>summary:hover .sidebar-accordion-arrow,.sidebar-history>summary:hover .sidebar-accordion-arrow{color:#fff}.sidebar-history>summary{display:flex;align-items:center;justify-content:space-between;gap:10px}.sidebar-history>summary .sidebar-summary-copy{min-width:0;flex:1}.sidebar-date-link{display:flex;align-items:center;gap:5px;min-width:0;padding:8px 12px;white-space:nowrap}.sidebar-date-label{flex:0 0 auto}.sidebar-date-separator{flex:0 0 auto;color:#7899ae;font-size:9px}.sidebar-date-time{min-width:0;overflow:hidden;text-overflow:ellipsis;color:#91afc2;font-size:10px;font-weight:400}.sidebar-date-link.active .sidebar-date-separator,.sidebar-date-link.active .sidebar-date-time{color:#55758b}.workspace-dokumen .tanggal{display:none}.workspace-dokumen .file-workspace-head{position:static!important;top:auto!important}.date-workspace-head{position:static!important;top:auto!important}.workspace-dokumen .copy-option{top:0}")
+                 .append("@media(max-width:980px){.workspace-shell{grid-template-columns:252px minmax(0,1fr)}.file-workspace-head{padding-right:18px}.file-workspace-head .btnKirimWAHasil,.file-workspace-head .btnLihatFoto{padding:9px 12px}.workspace-dokumen .copy-option{grid-template-columns:auto minmax(120px,1fr) auto auto}.workspace-dokumen img.hasil{width:calc(100% - 24px)}}@media(max-width:720px){.sidebar-navigation{display:block}.file-workspace-head{position:relative;display:block;padding:14px}.file-workspace-head .aksi-kanan{margin-top:12px;justify-content:flex-start;flex-wrap:wrap}.workspace-dokumen .copy-option{position:relative;top:auto;grid-template-columns:auto 1fr;gap:9px;padding:10px 14px}.workspace-dokumen .status-wa-terkirim{margin-left:0}.workspace-dokumen .image-wrap{padding:12px}.workspace-dokumen img.hasil{width:100%}}@media print{.file-workspace-head,.workspace-dokumen .copy-option{position:static}.workspace-dokumen .image-wrap{min-height:0;padding:0}.workspace-dokumen img.hasil{width:100%;max-width:none}}")
+                 .append(".workspace-dokumen .date-workspace-head{position:sticky!important;top:0!important}.workspace-dokumen .copy-option{position:static!important;top:auto!important}@media print{.workspace-dokumen .date-workspace-head{position:static!important;top:auto!important}}")
+                 .append("</style>");
+
+         html.append("<div class=\"workspace-shell\" id=\"workspaceShell\">");
+         html.append("<aside class=\"workspace-sidebar\">");
+         html.append("<div class=\"sidebar-patient\"><div class=\"sidebar-patient-row\"><div class=\"sidebar-patient-name\">")
+                 .append(escapeHtml(namaPasienTerpilih)).append("</div><div class=\"sidebar-patient-meta\">No. Rawat ")
+                 .append(escapeHtml(noRawatTerpilih)).append("</div></div></div>");
+         html.append("<nav class=\"sidebar-navigation\"><div class=\"sidebar-nav-title\">Kunjungan dan hasil</div>");
+         html.append("<details id=\"sidebarCurrent\" class=\"sidebar-current\"")
+                 .append(adaHasilSaatIni ? " open" : "")
+                 .append("><summary id=\"navKunjunganSaatIni\" class=\"sidebar-visit")
+                 .append(adaHasilSaatIni ? " active" : "")
+                 .append("\" onclick=\"aktifkanKunjunganSaatIni();\" ")
+                 .append("data-title=\"Hasil Kunjungan Saat Ini\" data-meta=\"No. Rawat ")
+                 .append(escapeHtml(noRawatTerpilih)).append(" | Registrasi ")
+                 .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggalRegistrasi))).append("\"><span class=\"sidebar-summary-copy\">")
+                 .append("<strong>Kunjungan Saat Ini</strong><small>")
+                 .append(escapeHtml(formatTanggalPanjangHasilPenunjang(tanggalRegistrasi)))
+                 .append(" &bull; ").append(jumlahHasilSaatIni)
+                 .append(" hasil</small></span><span class=\"sidebar-accordion-arrow\" aria-hidden=\"true\"></span></summary>");
+         if (adaHasilSaatIni) {
+             html.append("<div id=\"sidebarCurrentDates\" class=\"sidebar-dates\">");
+             boolean tanggalSaatIniPertama = true;
+             for (String tanggal : idTanggalSaatIni.keySet()) {
+                 String jamTanggal = kodeBerkasRadiologi(kodeBerkas)
+                         ? ambilRingkasanJamRadiologi(noRawatTerpilih, tanggal)
+                         : (kodeBerkasLaboratorium(kodeBerkas)
+                                 ? ambilRingkasanJamBerkas(kelompokSaatIni.get(tanggal))
+                                 : "");
+                 html.append("<a class=\"sidebar-date-link")
+                         .append(tanggalSaatIniPertama ? " active" : "")
+                         .append("\" href=\"#\" data-target=\"")
+                         .append(idTanggalSaatIni.get(tanggal))
+                         .append("\" onclick=\"pilihTanggalSaatIni(this);return false;\"><span class=\"sidebar-date-label\">")
+                         .append(escapeHtml(
+                                 formatTanggalPanjangHasilPenunjang(tanggal)))
+                         .append("</span>");
+                 if (!jamTanggal.equals("")) {
+                     html.append("<span class=\"sidebar-date-separator\">&bull;</span><span class=\"sidebar-date-time\">")
+                             .append(escapeHtml(jamTanggal))
+                             .append("</span>");
+                 }
+                 html.append("</a>");
+                 tanggalSaatIniPertama = false;
+             }
+             html.append("</div>");
+         } else {
+             html.append("<div class=\"sidebar-empty\">Tidak ada hasil pemeriksaan ")
+                     .append(escapeHtml(judul.replace("Hasil ", "")))
+                     .append(" pada kunjungan saat ini.</div>");
+         }
+         html.append("</details>");
+         html.append("<details id=\"sidebarHistory\" class=\"sidebar-history\"")
+                 .append(!adaHasilSaatIni && indeksRiwayatAwal > 0 ? " open" : "")
+                 .append("><summary><span class=\"sidebar-summary-copy\"><strong>Kunjungan Sebelumnya</strong><small>")
+                 .append(jumlahRiwayatTersedia)
+                 .append(" riwayat terakhir</small></span><span class=\"sidebar-accordion-arrow\" aria-hidden=\"true\"></span></summary>")
+                 .append("<div class=\"sidebar-history-list\">");
+         if (indeksRiwayatAwal > 0 && kunjunganSebelumnya != null) {
+             for (int i = 0; i < kunjunganSebelumnya.size(); i++) {
+                 DataKunjunganSebelumnyaPenunjang kunjungan = kunjunganSebelumnya.get(i);
+                 if (kunjungan.hasilTersedia) {
+                     int jumlahHasilRiwayat = kunjungan.daftarBerkas.size()
+                             + kunjungan.daftarLabSementara.size();
+                     html.append("<div class=\"sidebar-visit-group\"><a id=\"navKunjungan_")
+                             .append(i + 1).append("\" class=\"sidebar-visit\" href=\"#\" onclick=\"pilihKunjungan(")
+                             .append(i + 1).append(");return false;\" data-title=\"Hasil Kunjungan ")
+                             .append(escapeHtml(formatTanggalTampilHasilPenunjang(kunjungan.tanggalRegistrasi)))
+                             .append("\" data-meta=\"No. Rawat ").append(escapeHtml(kunjungan.noRawat))
+                             .append(" | Registrasi ")
+                             .append(escapeHtml(formatTanggalTampilHasilPenunjang(kunjungan.tanggalRegistrasi)))
+                             .append("\"><strong>")
+                             .append(escapeHtml(formatTanggalPanjangHasilPenunjang(kunjungan.tanggalRegistrasi)))
+                             .append("</strong><small>").append(jumlahHasilRiwayat)
+                             .append(" hasil &bull; No. Rawat ").append(escapeHtml(kunjungan.noRawat))
+                             .append("</small></a>");
+                     java.util.LinkedHashMap<String, String> ids = idTanggalRiwayat.get(i);
+                     java.util.LinkedHashMap<String, java.util.ArrayList<DataBerkasHasilPenunjang>>
+                             kelompokBerkasRiwayat =
+                                     kelompokkanBerkasPerTanggal(kunjungan.daftarBerkas);
+                     html.append("<div id=\"riwayat_panel_").append(i + 1)
+                             .append("\" class=\"riwayat-panel\"><div class=\"sidebar-dates\">");
+                     for (String tanggal : ids.keySet()) {
+                         String jamTanggal = kodeBerkasRadiologi(kodeBerkas)
+                                 ? ambilRingkasanJamRadiologi(kunjungan.noRawat, tanggal)
+                                 : (kodeBerkasLaboratorium(kodeBerkas)
+                                         ? ambilRingkasanJamBerkas(
+                                                 kelompokBerkasRiwayat.get(tanggal))
+                                         : "");
+                         html.append("<a class=\"sidebar-date-link\" href=\"#\" data-target=\"")
+                                 .append(ids.get(tanggal))
+                                 .append("\" onclick=\"pilihTanggalRiwayat(this,").append(i + 1)
+                                 .append(");return false;\"><span class=\"sidebar-date-label\">")
+                                 .append(escapeHtml(
+                                         formatTanggalPanjangHasilPenunjang(
+                                                 tanggal)))
+                                 .append("</span>");
+                         if (!jamTanggal.equals("")) {
+                             html.append("<span class=\"sidebar-date-separator\">&bull;</span><span class=\"sidebar-date-time\">")
+                                     .append(escapeHtml(jamTanggal))
+                                     .append("</span>");
+                         }
+                         html.append("</a>");
+                     }
+                     html.append("</div></div></div>");
+                 }
+             }
+         } else {
+             html.append("<div class=\"sidebar-empty\">Belum ada hasil pemeriksaan pada 5 kunjungan sebelumnya.</div>");
+         }
+         html.append("</div></details></nav>");
+         html.append("<div class=\"sidebar-footer\">Tanggal dan kunjungan berada di satu navigasi.</div></aside>");
+
+         html.append("<section class=\"workspace-content workspace-dokumen ")
+                 .append(kodeBerkasRadiologi(kodeBerkas) ? "workspace-radiologi" : "workspace-laboratorium")
+                 .append("\">");
+         if (!kodeBerkasRadiologi(kodeBerkas) && !kodeBerkasLaboratorium(kodeBerkas)) {
+             html.append("<header class=\"workspace-topbar\"><div>")
+                     .append("<div id=\"workspaceVisitTitle\" class=\"workspace-topbar-title\">")
+                     .append(adaHasilSaatIni ? "Hasil Kunjungan Saat Ini" : "Pilih Kunjungan")
+                     .append("</div><div id=\"workspaceVisitMeta\" class=\"workspace-topbar-meta\">")
+                     .append(escapeHtml(judul)).append(" | ").append(escapeHtml(namaPasienTerpilih))
+                     .append(" | No. Rawat ").append(escapeHtml(noRawatTerpilih))
+                     .append("</div></div><div class=\"workspace-topbar-actions\">");
+             html.append("</div></header>");
+         }
+         html.append("<form id=\"formSalinHasil\" method=\"post\" action=\"")
+                 .append(escapeHtml(endpointSalin))
+                 .append("\" target=\"targetSalinHasil\" style=\"display:none\"></form>")
+                 .append("<iframe class=\"hidden-frame\" name=\"targetSalinHasil\"></iframe>");
+         if (kodeBerkasRadiologi(kodeBerkas)) {
+             html.append("<section id=\"dicomViewerPanel\" class=\"dicom-viewer-panel\"><div class=\"dicom-viewer-head\"><div class=\"dicom-viewer-title\">Viewer Foto DICOM Orthanc</div><button type=\"button\" class=\"btnTutupDicom\" onclick=\"tutupViewerDicom()\">Sembunyikan Foto</button></div><iframe id=\"dicomViewerFrame\" class=\"dicom-viewer-frame\" src=\"about:blank\" allowfullscreen></iframe></section>");
+         }
+         html.append("<main class=\"container\">");
+         if (kodeBerkasLaboratorium(kodeBerkas)) {
+             appendMonitoringHasilLabHtml(html, noRawatTerpilih, namaPasienTerpilih, ambilDataMonitoringLabPenunjang(noRawatTerpilih));
+         }
+         if (adaHasilSaatIni) {
+             if (!kelompokSaatIni.isEmpty()) {
+                 appendKunjunganHasilHtml(html, "kunjungan_saat_ini", "Hasil Kunjungan Saat Ini", noRawatTerpilih,
+                         tanggalRegistrasi, kelompokSaatIni, idTanggalSaatIni, true, !sesiWhatsapp.equals("") && !endpointWhatsapp.equals(""), kodeBerkas);
+             }
+             if (!kelompokLabSaatIni.isEmpty()) {
+                 appendKunjunganLabSementaraHtml(html, kelompokSaatIni.isEmpty() ? "kunjungan_saat_ini" : "kunjungan_saat_ini_lab",
+                         "Hasil Lab Sementara Kunjungan Saat Ini", noRawatTerpilih, tanggalRegistrasi,
+                         kelompokLabSaatIni, idTanggalSaatIni, true);
+             }
+         }
+         if (kunjunganSebelumnya != null) {
+             for (int i = 0; i < kunjunganSebelumnya.size(); i++) {
+                 DataKunjunganSebelumnyaPenunjang kunjungan = kunjunganSebelumnya.get(i);
+                 if (kunjungan.hasilTersedia) {
+                     java.util.LinkedHashMap<String, java.util.ArrayList<DataBerkasHasilPenunjang>> kelompok = kelompokkanBerkasPerTanggal(kunjungan.daftarBerkas);
+                     if (!kelompok.isEmpty()) {
+                         appendKunjunganHasilHtml(html, "kunjungan_sebelumnya_" + (i + 1), "Hasil Kunjungan Sebelumnya",
+                                 kunjungan.noRawat, kunjungan.tanggalRegistrasi, kelompok, idTanggalRiwayat.get(i), false, !sesiWhatsapp.equals("") && !endpointWhatsapp.equals(""), kodeBerkas);
+                     }
+                     java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> kelompokLab = kelompokkanLabSementaraPerTanggal(kunjungan.daftarLabSementara);
+                     if (!kelompokLab.isEmpty()) {
+                         appendKunjunganLabSementaraHtml(html, kelompok.isEmpty() ? "kunjungan_sebelumnya_" + (i + 1) : "kunjungan_sebelumnya_" + (i + 1) + "_lab",
+                                 "Hasil Lab Sementara Kunjungan Sebelumnya", kunjungan.noRawat,
+                                 kunjungan.tanggalRegistrasi, kelompokLab, idTanggalRiwayat.get(i), false);
+                     }
+                 }
+             }
+         }
+         html.append("</main></section></div></body></html>");
+         return html.toString();
+     }
+
+     private void appendMonitoringHasilLabHtml(StringBuilder html, String noRawatTerpilih, String namaPasienTerpilih,
+             ArrayList<DataMonitoringLabPenunjang> daftarMonitoring) {
+         html.append("<section class=\"monitoring-panel\" id=\"monitoring_hasil_lab\" style=\"display:none\">");
+         html.append("<div class=\"monitor-head\"><div><div class=\"monitor-kicker\">Monitoring Hasil Laboratorium</div><h1><span class=\"monitor-title-line\">Tren Longitudinal Hasil Lab <span class=\"monitor-title-sep\">.</span> ")
+                 .append(escapeHtml(namaPasienTerpilih)).append(" <span class=\"monitor-title-sep\">.</span> ").append(escapeHtml(noRawatTerpilih))
+                 .append("</span></h1></div><button type=\"button\" class=\"btnTutupMonitoring\" onclick=\"tutupMonitoringHasil()\">Tutup Monitoring</button></div>");
+         if (daftarMonitoring == null || daftarMonitoring.isEmpty()) {
+             html.append("<div class=\"monitor-empty\">Belum ada data permintaan/hasil laboratorium untuk monitoring pasien ini.</div></section>");
+             return;
+         }
+
+         java.util.LinkedHashSet<String> kolomTerbaru = new java.util.LinkedHashSet<String>();
+         for (DataMonitoringLabPenunjang data : daftarMonitoring) {
+             if (data == null || data.kolom == null || data.kolom.trim().equals("")) continue;
+             kolomTerbaru.add(data.kolom);
+         }
+         java.util.ArrayList<String> kolom = new java.util.ArrayList<String>(kolomTerbaru);
+         java.util.LinkedHashMap<String, Integer> urutanKolom = new java.util.LinkedHashMap<String, Integer>();
+         for (int idx = 0; idx < kolom.size(); idx++) urutanKolom.put(kolom.get(idx), Integer.valueOf(idx));
+
+         java.util.LinkedHashMap<String, java.util.LinkedHashMap<String, DataMonitoringLabPenunjang>> baris =
+                 new java.util.LinkedHashMap<String, java.util.LinkedHashMap<String, DataMonitoringLabPenunjang>>();
+         java.util.LinkedHashMap<String, String[]> labelBaris = new java.util.LinkedHashMap<String, String[]>();
+         for (DataMonitoringLabPenunjang data : daftarMonitoring) {
+             if (data == null || !kolom.contains(data.kolom)) continue;
+             String namaInduk = data.namaPemeriksaanInduk == null ? "" : data.namaPemeriksaanInduk.trim();
+             String namaItem = data.pemeriksaan == null || data.pemeriksaan.trim().equals("") ? "Pemeriksaan Lab" : data.pemeriksaan.trim();
+             if (namaItem.replaceAll("\\s+", " ").trim().equalsIgnoreCase("Hematologi Rutin Automatik 5 Diff")) continue;
+             String key = namaInduk + "||" + namaItem + "||" + (data.satuan == null ? "" : data.satuan.trim());
+             if (!baris.containsKey(key)) {
+                 baris.put(key, new java.util.LinkedHashMap<String, DataMonitoringLabPenunjang>());
+                 labelBaris.put(key, new String[]{namaInduk, namaItem, data.satuan == null ? "" : data.satuan});
+             }
+             if (!baris.get(key).containsKey(data.kolom)) baris.get(key).put(data.kolom, data);
+         }
+
+         html.append("<div class=\"monitor-tools\"><div class=\"monitor-search-wrap\"><label for=\"monitorSearch\">Cari Pemeriksaan</label><input id=\"monitorSearch\" class=\"monitor-search\" type=\"text\" placeholder=\"Ketik contoh: trombosit, Hb, leukosit, kreatinin...\" oninput=\"filterMonitoringHasil()\"></div><button type=\"button\" class=\"btnResetMonitoring\" onclick=\"resetMonitoringHasil()\">Reset</button><button type=\"button\" id=\"btnSortMonitoring\" class=\"btnSortMonitoring btnSortIconOnly\" onclick=\"toggleSortMonitoringHasil()\" title=\"Urut tanggal terbaru ke lama\" aria-label=\"Urut tanggal\"><span class=\"sort-only-icon\">⇅</span></button><div class=\"monitor-range-group\"><button type=\"button\" class=\"btnRangeMonitoring active\" data-mode=\"latest6\" onclick=\"setMonitoringMode(\'latest6\')\">6 Terbaru</button><button type=\"button\" class=\"btnRangeMonitoring\" data-mode=\"7\" onclick=\"setMonitoringMode(\'7\')\">7 hari</button><button type=\"button\" class=\"btnRangeMonitoring\" data-mode=\"30\" onclick=\"setMonitoringMode(\'30\')\">30 hari</button><button type=\"button\" class=\"btnRangeMonitoring\" data-mode=\"90\" onclick=\"setMonitoringMode(\'90\')\">90 hari</button><button type=\"button\" class=\"btnRangeMonitoring\" data-mode=\"all\" onclick=\"setMonitoringMode(\'all\')\">Semua</button></div></div>");
+         html.append("<div class=\"monitor-scroll\"><table class=\"monitor-table\" id=\"monitorTable\" style=\"min-width:").append(250 + (Math.max(6, kolom.size()) * 145)).append("px\"><thead><tr><th class=\"monitor-sticky\"><span class=\"monitor-head-icon\">🧪</span> Pemeriksaan</th>");
+         for (String k : kolom) {
+             Integer urut = urutanKolom.get(k);
+             html.append("<th class=\"monitor-col\" data-kolom=\"").append(escapeHtml(k)).append("\" data-order=\"").append(urut == null ? 0 : urut.intValue()).append("\">").append(formatHeaderKolomMonitoringLab(k)).append("</th>");
+         }
+         html.append("</tr></thead><tbody>");
+         for (java.util.Map.Entry<String, java.util.LinkedHashMap<String, DataMonitoringLabPenunjang>> entry : baris.entrySet()) {
+             String[] label = labelBaris.get(entry.getKey());
+             String labelInduk = label != null && label[0] != null ? label[0] : "";
+             String labelItem = label == null ? entry.getKey() : label[1];
+             String labelSatuan = label != null && label[2] != null ? label[2] : "";
+             String dataSearch = (labelInduk + " " + labelItem + " " + labelSatuan).trim();
+             html.append("<tr class=\"monitor-row\" data-search=\"").append(escapeHtml(dataSearch)).append("\"><td class=\"monitor-param monitor-sticky\">");
+             if (!labelInduk.trim().equals("")) {
+                 html.append("<span>").append(escapeHtml(labelInduk)).append("</span>");
+             }
+             html.append("<b>").append(escapeHtml(labelItem)).append("</b>");
+             if (!labelSatuan.trim().equals("")) html.append("<small>Satuan: ").append(escapeHtml(labelSatuan)).append("</small>");
+             html.append("</td>");
+             java.util.HashMap<String, String> trenKolom = new java.util.HashMap<String, String>();
+             Double nilaiSebelumnyaKronologis = null;
+             for (int idxKronologis = kolom.size() - 1; idxKronologis >= 0; idxKronologis--) {
+                 String kk = kolom.get(idxKronologis);
+                 DataMonitoringLabPenunjang dataKronologis = entry.getValue().get(kk);
+                 if (dataKronologis == null) continue;
+                 boolean statusMenungguKronologis = dataKronologis.status != null && dataKronologis.status.equalsIgnoreCase("Menunggu Hasil");
+                 Double nilaiKronologis = statusMenungguKronologis ? null : angkaPertamaLab(dataKronologis.nilai);
+                 if (nilaiKronologis != null && nilaiSebelumnyaKronologis != null) {
+                     if (nilaiKronologis.doubleValue() > nilaiSebelumnyaKronologis.doubleValue()) {
+                         trenKolom.put(kk, "Naik");
+                     } else if (nilaiKronologis.doubleValue() < nilaiSebelumnyaKronologis.doubleValue()) {
+                         trenKolom.put(kk, "Turun");
+                     }
+                 }
+                 if (nilaiKronologis != null) nilaiSebelumnyaKronologis = nilaiKronologis;
+             }
+             for (String k : kolom) {
+                 Integer urut = urutanKolom.get(k);
+                 DataMonitoringLabPenunjang data = entry.getValue().get(k);
+                 if (data == null) {
+                     html.append("<td class=\"monitor-empty-cell monitor-cell\" data-kolom=\"").append(escapeHtml(k)).append("\" data-order=\"").append(urut == null ? 0 : urut.intValue()).append("\" data-has=\"0\">-</td>");
+                     continue;
+                 }
+                 String flagLab = flagStatusMonitoringLab(data);
+                 boolean statusMenunggu = data.status != null && data.status.equalsIgnoreCase("Menunggu Hasil");
+                 String trenLabel = trenKolom.containsKey(k) ? trenKolom.get(k) : "";
+                 html.append("<td class=\"monitor-cell ").append(statusMenunggu ? "monitor-pending-cell" : "").append("\" data-kolom=\"").append(escapeHtml(k)).append("\" data-order=\"").append(urut == null ? 0 : urut.intValue()).append("\" data-has=\"1\"><div class=\"monitor-value\">");
+                 if (statusMenunggu) {
+                     html.append("<div style=\"font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700;color:#6b7280;line-height:1.2\">Menunggu hasil</div>");
+                 } else {
+                     html.append(bangunNilaiLabHtml(data.nilai, flagLab, true, true));
+                     if (!trenLabel.equals("")) html.append(formatTrendMonitoringLab(trenLabel));
+                 }
+                 if (!statusMenunggu && (!data.nilaiRujukan.equals("") || !data.noRawat.equals(""))) {
+                     html.append("<div class=\"monitor-ref\">");
+                     if (!data.nilaiRujukan.equals("")) html.append(escapeHtml(data.nilaiRujukan));
+                     if (!data.noRawat.equals("")) {
+                         if (!data.nilaiRujukan.equals("")) html.append("<br>");
+                         html.append(escapeHtml(data.noRawat));
+                     }
+                     html.append("</div>");
+                 }
+                 html.append("</div></td>");
+             }
+             html.append("</tr>");
+         }
+         html.append("</tbody></table></div><div class=\"monitor-legend\"><span><b style=\"color:#2563eb\">⬇ L</b> = Rendah</span><span><b style=\"color:#d97706\">⬆ H</b> = Tinggi</span><span><b style=\"color:#dc2626\">⬇⬇ LL ⚠ KRITIS</b> = Kritis rendah</span><span><b style=\"color:#dc2626\">⬆⬆ HH ⚠ KRITIS</b> = Kritis tinggi</span><span><b>Tren</b> ditampilkan terpisah dari interpretasi</span><span><b class=\"legend-pending\">Menunggu hasil</b> belum keluar</span><span class=\"monitor-footer-hint\">↔ Geser ke samping untuk melihat kolom lainnya</span></div><div class=\"monitor-xbar\" id=\"monitorXScroll\"><div class=\"monitor-xbar-inner\" id=\"monitorXScrollInner\"></div></div></section>");
+     }
+
+
+    private String formatHeaderKolomMonitoringLab(String kolom) {
+        String teks = kolom == null ? "" : kolom.trim();
+        String tanggal = teks;
+        String jam = "";
+        try {
+            int idx = teks.indexOf("<br><small>");
+            if (idx >= 0) {
+                tanggal = teks.substring(0, idx).trim();
+                int awalJam = idx + "<br><small>".length();
+                int akhirJam = teks.indexOf("</small>", awalJam);
+                jam = akhirJam >= awalJam ? teks.substring(awalJam, akhirJam).trim() : teks.substring(awalJam).trim();
+            } else {
+                int spasi = teks.lastIndexOf(' ');
+                if (spasi > 0 && teks.substring(spasi + 1).matches("\\d{1,2}:\\d{2}.*")) {
+                    tanggal = teks.substring(0, spasi).trim();
+                    jam = teks.substring(spasi + 1).trim();
+                }
+            }
+        } catch (Exception ex) {
+            tanggal = teks;
+            jam = "";
+        }
+        String ikonTanggal = "<span class=\"monitor-svg-icon monitor-date-icon\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\"><path d=\"M7 2v3M17 2v3M4 9h16\"/><rect x=\"4\" y=\"4\" width=\"16\" height=\"17\" rx=\"3\"/><path d=\"M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01\"/></svg></span>";
+        String ikonJam = "<span class=\"monitor-svg-icon monitor-time-icon\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M12 7v5l3 2\"/></svg></span>";
+        StringBuilder hasil = new StringBuilder();
+        hasil.append("<span class=\"monitor-col-title\"><span class=\"monitor-date-line\">")
+             .append(ikonTanggal).append(escapeHtml(tanggal)).append("</span>");
+        if (!jam.equals("")) {
+            hasil.append("<span class=\"monitor-time-line\">").append(ikonJam).append(escapeHtml(jam)).append("</span>");
+        }
+        hasil.append("</span>");
+        return hasil.toString();
+    }
+
+     private String classWarnaMonitoringLab(DataMonitoringLabPenunjang data) {
+         if (data == null) return "lab-hasil-normal";
+        if (data.status != null && data.status.equalsIgnoreCase("Menunggu Hasil")) return "monitor-pending-value";
+         String flagLab = flagStatusMonitoringLab(data);
+         if (flagLab.indexOf("*") >= 0) return "lab-hasil-critical";
+         if ("H".equalsIgnoreCase(flagLab) || "L".equalsIgnoreCase(flagLab)) return "lab-hasil-abnormal";
+         return "lab-hasil-normal";
+     }
+
+
+    // PATCH RSAJ - status H/L/kritis Monitoring Hasil mengikuti logika DlgCariPeriksaLab.
+    private String flagStatusMonitoringLab(DataMonitoringLabPenunjang data) {
+        if (data == null) return "";
+        if (data.status != null && data.status.equalsIgnoreCase("Menunggu Hasil")) return "";
+        return getStatusHLKritisLab(data.nilai, data.nilaiRujukan, data.kdJenisPrw, data.idTemplate, getKategoriUmurLab(data.noRawat));
+    }
+
+    private String flagStatusLabSementara(DataHasilLabSementaraPenunjang data, String noRawat) {
+        if (data == null) return "";
+        if (data.status != null && data.status.equalsIgnoreCase("Menunggu Hasil")) return "";
+        return getStatusHLKritisLab(data.nilai, data.nilaiRujukan, data.kdJenisPrw, data.idTemplate, getKategoriUmurLab(noRawat));
+    }
+
+    private String normalisasiKodeInterpretasiLab(String flagLab) {
+        String flag = flagLab == null ? "" : flagLab.trim().toUpperCase(java.util.Locale.ROOT);
+        if (flag.equals("L*")) return "LL";
+        if (flag.equals("H*")) return "HH";
+        return flag;
+    }
+
+    private String warnaInterpretasiLab(String flagLab) {
+        String flag = normalisasiKodeInterpretasiLab(flagLab);
+        if (flag.equals("L")) return "#2563eb";
+        if (flag.equals("H")) return "#d97706";
+        if (flag.equals("LL") || flag.equals("HH")) return "#dc2626";
+        return "#111827";
+    }
+
+    private String labelInterpretasiLab(String flagLab) {
+        String flag = normalisasiKodeInterpretasiLab(flagLab);
+        if (flag.equals("L")) return "Rendah";
+        if (flag.equals("H")) return "Tinggi";
+        if (flag.equals("LL")) return "Kritis rendah";
+        if (flag.equals("HH")) return "Kritis tinggi";
+        return "";
+    }
+
+    private String penandaInterpretasiLab(String flagLab) {
+        String flag = normalisasiKodeInterpretasiLab(flagLab);
+        if (flag.equals("L")) return "⬇ L";
+        if (flag.equals("H")) return "⬆ H";
+        if (flag.equals("LL")) return "⬇⬇ LL ⚠ KRITIS";
+        if (flag.equals("HH")) return "⬆⬆ HH ⚠ KRITIS";
+        return "";
+    }
+
+    private String bangunInterpretasiLabHtml(String flagLab, boolean tampilDeskripsiKritis) {
+        String label = labelInterpretasiLab(flagLab);
+        String penanda = penandaInterpretasiLab(flagLab);
+        if (label.equals("") || penanda.equals("")) return "";
+        String warna = warnaInterpretasiLab(flagLab);
+        String kode = normalisasiKodeInterpretasiLab(flagLab);
+        StringBuilder sb = new StringBuilder();
+        sb.append("<div style=\"margin-top:2px;font-family:'Segoe UI Semibold','Segoe UI Symbol','Segoe UI',Arial,sans-serif;font-size:17px;font-weight:")
+          .append((kode.equals("LL") || kode.equals("HH")) ? "800" : "700")
+          .append(";line-height:1.2;color:").append(warna).append("\">")
+          .append(escapeHtml(penanda));
+        if (kode.equals("L") || kode.equals("H")) sb.append(" ").append(escapeHtml(label));
+        sb.append("</div>");
+        if (tampilDeskripsiKritis && (kode.equals("LL") || kode.equals("HH"))) {
+            sb.append("<div style=\"font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:12px;font-weight:700;line-height:1.2;color:")
+              .append(warna).append("\">")
+              .append(escapeHtml(label)).append("</div>");
+        }
+        return sb.toString();
+    }
+
+    private String bangunNilaiLabHtml(String nilai, String flagLab, boolean tampilDeskripsiKritis, boolean modeMonitoring) {
+        String teksNilai = nilai == null || nilai.trim().equals("") ? "-" : nilai.trim();
+        String warna = warnaInterpretasiLab(flagLab);
+        StringBuilder sb = new StringBuilder();
+        sb.append("<div style=\"font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:").append(modeMonitoring ? "20px" : "18px")
+          .append(";font-weight:800;line-height:1.05;color:").append(warna).append("\">")
+          .append(escapeHtml(teksNilai)).append("</div>");
+        sb.append(bangunInterpretasiLabHtml(flagLab, tampilDeskripsiKritis));
+        return sb.toString();
+    }
+
+
+    private String bangunNilaiAngkaLabHtml(String nilai, String flagLab, boolean modeMonitoring) {
+        String teksNilai = nilai == null || nilai.trim().equals("") ? "-" : nilai.trim();
+        String warna = warnaInterpretasiLab(flagLab);
+        StringBuilder sb = new StringBuilder();
+        sb.append("<div style=\"font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:").append(modeMonitoring ? "20px" : "18px")
+          .append(";font-weight:800;line-height:1.05;color:").append(warna).append(";text-align:center\">")
+          .append(escapeHtml(teksNilai)).append("</div>");
+        return sb.toString();
+    }
+
+    private String bangunKeteranganLabSementaraHtml(String keterangan, String flagLab, boolean tampilInterpretasi) {
+        String ket = keterangan == null ? "" : keterangan.trim();
+        StringBuilder sb = new StringBuilder();
+        if (!ket.equals("") && !ket.equals("-")) {
+            sb.append("<div>").append(escapeHtml(ket)).append("</div>");
+        }
+        if (tampilInterpretasi) {
+            sb.append(bangunInterpretasiLabHtml(flagLab, true));
+        }
+        if (sb.length() == 0) return "-";
+        return sb.toString();
+    }
+
+    private String formatSatuanDanRujukanLab(String satuan, String rujukan) {
+        String sat = satuan == null ? "" : satuan.trim();
+        String ruj = rujukan == null ? "" : rujukan.trim();
+        if (ruj.equals("") && sat.equals("")) return "-";
+        if (ruj.equals("")) return "<span class=\"lab-ref-unit\">" + escapeHtml(sat) + "</span>";
+        if (sat.equals("")) return "<span class=\"lab-ref-unit\">" + escapeHtml(ruj) + "</span>";
+        return "<span class=\"lab-ref-unit\">" + escapeHtml(ruj) + " / " + escapeHtml(sat) + "</span>";
+    }
+
+    private String formatTrendMonitoringLab(String tren) {
+        if (tren == null || tren.trim().equals("")) return "";
+        String nilaiTren = tren.trim();
+        String ikonTren = nilaiTren.equalsIgnoreCase("Naik") ? "⬆" : (nilaiTren.equalsIgnoreCase("Turun") ? "⬇" : "");
+        return "<div style=\"margin-top:4px;font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:11px;color:#6b7280;font-weight:600;line-height:1.2\">Tren: <span class=\"lab-trend-arrow\">" + ikonTren + "</span>" + escapeHtml(nilaiTren) + "</div>";
+    }
+
+
+    private String normalisasiAngkaLab(String angkaRaw) {
+        if (angkaRaw == null) return "";
+        String angka = angkaRaw.trim();
+        if (angka.equals("") || angka.equals("-")) return "";
+        boolean adaKoma = angka.indexOf(',') >= 0;
+        boolean adaTitik = angka.indexOf('.') >= 0;
+        if (adaKoma && adaTitik) {
+            if (angka.lastIndexOf(',') > angka.lastIndexOf('.')) angka = angka.replace(".", "").replace(",", ".");
+            else angka = angka.replace(",", "");
+        } else if (adaKoma) {
+            if (angka.matches("-?\\d{1,3}(,\\d{3})+") && !angka.matches("-?0,\\d+")) angka = angka.replace(",", "");
+            else angka = angka.replace(",", ".");
+        } else if (adaTitik) {
+            if (angka.matches("-?\\d{1,3}(\\.\\d{3})+") && !angka.matches("-?0\\.\\d+")) angka = angka.replace(".", "");
+        }
+        return angka;
+    }
+
+    private Double ambilDoubleAngkaLab(String nilaiAsli) {
+        try {
+            if (nilaiAsli == null) return null;
+            String nilai = nilaiAsli.trim().replaceAll("^[<>]=?\\s*", "");
+            nilai = nilai.replaceAll("[^0-9,\\.\\-]", "");
+            String angka = normalisasiAngkaLab(nilai);
+            if (!angka.matches("-?\\d+(\\.\\d+)?")) return null;
+            return Double.valueOf(angka);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String getStatusHLKritisLab(String nilaiStr, String rujukanStr, String kdJenisPrw, String idTemplate, String kategoriUmur) {
+        String statusRujukan = getStatusHLRujukanLab(nilaiStr, rujukanStr);
+        String statusKritis = getStatusKritisLab(nilaiStr, kdJenisPrw, idTemplate, kategoriUmur);
+        if (!statusKritis.equals("")) return statusKritis;
+        return statusRujukan;
+    }
+
+    private String getStatusHLRujukanLab(String nilaiStr, String rujukanStr) {
+        try {
+            Double nilai = ambilDoubleAngkaLab(nilaiStr);
+            if (nilai == null || rujukanStr == null) return "";
+            String hasil = nilaiStr == null ? "" : nilaiStr.trim();
+            boolean hasilLebih = hasil.startsWith(">");
+            boolean hasilKurang = hasil.startsWith("<");
+            String rujukan = rujukanStr.trim().replace("~", "-").replace("–", "-").replace("—", "-");
+            if (rujukan.equals("")) return "";
+            if (!rujukan.startsWith("<") && !rujukan.startsWith(">") && rujukan.matches(".*\\d\\s*-\\s*.*\\d.*")) {
+                String[] batas = rujukan.split("\\s*-\\s*", 2);
+                if (batas.length == 2) {
+                    Double bawah = ambilDoubleAngkaLab(batas[0]);
+                    Double atas = ambilDoubleAngkaLab(batas[1]);
+                    if (bawah != null && atas != null) {
+                        if (hasilLebih) {
+                            if (nilai.doubleValue() >= atas.doubleValue()) return "H";
+                        } else if (hasilKurang) {
+                            if (nilai.doubleValue() <= bawah.doubleValue()) return "L";
+                        } else {
+                            if (nilai.doubleValue() < bawah.doubleValue()) return "L";
+                            if (nilai.doubleValue() > atas.doubleValue()) return "H";
+                        }
+                    }
+                }
+            } else if (rujukan.startsWith("<")) {
+                Double batas = ambilDoubleAngkaLab(rujukan);
+                if (batas != null) {
+                    if (hasilLebih) {
+                        if (nilai.doubleValue() >= batas.doubleValue()) return "H";
+                    } else if (!hasilKurang && nilai.doubleValue() >= batas.doubleValue()) return "H";
+                }
+            } else if (rujukan.startsWith(">")) {
+                Double batas = ambilDoubleAngkaLab(rujukan);
+                if (batas != null) {
+                    if (hasilKurang) {
+                        if (nilai.doubleValue() <= batas.doubleValue()) return "L";
+                    } else if (!hasilLebih && nilai.doubleValue() <= batas.doubleValue()) return "L";
+                }
+            }
+        } catch (Exception e) {
+            // parsing gagal, dianggap normal/tanpa flag
+        }
+        return "";
+    }
+
+    private String getKategoriKritisLab(String kdJenisPrw, String idTemplate) {
+        String kode = (kdJenisPrw == null ? "" : kdJenisPrw.trim().toUpperCase()) + "|" +
+                      (idTemplate == null ? "" : idTemplate.trim());
+        if (kode.equals("J000120|4004") || kode.equals("J000121|4010")) return "HEMOGLOBIN";
+        if (kode.equals("J000032|3396") || kode.equals("J000090|3780") ||
+            kode.equals("J000090|3792") || kode.equals("J000103|3916") ||
+            kode.equals("J000103|3921") || kode.equals("J000104|3936") ||
+            kode.equals("J000120|4005") || kode.equals("J000121|4011") ||
+            kode.equals("J000020|3416") || kode.equals("J000045|3505") ||
+            kode.equals("J000046|3541")) return "LEUKOSIT";
+        if (kode.equals("J000021|3523") || kode.equals("J000047|3558") ||
+            kode.equals("J000123|3857") || kode.equals("J000120|4008") ||
+            kode.equals("J000121|4014") || kode.equals("J000020|3412") ||
+            kode.equals("J000045|3501") || kode.equals("J000046|3537")) return "TROMBOSIT";
+        if (kode.equals("J000022|3282") || kode.equals("J000048|3576") ||
+            kode.equals("J000049|3583") || kode.equals("J000050|3590")) return "APTT";
+        if (kode.equals("J000025|3675") || kode.equals("J000025|3698") ||
+            kode.equals("J000025|3295") || kode.equals("J000025|3296") ||
+            kode.equals("J000055|3612") || kode.equals("J000055|3615") ||
+            kode.equals("J000056|3622") || kode.equals("J000056|3624")) return "GLUKOSA_DARAH_SEWAKTU";
+        if (kode.equals("J000027|3309") || kode.equals("J000027|3311") ||
+            kode.equals("J000059|3648") || kode.equals("J000059|3650") ||
+            kode.equals("J000060|3652") || kode.equals("J000060|3654") ||
+            kode.equals("J000151|4322") || kode.equals("J000159|4352") ||
+            kode.equals("J000159|4389")) return "KREATININ";
+        if (kode.equals("J000024|3285") || kode.equals("J000024|3286") ||
+            kode.equals("J000032|3388") || kode.equals("J000051|3592") ||
+            kode.equals("J000054|3603") || kode.equals("J000054|3604") ||
+            kode.equals("J000024|3674") || kode.equals("J000090|3772") ||
+            kode.equals("J000103|3908") || kode.equals("J000051|3975") ||
+            kode.equals("J000054|3977")) return "BILIRUBIN";
+        if (kode.equals("J000026|3601") || kode.equals("J000057|3638") ||
+            kode.equals("J000058|3646") || kode.equals("J000026|4331")) return "TROPONIN_I";
+        if (kode.equals("J000151|4325") || kode.equals("J000159|4366")) return "KALIUM";
+        if (kode.equals("J000062|3708") || kode.equals("J000062|3709") ||
+            kode.equals("J000153|4334")) return "FT4";
+        return "";
+    }
+
+    private String getStatusKritisLab(String nilaiStr, String kdJenisPrw, String idTemplate, String kategoriUmur) {
+        try {
+            Double nilaiObj = ambilDoubleAngkaLab(nilaiStr);
+            if (nilaiObj == null) return "";
+            double nilai = nilaiObj.doubleValue();
+            String umur = kategoriUmur == null ? "Dewasa" : kategoriUmur;
+            String parameter = getKategoriKritisLab(kdJenisPrw, idTemplate);
+            if (parameter.equals("HEMOGLOBIN")) {
+                if (umur.equals("Neonatus") && nilai <= 10.0) return "L*";
+                if (umur.equals("Neonatus") && nilai >= 24.0) return "H*";
+                if (umur.equals("Anak") && nilai <= 7.0) return "L*";
+                if (umur.equals("Anak") && nilai >= 20.0) return "H*";
+                if (umur.equals("Dewasa") && nilai <= 7.0) return "L*";
+            } else if (parameter.equals("LEUKOSIT")) {
+                if (umur.equals("Neonatus") && nilai <= 5000.0) return "L*";
+                if (umur.equals("Neonatus") && nilai >= 50000.0) return "H*";
+                if (!umur.equals("Neonatus") && nilai < 1000.0) return "L*";
+                if (!umur.equals("Neonatus") && nilai >= 50000.0) return "H*";
+            } else if (parameter.equals("TROMBOSIT")) {
+                if (umur.equals("Neonatus") && nilai <= 50000.0) return "L*";
+                if (!umur.equals("Neonatus") && nilai <= 30000.0) return "L*";
+                if (!umur.equals("Neonatus") && nilai >= 800000.0) return "H*";
+            } else if (parameter.equals("APTT")) {
+                if (nilai > 150.0) return "H*";
+            } else if (parameter.equals("GLUKOSA_DARAH_SEWAKTU")) {
+                if (umur.equals("Neonatus") && nilai <= 40.0) return "L*";
+                if (umur.equals("Neonatus") && nilai >= 250.0) return "H*";
+                if (!umur.equals("Neonatus") && nilai < 70.0) return "L*";
+                if (!umur.equals("Neonatus") && nilai >= 600.0) return "H*";
+            } else if (parameter.equals("KREATININ")) {
+                if (umur.equals("Neonatus") && nilai >= 1.5) return "H*";
+                if (umur.equals("Anak") && nilai >= 2.5) return "H*";
+                if (umur.equals("Dewasa") && nilai >= 10.0) return "H*";
+            } else if (parameter.equals("BILIRUBIN")) {
+                if (umur.equals("Neonatus") && nilai >= 15.0) return "H*";
+            } else if (parameter.equals("TROPONIN_I")) {
+                if (nilai > 0.05) return "H*";
+            } else if (parameter.equals("KALIUM")) {
+                if (umur.equals("Neonatus") && nilai <= 3.5) return "L*";
+                if (!umur.equals("Neonatus") && nilai <= 2.5) return "L*";
+                if (nilai >= 6.0) return "H*";
+            } else if (parameter.equals("FT4")) {
+                if (nilai >= 7.77) return "H*";
+            }
+        } catch (Exception e) {
+            // tidak termasuk kritis
+        }
+        return "";
+    }
+
+    private String getKategoriUmurLab(String noRawat) {
+        String umurStr = Sequel.cariIsi(
+            "select pasien.umur from reg_periksa inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis where reg_periksa.no_rawat=?",
+            noRawat
+        );
+        int umurTahun = 0;
+        int umurHari = 0;
+        try {
+            String u = umurStr == null ? "" : umurStr.toLowerCase();
+            int angka = Integer.parseInt(u.replaceAll("[^0-9]", ""));
+            if (u.contains("hr") || u.contains("hari") || u.contains("day")) umurHari = angka;
+            else umurTahun = angka;
+        } catch(Exception e){
+            return "Dewasa";
+        }
+        if (umurHari > 0 && umurHari <= 28) return "Neonatus";
+        if (umurTahun >= 1 && umurTahun < 18) return "Anak";
+        return "Dewasa";
+    }
+
+
+     private void appendKunjunganHasilHtml(StringBuilder html, String idKunjungan, String judulKunjungan,
+             String noRawat, String tanggalRegistrasi,
+             java.util.LinkedHashMap<String, java.util.ArrayList<DataBerkasHasilPenunjang>> kelompok,
+             java.util.LinkedHashMap<String, String> idTanggal, boolean kunjunganSaatIni,
+             boolean whatsappSiap, String kodeBerkas) {
+         int totalFile = 0;
+         for (java.util.ArrayList<DataBerkasHasilPenunjang> daftarTanggal : kelompok.values()) {
+             totalFile += daftarTanggal.size();
+         }
+         int nomorFile = 1;
+         boolean layoutRadiologi = kodeBerkasRadiologi(kodeBerkas);
+         boolean layoutLaboratorium = kodeBerkasLaboratorium(kodeBerkas);
+         boolean layoutDokumen = layoutRadiologi || layoutLaboratorium;
+         html.append("<section class=\"kunjungan ").append(kunjunganSaatIni ? "kunjungan-saat-ini" : "kunjungan-riwayat")
+                 .append("\" id=\"").append(idKunjungan).append("\"><h1 class=\"kunjungan-title\">")
+                 .append(escapeHtml(judulKunjungan)).append("</h1><div class=\"kunjungan-meta\">No. Rawat: ")
+                 .append(escapeHtml(noRawat)).append(" &nbsp;|&nbsp; Tgl. Registrasi: ")
+                 .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggalRegistrasi))).append("</div>");
+         if (totalFile > 1 && !layoutDokumen) {
+             html.append("<div class=\"pilih-semua-option\"><label><input type=\"checkbox\" class=\"pilih-semua-berkas\" onchange=\"pilihSemuaBerkas(this,'")
+                     .append(idKunjungan)
+                     .append("')\">Pilih Semua Berkas</label></div>");
+         }
+         for (java.util.Map.Entry<String, java.util.ArrayList<DataBerkasHasilPenunjang>> entry : kelompok.entrySet()) {
+             String tanggal = entry.getKey();
+             int totalFileTanggal = entry.getValue().size();
+             int nomorFileTanggal = 1;
+             String jamTanggal = layoutRadiologi
+                     ? ambilRingkasanJamRadiologi(noRawat, tanggal)
+                     : (layoutLaboratorium
+                             ? ambilRingkasanJamBerkas(entry.getValue())
+                             : "");
+             String idTgl = idTanggal.get(tanggal);
+             ArrayList<String> seriesDicomTanggal = layoutRadiologi
+                     ? ambilSeriesDicomPenunjang(noRawat, tanggal)
+                     : new ArrayList<String>();
+             java.util.LinkedHashMap<String, DataPacsRadiologi> pacsTanggal =
+                     layoutRadiologi
+                     ? ambilDataPacsRadiologi(noRawat, tanggal)
+                     : new java.util.LinkedHashMap<String, DataPacsRadiologi>();
+             if (idTgl == null || idTgl.trim().equals("")) {
+                 idTgl = idKunjungan + "_tgl_lab_" + (Math.abs(tanggal.hashCode()));
+             }
+             String idBagianTanggal = idKunjungan + "_" + idTgl;
+             html.append("<section class=\"tanggal\" id=\"").append(idBagianTanggal)
+                     .append("\" data-date-target=\"").append(idTgl)
+                     .append("\" aria-hidden=\"true\"><h2>Hasil Tanggal ")
+                     .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggal))).append("</h2>");
+
+             DataBerkasHasilPenunjang dataHeader = totalFileTanggal > 0
+                     ? entry.getValue().get(0) : null;
+             if (layoutDokumen && dataHeader != null) {
+                 HasilPenunjangWhatsapp.StatusKirim statusHeader =
+                         HasilPenunjangWhatsapp.ambilStatusKirim(
+                                 noRawat, kodeBerkas, dataHeader.lokasiFile);
+                 String judulBerkas = layoutRadiologi
+                         ? judulTampilanBerkasPenunjang(dataHeader.namaFile, judulKunjungan)
+                         : "Hasil Laboratorium";
+                 html.append("<div class=\"file-workspace-head date-workspace-head\"><div><h3 class=\"file-workspace-title\">")
+                         .append(escapeHtml(judulBerkas))
+                         .append("</h3><div class=\"file-workspace-meta\">Hasil ")
+                         .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggal)));
+                 if (!jamTanggal.equals("")) {
+                     html.append(" &bull; Jam ").append(escapeHtml(jamTanggal));
+                 }
+                 html.append(" &bull; Registrasi ")
+                         .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggalRegistrasi)))
+                         .append("</div></div><div class=\"aksi-kanan\">");
+                 if (!kunjunganSaatIni) {
+                     html.append("<button class=\"btnSalinHasil\" type=\"button\" onclick=\"kirimSalinHasil()\" disabled>Salin ke Kunjungan Saat Ini</button>");
+                 }
+                 if (whatsappSiap) {
+                     html.append("<button class=\"btnKirimWAHasil\" type=\"button\" onclick=\"kirimWAPasien()\" disabled>")
+                             .append(statusHeader.sudahTerkirim ? "Kirim Ulang" : "Kirim Hasil")
+                             .append("</button>");
+                 }
+                 if (layoutLaboratorium) {
+                     html.append("<button class=\"btnMonitoringHasil\" type=\"button\" onclick=\"bukaMonitoringHasil()\">Monitoring Hasil</button>");
+                 }
+                 if (layoutRadiologi) {
+                     appendTombolLihatFotoDicom(html, seriesDicomTanggal);
+                     appendTombolLihatFotoPacs(html, pacsTanggal, tanggal);
+                 }
+                 html.append("</div></div>");
+             }
+
+             for (DataBerkasHasilPenunjang data : entry.getValue()) {
+                 int urutanFile = layoutDokumen ? nomorFileTanggal++ : nomorFile++;
+                 HasilPenunjangWhatsapp.StatusKirim statusKirim =
+                         HasilPenunjangWhatsapp.ambilStatusKirim(noRawat, kodeBerkas, data.lokasiFile);
+                 html.append("<article class=\"file\">");
+
+                 if (!layoutDokumen) {
+                     html.append("<div class=\"file-title\">").append(escapeHtml(data.namaFile)).append("</div>");
+                 }
+
+                 html.append("<div class=\"copy-option\">");
+                 if (layoutDokumen) html.append("<div class=\"file-select-group\">");
+                 html.append("<label><input type=\"checkbox\" class=\"file-choice")
+                         .append(kunjunganSaatIni ? "" : " copy-file")
+                         .append("\" data-waid=\"").append(escapeHtml(data.waId))
+                         .append("\" data-asal=\"").append(escapeHtml(noRawat))
+                         .append("\" data-lokasi=\"").append(escapeHtml(data.lokasiFile))
+                         .append(statusKirim.sudahTerkirim ? "\" data-wa-sudah=\"1" : "")
+                         .append("\" onchange=\"updateTombolAksi()\">Pilih Berkas</label>");
+
+                 if (layoutDokumen) {
+                     if (totalFileTanggal > 1 && urutanFile == 1) {
+                         html.append("<label class=\"pilih-semua-inline\"><input type=\"checkbox\" class=\"pilih-semua-berkas\" onchange=\"pilihSemuaBerkas(this,'")
+                                 .append(idBagianTanggal).append("')\">Semua</label>");
+                     }
+                     html.append("</div>");
+                     html.append("<div class=\"file-title\">").append(escapeHtml(data.namaFile)).append("</div>");
+                     if (statusKirim.sudahTerkirim) {
+                         html.append("<span class=\"status-wa-terkirim\">Terkirim ")
+                                 .append(escapeHtml(statusKirim.waktuKirim)).append("</span>");
+                     } else {
+                         html.append("<span></span>");
+                     }
+                     html.append("<span class=\"file-counter\">").append(urutanFile)
+                             .append(" / ").append(totalFileTanggal).append("</span>");
+                 } else {
+                     if (!kunjunganSaatIni) {
+                         html.append("<button class=\"btnSalinHasil\" type=\"button\" onclick=\"kirimSalinHasil()\" disabled>Salin Hasil Terpilih ke Kunjungan Saat Ini</button>");
+                     }
+                     if (statusKirim.sudahTerkirim) {
+                         html.append("<span class=\"status-wa-terkirim\">✓ Berkas berhasil dikirim ke pasien ")
+                                 .append(escapeHtml(statusKirim.waktuKirim)).append("</span>");
+                     }
+                     if (whatsappSiap) {
+                         html.append("<button class=\"btnKirimWAHasil\" type=\"button\" onclick=\"kirimWAPasien()\" disabled>")
+                                 .append(statusKirim.sudahTerkirim ? "Kirim Ulang Hasil ke Pasien" : "Kirim Hasil ke Pasien")
+                                 .append("</button>");
+                     }
+                 }
+                 html.append("</div>");
+                 html.append("<div class=\"image-wrap\"><img class=\"hasil\" src=\"")
+                         .append(escapeHtml(data.urlFile)).append("\" alt=\"")
+                         .append(escapeHtml(data.namaFile)).append("\"></div></article>");
+             }
+             html.append("</section>");
+         }
+         html.append("</section>");
+     }
+
+     private void appendKunjunganLabSementaraHtml(StringBuilder html, String idKunjungan, String judulKunjungan,
+             String noRawat, String tanggalRegistrasi,
+             java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> kelompok,
+             java.util.LinkedHashMap<String, String> idTanggal, boolean kunjunganSaatIni) {
+         html.append("<section class=\"kunjungan ").append(kunjunganSaatIni ? "kunjungan-saat-ini" : "kunjungan-riwayat")
+                 .append("\" id=\"").append(idKunjungan).append("\"><h1 class=\"kunjungan-title\">")
+                 .append(escapeHtml(judulKunjungan)).append("</h1><div class=\"kunjungan-meta\">No. Rawat: ")
+                 .append(escapeHtml(noRawat)).append(" &nbsp;|&nbsp; Tgl. Registrasi: ")
+                 .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggalRegistrasi))).append("</div>");
+         for (java.util.Map.Entry<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> entry : kelompok.entrySet()) {
+             String tanggal = entry.getKey();
+             String idTgl = idTanggal.get(tanggal);
+             if (idTgl == null || idTgl.trim().equals("")) idTgl = idKunjungan + "_tgl_lab_" + (Math.abs(tanggal.hashCode()));
+             html.append("<section class=\"tanggal\" id=\"").append(idKunjungan).append("_").append(idTgl)
+                     .append("\" data-date-target=\"").append(idTgl).append("\"><h2>Hasil Tanggal ")
+                     .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggal)))
+                     .append("</h2><div class=\"file-workspace-head\"><div><h3 class=\"file-workspace-title\">Hasil Laboratorium Sementara</h3>")
+                     .append("<div class=\"file-workspace-meta\">Hasil ")
+                     .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggal)))
+                     .append(" &bull; Registrasi ")
+                     .append(escapeHtml(formatTanggalTampilHasilPenunjang(tanggalRegistrasi)))
+                     .append("</div></div><div class=\"aksi-kanan\"><button class=\"btnMonitoringHasil\" type=\"button\" onclick=\"bukaMonitoringHasil()\">Monitoring Hasil</button></div></div>")
+                     .append("<div class=\"lab-info\">Hasil ini tampil dari data pemeriksaan laboratorium dan bersifat sementara untuk permintaan yang belum lengkap/belum di-upload final. Pengiriman WhatsApp pasien tetap menggunakan berkas final PDF/JPG yang sudah di-upload.</div>");
+             html.append("<table class=\"lab-table\"><thead><tr><th style=\"width:42px\">No</th><th>No. Permintaan</th><th>Pemeriksaan</th><th class=\"lab-hasil-head\">Hasil</th><th>Satuan / Nilai Rujukan</th><th>Keterangan</th><th>Status</th></tr></thead><tbody>");
+             java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> grupOrder = new java.util.LinkedHashMap<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>>();
+             int autoOrder = 0;
+             for (DataHasilLabSementaraPenunjang data : entry.getValue()) {
+                 String keyOrder = data.noOrder == null ? "" : data.noOrder.trim();
+                 if (keyOrder.equals("")) keyOrder = "__tanpa_order__" + (++autoOrder);
+                 if (!grupOrder.containsKey(keyOrder)) grupOrder.put(keyOrder, new java.util.ArrayList<DataHasilLabSementaraPenunjang>());
+                 grupOrder.get(keyOrder).add(data);
+             }
+             int no = 1;
+             for (java.util.Map.Entry<String, java.util.ArrayList<DataHasilLabSementaraPenunjang>> grup : grupOrder.entrySet()) {
+                 java.util.ArrayList<DataHasilLabSementaraPenunjang> daftarOrder = grup.getValue();
+                 int rowspan = daftarOrder == null ? 0 : daftarOrder.size();
+                 if (rowspan <= 0) continue;
+                 String namaIndukTerakhir = "";
+                 for (int idx = 0; idx < daftarOrder.size(); idx++) {
+                     DataHasilLabSementaraPenunjang data = daftarOrder.get(idx);
+                     boolean sudah = "Sudah Keluar".equalsIgnoreCase(data.status);
+                     String flagLab = flagStatusLabSementara(data, noRawat);
+                     html.append("<tr>");
+                     if (idx == 0) {
+                         html.append("<td rowspan=\"").append(rowspan).append("\">").append(no++).append("</td>");
+                         String noOrderTampil = (data.noOrder == null || data.noOrder.trim().equals("")) ? "-" : data.noOrder.trim();
+                         html.append("<td rowspan=\"").append(rowspan).append("\">").append(escapeHtml(noOrderTampil))
+                                 .append("<div class=\"lab-muted\">Permintaan: ").append(escapeHtml(formatTanggalTampilHasilPenunjang(data.tglPermintaan)))
+                                 .append("</div><div class=\"lab-muted\">Hasil: ").append(escapeHtml(formatTanggalTampilHasilPenunjang(data.tglHasil))).append("</div></td>");
+                     }
+                     String namaIndukSekarang = data.namaPemeriksaanInduk == null ? "" : data.namaPemeriksaanInduk.trim();
+                     boolean tampilkanNamaInduk = !namaIndukSekarang.equals("") && !namaIndukSekarang.equalsIgnoreCase(namaIndukTerakhir);
+                     if (tampilkanNamaInduk) namaIndukTerakhir = namaIndukSekarang;
+                     html.append("<td>");
+                     if (tampilkanNamaInduk) html.append("<span class=\"lab-group-name\">").append(escapeHtml(namaIndukSekarang)).append("</span>");
+                     html.append("<b>").append(escapeHtml(data.pemeriksaan.equals("") ? "-" : data.pemeriksaan)).append("</b></td><td class=\"lab-hasil-cell\">");
+                     if (sudah) {
+                         html.append(bangunNilaiAngkaLabHtml(data.nilai, flagLab, false));
+                     } else {
+                         html.append("<div style=\"font-family:'Segoe UI Semibold','Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700;color:#6b7280;line-height:1.2\">Menunggu hasil</div>");
+                     }
+                     html.append("</td><td>").append(formatSatuanDanRujukanLab(data.satuan, data.nilaiRujukan))
+                             .append("</td><td>").append(bangunKeteranganLabSementaraHtml(data.keterangan, flagLab, sudah))
+                             .append("</td><td><span class=\"").append(sudah ? "lab-status-ok" : "lab-status-pending")
+                             .append("\">").append(escapeHtml(data.status)).append("</span></td></tr>");
+                 }
+             }
+             html.append("</tbody></table></section>");
+         }
+         html.append("</section>");
+     }
+
+private String classWarnaHasilLabSementara(DataHasilLabSementaraPenunjang data, boolean sudahKeluar) {
+         if (!sudahKeluar || data == null) return "lab-hasil-pending";
+         String penanda = ((data.keterangan == null ? "" : data.keterangan) + " "
+                 + (data.status == null ? "" : data.status)).toUpperCase(java.util.Locale.ROOT);
+
+         if (mengandungTokenLab(penanda, "HH") || mengandungTokenLab(penanda, "LL")
+                 || penanda.contains("KRITIS") || penanda.contains("CRITICAL")) {
+             return "lab-hasil-critical";
+         }
+
+         if (mengandungTokenLab(penanda, "H") || mengandungTokenLab(penanda, "L")
+                 || penanda.contains("TINGGI") || penanda.contains("RENDAH")
+                 || penanda.contains("HIGH") || penanda.contains("LOW")
+                 || penanda.contains("↑") || penanda.contains("↓")) {
+             return "lab-hasil-abnormal";
+         }
+
+         int posisi = posisiNilaiTerhadapRujukanLab(data.nilai, data.nilaiRujukan);
+         if (posisi != 0) return "lab-hasil-abnormal";
+         return "lab-hasil-normal";
+     }
+
+     private boolean mengandungTokenLab(String teks, String token) {
+         if (teks == null || token == null || token.equals("")) return false;
+         try {
+             return java.util.regex.Pattern.compile("(^|[^A-Z0-9])" + java.util.regex.Pattern.quote(token) + "([^A-Z0-9]|$)")
+                     .matcher(teks).find();
+         } catch (Exception ex) {
+             return false;
+         }
+     }
+
+     /**
+      * Return -1 jika hasil di bawah rujukan, 1 jika di atas rujukan, 0 jika normal/tidak bisa dibandingkan.
+      * Mendukung rujukan sederhana seperti "< 100", "> 40", "3.5 - 7.2", dan angka desimal koma.
+      */
+     private int posisiNilaiTerhadapRujukanLab(String nilai, String rujukan) {
+         Double angkaHasil = angkaPertamaLab(nilai);
+         if (angkaHasil == null || rujukan == null || rujukan.trim().equals("")) return 0;
+
+         String ref = rujukan.replace('\u2013', '-').replace('\u2014', '-').replace(',', '.').trim();
+         try {
+             java.util.regex.Matcher pembanding = java.util.regex.Pattern
+                     .compile("(<=|>=|<|>)\\s*(-?\\d+(?:\\.\\d+)?)")
+                     .matcher(ref);
+             if (pembanding.find()) {
+                 String op = pembanding.group(1);
+                 double batas = Double.parseDouble(pembanding.group(2));
+                 if ("<".equals(op) && !(angkaHasil < batas)) return 1;
+                 if ("<=".equals(op) && !(angkaHasil <= batas)) return 1;
+                 if (">".equals(op) && !(angkaHasil > batas)) return -1;
+                 if (">=".equals(op) && !(angkaHasil >= batas)) return -1;
+                 return 0;
+             }
+
+             java.util.ArrayList<Double> daftarAngka = new java.util.ArrayList<Double>();
+             java.util.regex.Matcher m = java.util.regex.Pattern
+                     .compile("-?\\d+(?:\\.\\d+)?")
+                     .matcher(ref);
+             while (m.find()) daftarAngka.add(Double.parseDouble(m.group()));
+             if (daftarAngka.size() >= 2) {
+                 double bawah = Math.min(daftarAngka.get(0), daftarAngka.get(1));
+                 double atas = Math.max(daftarAngka.get(0), daftarAngka.get(1));
+                 if (angkaHasil < bawah) return -1;
+                 if (angkaHasil > atas) return 1;
+             }
+         } catch (Exception ex) {
+             return 0;
+         }
+         return 0;
+     }
+
+     private Double angkaPertamaLab(String teks) {
+         if (teks == null) return null;
+         try {
+             java.util.regex.Matcher m = java.util.regex.Pattern
+                     .compile("-?\\d+(?:[\\.,]\\d+)?")
+                     .matcher(teks);
+             if (m.find()) return Double.parseDouble(m.group().replace(',', '.'));
+         } catch (Exception ex) {
+             return null;
+         }
+         return null;
+     }
+
+     private void bukaFileHtmlDiBrowser(java.io.File fileHtml) throws Exception {
+         if (java.awt.Desktop.isDesktopSupported()) {
+             java.awt.Desktop desktop = java.awt.Desktop.getDesktop();
+             if (desktop.isSupported(java.awt.Desktop.Action.BROWSE)) {
+                 desktop.browse(fileHtml.toURI());
+                 return;
+             }
+         }
+         String sistemOperasi = System.getProperty("os.name", "").toLowerCase();
+         if (sistemOperasi.contains("win")) {
+             new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", fileHtml.toURI().toString()).start();
+             return;
+         }
+         throw new Exception("Browser default tidak tersedia pada komputer ini.");
+     }
+
+     private void bersihkanHtmlHasilPenunjangLama(java.io.File folderTemp) {
+         try {
+             java.io.File[] daftarFile = folderTemp.listFiles();
+             if (daftarFile == null) return;
+             long batasWaktu = System.currentTimeMillis() - (24L * 60L * 60L * 1000L);
+             for (int i = 0; i < daftarFile.length; i++) {
+                 java.io.File file = daftarFile[i];
+                 if (file.isFile() && file.getName().startsWith("Hasil_")
+                         && file.getName().toLowerCase().endsWith(".html") && file.lastModified() < batasWaktu) file.delete();
+             }
+         } catch (Exception ex) {
+             System.out.println("Notifikasi bersihkan halaman hasil penunjang : " + ex);
+         }
+     }
+
+     private String namaAmanFile(String nilai) {
+         if (nilai == null || nilai.trim().equals("")) return "Penunjang";
+         return nilai.replaceAll("[^A-Za-z0-9]", "");
+     }
+
+     private String escapeHtml(String text) {
+         if (text == null) return "";
+         return text.replace("&", "&amp;").replace("\"", "&quot;").replace("<", "&lt;").replace(">", "&gt;");
+     }
+}

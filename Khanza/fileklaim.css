@@ -1,0 +1,71 @@
+/* Global Font Sizes - Normal Readable */
+* { font-size: 12px !important; font-family: Arial, sans-serif !important; }
+body { font-size: 12px !important; line-height: 1.4 !important; margin: 15px !important; }
+/* Table Fonts - Standard Size */
+table, table *, td, th, tr { font-size: 11px !important; }
+table.sep, table.sep * { font-size: 10px !important; }
+td, th { padding: 3px !important; font-size: 11px !important; }
+/* Headers - Appropriate Hierarchy */
+h1 { font-size: 16px !important; margin: 6px 0 !important; font-weight: bold !important; }
+h2 { font-size: 14px !important; margin: 5px 0 !important; font-weight: bold !important; }
+h3 { font-size: 13px !important; margin: 4px 0 !important; font-weight: bold !important; }
+/* Paragraph and Text - Standard Size */
+p { font-size: 12px !important; margin: 3px 0 !important; }
+span { font-size: 12px !important; }
+div { font-size: 12px !important; margin: 2px 0 !important; }
+strong, b { font-size: 12px !important; font-weight: bold !important; }
+i { font-size: 12px !important; }
+/* SBPK Normal Font - Slightly Larger but Not Excessive */
+.sbpk-normal, .sbpk-normal *, .sbpk-normal table, .sbpk-normal td, .sbpk-normal th, .sbpk-normal p, .sbpk-normal div, .sbpk-normal span, .sbpk-normal strong, .sbpk-normal b {   font-size: 13px !important; }
+.sbpk-normal h1 { font-size: 17px !important; }
+.sbpk-normal h2 { font-size: 15px !important; }
+.sbpk-normal h3 { font-size: 14px !important; }
+/* SBPK Components */
+.sbpk-title { font-size: 15px !important; font-weight: bold !important; }
+.sbpk-table, .sbpk-table *, .sbpk-table td, .sbpk-table th { font-size: 12px !important; }
+.sbpk-box, .sbpk-box *, .sbpk-box strong, .sbpk-box span { font-size: 12px !important; }
+/* Medical Records - Standard Professional Size */
+.riwayat-perawatan, .riwayat-perawatan * { font-size: 12px !important; }
+.riwayat-perawatan table, .riwayat-perawatan table * { font-size: 11px !important; }
+.riwayat-perawatan h1 { font-size: 15px !important; }
+.riwayat-perawatan h2 { font-size: 14px !important; }
+.riwayat-perawatan h3 { font-size: 13px !important; }
+/* Container Styles */
+fieldset { border: 1px solid #000; margin: 8px 0; padding: 8px; font-size: 12px !important; }
+div[style*='border'] { padding: 5px !important; font-size: 12px !important; }
+/* Table Specific */
+table { border-collapse: collapse; width: 100%; margin: 5px 0; }
+table[border='1'] { border: 1px solid #000; }
+table[border='1'] td, table[border='1'] th { border: 1px solid #000; }
+th { font-weight: bold; background-color: #f0f0f0; }
+/* Print Styles - Appropriate for Print */
+@media print {
+  * { font-size: 11px !important; }
+  body { font-size: 11px !important; }
+  .sbpk-normal * { font-size: 12px !important; }
+  .riwayat-perawatan * { font-size: 11px !important; }
+  table * { font-size: 10px !important; }
+  h1 { font-size: 14px !important; }
+  h2 { font-size: 13px !important; }
+  .pagebreak { page-break-after: always; }
+  .avoid-page-break { page-break-before: avoid; }
+  @page { margin: 1cm; size: A4; }
+}
+/* Image Control */
+img { max-width: 100%; height: auto; }
+/* Alignment Preserve */
+[style*='text-align:center'] { text-align: center !important; }
+[style*='text-align:right'] { text-align: right !important; }
+[style*='text-align:left'] { text-align: left !important; }
+/* Background and Border Preserve */
+[style*='background-color:#f0f0f0'] { background-color: #f0f0f0 !important; }
+[style*='border: 1px solid black'] { border: 1px solid #000 !important; }
+/* Width Preserve */
+[width='100%'] { width: 100% !important; }
+[width='50%'] { width: 50% !important; }
+[width='70%'] { width: 70% !important; }
+[width='30%'] { width: 30% !important; }
+/* Override for Common Elements */
+center { font-size: 13px !important; }
+small { font-size: 11px !important; }
+.page-section { margin-bottom: 10px; font-size: 12px !important; }
