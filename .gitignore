@@ -5,15 +5,15 @@
 *.ear
 
 # Folder NetBeans & build
-/dist/
-/build/
-/nbproject/private/
-/setting/
-/settingupdate/
-/webapps/
-/api-bpjsfktl/
-/api-bpjsfktp/
-/api-bridgingradiologi/
+/Khanza/dist/
+/Khanza/build/
+/Khanza/nbproject/private/
+/Khanza/setting/
+/Khanza/settingupdate/
+/Khanza/webapps/
+/Khanza/api-bpjsfktl/
+/Khanza/api-bpjsfktp/
+/Khanza/api-bridgingradiologi/
 
 # File sistem
 .DS_Store
