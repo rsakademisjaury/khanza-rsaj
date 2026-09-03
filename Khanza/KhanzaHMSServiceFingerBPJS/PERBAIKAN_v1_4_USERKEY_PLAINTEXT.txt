@@ -1,0 +1,27 @@
+PERBAIKAN SERVICE FINGER BPJS v1.4
+====================================
+
+Temuan:
+- Pada database.xml RS, entry USERKEYAPIBPJS sudah tersedia.
+- USERKEYAPIBPJS tersimpan sebagai nilai langsung/plain text.
+- Versi v1.3 membaca USERKEYAPIBPJS memakai EnkripsiAES.decrypt(...), akibatnya key
+  dianggap kosong dan console memunculkan debug "Ciluk Baaaaaaa!!!!!".
+
+Perubahan v1.4:
+- HANYA method koneksiDB.USERKEYAPIBPJS() yang diubah agar membaca:
+  prop.getProperty("USERKEYAPIBPJS")
+- SECRETKEYAPIBPJS dan CONSIDAPIBPJS tidak diubah.
+- Logika antrean, retry, circuit breaker, request endpoint, dan DlgReg tidak diubah.
+
+database.xml:
+- TIDAK PERLU menambah baris apa pun, karena key ini sudah tersedia:
+  <entry key="USERKEYAPIBPJS">NILAI_USER_KEY_BPJS_ANDA</entry>
+
+Cara uji:
+1. Hentikan service v1.3.
+2. Extract ZIP v1.4 ke folder baru.
+3. Salin setting/database.xml yang sudah dipakai tadi ke folder setting/ service v1.4.
+4. Jalankan jalankan_service_finger.bat.
+
+Keamanan:
+- Jangan membagikan nilai User Key, Cons ID, atau Secret Key pada screenshot terbuka.

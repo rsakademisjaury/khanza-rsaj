@@ -13,11 +13,11 @@
  * Header autentikasi (sama dengan VClaim):
  *   X-Cons-ID, X-Timestamp, X-Signature, user_key
  *
- * Catatan konfigurasi:
- *   - Cons-ID, Secret Key, dan user_key memakai konfigurasi BPJS/VClaim yang
- *     sudah tersedia di Khanza.
- *   - Base URL Sisrute diturunkan otomatis dari URLAPIBPJS.
- *   - Organization ID memakai IDSATUSEHAT yang sudah tersedia.
+ * Catatan revisi v6:
+ *   - Cons-ID, Secret Key, user_key dibaca dari konfigurasi khusus BPJS SISRUTE,
+ *     bukan lagi dari VClaim umum.
+ *   - Base URL dibaca dari URLAPIBPJSSISRUTE.
+ *   - Signature dibuat memakai secretKey SISRUTE, bukan ApiBPJS.getHmac() lama.
  *   - Endpoint FKRTL/RS memakai /Rujukan/GetKriteriaRujukan, /Rujukan/GetFaskesRujukan,
  *     /Rujukan/Insert, dan /Rujukan/deleteKunjungan.
  *
@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import fungsi.koneksiDB;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.security.SecureRandom;
 import java.security.MessageDigest;
@@ -60,14 +61,24 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.HttpStatusCodeException;
 
+import AESsecurity.EnkripsiAES;
+import java.io.FileInputStream;
+import java.util.Properties;
+
 public class SisruteService {
 
     // ==== Konfigurasi (dari koneksiDB) ====
     private String baseUrl;       // contoh DEV: https://apijkn-dev.bpjs-kesehatan.go.id/vclaim-sisrute-rest
-    private String userKey;       // reuse user_key BPJS/VClaim
-    private String consId;        // reuse cons id BPJS/VClaim
-    private String secretKey;     // reuse secret key BPJS/VClaim
-    private String idSatuSehatOrg;
+    private String userKey;       // user_key khusus BPJS SISRUTE
+    private String consId;        // cons id khusus BPJS SISRUTE
+    private String secretKey;     // secret key khusus BPJS SISRUTE
+    private String envSisrute;    // dev/prod
+    private String kodeFaskesSatuSehatRujukan;
+    private String kodePpkBpjsSisrute;
+    private String idSatuSehatOrg;       // fallback dari IDSATUSEHAT() bila KODEFASKESSATUSEHATRUJUKAN salah
+   
+
+    private static boolean sisruteLoaded = false;
 
     // ==== Helper (reuse signature dari ApiBPJS) ====
     private final ApiBPJS api = new ApiBPJS();
@@ -82,17 +93,68 @@ public class SisruteService {
 
     public SisruteService() {
         try {
-            // Tidak memerlukan key khusus BPJS SISRUTE di setting/database.xml.
-            // Gunakan konfigurasi BPJS/VClaim dan IDSATUSEHAT yang sudah ada.
-            userKey = koneksiDB.USERKEYAPIBPJS();
-            consId = koneksiDB.CONSIDAPIBPJS();
-            secretKey = koneksiDB.SECRETKEYAPIBPJS();
-            idSatuSehatOrg = koneksiDB.IDSATUSEHAT();
-            baseUrl = deriveSisruteUrlFromBpjsUrl(koneksiDB.URLAPIBPJS());
+            // Konfigurasi khusus BPJS SISRUTE.
+            // Dibaca via reflection agar file ini tetap bisa compile saat koneksiDB.java
+            // belum ditambah getter; tetapi untuk credential terenkripsi, getter koneksiDB tetap wajib.
+            
+            
+//            baseUrl   = readKoneksiDB("URLAPIBPJSSISRUTE");
+//            userKey   = readKoneksiDB("USERKEYAPIBPJSSISRUTE");
+//            consId    = readKoneksiDB("CONSIDAPIBPJSSISRUTE");
+//            secretKey = readKoneksiDB("SECRETKEYAPIBPJSSISRUTE");
+//            envSisrute = readKoneksiDB("ENVBPJSSISRUTE");
+//            kodeFaskesSatuSehatRujukan = readKoneksiDB("KODEFASKESSATUSEHATRUJUKAN");
+//            kodePpkBpjsSisrute = readKoneksiDB("KODEPPKBPJSSISRUTE");
+//            idSatuSehatOrg = readKoneksiDB("IDSATUSEHAT");
+            
+            loadConfigSisrute();
+            if (envSisrute == null || envSisrute.trim().isEmpty()) {
+                envSisrute = "dev";
+            }
 
+            // Fallback aman bila getter baru belum ada.
+            // Catatan: fallback credential VClaim umum hanya untuk mencegah NullPointer;
+            // untuk testing DEV SISRUTE sebaiknya tetap tambahkan getter baru di koneksiDB.java.
+            if (isBlank(baseUrl)) {
+                baseUrl = deriveSisruteUrlFromBpjsUrl(koneksiDB.URLAPIBPJS(), envSisrute);
+            }
+            if (isBlank(userKey)) {
+                userKey = koneksiDB.USERKEYAPIBPJS();
+                System.out.println("[SisruteService] WARNING: USERKEYAPIBPJSSISRUTE belum terbaca, fallback ke USERKEYAPIBPJS().");
+            }
+            if (isBlank(consId)) {
+                consId = koneksiDB.CONSIDAPIBPJS();
+                System.out.println("[SisruteService] WARNING: CONSIDAPIBPJSSISRUTE belum terbaca, fallback ke CONSIDAPIBPJS().");
+            }
+            if (isBlank(secretKey)) {
+                secretKey = koneksiDB.SECRETKEYAPIBPJS();
+                System.out.println("[SisruteService] WARNING: SECRETKEYAPIBPJSSISRUTE belum terbaca, fallback ke SECRETKEYAPIBPJS().");
+            }
+
+            baseUrl = normalizeBaseUrl(baseUrl, envSisrute);
+
+            System.out.println("[SisruteService] ENV       : " + envSisrute);
             System.out.println("[SisruteService] Base URL  : " + baseUrl);
+            System.out.println("[SisruteService] Faskes SS : " + safe(kodeFaskesSatuSehatRujukan));
+            System.out.println("[SisruteService] PPK BPJS  : " + safe(kodePpkBpjsSisrute));
+            System.out.println("[SisruteService] IDSATUSEHAT fallback : " + safe(idSatuSehatOrg));
         } catch (Exception ex) {
             System.out.println("SisruteService init error : " + ex);
+        }
+    }
+
+    /**
+     * Membaca getter static di koneksiDB.java, misalnya URLAPIBPJSSISRUTE().
+     * Nama key dikirim tanpa tanda kurung.
+     */
+    private String readKoneksiDB(String methodName) {
+        try {
+            Method m = koneksiDB.class.getMethod(methodName);
+            Object val = m.invoke(null);
+            return val == null ? "" : val.toString().trim();
+        } catch (Exception e) {
+            System.out.println("[SisruteService] Getter koneksiDB." + methodName + "() belum tersedia/bermasalah: " + e.getClass().getSimpleName());
+            return "";
         }
     }
 
@@ -107,9 +169,11 @@ public class SisruteService {
      *   Endpoint lama /sisrute-rest akan menghasilkan 404 untuk jalur FKRTL.
      *   /pcare-sisrute-rest dipakai untuk FKTP/PCARE, bukan untuk RS/FKRTL.
      */
-    private String deriveSisruteUrlFromBpjsUrl(String urlBpjs) {
+    private String deriveSisruteUrlFromBpjsUrl(String urlBpjs, String env) {
         if (urlBpjs == null || urlBpjs.trim().isEmpty()) {
-            return "https://apijkn.bpjs-kesehatan.go.id/vclaim-sisrute-rest";
+            return isDev(env)
+                    ? "https://dvlp.bpjs-kesehatan.go.id/vclaim-sisrute-rest/api/v1.0"
+                    : "https://bpjs-kesehatan.go.id/vclaim-sisrute-rest/api/v1.0";
         }
 
         String url = urlBpjs.trim();
@@ -135,6 +199,15 @@ public class SisruteService {
         }
 
         // Host standar BPJS.
+//        if (url.contains("apijkn-dev.bpjs-kesehatan.go.id")) {
+//            return "https://apijkn-dev.bpjs-kesehatan.go.id/vclaim-sisrute-rest";
+//        }
+//        if (url.contains("apijkn.bpjs-kesehatan.go.id")) {
+//            return "https://apijkn.bpjs-kesehatan.go.id/vclaim-sisrute-rest";
+//        }
+        
+        
+          // Host standar BPJS.
         if (url.contains("apijkn-dev.bpjs-kesehatan.go.id")) {
             return "https://apijkn-dev.bpjs-kesehatan.go.id/vclaim-sisrute-rest";
         }
@@ -149,6 +222,33 @@ public class SisruteService {
             return url.substring(0, firstSlashAfterHost) + "/vclaim-sisrute-rest";
         }
         return url + "/vclaim-sisrute-rest";
+    }
+
+    private String normalizeBaseUrl(String url, String env) {
+        if (isBlank(url)) {
+            return isDev(env)
+                    ? "https://dvlp.bpjs-kesehatan.go.id/vclaim-sisrute-rest/api/v1.0"
+                    : "https://bpjs-kesehatan.go.id/vclaim-sisrute-rest/api/v1.0";
+        }
+        String u = url.trim();
+        if (u.endsWith("/")) {
+            u = u.substring(0, u.length() - 1);
+        }
+        // Kalau user mengisi host dev/prod tetapi path masih salah, luruskan ke FKRTL.
+        if (u.endsWith("/sisrute-rest") || u.endsWith("/pcare-sisrute-rest") || u.endsWith("/vclaim-rest")) {
+            return deriveSisruteUrlFromBpjsUrl(u, env);
+        }
+        if (!u.endsWith("/vclaim-sisrute-rest/api/v1.0")) {
+            return deriveSisruteUrlFromBpjsUrl(u, env);
+        }
+        return u;
+    }
+
+    private boolean isDev(String env) {
+        return env == null || env.trim().isEmpty()
+                || env.equalsIgnoreCase("dev")
+                || env.equalsIgnoreCase("development")
+                || env.equalsIgnoreCase("uat");
     }
 
     // =================================================================
@@ -167,7 +267,7 @@ public class SisruteService {
         return h;
     }
 
-    /** Membuat signature BPJS memakai consId & secretKey BPJS/VClaim existing. */
+    /** Membuat signature BPJS memakai consId & secretKey khusus SISRUTE. */
     private String getHmacSisrute(String timestamp) {
         try {
             String data = consId + "&" + timestamp;
@@ -870,14 +970,22 @@ public class SisruteService {
      *   akan menolak dengan pesan: Wrong reference ID format: Organization/7371052.
      *
      * Urutan prioritas:
-     * 1. kode dari form, biasanya sudah berasal dari IDSATUSEHAT().
-     * 2. IDSATUSEHAT() sebagai fallback.
-     * 3. Kalau formatnya belum ideal, tetap kirim nilai yang tersedia agar pesan
-     *    validasi API tetap terlihat.
+     * 1. KODEFASKESSATUSEHATRUJUKAN, jika formatnya terlihat seperti Org ID Satu Sehat.
+     * 2. kode dari form, biasanya dari IDSATUSEHAT().
+     * 3. IDSATUSEHAT(), sebagai fallback tambahan.
+     * 4. Kalau semuanya tidak ideal, tetap kirim nilai yang ada supaya pesan error API terlihat.
      */
     private String pilihKodeFaskes(String kodeDariForm) {
+        String dariConfig = safe(kodeFaskesSatuSehatRujukan);
         String dariForm = safe(kodeDariForm);
         String dariIdSatusehat = safe(idSatuSehatOrg);
+
+        if (!isBlank(dariConfig) && isLikelySatuSehatOrgId(dariConfig)) {
+            return dariConfig;
+        }
+        if (!isBlank(dariConfig) && !isLikelySatuSehatOrgId(dariConfig)) {
+            System.out.println("[SisruteService] WARNING: KODEFASKESSATUSEHATRUJUKAN='" + dariConfig + "' terlihat bukan Organization ID Satu Sehat. Nilai ini dilewati.");
+        }
 
         if (!isBlank(dariForm) && isLikelySatuSehatOrgId(dariForm)) {
             return dariForm;
@@ -888,6 +996,7 @@ public class SisruteService {
         }
 
         // Fallback terakhir: jangan kosong, agar response API tetap memberi pesan diagnostik.
+        if (!isBlank(dariConfig)) return dariConfig;
         if (!isBlank(dariForm)) return dariForm;
         return dariIdSatusehat;
     }
@@ -895,8 +1004,8 @@ public class SisruteService {
     /**
      * Validasi ringan untuk menghindari kode wilayah/faskes pendek yang sering keliru.
      * Contoh valid dari Postman/playbook umumnya: 10000005, 100010939, 100028359.
-     * Jika pola Organization ID berubah, validasi ringan ini dapat disesuaikan tanpa
-     * menambah key konfigurasi baru.
+     * Jika nanti Org ID SATUSEHAT di tempat bro berbeda pola, cukup isi KODEFASKESSATUSEHATRUJUKAN
+     * dengan Org ID yang benar dan sesuaikan validasi ini.
      */
     private boolean isLikelySatuSehatOrgId(String s) {
         if (isBlank(s)) return false;
@@ -973,7 +1082,14 @@ public class SisruteService {
     // =================================================================
 
     /**
-     * Tes manual memakai konfigurasi BPJS/VClaim dan IDSATUSEHAT yang sudah ada.
+     * Tes manual. Pastikan koneksiDB.java sudah ditambah getter khusus BPJS SISRUTE:
+     *   - URLAPIBPJSSISRUTE()
+     *   - CONSIDAPIBPJSSISRUTE()
+     *   - SECRETKEYAPIBPJSSISRUTE()
+     *   - USERKEYAPIBPJSSISRUTE()
+     *   - KODEFASKESSATUSEHATRUJUKAN()
+     *   - KODEPPKBPJSSISRUTE()
+     *   - ENVBPJSSISRUTE()
      *
      * Cara pakai:
      *   1. Aktifkan blok tes yang diinginkan (uncomment).
@@ -1062,4 +1178,53 @@ public class SisruteService {
             ex.printStackTrace();
         }
     }
+    
+    private void loadConfigSisrute() {
+
+    try {
+
+        Properties prop = new Properties();
+        prop.loadFromXML(new FileInputStream("setting/database.xml"));
+
+        // NON ENCRYPT
+        baseUrl =
+                prop.getProperty("URLAPIBPJSSISRUTE", "").trim();
+
+        envSisrute =
+                prop.getProperty("ENVBPJSSISRUTE", "").trim();
+
+        // ENCRYPT
+        userKey =
+                EnkripsiAES.decrypt(
+                        prop.getProperty("USERKEYAPIBPJSSISRUTE", ""));
+
+        consId =
+                EnkripsiAES.decrypt(
+                        prop.getProperty("CONSIDAPIBPJSSISRUTE", ""));
+
+        secretKey =
+                EnkripsiAES.decrypt(
+                        prop.getProperty("SECRETKEYAPIBPJSSISRUTE", ""));
+
+        kodeFaskesSatuSehatRujukan =
+                EnkripsiAES.decrypt(
+                        prop.getProperty("KODEFASKESSATUSEHATRUJUKAN", ""));
+
+        kodePpkBpjsSisrute =
+                EnkripsiAES.decrypt(
+                        prop.getProperty("KODEPPKBPJSSISRUTE", ""));
+
+        idSatuSehatOrg =
+                EnkripsiAES.decrypt(
+                        prop.getProperty("IDSATUSEHATRUJUKAN", ""));
+        
+        System.out.println("config dasar baseUrl: " + baseUrl);
+
+    } catch (Exception e) {
+
+        System.out.println(
+                "[SisruteService] Gagal load config : " + e);
+
+    }
+}
 }

@@ -136,6 +136,29 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
      // ===== State data dari parent (BPJSDataSEP) =====
     private String noRujukanBPJS = "";
     private String noRujukanSatusehat = "";
+
+    // ===== Snapshot respons API terakhir (hanya untuk tampilan/debugging) =====
+    private String lastApiResponseJson = "";
+    private String lastApiResponseSource = "Belum ada respon API";
+    private String lastApiResponseTime = "";
+    private boolean lastApiResponseError = false;
+    private String lastProcessStatusMessage = "Form siap digunakan.";
+    private boolean lastProcessStatusError = false;
+
+    // Label ringkas pada header panel tabel (UI saja, tidak ikut payload/API).
+    private javax.swing.JLabel lblJumlahKriteriaUi;
+    private javax.swing.JLabel lblJumlahFaskesUi;
+
+    // Toast dibuat lokal agar perubahan tampilan tidak memengaruhi form Khanza lain.
+    private static final java.util.List<javax.swing.JWindow> ACTIVE_RUJUKAN_TOASTS =
+            new java.util.ArrayList<>();
+
+    // Backdrop blur khusus form ini. Glass pane lama selalu dikembalikan saat
+    // popup ditutup agar tidak memengaruhi komponen maupun form Khanza lain.
+    private java.awt.Component previousMainGlassPane;
+    private boolean previousMainGlassPaneVisible;
+    private boolean mainFormBlurActive;
+    private static final int POPUP_CORNER_RADIUS = 20;
     
     public BPJSRujukanSatuSehat(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
@@ -380,6 +403,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         btnHapus = new widget.Button();
         BtnPrint = new widget.Button();
         btnTutup = new widget.Button();
+        btnResponApi = new widget.Button();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Rujukan Keluar Sisrute BPJS + SATUSEHAT");
@@ -533,12 +557,14 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
 
         scrollKeterangan1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(204, 204, 204)));
         scrollKeterangan1.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        tStatus.setEditable(false);
+        tStatus.setFont(new java.awt.Font("Segoe UI", 0, 11));
         scrollKeterangan1.setViewportView(tStatus);
 
         panelData.add(scrollKeterangan1, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 490, 360, 80));
 
         lblKet1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        lblKet1.setText("Respon API");
+        lblKet1.setText("Status Proses");
         panelData.add(lblKet1, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 490, 95, 20));
 
         lblNoSep1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -637,6 +663,10 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         btnTutup.setPreferredSize(new java.awt.Dimension(120, 30));
         panelTombol.add(btnTutup);
 
+        btnResponApi.setText("Respon API");
+        btnResponApi.setPreferredSize(new java.awt.Dimension(130, 30));
+        panelTombol.add(btnResponApi);
+
         frameMain.add(panelTombol, java.awt.BorderLayout.PAGE_END);
 
         getContentPane().add(frameMain, java.awt.BorderLayout.CENTER);
@@ -686,6 +716,12 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         setupComboDefaults();
         setupTabelTengah();
         setupActionTombol();
+        setupPanelTombolModern();
+        setupModernPatientForm();
+        setupFormHeader();
+        setupModernDiagnosisPopup();
+        setupModernPoliPopup();
+        setupPopupBlurEffect();
         tNoRujukanBpjs.setText("");
         tNoRujukanSatuSehat.setText("");
     }
@@ -717,9 +753,6 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
 
     private void setupTabelTengah() {
         try {
-            frameKriteria.setBorder(BorderFactory.createTitledBorder("Kriteria Rujukan (isi jawaban di kolom paling kanan)"));
-            frameFaskes.setBorder(BorderFactory.createTitledBorder("Faskes Tujuan (centang salah satu)"));
-
             tblKriteria.setModel(modelKriteria);
             tblKriteria.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
             if (tblKriteria.getColumnModel().getColumnCount() >= 4) {
@@ -736,6 +769,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
             }
             tblKriteria.setDefaultRenderer(Object.class, new WarnaTable());
             setupJawabanKriteriaEditor();
+            styleModernDataTable(tblKriteria);
 
             tblFaskes.setModel(modelFaskes);
             tblFaskes.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -744,6 +778,11 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
                 tblFaskes.getColumnModel().getColumn(i).setPreferredWidth(widthsFaskes[i]);
             }
             tblFaskes.setDefaultRenderer(Object.class, new WarnaTable());
+            styleModernDataTable(tblFaskes);
+
+            styleModernScrollPane(scrollKriteria);
+            styleModernScrollPane(scrollFaskes);
+            rebuildModernTableSections();
 
             modelFaskes.addTableModelListener(e -> {
                 if (e.getColumn() == 0 && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
@@ -769,8 +808,255 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
                     }
                 }
             });
+
+            // Tinggi kedua panel selalu dihitung ulang setelah isi model berubah.
+            modelKriteria.addTableModelListener(e ->
+                    javax.swing.SwingUtilities.invokeLater(this::updateDynamicTableHeights));
+            modelFaskes.addTableModelListener(e ->
+                    javax.swing.SwingUtilities.invokeLater(this::updateDynamicTableHeights));
+            javax.swing.SwingUtilities.invokeLater(this::updateDynamicTableHeights);
         } catch (Exception e) {
             System.out.println("Gagal setup tabel tengah: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Menyusun ulang dua tabel sebagai card datar. Komponen tabel dan scroll lama
+     * tetap dipakai sehingga event serta model datanya tidak berubah.
+     */
+    private void rebuildModernTableSections() {
+        java.awt.Color page = new java.awt.Color(248, 250, 252);
+        java.awt.Color line = new java.awt.Color(226, 232, 240);
+
+        lblJumlahKriteriaUi = createTableCountBadge("0 item");
+        lblJumlahFaskesUi = createTableCountBadge("0 faskes");
+
+        frameKriteria.removeAll();
+        frameKriteria.setLayout(new java.awt.BorderLayout());
+        frameKriteria.setOpaque(true);
+        frameKriteria.setBackground(java.awt.Color.WHITE);
+        frameKriteria.setBorder(javax.swing.BorderFactory.createLineBorder(line));
+        frameKriteria.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        frameKriteria.add(createTableSectionHeader(
+                "Kriteria Rujukan",
+                "Isi jawaban pada kolom paling kanan sesuai kondisi pasien.",
+                lblJumlahKriteriaUi), java.awt.BorderLayout.NORTH);
+        frameKriteria.add(scrollKriteria, java.awt.BorderLayout.CENTER);
+
+        frameFaskes.removeAll();
+        frameFaskes.setLayout(new java.awt.BorderLayout());
+        frameFaskes.setOpaque(true);
+        frameFaskes.setBackground(java.awt.Color.WHITE);
+        frameFaskes.setBorder(javax.swing.BorderFactory.createLineBorder(line));
+        frameFaskes.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        frameFaskes.add(createTableSectionHeader(
+                "Faskes Tujuan",
+                "Centang satu fasilitas kesehatan sebagai tujuan rujukan.",
+                lblJumlahFaskesUi), java.awt.BorderLayout.NORTH);
+        frameFaskes.add(scrollFaskes, java.awt.BorderLayout.CENTER);
+
+        panelTengah.removeAll();
+        panelTengah.setLayout(new javax.swing.BoxLayout(
+                panelTengah, javax.swing.BoxLayout.Y_AXIS));
+        panelTengah.setOpaque(true);
+        panelTengah.setBackground(page);
+        panelTengah.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        panelTengah.add(frameKriteria);
+        panelTengah.add(javax.swing.Box.createVerticalStrut(8));
+        panelTengah.add(frameFaskes);
+        panelTengah.add(javax.swing.Box.createVerticalGlue());
+        panelTengah.revalidate();
+        panelTengah.repaint();
+    }
+
+    private javax.swing.JPanel createTableSectionHeader(String titleText,
+            String subtitleText, javax.swing.JLabel countBadge) {
+        javax.swing.JPanel header = new javax.swing.JPanel(new java.awt.BorderLayout(10, 0));
+        header.setBackground(java.awt.Color.WHITE);
+        header.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(
+                        0, 0, 1, 0, new java.awt.Color(226, 232, 240)),
+                javax.swing.BorderFactory.createEmptyBorder(7, 12, 7, 12)));
+        header.setPreferredSize(new java.awt.Dimension(10, 52));
+
+        javax.swing.JPanel textBox = new javax.swing.JPanel();
+        textBox.setOpaque(false);
+        textBox.setLayout(new javax.swing.BoxLayout(textBox, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JLabel title = new javax.swing.JLabel(titleText);
+        title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 13));
+        title.setForeground(new java.awt.Color(30, 41, 59));
+
+        javax.swing.JLabel subtitle = new javax.swing.JLabel(subtitleText);
+        subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 10));
+        subtitle.setForeground(new java.awt.Color(100, 116, 139));
+        subtitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 0, 0, 0));
+
+        textBox.add(title);
+        textBox.add(subtitle);
+        javax.swing.JPanel badgeBox = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        badgeBox.setOpaque(false);
+        badgeBox.add(countBadge);
+        header.add(textBox, java.awt.BorderLayout.CENTER);
+        header.add(badgeBox, java.awt.BorderLayout.EAST);
+        return header;
+    }
+
+    private javax.swing.JLabel createTableCountBadge(String text) {
+        javax.swing.JLabel badge = new javax.swing.JLabel(text);
+        badge.setOpaque(true);
+        badge.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        badge.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 10));
+        badge.setForeground(new java.awt.Color(30, 64, 175));
+        badge.setBackground(new java.awt.Color(219, 234, 254));
+        badge.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 9, 3, 9));
+        return badge;
+    }
+
+    private void styleModernDataTable(javax.swing.JTable table) {
+        table.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        table.setRowHeight(30);
+        table.setBackground(java.awt.Color.WHITE);
+        table.setForeground(new java.awt.Color(30, 41, 59));
+        table.setSelectionBackground(new java.awt.Color(219, 234, 254));
+        table.setSelectionForeground(new java.awt.Color(30, 64, 175));
+        table.setGridColor(new java.awt.Color(241, 245, 249));
+        table.setShowVerticalLines(false);
+        table.setShowHorizontalLines(true);
+        table.setIntercellSpacing(new java.awt.Dimension(0, 1));
+        table.setFillsViewportHeight(false);
+
+        if (table.getTableHeader() != null) {
+            table.getTableHeader().setFont(
+                    new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+            table.getTableHeader().setBackground(new java.awt.Color(241, 245, 249));
+            table.getTableHeader().setForeground(new java.awt.Color(51, 65, 85));
+            table.getTableHeader().setPreferredSize(new java.awt.Dimension(0, 32));
+            table.getTableHeader().setReorderingAllowed(false);
+
+            javax.swing.table.DefaultTableCellRenderer headerRenderer =
+                    new javax.swing.table.DefaultTableCellRenderer() {
+                @Override
+                public java.awt.Component getTableCellRendererComponent(
+                        javax.swing.JTable headerTable, Object value,
+                        boolean isSelected, boolean hasFocus, int row, int column) {
+                    java.awt.Component rendered = super.getTableCellRendererComponent(
+                            headerTable, value, isSelected, hasFocus, row, column);
+                    setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 10, 0, 10));
+                    return rendered;
+                }
+            };
+            headerRenderer.setOpaque(true);
+            headerRenderer.setFont(
+                    new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+            headerRenderer.setBackground(new java.awt.Color(241, 245, 249));
+            headerRenderer.setForeground(new java.awt.Color(51, 65, 85));
+            headerRenderer.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            for (int i = 0; i < table.getColumnModel().getColumnCount(); i++) {
+                table.getColumnModel().getColumn(i).setHeaderRenderer(headerRenderer);
+            }
+        }
+    }
+
+    private void styleModernScrollPane(javax.swing.JScrollPane scroll) {
+        scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        scroll.setViewportBorder(null);
+        scroll.getViewport().setBackground(java.awt.Color.WHITE);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.getHorizontalScrollBar().setUnitIncrement(16);
+        scroll.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        scroll.getHorizontalScrollBar().setUI(new ModernScrollBarUI());
+        scroll.getVerticalScrollBar().setPreferredSize(new java.awt.Dimension(9, 0));
+        scroll.getHorizontalScrollBar().setPreferredSize(new java.awt.Dimension(0, 9));
+    }
+
+    /**
+     * Menampilkan maksimal enam baris sebelum scrollbar vertikal diperlukan.
+     * Tinggi scrollbar horizontal turut dihitung agar baris terakhir tidak
+     * terpotong meskipun lebar kolom melebihi viewport.
+     */
+    private void updateDynamicTableHeights() {
+        updateTableSectionHeight(frameKriteria, scrollKriteria, tblKriteria);
+        updateTableSectionHeight(frameFaskes, scrollFaskes, tblFaskes);
+
+        if (lblJumlahKriteriaUi != null) {
+            int count = modelKriteria.getRowCount();
+            lblJumlahKriteriaUi.setText(count + " item");
+        }
+        if (lblJumlahFaskesUi != null) {
+            int count = modelFaskes.getRowCount();
+            lblJumlahFaskesUi.setText(count + " faskes");
+        }
+
+        panelTengah.revalidate();
+        panelTengah.repaint();
+    }
+
+    private void updateTableSectionHeight(javax.swing.JComponent section,
+            javax.swing.JScrollPane scroll, javax.swing.JTable table) {
+        int visibleRows = Math.max(1, Math.min(table.getRowCount(), 6));
+        int headerHeight = table.getTableHeader() == null
+                ? 32 : Math.max(32, table.getTableHeader().getPreferredSize().height);
+        int rowsHeight = 0;
+        for (int row = 0; row < visibleRows; row++) {
+            rowsHeight += row < table.getRowCount()
+                    ? table.getRowHeight(row) : table.getRowHeight();
+        }
+        int horizontalBarHeight = Math.max(9,
+                scroll.getHorizontalScrollBar().getPreferredSize().height);
+        int scrollHeight = headerHeight + rowsHeight + horizontalBarHeight + 3;
+        int sectionHeight = 52 + scrollHeight + 2;
+
+        scroll.setMinimumSize(new java.awt.Dimension(100, scrollHeight));
+        scroll.setPreferredSize(new java.awt.Dimension(100, scrollHeight));
+        section.setMinimumSize(new java.awt.Dimension(100, sectionHeight));
+        section.setPreferredSize(new java.awt.Dimension(100, sectionHeight));
+        section.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, sectionHeight));
+    }
+
+    private static final class ModernScrollBarUI
+            extends javax.swing.plaf.basic.BasicScrollBarUI {
+        @Override
+        protected void configureScrollBarColors() {
+            trackColor = new java.awt.Color(248, 250, 252);
+            thumbColor = new java.awt.Color(203, 213, 225);
+            thumbDarkShadowColor = thumbColor;
+            thumbHighlightColor = thumbColor;
+            thumbLightShadowColor = thumbColor;
+        }
+
+        @Override
+        protected javax.swing.JButton createDecreaseButton(int orientation) {
+            return createZeroButton();
+        }
+
+        @Override
+        protected javax.swing.JButton createIncreaseButton(int orientation) {
+            return createZeroButton();
+        }
+
+        private javax.swing.JButton createZeroButton() {
+            javax.swing.JButton button = new javax.swing.JButton();
+            java.awt.Dimension zero = new java.awt.Dimension(0, 0);
+            button.setPreferredSize(zero);
+            button.setMinimumSize(zero);
+            button.setMaximumSize(zero);
+            return button;
+        }
+
+        @Override
+        protected void paintThumb(java.awt.Graphics g, javax.swing.JComponent c,
+                java.awt.Rectangle thumbBounds) {
+            if (thumbBounds.isEmpty() || !scrollbar.isEnabled()) return;
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover()
+                    ? new java.awt.Color(148, 163, 184) : thumbColor);
+            g2.fillRoundRect(thumbBounds.x + 2, thumbBounds.y + 2,
+                    Math.max(3, thumbBounds.width - 4),
+                    Math.max(3, thumbBounds.height - 4), 8, 8);
+            g2.dispose();
         }
     }
 
@@ -782,6 +1068,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         btnCariFaskes.addActionListener(e -> doCariFaskes());
         btnKirim.addActionListener(e -> doKirimRujukan());
         btnHapus.addActionListener(e -> doHapusRujukan());
+        btnResponApi.addActionListener(e -> showApiResponseDialog());
         btnTutup.addActionListener(e -> dispose());
     }
 
@@ -810,6 +1097,1874 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         b.setPreferredSize(new Dimension(140, 30));
 //        b.setGlassColor(new java.awt.Color(255, 255, 255));
         return b;
+    }
+
+    /**
+     * Menjaga tombol operasional tetap di kiri dan tombol Respon API selalu
+     * menempel di sisi kanan panel, berapa pun lebar formnya.
+     */
+    private void setupPanelTombolModern() {
+        javax.swing.JPanel panelKiri = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 9));
+        javax.swing.JPanel panelKanan = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 8, 9));
+
+        panelKiri.setOpaque(false);
+        panelKanan.setOpaque(false);
+
+        panelTombol.removeAll();
+        panelTombol.setLayout(new java.awt.BorderLayout());
+        panelTombol.setBorder(javax.swing.BorderFactory.createMatteBorder(
+                1, 0, 0, 0, new java.awt.Color(226, 232, 240)));
+
+        panelKiri.add(btnCekKriteria);
+        panelKiri.add(btnCariFaskes);
+        panelKiri.add(btnKirim);
+        panelKiri.add(btnHapus);
+        panelKiri.add(BtnPrint);
+        panelKiri.add(btnTutup);
+
+        btnResponApi.setIcon(new JsonButtonIcon());
+        btnResponApi.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+        btnResponApi.setToolTipText("Lihat respon API terakhir dalam format JSON");
+        panelKanan.add(btnResponApi);
+
+        panelTombol.add(panelKiri, java.awt.BorderLayout.CENTER);
+        panelTombol.add(panelKanan, java.awt.BorderLayout.EAST);
+        panelTombol.revalidate();
+        panelTombol.repaint();
+    }
+
+    /**
+     * Header ringkas agar konteks form langsung terbaca tanpa mengurangi area
+     * kerja secara berlebihan.
+     */
+    private void setupFormHeader() {
+        if (Boolean.TRUE.equals(frameMain.getClientProperty("bpjs.main.header"))) return;
+        frameMain.putClientProperty("bpjs.main.header", Boolean.TRUE);
+
+        javax.swing.JPanel header = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+        header.setBackground(java.awt.Color.WHITE);
+        header.setPreferredSize(new java.awt.Dimension(10, 44));
+        header.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(
+                        0, 0, 1, 0, new java.awt.Color(226, 232, 240)),
+                javax.swing.BorderFactory.createEmptyBorder(5, 12, 5, 12)));
+
+        javax.swing.JPanel accent = new javax.swing.JPanel();
+        accent.setBackground(new java.awt.Color(37, 99, 235));
+        accent.setPreferredSize(new java.awt.Dimension(4, 10));
+
+        javax.swing.JPanel heading = new javax.swing.JPanel();
+        heading.setOpaque(false);
+        heading.setLayout(new javax.swing.BoxLayout(heading, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JLabel title = new javax.swing.JLabel("Integrasi Rujukan Satu Sehat");
+        title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 14));
+        title.setForeground(new java.awt.Color(15, 23, 42));
+
+        javax.swing.JLabel subtitle = new javax.swing.JLabel(
+                "Rujukan keluar terintegrasi BPJS VClaim dan SATUSEHAT");
+        subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 10));
+        subtitle.setForeground(new java.awt.Color(100, 116, 139));
+
+        heading.add(title);
+        heading.add(subtitle);
+
+        javax.swing.JLabel integrationBadge = new javax.swing.JLabel("BPJS  \u2022  SATUSEHAT");
+        integrationBadge.setOpaque(true);
+        integrationBadge.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 10));
+        integrationBadge.setForeground(new java.awt.Color(30, 64, 175));
+        integrationBadge.setBackground(new java.awt.Color(239, 246, 255));
+        integrationBadge.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 10, 4, 10));
+
+        javax.swing.JPanel badgeBox = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        badgeBox.setOpaque(false);
+        badgeBox.add(integrationBadge);
+
+        header.add(accent, java.awt.BorderLayout.WEST);
+        header.add(heading, java.awt.BorderLayout.CENTER);
+        header.add(badgeBox, java.awt.BorderLayout.EAST);
+        frameMain.add(header, java.awt.BorderLayout.NORTH);
+        frameMain.revalidate();
+        frameMain.repaint();
+    }
+
+    /**
+     * Menata ulang panel kiri dengan bahasa visual yang sama seperti panel
+     * Kriteria/Faskes. Seluruh field, combo, tanggal, tombol, dan text area lama
+     * dipakai kembali agar event serta alur datanya tidak berubah.
+     */
+    private void setupModernPatientForm() {
+        if (Boolean.TRUE.equals(panelData.getClientProperty("bpjs.patient.form.modernized"))) {
+            return;
+        }
+        panelData.putClientProperty("bpjs.patient.form.modernized", Boolean.TRUE);
+
+        styleModernPatientComponents();
+
+        javax.swing.JPanel identityBody = createFormRowsPanel(
+                createDualFormRow(lblNoSep, tNoSep, lblNoSep1, tNoRujukanBpjs),
+                createDualFormRow(lblNoRawat, tNoRawat, lblNoSep2, tNoRujukanSatuSehat),
+                createSingleFormRow(lblPasien, tPasien),
+                createEncounterFormRow(),
+                createDualFormRow(lblIhsPasien, tIdPasienIhs,
+                        lblIhsDokter, tIdDokterIhs));
+
+        javax.swing.JPanel referralBody = createFormRowsPanel(
+                createPickerFormRow(lblDiag, tKdDiagnosaRujuk,
+                        tNmDiagnosaRujuk, btnPilihDiagnosa),
+                createPickerFormRow(lblPoli, tKdPoliRujuk,
+                        tNmPoliRujuk, btnPilihPoli),
+                createDualFormRow(lblJnsPelayanan, cbJnsPelayanan,
+                        lblTipeRujukan, cbTipeRujukan),
+                createDualFormRow(lblTglRujukan, dtTglRujukan,
+                        lblTglRencana, dtTglRencana),
+                createSingleFormRow(lblProvinsi, cbProvinsi));
+
+        javax.swing.JPanel notesBody = createNotesBody();
+
+        javax.swing.JPanel identityCard = createModernFormCard(
+                "Identitas Pasien",
+                "Data kunjungan dan identitas integrasi SATUSEHAT",
+                identityBody, 214);
+        javax.swing.JPanel referralCard = createModernFormCard(
+                "Detail Rujukan",
+                "Diagnosa, poli, jenis layanan, dan jadwal rujukan",
+                referralBody, 214);
+        javax.swing.JPanel notesCard = createModernFormCard(
+                "Catatan Tambahan",
+                "Catatan klinis dan keterangan pendukung rujukan",
+                notesBody, 150);
+
+        // GridBag dipakai agar setiap card selalu mengisi lebar panel dari kiri.
+        // BoxLayout sebelumnya dapat membentuk alignment axis dari komponen badge
+        // yang lebih kecil sehingga card terdorong ke kanan dan menyisakan ruang.
+        javax.swing.JPanel stack = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        stack.setOpaque(false);
+        stack.setComponentOrientation(java.awt.ComponentOrientation.LEFT_TO_RIGHT);
+
+        java.awt.GridBagConstraints stackGbc = new java.awt.GridBagConstraints();
+        stackGbc.gridx = 0;
+        stackGbc.weightx = 1;
+        stackGbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        stackGbc.anchor = java.awt.GridBagConstraints.NORTHWEST;
+
+        stackGbc.gridy = 0;
+        stackGbc.insets = new java.awt.Insets(0, 0, 8, 0);
+        stack.add(identityCard, stackGbc);
+
+        stackGbc.gridy = 1;
+        stack.add(referralCard, stackGbc);
+
+        stackGbc.gridy = 2;
+        stackGbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        stack.add(notesCard, stackGbc);
+
+        javax.swing.JPanel filler = new javax.swing.JPanel();
+        filler.setOpaque(false);
+        stackGbc.gridy = 3;
+        stackGbc.weighty = 1;
+        stackGbc.fill = java.awt.GridBagConstraints.BOTH;
+        stack.add(filler, stackGbc);
+
+        panelData.removeAll();
+        panelData.setLayout(new java.awt.BorderLayout());
+        panelData.setOpaque(true);
+        panelData.setBackground(new java.awt.Color(248, 250, 252));
+        panelData.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 4));
+        panelData.setPreferredSize(new java.awt.Dimension(590, 250));
+        panelData.add(stack, java.awt.BorderLayout.CENTER);
+        panelData.revalidate();
+        panelData.repaint();
+
+        updateStatusProcessStyle(tStatus.getText(), false);
+    }
+
+    private javax.swing.JPanel createModernFormCard(String titleText,
+            String subtitleText, javax.swing.JPanel body, int height) {
+        javax.swing.JPanel card = new javax.swing.JPanel(new java.awt.BorderLayout());
+        card.setOpaque(true);
+        card.setBackground(java.awt.Color.WHITE);
+        card.setBorder(javax.swing.BorderFactory.createLineBorder(
+                new java.awt.Color(226, 232, 240)));
+        card.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        card.add(createModernFormSectionHeader(titleText, subtitleText),
+                java.awt.BorderLayout.NORTH);
+        card.add(body, java.awt.BorderLayout.CENTER);
+        card.setMinimumSize(new java.awt.Dimension(100, height));
+        card.setPreferredSize(new java.awt.Dimension(100, height));
+        card.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, height));
+        return card;
+    }
+
+    private javax.swing.JPanel createModernFormSectionHeader(String titleText,
+            String subtitleText) {
+        javax.swing.JPanel header = new javax.swing.JPanel(new java.awt.BorderLayout());
+        header.setBackground(java.awt.Color.WHITE);
+        header.setPreferredSize(new java.awt.Dimension(10, 40));
+        header.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(
+                        0, 0, 1, 0, new java.awt.Color(226, 232, 240)),
+                javax.swing.BorderFactory.createEmptyBorder(4, 12, 4, 12)));
+
+        javax.swing.JPanel textBox = new javax.swing.JPanel();
+        textBox.setOpaque(false);
+        textBox.setLayout(new javax.swing.BoxLayout(textBox, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JLabel title = new javax.swing.JLabel(titleText);
+        title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 13));
+        title.setForeground(new java.awt.Color(30, 41, 59));
+
+        javax.swing.JLabel subtitle = new javax.swing.JLabel(subtitleText);
+        subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 10));
+        subtitle.setForeground(new java.awt.Color(100, 116, 139));
+
+        textBox.add(title);
+        textBox.add(subtitle);
+        header.add(textBox, java.awt.BorderLayout.CENTER);
+        return header;
+    }
+
+    private javax.swing.JPanel createFormRowsPanel(javax.swing.JPanel... rows) {
+        javax.swing.JPanel body = new javax.swing.JPanel();
+        body.setOpaque(true);
+        body.setBackground(java.awt.Color.WHITE);
+        body.setLayout(new javax.swing.BoxLayout(body, javax.swing.BoxLayout.Y_AXIS));
+        body.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        for (int i = 0; i < rows.length; i++) {
+            body.add(rows[i]);
+            if (i < rows.length - 1) {
+                body.add(javax.swing.Box.createVerticalStrut(5));
+            }
+        }
+        return body;
+    }
+
+    private javax.swing.JPanel createDualFormRow(javax.swing.JLabel leftLabel,
+            javax.swing.JComponent leftComponent, javax.swing.JLabel rightLabel,
+            javax.swing.JComponent rightComponent) {
+        javax.swing.JPanel row = createBaseFormRow();
+        java.awt.GridBagConstraints gbc = baseFormConstraints();
+
+        gbc.gridx = 0;
+        gbc.weightx = 0;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 8);
+        row.add(createFormLabelCell(leftLabel), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1;
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        leftComponent.setPreferredSize(new java.awt.Dimension(140, 28));
+        rightComponent.setPreferredSize(new java.awt.Dimension(140, 28));
+        row.add(leftComponent, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.insets = new java.awt.Insets(0, 18, 0, 8);
+        row.add(createFormLabelCell(rightLabel), gbc);
+
+        gbc.gridx = 3;
+        gbc.weightx = 1;
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        row.add(rightComponent, gbc);
+        return row;
+    }
+
+    private javax.swing.JPanel createSingleFormRow(javax.swing.JLabel label,
+            javax.swing.JComponent component) {
+        javax.swing.JPanel row = createBaseFormRow();
+        java.awt.GridBagConstraints gbc = baseFormConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 0;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 8);
+        row.add(createFormLabelCell(label), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1;
+        gbc.gridwidth = 3;
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        row.add(component, gbc);
+        return row;
+    }
+
+    private javax.swing.JPanel createEncounterFormRow() {
+        javax.swing.JPanel row = createBaseFormRow();
+        java.awt.GridBagConstraints gbc = baseFormConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 0;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 8);
+        row.add(createFormLabelCell(lblEncounter), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1;
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 10);
+        row.add(tEncounter, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        gbc.gridwidth = 2;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        row.add(btnBuatEncounter, gbc);
+        return row;
+    }
+
+    private javax.swing.JPanel createPickerFormRow(javax.swing.JLabel label,
+            javax.swing.JComponent codeField, javax.swing.JComponent nameField,
+            javax.swing.AbstractButton pickerButton) {
+        javax.swing.JPanel row = createBaseFormRow();
+        java.awt.GridBagConstraints gbc = baseFormConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 0;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 8);
+        row.add(createFormLabelCell(label), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0;
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 8);
+        codeField.setPreferredSize(new java.awt.Dimension(68, 28));
+        codeField.setMinimumSize(new java.awt.Dimension(68, 28));
+        codeField.setMaximumSize(new java.awt.Dimension(68, 28));
+        row.add(codeField, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 1;
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 6);
+        row.add(nameField, gbc);
+
+        gbc.gridx = 3;
+        gbc.weightx = 0;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 0);
+        row.add(pickerButton, gbc);
+        return row;
+    }
+
+    private javax.swing.JPanel createBaseFormRow() {
+        javax.swing.JPanel row = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        row.setOpaque(false);
+        row.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        row.setMinimumSize(new java.awt.Dimension(100, 28));
+        row.setPreferredSize(new java.awt.Dimension(100, 28));
+        row.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 28));
+        return row;
+    }
+
+    /**
+     * Wrapper ini membuat titik awal seluruh textbox/combobox konsisten.
+     * JLabel custom Khanza memiliki preferred-size berbeda sesuai panjang teks,
+     * sehingga tanpa wrapper setiap baris terlihat bergeser.
+     */
+    private javax.swing.JPanel createFormLabelCell(javax.swing.JLabel label) {
+        javax.swing.JPanel cell = new javax.swing.JPanel(new java.awt.BorderLayout());
+        cell.setOpaque(false);
+        cell.setPreferredSize(new java.awt.Dimension(100, 28));
+        cell.setMinimumSize(new java.awt.Dimension(100, 28));
+        cell.setMaximumSize(new java.awt.Dimension(100, 28));
+        cell.add(label, java.awt.BorderLayout.CENTER);
+        return cell;
+    }
+
+    private java.awt.GridBagConstraints baseFormConstraints() {
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        return gbc;
+    }
+
+    private javax.swing.JPanel createNotesBody() {
+        javax.swing.JPanel body = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        body.setBackground(java.awt.Color.WHITE);
+        body.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 8, 12));
+
+        javax.swing.JPanel catatanBlock = createTextAreaBlock(lblCatatan, scrollCatatan);
+        javax.swing.JPanel keteranganBlock = createTextAreaBlock(lblKet, scrollKeterangan);
+
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.weightx = 0.5;
+        gbc.weighty = 1;
+        gbc.fill = java.awt.GridBagConstraints.BOTH;
+        gbc.gridx = 0;
+        gbc.insets = new java.awt.Insets(0, 0, 0, 6);
+        body.add(catatanBlock, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new java.awt.Insets(0, 6, 0, 0);
+        body.add(keteranganBlock, gbc);
+        return body;
+    }
+
+    private javax.swing.JPanel createTextAreaBlock(javax.swing.JLabel label,
+            javax.swing.JScrollPane scroll) {
+        javax.swing.JPanel block = new javax.swing.JPanel(new java.awt.BorderLayout(0, 4));
+        block.setOpaque(false);
+        label.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+        label.setForeground(new java.awt.Color(71, 85, 105));
+        label.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        label.setPreferredSize(new java.awt.Dimension(10, 18));
+        block.add(label, java.awt.BorderLayout.NORTH);
+        block.add(scroll, java.awt.BorderLayout.CENTER);
+        return block;
+    }
+
+    private void styleModernPatientComponents() {
+        javax.swing.JLabel[] labels = {
+            lblNoSep, lblNoSep1, lblNoRawat, lblNoSep2, lblPasien,
+            lblEncounter, lblIhsPasien, lblIhsDokter, lblDiag, lblPoli,
+            lblJnsPelayanan, lblTipeRujukan, lblTglRujukan,
+            lblTglRencana, lblProvinsi
+        };
+        for (javax.swing.JLabel label : labels) {
+            label.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            label.setForeground(new java.awt.Color(71, 85, 105));
+            label.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            label.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+            label.setPreferredSize(new java.awt.Dimension(100, 28));
+        }
+
+        java.awt.Color white = java.awt.Color.WHITE;
+        java.awt.Color readOnly = new java.awt.Color(248, 250, 252);
+        java.awt.Color line = new java.awt.Color(203, 213, 225);
+        java.awt.Color result = new java.awt.Color(255, 251, 235);
+        java.awt.Color resultLine = new java.awt.Color(253, 230, 138);
+
+        styleModernFormInput(tNoRawat, white, line);
+        styleModernFormInput(tNmDiagnosaRujuk, white, line);
+        styleModernFormInput(cbJnsPelayanan, white, line);
+        styleModernFormInput(cbTipeRujukan, white, line);
+        styleModernFormInput(dtTglRujukan, white, line);
+        styleModernFormInput(dtTglRencana, white, line);
+        styleModernFormInput(cbProvinsi, white, line);
+
+        styleModernFormInput(tNoSep, readOnly, line);
+        styleModernFormInput(tPasien, readOnly, line);
+        styleModernFormInput(tEncounter, readOnly, line);
+        styleModernFormInput(tIdPasienIhs, readOnly, line);
+        styleModernFormInput(tIdDokterIhs, readOnly, line);
+        styleModernFormInput(tKdDiagnosaRujuk, readOnly, line);
+        styleModernFormInput(tKdPoliRujuk, readOnly, line);
+        styleModernFormInput(tNmPoliRujuk, readOnly, line);
+        styleModernFormInput(tNoRujukanBpjs, result, resultLine);
+        styleModernFormInput(tNoRujukanSatuSehat, result, resultLine);
+
+        stylePickerButton(btnPilihDiagnosa);
+        stylePickerButton(btnPilihPoli);
+        styleEncounterButton();
+
+        styleModernTextArea(taCatatan, scrollCatatan);
+        styleModernTextArea(taKeterangan, scrollKeterangan);
+        styleModernTextArea(tStatus, scrollKeterangan1);
+    }
+
+    private void styleModernFormInput(javax.swing.JComponent component,
+            java.awt.Color background, java.awt.Color borderColor) {
+        component.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        component.setForeground(new java.awt.Color(30, 41, 59));
+        component.setBackground(background);
+        javax.swing.border.Border lineBorder =
+                javax.swing.BorderFactory.createLineBorder(borderColor);
+
+        if (component instanceof javax.swing.text.JTextComponent) {
+            component.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    lineBorder,
+                    javax.swing.BorderFactory.createEmptyBorder(0, 8, 0, 8)));
+            javax.swing.text.JTextComponent textComponent =
+                    (javax.swing.text.JTextComponent) component;
+            textComponent.setMargin(new java.awt.Insets(0, 0, 0, 0));
+
+            if (textComponent instanceof javax.swing.JTextField) {
+                ((javax.swing.JTextField) textComponent).setHorizontalAlignment(
+                        javax.swing.SwingConstants.LEFT);
+            }
+        } else {
+            component.setBorder(lineBorder);
+        }
+
+        java.awt.Dimension preferred = component.getPreferredSize();
+        component.setPreferredSize(new java.awt.Dimension(
+                Math.max(40, preferred.width), 28));
+        component.setMinimumSize(new java.awt.Dimension(40, 28));
+    }
+
+    private void stylePickerButton(javax.swing.AbstractButton button) {
+        button.setPreferredSize(new java.awt.Dimension(30, 28));
+        button.setMinimumSize(new java.awt.Dimension(30, 28));
+        button.setMaximumSize(new java.awt.Dimension(30, 28));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setOpaque(false);
+        button.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        button.setToolTipText("Buka pencarian referensi");
+    }
+
+    private void styleEncounterButton() {
+        btnBuatEncounter.setFont(new java.awt.Font(
+                "Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+        btnBuatEncounter.setForeground(new java.awt.Color(30, 64, 175));
+        btnBuatEncounter.setBackground(new java.awt.Color(239, 246, 255));
+        btnBuatEncounter.setBorder(javax.swing.BorderFactory.createLineBorder(
+                new java.awt.Color(191, 219, 254)));
+        btnBuatEncounter.setPreferredSize(new java.awt.Dimension(132, 28));
+        btnBuatEncounter.setMinimumSize(new java.awt.Dimension(132, 28));
+        btnBuatEncounter.setFocusPainted(false);
+        btnBuatEncounter.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        btnBuatEncounter.setCursor(
+                java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        btnBuatEncounter.setOpaque(true);
+        btnBuatEncounter.setContentAreaFilled(true);
+    }
+
+    private void styleModernTextArea(javax.swing.JTextArea textArea,
+            javax.swing.JScrollPane scroll) {
+        textArea.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        textArea.setForeground(new java.awt.Color(51, 65, 85));
+        textArea.setBackground(java.awt.Color.WHITE);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 7, 5, 7));
+        scroll.setVerticalScrollBarPolicy(
+                javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scroll.setHorizontalScrollBarPolicy(
+                javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        styleModernScrollPane(scroll);
+        scroll.setBorder(javax.swing.BorderFactory.createLineBorder(
+                new java.awt.Color(203, 213, 225)));
+    }
+
+    private void updateStatusProcessStyle(String message, boolean error) {
+        java.awt.Color[] colors = resolveProcessStatusColors(message, error);
+        java.awt.Color background = colors[0];
+        java.awt.Color foreground = colors[1];
+        java.awt.Color line = colors[2];
+
+        tStatus.setBackground(background);
+        tStatus.setForeground(foreground);
+        scrollKeterangan1.getViewport().setBackground(background);
+        scrollKeterangan1.setBorder(javax.swing.BorderFactory.createLineBorder(line));
+    }
+
+    private boolean isProcessingStatus(String message) {
+        String normalized = safe(message).toLowerCase();
+        return normalized.contains("memanggil")
+                || normalized.contains("mengirim")
+                || normalized.contains("menyiapkan")
+                || normalized.contains("mencari")
+                || normalized.contains("memproses");
+    }
+
+    private java.awt.Color[] resolveProcessStatusColors(String message, boolean error) {
+        if (error) {
+            return new java.awt.Color[]{
+                new java.awt.Color(254, 242, 242),
+                new java.awt.Color(185, 28, 28),
+                new java.awt.Color(254, 202, 202)
+            };
+        }
+        if (isProcessingStatus(message)) {
+            return new java.awt.Color[]{
+                new java.awt.Color(239, 246, 255),
+                new java.awt.Color(30, 64, 175),
+                new java.awt.Color(191, 219, 254)
+            };
+        }
+        return new java.awt.Color[]{
+            new java.awt.Color(240, 253, 244),
+            new java.awt.Color(21, 128, 61),
+            new java.awt.Color(187, 247, 208)
+        };
+    }
+
+    /**
+     * Memberi shell visual baru pada popup BPJSCekReferensiPenyakit. Isi,
+     * pencarian, tombol, tabel, dan callback popup lama tetap digunakan.
+     */
+    private void setupModernDiagnosisPopup() {
+        try {
+            java.awt.Container originalContent = popupPenyakit.getContentPane();
+            if (originalContent == null
+                    || Boolean.TRUE.equals(popupPenyakit.getRootPane()
+                            .getClientProperty("bpjs.diagnosis.modernized"))) {
+                return;
+            }
+
+            popupPenyakit.getRootPane().putClientProperty("bpjs.diagnosis.modernized", Boolean.TRUE);
+            popupPenyakit.setTitle("Referensi Diagnosa VClaim");
+            configureRoundedPopupWindow(popupPenyakit, true);
+            popupPenyakit.getRootPane().setBorder(
+                    javax.swing.BorderFactory.createEmptyBorder());
+
+            javax.swing.JPanel shell = new javax.swing.JPanel(new java.awt.BorderLayout());
+            shell.setBackground(java.awt.Color.WHITE);
+            shell.setBorder(new RoundedPopupBorder(
+                    new java.awt.Color(203, 213, 225)));
+
+            javax.swing.JPanel header = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+            header.setBackground(new java.awt.Color(248, 250, 252));
+            header.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createMatteBorder(
+                            0, 0, 1, 0, new java.awt.Color(226, 232, 240)),
+                    javax.swing.BorderFactory.createEmptyBorder(14, 18, 13, 12)));
+
+            javax.swing.JPanel titleBox = new javax.swing.JPanel();
+            titleBox.setOpaque(false);
+            titleBox.setLayout(new javax.swing.BoxLayout(titleBox, javax.swing.BoxLayout.Y_AXIS));
+
+            javax.swing.JLabel title = new javax.swing.JLabel("Referensi Diagnosa VClaim");
+            title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 15));
+            title.setForeground(new java.awt.Color(30, 41, 59));
+
+            javax.swing.JLabel subtitle = new javax.swing.JLabel(
+                    "Cari berdasarkan kode ICD-10 atau nama penyakit, lalu pilih diagnosa rujukan.");
+            subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            subtitle.setForeground(new java.awt.Color(100, 116, 139));
+            subtitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 0, 0, 0));
+
+            titleBox.add(title);
+            titleBox.add(subtitle);
+
+            javax.swing.JButton close = createFlatCloseButton();
+            close.setToolTipText("Tutup pencarian diagnosa");
+            close.addActionListener(e -> popupPenyakit.dispose());
+
+            header.add(titleBox, java.awt.BorderLayout.CENTER);
+            header.add(close, java.awt.BorderLayout.EAST);
+
+            if (originalContent instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent) originalContent).setBorder(
+                        javax.swing.BorderFactory.createEmptyBorder(10, 14, 14, 14));
+            }
+
+            popupPenyakit.setContentPane(shell);
+            shell.add(header, java.awt.BorderLayout.NORTH);
+            shell.add(originalContent, java.awt.BorderLayout.CENTER);
+
+            modernizeDiagnosisTree(originalContent);
+            styleDiagnosisTable(popupPenyakit.getTable());
+            installDialogDragSupport(header, popupPenyakit);
+        } catch (Exception e) {
+            System.out.println("Gagal memperbarui tampilan popup diagnosa: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Memberi shell visual yang sama pada popup BPJSCekReferensiPoli. Isi,
+     * proses pencarian, pemilihan, dan callback popup asli tetap dipakai.
+     */
+    private void setupModernPoliPopup() {
+        try {
+            java.awt.Container originalContent = popupPoli.getContentPane();
+            if (originalContent == null
+                    || Boolean.TRUE.equals(popupPoli.getRootPane()
+                            .getClientProperty("bpjs.poli.modernized"))) {
+                return;
+            }
+
+            popupPoli.getRootPane().putClientProperty("bpjs.poli.modernized", Boolean.TRUE);
+            popupPoli.setTitle("Referensi Poli/Unit VClaim");
+            configureRoundedPopupWindow(popupPoli, true);
+            popupPoli.getRootPane().setBorder(
+                    javax.swing.BorderFactory.createEmptyBorder());
+
+            javax.swing.JPanel shell = new javax.swing.JPanel(new java.awt.BorderLayout());
+            shell.setBackground(java.awt.Color.WHITE);
+            shell.setBorder(new RoundedPopupBorder(
+                    new java.awt.Color(203, 213, 225)));
+
+            javax.swing.JPanel header = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+            header.setBackground(new java.awt.Color(248, 250, 252));
+            header.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createMatteBorder(
+                            0, 0, 1, 0, new java.awt.Color(226, 232, 240)),
+                    javax.swing.BorderFactory.createEmptyBorder(14, 18, 13, 12)));
+
+            javax.swing.JPanel titleBox = new javax.swing.JPanel();
+            titleBox.setOpaque(false);
+            titleBox.setLayout(new javax.swing.BoxLayout(titleBox, javax.swing.BoxLayout.Y_AXIS));
+
+            javax.swing.JLabel title = new javax.swing.JLabel("Referensi Poli/Unit VClaim");
+            title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 15));
+            title.setForeground(new java.awt.Color(30, 41, 59));
+
+            javax.swing.JLabel subtitle = new javax.swing.JLabel(
+                    "Cari berdasarkan kode atau nama poli/unit, lalu pilih tujuan rujukan.");
+            subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            subtitle.setForeground(new java.awt.Color(100, 116, 139));
+            subtitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 0, 0, 0));
+
+            titleBox.add(title);
+            titleBox.add(subtitle);
+
+            javax.swing.JButton close = createFlatCloseButton();
+            close.setToolTipText("Tutup pencarian poli/unit");
+            close.addActionListener(e -> popupPoli.dispose());
+
+            header.add(titleBox, java.awt.BorderLayout.CENTER);
+            header.add(close, java.awt.BorderLayout.EAST);
+
+            if (originalContent instanceof javax.swing.JComponent) {
+                ((javax.swing.JComponent) originalContent).setBorder(
+                        javax.swing.BorderFactory.createEmptyBorder(10, 14, 14, 14));
+            }
+
+            popupPoli.setContentPane(shell);
+            shell.add(header, java.awt.BorderLayout.NORTH);
+            shell.add(originalContent, java.awt.BorderLayout.CENTER);
+
+            modernizeDiagnosisTree(originalContent);
+            styleDiagnosisTable(popupPoli.getTable());
+            installDialogDragSupport(header, popupPoli);
+        } catch (Exception e) {
+            System.out.println("Gagal memperbarui tampilan popup poli: " + e.getMessage());
+        }
+    }
+
+    private void modernizeDiagnosisTree(java.awt.Component component) {
+        if (component == null) return;
+
+        if (component instanceof javax.swing.JComponent) {
+            javax.swing.JComponent jc = (javax.swing.JComponent) component;
+            javax.swing.border.Border border = jc.getBorder();
+            if (border instanceof javax.swing.border.TitledBorder) {
+                String borderTitle = ((javax.swing.border.TitledBorder) border).getTitle();
+                if (borderTitle != null) {
+                    String normalizedTitle = borderTitle.toLowerCase();
+                    if (normalizedTitle.contains("pencarian data referensi diagnosa")
+                            || normalizedTitle.contains("pencarian data referensi poli")
+                            || normalizedTitle.contains("pencarian data referensi unit")) {
+                        jc.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+                    }
+                }
+            }
+        }
+
+        if (component instanceof javax.swing.JLabel) {
+            component.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            component.setForeground(new java.awt.Color(51, 65, 85));
+        } else if (component instanceof javax.swing.AbstractButton) {
+            component.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+        } else if (component instanceof javax.swing.text.JTextComponent) {
+            component.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        } else if (component instanceof javax.swing.JComboBox) {
+            component.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        }
+
+        if (component instanceof javax.swing.JPanel) {
+            ((javax.swing.JPanel) component).setBackground(java.awt.Color.WHITE);
+        }
+
+        if (component instanceof java.awt.Container) {
+            for (java.awt.Component child : ((java.awt.Container) component).getComponents()) {
+                modernizeDiagnosisTree(child);
+            }
+        }
+    }
+
+    private void styleDiagnosisTable(javax.swing.JTable table) {
+        if (table == null) return;
+
+        table.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        table.setRowHeight(28);
+        table.setBackground(java.awt.Color.WHITE);
+        table.setForeground(new java.awt.Color(30, 41, 59));
+        table.setSelectionBackground(new java.awt.Color(219, 234, 254));
+        table.setSelectionForeground(new java.awt.Color(30, 64, 175));
+        table.setGridColor(new java.awt.Color(241, 245, 249));
+        table.setShowVerticalLines(false);
+        table.setShowHorizontalLines(true);
+        table.setIntercellSpacing(new java.awt.Dimension(0, 1));
+
+        if (table.getTableHeader() != null) {
+            table.getTableHeader().setFont(
+                    new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+            table.getTableHeader().setBackground(new java.awt.Color(241, 245, 249));
+            table.getTableHeader().setForeground(new java.awt.Color(51, 65, 85));
+            table.getTableHeader().setPreferredSize(new java.awt.Dimension(0, 30));
+            table.getTableHeader().setReorderingAllowed(false);
+        }
+
+        java.awt.Container parent = table.getParent();
+        while (parent != null && !(parent instanceof javax.swing.JScrollPane)) {
+            parent = parent.getParent();
+        }
+        if (parent instanceof javax.swing.JScrollPane) {
+            ((javax.swing.JScrollPane) parent).setBorder(
+                    javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)));
+        }
+    }
+
+    private javax.swing.JButton createFlatCloseButton() {
+        javax.swing.JButton close = new javax.swing.JButton("\u00d7");
+        close.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 18));
+        close.setForeground(new java.awt.Color(100, 116, 139));
+        close.setPreferredSize(new java.awt.Dimension(32, 28));
+        close.setMargin(new java.awt.Insets(0, 0, 2, 0));
+        close.setFocusPainted(false);
+        close.setBorderPainted(false);
+        close.setContentAreaFilled(false);
+        close.setOpaque(false);
+        close.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        return close;
+    }
+
+    private void installDialogDragSupport(javax.swing.JComponent handle, final java.awt.Window window) {
+        final java.awt.Point[] pressedAt = {null};
+        handle.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                pressedAt[0] = e.getPoint();
+            }
+        });
+        handle.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (pressedAt[0] != null) {
+                    java.awt.Point screen = e.getLocationOnScreen();
+                    window.setLocation(screen.x - pressedAt[0].x, screen.y - pressedAt[0].y);
+                }
+            }
+        });
+    }
+
+    // =================================================================
+    //  MODAL BACKDROP BLUR
+    // =================================================================
+
+    /**
+     * Menangani dialog standar (termasuk JOptionPane) yang dibuka dari form ini.
+     * JWindow milik toast sengaja tidak diproses supaya toast tetap ringan dan
+     * tidak membuat form utama ikut blur.
+     */
+    private void setupPopupBlurEffect() {
+        addWindowFocusListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowLostFocus(java.awt.event.WindowEvent e) {
+                java.awt.Window popup = e.getOppositeWindow();
+                if (popup instanceof java.awt.Dialog
+                        && popup != BPJSRujukanSatuSehat.this) {
+                    if (popup instanceof javax.swing.JDialog) {
+                        configureRoundedPopupWindow(
+                                (javax.swing.JDialog) popup, false);
+                    }
+                    setMainFormBlurred(true);
+                }
+            }
+
+            @Override
+            public void windowGainedFocus(java.awt.event.WindowEvent e) {
+                setMainFormBlurred(false);
+            }
+        });
+    }
+
+    /**
+     * Menampilkan dialog modal dengan backdrop yang sudah blur sebelum dialog
+     * terlihat. Pemulihan di finally menjamin glass pane tidak tertinggal.
+     */
+    private void showModalDialogWithBlur(javax.swing.JDialog dialog) {
+        if (dialog == null) return;
+
+        setMainFormBlurred(true);
+        try {
+            dialog.setVisible(true);
+        } finally {
+            setMainFormBlurred(false);
+        }
+    }
+
+    private void setMainFormBlurred(boolean blurred) {
+        javax.swing.JRootPane root = getRootPane();
+        if (root == null) return;
+
+        if (blurred) {
+            if (mainFormBlurActive) return;
+
+            java.awt.image.BufferedImage snapshot = createBlurredMainSnapshot(root);
+            if (snapshot == null) return;
+
+            previousMainGlassPane = root.getGlassPane();
+            previousMainGlassPaneVisible = previousMainGlassPane != null
+                    && previousMainGlassPane.isVisible();
+
+            MainFormBlurPane blurPane = new MainFormBlurPane(snapshot);
+            root.setGlassPane(blurPane);
+            mainFormBlurActive = true;
+            blurPane.setVisible(true);
+            root.repaint();
+            return;
+        }
+
+        if (!mainFormBlurActive) return;
+
+        java.awt.Component activeGlassPane = root.getGlassPane();
+        if (activeGlassPane != null) {
+            activeGlassPane.setVisible(false);
+        }
+
+        if (previousMainGlassPane != null) {
+            root.setGlassPane(previousMainGlassPane);
+            previousMainGlassPane.setVisible(previousMainGlassPaneVisible);
+        }
+
+        mainFormBlurActive = false;
+        previousMainGlassPane = null;
+        previousMainGlassPaneVisible = false;
+        root.repaint();
+    }
+
+    /**
+     * Membuat snapshot lalu menerapkan Gaussian blur separable pada resolusi
+     * asli. Tidak ada lagi pembesaran gambar kecil yang membuat teks terlihat
+     * pecah atau seperti kotak-kotak.
+     */
+    private java.awt.image.BufferedImage createBlurredMainSnapshot(
+            javax.swing.JRootPane root) {
+        int width = root.getWidth();
+        int height = root.getHeight();
+        if (width <= 0 || height <= 0) return null;
+
+        java.awt.image.BufferedImage source = new java.awt.image.BufferedImage(
+                width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D sourceGraphics = source.createGraphics();
+        try {
+            sourceGraphics.setRenderingHint(
+                    java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            root.paintAll(sourceGraphics);
+        } finally {
+            sourceGraphics.dispose();
+        }
+        return applyGaussianBlur(source, 6, 3.25d);
+    }
+
+    /**
+     * Gaussian blur dua tahap (horizontal lalu vertikal). Sampling pada tepi
+     * memakai koordinat terdekat agar tidak meninggalkan garis tajam di pinggir.
+     */
+    private java.awt.image.BufferedImage applyGaussianBlur(
+            java.awt.image.BufferedImage source, int radius, double sigma) {
+        int width = source.getWidth();
+        int height = source.getHeight();
+        int[] input = source.getRGB(0, 0, width, height, null, 0, width);
+        int[] horizontal = new int[input.length];
+        int[] output = new int[input.length];
+        double[] kernel = createGaussianKernel(radius, sigma);
+
+        for (int y = 0; y < height; y++) {
+            int rowOffset = y * width;
+            for (int x = 0; x < width; x++) {
+                double alpha = 0d;
+                double red = 0d;
+                double green = 0d;
+                double blue = 0d;
+
+                for (int k = -radius; k <= radius; k++) {
+                    int sampleX = Math.max(0, Math.min(width - 1, x + k));
+                    int argb = input[rowOffset + sampleX];
+                    double weight = kernel[k + radius];
+                    alpha += ((argb >>> 24) & 0xff) * weight;
+                    red += ((argb >>> 16) & 0xff) * weight;
+                    green += ((argb >>> 8) & 0xff) * weight;
+                    blue += (argb & 0xff) * weight;
+                }
+
+                horizontal[rowOffset + x] =
+                        (clampColor(alpha) << 24)
+                        | (clampColor(red) << 16)
+                        | (clampColor(green) << 8)
+                        | clampColor(blue);
+            }
+        }
+
+        for (int y = 0; y < height; y++) {
+            int rowOffset = y * width;
+            for (int x = 0; x < width; x++) {
+                double alpha = 0d;
+                double red = 0d;
+                double green = 0d;
+                double blue = 0d;
+
+                for (int k = -radius; k <= radius; k++) {
+                    int sampleY = Math.max(0, Math.min(height - 1, y + k));
+                    int argb = horizontal[(sampleY * width) + x];
+                    double weight = kernel[k + radius];
+                    alpha += ((argb >>> 24) & 0xff) * weight;
+                    red += ((argb >>> 16) & 0xff) * weight;
+                    green += ((argb >>> 8) & 0xff) * weight;
+                    blue += (argb & 0xff) * weight;
+                }
+
+                output[rowOffset + x] =
+                        (clampColor(alpha) << 24)
+                        | (clampColor(red) << 16)
+                        | (clampColor(green) << 8)
+                        | clampColor(blue);
+            }
+        }
+
+        java.awt.image.BufferedImage blurred = new java.awt.image.BufferedImage(
+                width, height, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        blurred.setRGB(0, 0, width, height, output, 0, width);
+        return blurred;
+    }
+
+    private double[] createGaussianKernel(int radius, double sigma) {
+        double[] kernel = new double[(radius * 2) + 1];
+        double total = 0d;
+        double sigmaFactor = 2d * sigma * sigma;
+
+        for (int i = -radius; i <= radius; i++) {
+            double value = Math.exp(-(i * i) / sigmaFactor);
+            kernel[i + radius] = value;
+            total += value;
+        }
+
+        for (int i = 0; i < kernel.length; i++) {
+            kernel[i] /= total;
+        }
+        return kernel;
+    }
+
+    private int clampColor(double value) {
+        return Math.max(0, Math.min(255, (int) Math.round(value)));
+    }
+
+    /**
+     * Membulatkan bentuk window popup tanpa menyentuh isi ataupun event di
+     * dalamnya. Dialog standar yang sudah displayable tetap diperlakukan aman:
+     * bentuk dibulatkan bila platform mendukung, tanpa memaksa dekorasinya.
+     */
+    private static void configureRoundedPopupWindow(
+            final javax.swing.JDialog dialog, boolean forceUndecorated) {
+        if (dialog == null) return;
+
+        if (forceUndecorated && !dialog.isUndecorated()
+                && !dialog.isDisplayable()) {
+            dialog.setUndecorated(true);
+        }
+
+        if (dialog.isUndecorated()) {
+            try {
+                dialog.setBackground(new java.awt.Color(0, 0, 0, 0));
+            } catch (Exception ignored) {
+                // Beberapa remote desktop tidak mendukung transparansi window.
+            }
+        }
+
+        if (!Boolean.TRUE.equals(dialog.getRootPane()
+                .getClientProperty("bpjs.popup.rounded-shape"))) {
+            dialog.getRootPane().putClientProperty(
+                    "bpjs.popup.rounded-shape", Boolean.TRUE);
+            dialog.addComponentListener(new java.awt.event.ComponentAdapter() {
+                @Override
+                public void componentShown(java.awt.event.ComponentEvent e) {
+                    applyRoundedPopupShape(dialog);
+                }
+
+                @Override
+                public void componentResized(java.awt.event.ComponentEvent e) {
+                    applyRoundedPopupShape(dialog);
+                }
+            });
+        }
+        applyRoundedPopupShape(dialog);
+    }
+
+    private static void applyRoundedPopupShape(java.awt.Window popup) {
+        if (popup == null || popup.getWidth() <= 0 || popup.getHeight() <= 0) {
+            return;
+        }
+        try {
+            popup.setShape(new java.awt.geom.RoundRectangle2D.Double(
+                    0, 0, popup.getWidth(), popup.getHeight(),
+                    POPUP_CORNER_RADIUS, POPUP_CORNER_RADIUS));
+        } catch (Exception ignored) {
+            // Fallback aman: popup tetap tampil normal pada platform lama.
+        }
+    }
+
+    /** Border anti-aliased yang mengikuti bentuk keempat sudut popup. */
+    private static final class RoundedPopupBorder
+            extends javax.swing.border.AbstractBorder {
+        private final java.awt.Color color;
+
+        RoundedPopupBorder(java.awt.Color color) {
+            this.color = color;
+        }
+
+        @Override
+        public java.awt.Insets getBorderInsets(java.awt.Component c) {
+            return new java.awt.Insets(1, 1, 1, 1);
+        }
+
+        @Override
+        public java.awt.Insets getBorderInsets(
+                java.awt.Component c, java.awt.Insets insets) {
+            insets.top = 1;
+            insets.left = 1;
+            insets.bottom = 1;
+            insets.right = 1;
+            return insets;
+        }
+
+        @Override
+        public void paintBorder(java.awt.Component c, java.awt.Graphics g,
+                int x, int y, int width, int height) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(
+                        java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(color);
+                g2.drawRoundRect(x, y, width - 1, height - 1,
+                        POPUP_CORNER_RADIUS, POPUP_CORNER_RADIUS);
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        @Override
+        public boolean isBorderOpaque() {
+            return false;
+        }
+    }
+
+    private static final class MainFormBlurPane extends javax.swing.JComponent {
+        private final java.awt.image.BufferedImage snapshot;
+
+        MainFormBlurPane(java.awt.image.BufferedImage snapshot) {
+            this.snapshot = snapshot;
+            setOpaque(false);
+
+            // Glass pane juga menahan interaksi bila suatu saat dialog dipakai
+            // secara modeless, tanpa mengubah enabled-state komponen utama.
+            addMouseListener(new java.awt.event.MouseAdapter() {});
+            addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {});
+            addMouseWheelListener(e -> e.consume());
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            super.paintComponent(g);
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(
+                        java.awt.RenderingHints.KEY_INTERPOLATION,
+                        java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2.drawImage(snapshot, 0, 0, getWidth(), getHeight(), null);
+
+                // Tint tipis membantu popup putih tetap menonjol tanpa membuat
+                // form utama terlihat gelap berlebihan.
+                g2.setColor(new java.awt.Color(15, 23, 42, 30));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            } finally {
+                g2.dispose();
+            }
+        }
+    }
+
+    // =================================================================
+    //  DIALOG RESPON API (snapshot terakhir, read-only)
+    // =================================================================
+    private void rememberApiResponse(String source, JsonNode response) {
+        lastApiResponseSource = safe(source);
+        lastApiResponseTime = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
+                .format(new java.util.Date());
+        lastApiResponseError = responseLooksError(response);
+        try {
+            lastApiResponseJson = response == null
+                    ? "{}"
+                    : mapper.writerWithDefaultPrettyPrinter().writeValueAsString(response);
+        } catch (Exception e) {
+            lastApiResponseJson = response == null ? "{}" : response.toString();
+        }
+    }
+
+    private void rememberApiResponse(String source, String rawJson) {
+        lastApiResponseSource = safe(source);
+        lastApiResponseTime = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
+                .format(new java.util.Date());
+        try {
+            JsonNode parsed = mapper.readTree(rawJson == null ? "{}" : rawJson);
+            lastApiResponseError = responseLooksError(parsed);
+            lastApiResponseJson = mapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(parsed);
+        } catch (Exception e) {
+            lastApiResponseError = true;
+            lastApiResponseJson = rawJson == null ? "" : rawJson.trim();
+        }
+    }
+
+    private void rememberApiException(String source, Exception exception) {
+        String responseBody = extractApiErrorBody(exception);
+        if (!responseBody.isEmpty()) {
+            rememberApiResponse(source, responseBody);
+            lastApiResponseError = true;
+            return;
+        }
+
+        lastApiResponseSource = safe(source);
+        lastApiResponseTime = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
+                .format(new java.util.Date());
+        lastApiResponseError = true;
+        try {
+            com.fasterxml.jackson.databind.node.ObjectNode error = mapper.createObjectNode();
+            error.put("status", "ERROR");
+            error.put("exception", exception == null
+                    ? "Exception"
+                    : exception.getClass().getSimpleName());
+            error.put("message", exception == null ? "" : safe(exception.getMessage()));
+            lastApiResponseJson = mapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(error);
+        } catch (Exception ignored) {
+            lastApiResponseJson = "{\n  \"status\" : \"ERROR\"\n}";
+        }
+    }
+
+    private String extractApiErrorBody(Exception exception) {
+        if (exception == null) return "";
+        try {
+            java.lang.reflect.Method method = exception.getClass()
+                    .getMethod("getResponseBodyAsString");
+            Object value = method.invoke(exception);
+            return value == null ? "" : value.toString().trim();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private boolean responseLooksError(JsonNode response) {
+        if (response == null || response.isNull() || response.isMissingNode()) return true;
+        if (response.has("fault") || response.has("error") || response.has("errors")) return true;
+
+        String resourceType = response.path("resourceType").asText();
+        if ("OperationOutcome".equalsIgnoreCase(resourceType)) {
+            JsonNode issues = response.path("issue");
+            if (issues.isArray()) {
+                for (JsonNode issue : issues) {
+                    String severity = issue.path("severity").asText();
+                    if ("error".equalsIgnoreCase(severity)
+                            || "fatal".equalsIgnoreCase(severity)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        String code = response.path("metaData").path("code").asText().trim();
+        if (!code.isEmpty()
+                && !("200".equals(code) || "201".equals(code) || "1".equals(code))) {
+            return true;
+        }
+        return false;
+    }
+
+    private void showApiResponseDialog() {
+        final javax.swing.JDialog dialog = new javax.swing.JDialog(this, true);
+        dialog.setUndecorated(true);
+        configureRoundedPopupWindow(dialog, true);
+        dialog.setTitle("Respon API BPJS & SATUSEHAT");
+        dialog.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+
+        javax.swing.JPanel root = new javax.swing.JPanel(new java.awt.BorderLayout());
+        root.setBackground(java.awt.Color.WHITE);
+        root.setBorder(new RoundedPopupBorder(
+                new java.awt.Color(203, 213, 225)));
+
+        javax.swing.JPanel header = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+        header.setBackground(new java.awt.Color(248, 250, 252));
+        header.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(
+                        0, 0, 1, 0, new java.awt.Color(226, 232, 240)),
+                javax.swing.BorderFactory.createEmptyBorder(14, 18, 13, 12)));
+
+        javax.swing.JPanel heading = new javax.swing.JPanel();
+        heading.setOpaque(false);
+        heading.setLayout(new javax.swing.BoxLayout(heading, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JPanel titleRow = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        titleRow.setOpaque(false);
+
+        javax.swing.JLabel title = new javax.swing.JLabel("Respon API");
+        title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 16));
+        title.setForeground(new java.awt.Color(30, 41, 59));
+
+        javax.swing.JLabel badge = new javax.swing.JLabel(
+                lastApiResponseJson.isEmpty()
+                        ? "BELUM ADA"
+                        : (lastApiResponseError ? "GAGAL" : "BERHASIL"));
+        badge.setOpaque(true);
+        badge.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 10));
+        badge.setForeground(lastApiResponseJson.isEmpty()
+                ? new java.awt.Color(71, 85, 105)
+                : (lastApiResponseError
+                        ? new java.awt.Color(185, 28, 28)
+                        : new java.awt.Color(21, 128, 61)));
+        badge.setBackground(lastApiResponseJson.isEmpty()
+                ? new java.awt.Color(226, 232, 240)
+                : (lastApiResponseError
+                        ? new java.awt.Color(254, 226, 226)
+                        : new java.awt.Color(220, 252, 231)));
+        badge.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 8, 3, 8));
+
+        titleRow.add(title);
+        titleRow.add(badge);
+
+        String metadata = lastApiResponseSource;
+        if (!lastApiResponseTime.isEmpty()) metadata += "  \u2022  " + lastApiResponseTime;
+        javax.swing.JLabel subtitle = new javax.swing.JLabel(metadata);
+        subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        subtitle.setForeground(new java.awt.Color(100, 116, 139));
+        subtitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 0, 0, 0));
+
+        heading.add(titleRow);
+        heading.add(subtitle);
+
+        javax.swing.JButton closeHeader = createFlatCloseButton();
+        closeHeader.setToolTipText("Tutup");
+        closeHeader.addActionListener(e -> dialog.dispose());
+
+        header.add(heading, java.awt.BorderLayout.CENTER);
+        header.add(closeHeader, java.awt.BorderLayout.EAST);
+
+        String jsonToShow = lastApiResponseJson.isEmpty()
+                ? "{\n  \"message\" : \"Belum ada respon API pada sesi ini\"\n}"
+                : lastApiResponseJson;
+
+        javax.swing.JTextPane jsonPane = new javax.swing.JTextPane();
+        jsonPane.setEditable(false);
+        jsonPane.setBackground(new java.awt.Color(248, 250, 252));
+        jsonPane.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        setJsonDocument(jsonPane, jsonToShow);
+        jsonPane.setCaretPosition(0);
+
+        javax.swing.JScrollPane jsonScroll = new javax.swing.JScrollPane(jsonPane);
+        jsonScroll.setBorder(javax.swing.BorderFactory.createLineBorder(
+                new java.awt.Color(226, 232, 240)));
+        jsonScroll.getVerticalScrollBar().setUnitIncrement(16);
+        jsonScroll.setRowHeaderView(createJsonLineNumbers(jsonToShow));
+
+        javax.swing.JPanel body = new javax.swing.JPanel(new java.awt.BorderLayout(0, 10));
+        body.setBackground(java.awt.Color.WHITE);
+        body.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 16, 12, 16));
+        body.add(createApiProcessStatusPanel(), java.awt.BorderLayout.NORTH);
+        body.add(jsonScroll, java.awt.BorderLayout.CENTER);
+
+        javax.swing.JPanel footer = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 8, 10));
+        footer.setBackground(java.awt.Color.WHITE);
+        footer.setBorder(javax.swing.BorderFactory.createMatteBorder(
+                1, 0, 0, 0, new java.awt.Color(241, 245, 249)));
+
+        javax.swing.JButton copy = new javax.swing.JButton("Salin JSON");
+        styleDialogButton(copy, true);
+        copy.setEnabled(!lastApiResponseJson.isEmpty());
+        copy.addActionListener(e -> {
+            java.awt.datatransfer.StringSelection selection =
+                    new java.awt.datatransfer.StringSelection(lastApiResponseJson);
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
+                    .setContents(selection, selection);
+            showModernToast(dialog, "Respon JSON berhasil disalin.", ToastMessage.SUCCESS, 1);
+        });
+
+        javax.swing.JButton closeFooter = new javax.swing.JButton("Tutup");
+        styleDialogButton(closeFooter, false);
+        closeFooter.addActionListener(e -> dialog.dispose());
+
+        footer.add(copy);
+        footer.add(closeFooter);
+
+        root.add(header, java.awt.BorderLayout.NORTH);
+        root.add(body, java.awt.BorderLayout.CENTER);
+        root.add(footer, java.awt.BorderLayout.SOUTH);
+        dialog.setContentPane(root);
+
+        dialog.getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0),
+                        "close-api-response");
+        dialog.getRootPane().getActionMap().put("close-api-response",
+                new javax.swing.AbstractAction() {
+                    @Override
+                    public void actionPerformed(java.awt.event.ActionEvent e) {
+                        dialog.dispose();
+                    }
+                });
+
+        installDialogDragSupport(header, dialog);
+        dialog.setSize(860, 610);
+        dialog.setLocationRelativeTo(this);
+        showModalDialogWithBlur(dialog);
+    }
+
+    /**
+     * Status proses dipusatkan di dialog Respon API agar form utama tetap
+     * ringkas, tetapi user masih dapat melihat kondisi proses terakhir.
+     */
+    private javax.swing.JPanel createApiProcessStatusPanel() {
+        String message = safe(lastProcessStatusMessage);
+        boolean processing = !lastProcessStatusError && isProcessingStatus(message);
+        java.awt.Color[] colors = resolveProcessStatusColors(
+                message, lastProcessStatusError);
+
+        javax.swing.JPanel status = new javax.swing.JPanel(new java.awt.BorderLayout());
+        status.setBackground(colors[0]);
+        status.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(colors[2]),
+                javax.swing.BorderFactory.createEmptyBorder(8, 11, 8, 11)));
+        status.setPreferredSize(new java.awt.Dimension(10, 64));
+
+        javax.swing.JPanel content = new javax.swing.JPanel();
+        content.setOpaque(false);
+        content.setLayout(new javax.swing.BoxLayout(content, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JPanel titleRow = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        titleRow.setOpaque(false);
+
+        javax.swing.JLabel title = new javax.swing.JLabel("Status Proses");
+        title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 12));
+        title.setForeground(colors[1]);
+
+        javax.swing.JLabel badge = new javax.swing.JLabel(lastProcessStatusError
+                ? "PERINGATAN" : (processing ? "DIPROSES" : "SIAP"));
+        badge.setOpaque(true);
+        badge.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 9));
+        badge.setForeground(colors[1]);
+        badge.setBackground(java.awt.Color.WHITE);
+        badge.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 7, 2, 7));
+
+        titleRow.add(title);
+        titleRow.add(badge);
+
+        javax.swing.JTextArea statusText = new javax.swing.JTextArea(message);
+        statusText.setEditable(false);
+        statusText.setFocusable(false);
+        statusText.setOpaque(false);
+        statusText.setLineWrap(true);
+        statusText.setWrapStyleWord(true);
+        statusText.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        statusText.setForeground(colors[1]);
+        statusText.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 1, 0, 0));
+
+        content.add(titleRow);
+        content.add(statusText);
+        status.add(content, java.awt.BorderLayout.CENTER);
+        return status;
+    }
+
+    private void styleDialogButton(javax.swing.JButton button, boolean primary) {
+        // BasicButtonUI memastikan warna solid tetap konsisten pada Windows LAF.
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        button.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+        button.setPreferredSize(new java.awt.Dimension(112, 30));
+        button.setFocusPainted(false);
+        button.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        button.setForeground(java.awt.Color.WHITE);
+        button.setBackground(primary
+                ? new java.awt.Color(37, 99, 235)
+                : new java.awt.Color(220, 38, 38));
+        button.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 13, 5, 13));
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(true);
+        button.setOpaque(true);
+    }
+
+    private javax.swing.JTextArea createJsonLineNumbers(String json) {
+        int lineCount = Math.max(1, json.split("\\r?\\n", -1).length);
+        StringBuilder numbers = new StringBuilder();
+        for (int i = 1; i <= lineCount; i++) {
+            numbers.append(i);
+            if (i < lineCount) numbers.append('\n');
+        }
+
+        javax.swing.JTextArea lines = new javax.swing.JTextArea(numbers.toString());
+        lines.setEditable(false);
+        lines.setFocusable(false);
+        lines.setFont(new java.awt.Font(getJsonMonospaceFont(), java.awt.Font.PLAIN, 12));
+        lines.setForeground(new java.awt.Color(148, 163, 184));
+        lines.setBackground(new java.awt.Color(241, 245, 249));
+        lines.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 8, 12, 8));
+        return lines;
+    }
+
+    private void setJsonDocument(javax.swing.JTextPane pane, String json) {
+        javax.swing.text.StyledDocument document = pane.getStyledDocument();
+        String mono = getJsonMonospaceFont();
+
+        javax.swing.text.Style normal = document.addStyle("json-normal", null);
+        javax.swing.text.StyleConstants.setFontFamily(normal, mono);
+        javax.swing.text.StyleConstants.setFontSize(normal, 12);
+        javax.swing.text.StyleConstants.setForeground(normal, new java.awt.Color(51, 65, 85));
+
+        javax.swing.text.Style key = document.addStyle("json-key", normal);
+        javax.swing.text.StyleConstants.setForeground(key, new java.awt.Color(37, 99, 235));
+        javax.swing.text.StyleConstants.setBold(key, true);
+
+        javax.swing.text.Style string = document.addStyle("json-string", normal);
+        javax.swing.text.StyleConstants.setForeground(string, new java.awt.Color(22, 101, 52));
+
+        javax.swing.text.Style number = document.addStyle("json-number", normal);
+        javax.swing.text.StyleConstants.setForeground(number, new java.awt.Color(109, 40, 217));
+
+        javax.swing.text.Style literal = document.addStyle("json-literal", normal);
+        javax.swing.text.StyleConstants.setForeground(literal, new java.awt.Color(194, 65, 12));
+        javax.swing.text.StyleConstants.setBold(literal, true);
+
+        try {
+            document.insertString(0, json, normal);
+            applyJsonStyle(document, json,
+                    java.util.regex.Pattern.compile("\"(?:\\\\.|[^\"\\\\])*\"(?=\\s*:)") , key);
+            applyJsonStyle(document, json,
+                    java.util.regex.Pattern.compile("\"(?:\\\\.|[^\"\\\\])*\"(?!\\s*:)") , string);
+            applyJsonStyle(document, json,
+                    java.util.regex.Pattern.compile("(?<![\\w\"])-?\\b\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b"), number);
+            applyJsonStyle(document, json,
+                    java.util.regex.Pattern.compile("\\b(?:true|false|null)\\b"), literal);
+        } catch (javax.swing.text.BadLocationException e) {
+            pane.setText(json);
+        }
+    }
+
+    private void applyJsonStyle(javax.swing.text.StyledDocument document, String json,
+            java.util.regex.Pattern pattern, javax.swing.text.Style style) {
+        java.util.regex.Matcher matcher = pattern.matcher(json);
+        while (matcher.find()) {
+            document.setCharacterAttributes(
+                    matcher.start(), matcher.end() - matcher.start(), style, true);
+        }
+    }
+
+    private String getJsonMonospaceFont() {
+        String[] fonts = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getAvailableFontFamilyNames();
+        for (String font : fonts) {
+            if ("Consolas".equalsIgnoreCase(font)) return font;
+        }
+        return java.awt.Font.MONOSPACED;
+    }
+
+    private static class JsonButtonIcon implements javax.swing.Icon {
+        @Override public int getIconWidth() { return 18; }
+        @Override public int getIconHeight() { return 16; }
+        @Override
+        public void paintIcon(java.awt.Component c, java.awt.Graphics g, int x, int y) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setColor(new java.awt.Color(37, 99, 235));
+            g2.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+            g2.drawString("{ }", x, y + 12);
+            g2.dispose();
+        }
+    }
+
+    // =================================================================
+    //  TOAST MODERN KHUSUS BPJSRujukanSatuSehat
+    // =================================================================
+    private static void showModernToast(java.awt.Component context, String message,
+            int type, int autoHide) {
+        Runnable showTask = () -> {
+            final java.awt.Window toastOwner = resolveToastOwner(context);
+            final java.awt.Window anchor = resolveToastAnchor(context);
+            final javax.swing.JWindow toast = toastOwner == null
+                    ? new javax.swing.JWindow()
+                    : new javax.swing.JWindow(toastOwner);
+
+            try {
+                toast.setBackground(new java.awt.Color(0, 0, 0, 0));
+            } catch (Exception ignored) {
+                toast.setBackground(java.awt.Color.WHITE);
+            }
+
+            final ToastCard card = new ToastCard(type, normalizeToastMessage(message));
+            toast.setContentPane(card);
+            toast.pack();
+
+            int width = 410;
+            int height = Math.max(84, Math.min(150, toast.getPreferredSize().height));
+            toast.setSize(width, height);
+
+            synchronized (ACTIVE_RUJUKAN_TOASTS) {
+                java.util.Iterator<javax.swing.JWindow> iterator =
+                        ACTIVE_RUJUKAN_TOASTS.iterator();
+                while (iterator.hasNext()) {
+                    javax.swing.JWindow active = iterator.next();
+                    if (active == null || !active.isDisplayable()) iterator.remove();
+                }
+                ACTIVE_RUJUKAN_TOASTS.add(toast);
+                positionToast(toast, anchor);
+            }
+
+            Runnable closeToast = () -> {
+                if (toast.isDisplayable()) toast.dispose();
+                synchronized (ACTIVE_RUJUKAN_TOASTS) {
+                    ACTIVE_RUJUKAN_TOASTS.remove(toast);
+                }
+            };
+
+            card.getCloseButton().addActionListener(e -> closeToast.run());
+            toast.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent e) {
+                    synchronized (ACTIVE_RUJUKAN_TOASTS) {
+                        ACTIVE_RUJUKAN_TOASTS.remove(toast);
+                    }
+                }
+            });
+
+            toast.setVisible(true);
+
+            javax.swing.Timer timer = new javax.swing.Timer(
+                    toastDuration(autoHide), e -> closeToast.run());
+            timer.setRepeats(false);
+            timer.start();
+        };
+
+        if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+            showTask.run();
+        } else {
+            javax.swing.SwingUtilities.invokeLater(showTask);
+        }
+    }
+
+    private static int toastDuration(int autoHide) {
+        if (autoHide == 1) return 4000;
+        if (autoHide == 2) return 5000;
+        return 6500;
+    }
+
+    private static java.awt.Window resolveToastAnchor(java.awt.Component context) {
+        java.awt.Window anchor = resolveToastOwner(context);
+
+        // Naik ke frame utama supaya koordinat kanan/bawah MenuBar selalu konsisten.
+        while (anchor != null && anchor.getOwner() != null
+                && anchor.getOwner().isShowing()) {
+            anchor = anchor.getOwner();
+        }
+
+        // Beberapa form Khanza dibuat dengan parent null. Dalam kondisi itu,
+        // cari JFrame utama yang terlihat dan memiliki area terbesar.
+        if (!(anchor instanceof javax.swing.JFrame)) {
+            java.awt.Window bestFrame = null;
+            long bestArea = -1L;
+            for (java.awt.Window window : java.awt.Window.getWindows()) {
+                if (window instanceof javax.swing.JFrame && window.isShowing()) {
+                    long area = (long) window.getWidth() * (long) window.getHeight();
+                    if (area > bestArea) {
+                        bestArea = area;
+                        bestFrame = window;
+                    }
+                }
+            }
+            if (bestFrame != null) anchor = bestFrame;
+        }
+        return anchor;
+    }
+
+    private static java.awt.Window resolveToastOwner(java.awt.Component context) {
+        java.awt.Window owner = context instanceof java.awt.Window
+                ? (java.awt.Window) context
+                : (context == null
+                        ? null
+                        : javax.swing.SwingUtilities.getWindowAncestor(context));
+        if (owner == null) {
+            owner = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                    .getActiveWindow();
+        }
+        return owner;
+    }
+
+    private static void positionToast(javax.swing.JWindow toast, java.awt.Window anchor) {
+        java.awt.Rectangle usable = java.awt.GraphicsEnvironment
+                .getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        java.awt.Rectangle bounds = anchor != null && anchor.isShowing()
+                ? anchor.getBounds()
+                : usable;
+
+        int x = bounds.x + bounds.width - toast.getWidth() - 14;
+        int y = resolveMenuBottom(anchor, bounds) + 10;
+
+        for (javax.swing.JWindow active : ACTIVE_RUJUKAN_TOASTS) {
+            if (active != toast && active != null && active.isShowing()) {
+                y = Math.max(y, active.getY() + active.getHeight() + 8);
+            }
+        }
+
+        x = Math.max(usable.x + 8,
+                Math.min(x, usable.x + usable.width - toast.getWidth() - 8));
+        y = Math.max(usable.y + 8,
+                Math.min(y, usable.y + usable.height - toast.getHeight() - 8));
+        toast.setLocation(x, y);
+    }
+
+    private static int resolveMenuBottom(java.awt.Window anchor, java.awt.Rectangle bounds) {
+        if (anchor instanceof javax.swing.JFrame) {
+            javax.swing.JMenuBar menuBar = ((javax.swing.JFrame) anchor).getJMenuBar();
+            if (menuBar != null && menuBar.isShowing()) {
+                try {
+                    java.awt.Point location = menuBar.getLocationOnScreen();
+                    return location.y + menuBar.getHeight();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return bounds.y + 34;
+    }
+
+    private static String normalizeToastMessage(String message) {
+        if (message == null) return "";
+        return message
+                .replaceAll("(?i)<br\\s*/?>", "\n")
+                .replaceAll("(?s)<[^>]*>", "")
+                .trim();
+    }
+
+    private static String escapeToastHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;")
+                .replace("\r\n", "<br>")
+                .replace("\n", "<br>")
+                .replace("\r", "<br>");
+    }
+
+    private static java.awt.Color toastColor(int type) {
+        if (type == ToastMessage.SUCCESS) return new java.awt.Color(22, 163, 74);
+        if (type == ToastMessage.ERROR) return new java.awt.Color(220, 38, 38);
+        if (type == ToastMessage.WARNING) return new java.awt.Color(245, 158, 11);
+        return new java.awt.Color(37, 99, 235);
+    }
+
+    private static String toastTitle(int type) {
+        if (type == ToastMessage.SUCCESS) return "Berhasil";
+        if (type == ToastMessage.ERROR) return "Kesalahan";
+        if (type == ToastMessage.WARNING) return "Peringatan";
+        return "Informasi";
+    }
+
+    private static class ToastCard extends javax.swing.JPanel {
+        private final int type;
+        private final javax.swing.JButton closeButton;
+
+        ToastCard(int type, String message) {
+            super(new java.awt.BorderLayout(12, 0));
+            this.type = type;
+            setOpaque(false);
+            setBorder(javax.swing.BorderFactory.createEmptyBorder(13, 16, 15, 15));
+
+            ToastTypeIcon icon = new ToastTypeIcon(type);
+
+            javax.swing.JPanel content = new javax.swing.JPanel();
+            content.setOpaque(false);
+            content.setLayout(new javax.swing.BoxLayout(content, javax.swing.BoxLayout.Y_AXIS));
+
+            javax.swing.JLabel title = new javax.swing.JLabel(toastTitle(type));
+            title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 13));
+            title.setForeground(new java.awt.Color(30, 41, 59));
+            title.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+
+            javax.swing.JLabel body = new javax.swing.JLabel(
+                    "<html><body style='width:286px;'>"
+                    + escapeToastHtml(message)
+                    + "</body></html>");
+            body.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+            body.setForeground(new java.awt.Color(71, 85, 105));
+            body.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 0, 0, 0));
+            body.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+
+            content.add(title);
+            content.add(body);
+
+            closeButton = new javax.swing.JButton("\u00d7");
+            closeButton.setFont(new java.awt.Font(
+                    "Segoe UI Semibold", java.awt.Font.PLAIN, 17));
+            closeButton.setForeground(new java.awt.Color(100, 116, 139));
+            closeButton.setPreferredSize(new java.awt.Dimension(26, 26));
+            closeButton.setMargin(new java.awt.Insets(0, 0, 2, 0));
+            closeButton.setFocusPainted(false);
+            closeButton.setBorderPainted(false);
+            closeButton.setContentAreaFilled(false);
+            closeButton.setOpaque(false);
+            closeButton.setCursor(java.awt.Cursor.getPredefinedCursor(
+                    java.awt.Cursor.HAND_CURSOR));
+            closeButton.setToolTipText("Tutup");
+
+            add(icon, java.awt.BorderLayout.WEST);
+            add(content, java.awt.BorderLayout.CENTER);
+            add(closeButton, java.awt.BorderLayout.EAST);
+        }
+
+        javax.swing.JButton getCloseButton() {
+            return closeButton;
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int width = getWidth() - 7;
+            int height = getHeight() - 7;
+            g2.setColor(new java.awt.Color(15, 23, 42, 42));
+            g2.fillRoundRect(5, 5, width - 1, height - 1, 16, 16);
+            g2.setColor(java.awt.Color.WHITE);
+            g2.fillRoundRect(1, 1, width - 1, height - 1, 16, 16);
+            g2.setColor(toastColor(type));
+            g2.fillRoundRect(1, 1, 5, height - 1, 12, 12);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private static class ToastTypeIcon extends javax.swing.JComponent {
+        private final int type;
+
+        ToastTypeIcon(int type) {
+            this.type = type;
+            setPreferredSize(new java.awt.Dimension(34, 34));
+            setMinimumSize(new java.awt.Dimension(34, 34));
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(toastColor(type));
+            g2.fillOval(1, 1, 32, 32);
+            g2.setColor(java.awt.Color.WHITE);
+            g2.setStroke(new java.awt.BasicStroke(2.2f,
+                    java.awt.BasicStroke.CAP_ROUND,
+                    java.awt.BasicStroke.JOIN_ROUND));
+
+            if (type == ToastMessage.SUCCESS) {
+                g2.drawLine(9, 17, 14, 22);
+                g2.drawLine(14, 22, 25, 11);
+            } else if (type == ToastMessage.ERROR) {
+                g2.drawLine(11, 11, 23, 23);
+                g2.drawLine(23, 11, 11, 23);
+            } else if (type == ToastMessage.WARNING) {
+                g2.drawLine(17, 9, 17, 19);
+                g2.fillOval(15, 23, 4, 4);
+            } else {
+                g2.drawLine(17, 15, 17, 25);
+                g2.fillOval(15, 8, 4, 4);
+            }
+            g2.dispose();
+        }
     }
 
 
@@ -973,22 +3128,14 @@ private static class KriteriaJawabanCellEditor extends javax.swing.AbstractCellE
     }
     
     private void setStatus(String msg, boolean error) {
-    tStatus.setLineWrap(true);
-    tStatus.setWrapStyleWord(true);
-    tStatus.setForeground(
-            error
-            ? new java.awt.Color(180, 0, 0)
-            : new java.awt.Color(0, 100, 0)
-    );
-
-    tStatus.setText(
-            "Status : " + safe(msg)
-    );
-
-    System.out.println(
-            "[BPJSRujukanSatuSehat] " + msg
-    );
-}
+        lastProcessStatusMessage = safe(msg);
+        lastProcessStatusError = error;
+        tStatus.setLineWrap(true);
+        tStatus.setWrapStyleWord(true);
+        tStatus.setText("Status : " + lastProcessStatusMessage);
+        updateStatusProcessStyle(msg, error);
+        System.out.println("[BPJSRujukanSatuSehat] " + msg);
+    }
     private void setStatus1(String msg, boolean error) {
     lblStatus.setForeground(error ? new java.awt.Color(180, 0, 0) : new java.awt.Color(0, 100, 0));
     lblStatus.setVerticalAlignment(javax.swing.SwingConstants.TOP);
@@ -1310,8 +3457,8 @@ private String escapeHtml(String s) {
 
                 System.out.println("Gagal ambil IHS Pasien : " + e);
 
-                ToastMessage.showToast(
-                        null,
+                showModernToast(
+                        this,
                         "Gagal ambil IHS Pasien : "
                         + e.getClass().getSimpleName()
                         + " - "
@@ -1462,8 +3609,8 @@ private String escapeHtml(String s) {
             "Gagal ambil IHS Dokter : " + e
     );
 
-    ToastMessage.showToast(
-            null,
+    showModernToast(
+            this,
             "Gagal ambil IHS Dokter : "
             + e.getClass().getSimpleName()
             + " - "
@@ -1544,8 +3691,8 @@ private String escapeHtml(String s) {
                         true
                 );
             
-                ToastMessage.showToast(
-                        null,
+                showModernToast(
+                        this,
                         "Data Rujukan SATU SEHAT belum lengkap",
                         ToastMessage.WARNING,
                         0
@@ -1659,9 +3806,10 @@ private String escapeHtml(String s) {
     //  ACTION: PILIH DIAGNOSA RUJUKAN (popup BPJSCekReferensiPenyakit)
     // =================================================================
     private void doPilihDiagnosa() {
-        popupPenyakit.setSize(900, 500);
+        popupPenyakit.setSize(920, 560);
+        popupPenyakit.getTable().clearSelection();
         popupPenyakit.setLocationRelativeTo(this);
-        popupPenyakit.setVisible(true);
+        showModalDialogWithBlur(popupPenyakit);
         // hasil dipilih -> handler windowClosed di setupPopupListeners()
     }
 
@@ -1669,10 +3817,642 @@ private String escapeHtml(String s) {
     //  ACTION: PILIH POLI RUJUKAN (popup BPJSCekReferensiPoli)
     // =================================================================
     private void doPilihPoli() {
-        popupPoli.setSize(900, 500);
+        popupPoli.setSize(920, 560);
+        popupPoli.getTable().clearSelection();
         popupPoli.setLocationRelativeTo(this);
-        popupPoli.setVisible(true);
+        showModalDialogWithBlur(popupPoli);
         // hasil dipilih -> handler windowClosed di setupPopupListeners()
+    }
+
+    // =================================================================
+    //  DIALOG KONFIRMASI ENCOUNTER SATUSEHAT
+    //  Hanya mengganti tampilan konfirmasi; proses POST tetap di method lama.
+    // =================================================================
+    private boolean showEncounterConfirmationDialog() {
+        final javax.swing.JDialog dialog = new javax.swing.JDialog(this, true);
+        final boolean[] confirmed = {false};
+
+        dialog.setUndecorated(true);
+        configureRoundedPopupWindow(dialog, true);
+        dialog.setResizable(false);
+        dialog.setTitle("Konfirmasi Encounter SATUSEHAT");
+        dialog.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+
+        java.awt.Color pageColor = new java.awt.Color(248, 250, 252);
+        java.awt.Color lineColor = new java.awt.Color(226, 232, 240);
+        java.awt.Color primaryColor = new java.awt.Color(37, 99, 235);
+
+        javax.swing.JPanel root = new javax.swing.JPanel(new java.awt.BorderLayout());
+        root.setBackground(pageColor);
+        root.setBorder(new RoundedPopupBorder(
+                new java.awt.Color(203, 213, 225)));
+
+        javax.swing.JPanel header = new javax.swing.JPanel(new java.awt.BorderLayout(14, 0));
+        header.setBackground(java.awt.Color.WHITE);
+        header.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, lineColor),
+                javax.swing.BorderFactory.createEmptyBorder(16, 28, 14, 12)));
+        header.setPreferredSize(new java.awt.Dimension(10, 84));
+
+        javax.swing.JPanel titleArea = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+        titleArea.setOpaque(false);
+
+        javax.swing.JPanel accent = new javax.swing.JPanel();
+        accent.setBackground(primaryColor);
+        accent.setPreferredSize(new java.awt.Dimension(5, 48));
+
+        javax.swing.JPanel accentBox = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        accentBox.setOpaque(false);
+        accentBox.add(accent);
+
+        javax.swing.JPanel heading = new javax.swing.JPanel();
+        heading.setOpaque(false);
+        heading.setLayout(new javax.swing.BoxLayout(heading, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JLabel title = new javax.swing.JLabel("Konfirmasi Encounter SATUSEHAT");
+        title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 17));
+        title.setForeground(new java.awt.Color(30, 41, 59));
+
+        javax.swing.JLabel subtitle = new javax.swing.JLabel(
+                "Periksa kembali data berikut sebelum dikirim.");
+        subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        subtitle.setForeground(new java.awt.Color(100, 116, 139));
+        subtitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 0, 0, 0));
+
+        heading.add(title);
+        heading.add(subtitle);
+        titleArea.add(accentBox, java.awt.BorderLayout.WEST);
+        titleArea.add(heading, java.awt.BorderLayout.CENTER);
+
+        javax.swing.JPanel headerActions = new javax.swing.JPanel();
+        headerActions.setOpaque(false);
+        headerActions.setLayout(new javax.swing.BoxLayout(
+                headerActions, javax.swing.BoxLayout.X_AXIS));
+
+        javax.swing.JLabel satuSehatBadge = new EncounterPillLabel(
+                "SATUSEHAT", new java.awt.Color(239, 246, 255), 8);
+        satuSehatBadge.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        satuSehatBadge.setFont(new java.awt.Font(
+                "Segoe UI Semibold", java.awt.Font.PLAIN, 10));
+        satuSehatBadge.setForeground(new java.awt.Color(30, 64, 175));
+        satuSehatBadge.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 13, 6, 13));
+        satuSehatBadge.setPreferredSize(new java.awt.Dimension(100, 30));
+
+        javax.swing.JButton close = createFlatCloseButton();
+        close.setToolTipText("Tutup");
+        close.addActionListener(e -> dialog.dispose());
+
+        headerActions.add(satuSehatBadge);
+        headerActions.add(javax.swing.Box.createHorizontalStrut(12));
+        headerActions.add(close);
+
+        header.add(titleArea, java.awt.BorderLayout.CENTER);
+        header.add(headerActions, java.awt.BorderLayout.EAST);
+
+        javax.swing.JPanel body = new javax.swing.JPanel();
+        body.setBackground(pageColor);
+        body.setLayout(new javax.swing.BoxLayout(body, javax.swing.BoxLayout.Y_AXIS));
+        body.setBorder(javax.swing.BorderFactory.createEmptyBorder(16, 28, 26, 28));
+
+        javax.swing.JPanel dataCard = createEncounterDataCard();
+        dataCard.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        body.add(dataCard);
+        body.add(javax.swing.Box.createVerticalStrut(12));
+
+        javax.swing.JPanel warningCard = createEncounterMessageCard(
+                true,
+                "Perhatian",
+                "Encounter yang telah dikirim tidak dapat diubah secara bebas. "
+                + "Pastikan pasien, dokter, dan nomor rawat sudah sesuai.");
+        warningCard.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        body.add(warningCard);
+        body.add(javax.swing.Box.createVerticalStrut(12));
+
+        javax.swing.JPanel processCard = createEncounterProcessCard();
+        processCard.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        body.add(processCard);
+
+        javax.swing.JPanel footer = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+        footer.setBackground(java.awt.Color.WHITE);
+        footer.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0, lineColor),
+                javax.swing.BorderFactory.createEmptyBorder(12, 28, 12, 28)));
+        footer.setPreferredSize(new java.awt.Dimension(10, 62));
+
+        javax.swing.JLabel reminder = new javax.swing.JLabel(
+                "Pastikan seluruh data telah sesuai sebelum melanjutkan.");
+        reminder.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        reminder.setForeground(new java.awt.Color(100, 116, 139));
+
+        javax.swing.JPanel actions = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 8, 0));
+        actions.setOpaque(false);
+
+        javax.swing.JButton cancelButton = new EncounterActionButton("Batal", false);
+        styleEncounterDialogButton(cancelButton, false);
+        cancelButton.setPreferredSize(new java.awt.Dimension(100, 34));
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        javax.swing.JButton confirmButton = new EncounterActionButton(
+                "Buat Encounter", true);
+        styleEncounterDialogButton(confirmButton, true);
+        confirmButton.setIcon(new EncounterCheckIcon(java.awt.Color.WHITE, 14));
+        confirmButton.setIconTextGap(7);
+        confirmButton.setPreferredSize(new java.awt.Dimension(146, 34));
+        confirmButton.addActionListener(e -> {
+            confirmed[0] = true;
+            dialog.dispose();
+        });
+
+        actions.add(cancelButton);
+        actions.add(confirmButton);
+        footer.add(reminder, java.awt.BorderLayout.CENTER);
+        footer.add(actions, java.awt.BorderLayout.EAST);
+
+        root.add(header, java.awt.BorderLayout.NORTH);
+        root.add(body, java.awt.BorderLayout.CENTER);
+        root.add(footer, java.awt.BorderLayout.SOUTH);
+        dialog.setContentPane(root);
+
+        dialog.getRootPane().setDefaultButton(confirmButton);
+        dialog.getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(javax.swing.KeyStroke.getKeyStroke(
+                        java.awt.event.KeyEvent.VK_ESCAPE, 0), "cancel-encounter");
+        dialog.getRootPane().getActionMap().put("cancel-encounter",
+                new javax.swing.AbstractAction() {
+                    @Override
+                    public void actionPerformed(java.awt.event.ActionEvent e) {
+                        dialog.dispose();
+                    }
+                });
+
+        installDialogDragSupport(header, dialog);
+        dialog.setSize(760, 630);
+        dialog.setLocationRelativeTo(this);
+        showModalDialogWithBlur(dialog);
+        return confirmed[0];
+    }
+
+    private javax.swing.JPanel createEncounterDataCard() {
+        java.awt.Color lineColor = new java.awt.Color(226, 232, 240);
+
+        javax.swing.JPanel card = new EncounterRoundedPanel(
+                new java.awt.BorderLayout(), java.awt.Color.WHITE, lineColor, 10);
+        card.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 240));
+        card.setPreferredSize(new java.awt.Dimension(100, 240));
+
+        javax.swing.JPanel cardHeader = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 14, 10));
+        cardHeader.setOpaque(false);
+        cardHeader.setBorder(javax.swing.BorderFactory.createMatteBorder(
+                0, 0, 1, 0, lineColor));
+        cardHeader.setPreferredSize(new java.awt.Dimension(10, 42));
+
+        javax.swing.JLabel cardTitle = new javax.swing.JLabel("Data Encounter");
+        cardTitle.setIcon(new EncounterDocumentIcon());
+        cardTitle.setIconTextGap(8);
+        cardTitle.setFont(new java.awt.Font(
+                "Segoe UI Semibold", java.awt.Font.PLAIN, 13));
+        cardTitle.setForeground(new java.awt.Color(30, 64, 175));
+        cardHeader.add(cardTitle);
+
+        javax.swing.JPanel rows = new javax.swing.JPanel();
+        rows.setOpaque(false);
+        rows.setLayout(new javax.swing.BoxLayout(rows, javax.swing.BoxLayout.Y_AXIS));
+
+        rows.add(createEncounterDataRow(
+                EncounterDataIcon.PATIENT,
+                "Nama Pasien", namaPasien, false, false));
+        rows.add(createEncounterDataRow(
+                EncounterDataIcon.CLIPBOARD,
+                "No. Rawat", noRawat, false, false));
+        rows.add(createEncounterDataRow(
+                EncounterDataIcon.ID_CARD,
+                "IHS Pasien", idPasienSatuSehat, false, false));
+        rows.add(createEncounterDataRow(
+                EncounterDataIcon.DOCTOR,
+                "IHS Dokter", kdDokterSatuSehat, false, false));
+        rows.add(createEncounterDataRow(
+                EncounterDataIcon.CALENDAR,
+                "Tanggal Encounter",
+                new java.text.SimpleDateFormat("dd MMMM yyyy",
+                        new java.util.Locale("id", "ID")).format(new java.util.Date()),
+                false, false));
+        rows.add(createEncounterDataRow(
+                EncounterDataIcon.FLAG,
+                "Status Encounter", "ARRIVED", true, true));
+
+        card.add(cardHeader, java.awt.BorderLayout.NORTH);
+        card.add(rows, java.awt.BorderLayout.CENTER);
+        return card;
+    }
+
+    private javax.swing.JPanel createEncounterDataRow(int iconType, String labelText,
+            String valueText, boolean badgeValue, boolean lastRow) {
+        javax.swing.JPanel row = new javax.swing.JPanel(new java.awt.BorderLayout(14, 0));
+        row.setOpaque(false);
+        row.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 33));
+        row.setPreferredSize(new java.awt.Dimension(100, 33));
+
+        javax.swing.border.Border padding = javax.swing.BorderFactory.createEmptyBorder(
+                0, 14, 0, 14);
+        if (lastRow) {
+            row.setBorder(padding);
+        } else {
+            row.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createMatteBorder(
+                            0, 0, 1, 0, new java.awt.Color(241, 245, 249)),
+                    padding));
+        }
+
+        javax.swing.JPanel labelBox = new javax.swing.JPanel(
+                new java.awt.BorderLayout(7, 0));
+        labelBox.setOpaque(false);
+        labelBox.setPreferredSize(new java.awt.Dimension(230, 30));
+
+        javax.swing.JLabel icon = new javax.swing.JLabel(new EncounterDataIcon(iconType));
+        icon.setPreferredSize(new java.awt.Dimension(22, 30));
+
+        javax.swing.JLabel label = new javax.swing.JLabel(labelText);
+        label.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+        label.setForeground(new java.awt.Color(71, 85, 105));
+        labelBox.add(icon, java.awt.BorderLayout.WEST);
+        labelBox.add(label, java.awt.BorderLayout.CENTER);
+        row.add(labelBox, java.awt.BorderLayout.WEST);
+
+        if (badgeValue) {
+            javax.swing.JPanel badgeBox = new javax.swing.JPanel(
+                    new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 7));
+            badgeBox.setOpaque(false);
+
+            javax.swing.JLabel badge = new EncounterPillLabel(
+                    safe(valueText), new java.awt.Color(37, 99, 235), 8);
+            badge.setFont(new java.awt.Font(
+                    "Segoe UI Semibold", java.awt.Font.PLAIN, 10));
+            badge.setForeground(java.awt.Color.WHITE);
+            badge.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 9, 3, 9));
+            badgeBox.add(badge);
+            row.add(badgeBox, java.awt.BorderLayout.CENTER);
+        } else {
+            javax.swing.JLabel value = new javax.swing.JLabel(safe(valueText));
+            value.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+            value.setForeground(new java.awt.Color(30, 41, 59));
+            row.add(value, java.awt.BorderLayout.CENTER);
+        }
+        return row;
+    }
+
+    private javax.swing.JPanel createEncounterMessageCard(boolean warning,
+            String titleText, String messageText) {
+        java.awt.Color background = warning
+                ? new java.awt.Color(255, 251, 235)
+                : new java.awt.Color(239, 246, 255);
+        java.awt.Color foreground = warning
+                ? new java.awt.Color(180, 83, 9)
+                : new java.awt.Color(29, 78, 216);
+        java.awt.Color border = warning
+                ? new java.awt.Color(253, 230, 138)
+                : new java.awt.Color(191, 219, 254);
+
+        javax.swing.JPanel card = new EncounterRoundedPanel(
+                new java.awt.BorderLayout(10, 0), background, border, 10);
+        card.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        card.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 64));
+        card.setPreferredSize(new java.awt.Dimension(100, 64));
+
+        card.add(new EncounterCalloutIcon(warning), java.awt.BorderLayout.WEST);
+
+        javax.swing.JPanel content = new javax.swing.JPanel();
+        content.setOpaque(false);
+        content.setLayout(new javax.swing.BoxLayout(content, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JLabel title = new javax.swing.JLabel(titleText);
+        title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 12));
+        title.setForeground(foreground);
+        title.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+
+        javax.swing.JTextArea message = new javax.swing.JTextArea(messageText);
+        message.setEditable(false);
+        message.setFocusable(false);
+        message.setOpaque(false);
+        message.setLineWrap(true);
+        message.setWrapStyleWord(true);
+        message.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        message.setForeground(new java.awt.Color(71, 85, 105));
+        message.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 0, 0, 0));
+        message.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+
+        content.add(title);
+        content.add(message);
+        card.add(content, java.awt.BorderLayout.CENTER);
+        return card;
+    }
+
+    private javax.swing.JPanel createEncounterProcessCard() {
+        javax.swing.JPanel card = new EncounterRoundedPanel(
+                new java.awt.BorderLayout(10, 0),
+                new java.awt.Color(239, 246, 255),
+                new java.awt.Color(191, 219, 254), 10);
+        card.setBorder(javax.swing.BorderFactory.createEmptyBorder(9, 12, 9, 12));
+        card.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 112));
+        card.setPreferredSize(new java.awt.Dimension(100, 112));
+        card.add(new EncounterCalloutIcon(false), java.awt.BorderLayout.WEST);
+
+        javax.swing.JPanel content = new javax.swing.JPanel();
+        content.setOpaque(false);
+        content.setLayout(new javax.swing.BoxLayout(content, javax.swing.BoxLayout.Y_AXIS));
+
+        javax.swing.JLabel title = new javax.swing.JLabel("Proses yang akan dilakukan");
+        title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 12));
+        title.setForeground(new java.awt.Color(29, 78, 216));
+        title.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 3, 0));
+        title.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+
+        content.add(title);
+        content.add(createEncounterChecklistRow(
+                "Membuat Encounter baru di SATUSEHAT"));
+        content.add(createEncounterChecklistRow(
+                "Menghubungkan pasien dengan dokter yang dipilih"));
+        content.add(createEncounterChecklistRow(
+                "Menyiapkan referensi Encounter untuk proses rujukan berikutnya"));
+        card.add(content, java.awt.BorderLayout.CENTER);
+        return card;
+    }
+
+    private javax.swing.JPanel createEncounterChecklistRow(String text) {
+        javax.swing.JPanel row = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 1));
+        row.setOpaque(false);
+        row.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 22));
+        row.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+
+        javax.swing.JLabel label = new javax.swing.JLabel(text);
+        label.setIcon(new EncounterCheckIcon(new java.awt.Color(37, 99, 235), 14));
+        label.setIconTextGap(7);
+        label.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        label.setForeground(new java.awt.Color(51, 65, 85));
+        row.add(label);
+        return row;
+    }
+
+    private void styleEncounterDialogButton(javax.swing.JButton button, boolean primary) {
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        button.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
+        button.setFocusPainted(false);
+        button.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        button.setContentAreaFilled(false);
+        button.setOpaque(false);
+        button.setBorderPainted(false);
+
+        if (primary) {
+            button.setForeground(java.awt.Color.WHITE);
+            button.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        } else {
+            button.setForeground(new java.awt.Color(51, 65, 85));
+            button.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        }
+    }
+
+    private static final class EncounterRoundedPanel extends javax.swing.JPanel {
+        private final java.awt.Color fillColor;
+        private final java.awt.Color outlineColor;
+        private final int arc;
+
+        EncounterRoundedPanel(java.awt.LayoutManager layout,
+                java.awt.Color fillColor, java.awt.Color outlineColor, int arc) {
+            super(layout);
+            this.fillColor = fillColor;
+            this.outlineColor = outlineColor;
+            this.arc = arc;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            super.paintComponent(g);
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(fillColor);
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
+            g2.setColor(outlineColor);
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
+            g2.dispose();
+        }
+    }
+
+    private static final class EncounterPillLabel extends javax.swing.JLabel {
+        private final java.awt.Color fillColor;
+        private final int arc;
+
+        EncounterPillLabel(String text, java.awt.Color fillColor, int arc) {
+            super(text);
+            this.fillColor = fillColor;
+            this.arc = arc;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(fillColor);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private static final class EncounterActionButton extends javax.swing.JButton {
+        private final boolean primary;
+
+        EncounterActionButton(String text, boolean primary) {
+            super(text);
+            this.primary = primary;
+            setRolloverEnabled(true);
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+            boolean pressed = getModel().isArmed() && getModel().isPressed();
+            boolean rollover = getModel().isRollover();
+            java.awt.Color fill;
+            if (primary) {
+                fill = pressed
+                        ? new java.awt.Color(29, 78, 216)
+                        : (rollover
+                                ? new java.awt.Color(30, 64, 175)
+                                : new java.awt.Color(37, 99, 235));
+            } else {
+                fill = pressed
+                        ? new java.awt.Color(241, 245, 249)
+                        : (rollover
+                                ? new java.awt.Color(248, 250, 252)
+                                : java.awt.Color.WHITE);
+            }
+
+            g2.setColor(fill);
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 7, 7);
+            if (!primary) {
+                g2.setColor(new java.awt.Color(203, 213, 225));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 7, 7);
+            }
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private static final class EncounterDataIcon implements javax.swing.Icon {
+        static final int PATIENT = 0;
+        static final int CLIPBOARD = 1;
+        static final int ID_CARD = 2;
+        static final int DOCTOR = 3;
+        static final int CALENDAR = 4;
+        static final int FLAG = 5;
+
+        private final int type;
+
+        EncounterDataIcon(int type) {
+            this.type = type;
+        }
+
+        @Override public int getIconWidth() { return 18; }
+        @Override public int getIconHeight() { return 18; }
+
+        @Override
+        public void paintIcon(java.awt.Component c, java.awt.Graphics g, int x, int y) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new java.awt.Color(37, 99, 235));
+            g2.setStroke(new java.awt.BasicStroke(1.5f,
+                    java.awt.BasicStroke.CAP_ROUND,
+                    java.awt.BasicStroke.JOIN_ROUND));
+
+            if (type == PATIENT) {
+                g2.drawOval(x + 6, y + 2, 6, 6);
+                g2.drawArc(x + 3, y + 9, 12, 8, 0, 180);
+            } else if (type == CLIPBOARD) {
+                g2.drawRoundRect(x + 3, y + 3, 12, 13, 2, 2);
+                g2.drawRoundRect(x + 6, y + 1, 6, 4, 2, 2);
+                g2.drawLine(x + 6, y + 8, x + 12, y + 8);
+                g2.drawLine(x + 6, y + 12, x + 12, y + 12);
+            } else if (type == ID_CARD) {
+                g2.drawRoundRect(x + 1, y + 3, 16, 12, 2, 2);
+                g2.drawOval(x + 4, y + 6, 4, 4);
+                g2.drawArc(x + 3, y + 10, 6, 3, 0, 180);
+                g2.drawLine(x + 11, y + 7, x + 15, y + 7);
+                g2.drawLine(x + 11, y + 11, x + 15, y + 11);
+            } else if (type == DOCTOR) {
+                g2.drawOval(x + 4, y + 2, 6, 6);
+                g2.drawArc(x + 1, y + 9, 12, 8, 0, 180);
+                g2.drawLine(x + 14, y + 10, x + 14, y + 16);
+                g2.drawLine(x + 11, y + 13, x + 17, y + 13);
+            } else if (type == CALENDAR) {
+                g2.drawRoundRect(x + 2, y + 3, 14, 13, 2, 2);
+                g2.drawLine(x + 2, y + 7, x + 16, y + 7);
+                g2.drawLine(x + 6, y + 1, x + 6, y + 5);
+                g2.drawLine(x + 12, y + 1, x + 12, y + 5);
+                g2.fillRect(x + 5, y + 10, 2, 2);
+                g2.fillRect(x + 10, y + 10, 2, 2);
+            } else {
+                g2.drawLine(x + 3, y + 2, x + 3, y + 17);
+                java.awt.Polygon flag = new java.awt.Polygon(
+                        new int[]{x + 4, x + 15, x + 12, x + 4},
+                        new int[]{y + 3, y + 3, y + 9, y + 9}, 4);
+                g2.drawPolygon(flag);
+            }
+            g2.dispose();
+        }
+    }
+
+    private static final class EncounterDocumentIcon implements javax.swing.Icon {
+        @Override public int getIconWidth() { return 18; }
+        @Override public int getIconHeight() { return 18; }
+
+        @Override
+        public void paintIcon(java.awt.Component c, java.awt.Graphics g, int x, int y) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new java.awt.Color(37, 99, 235));
+            g2.setStroke(new java.awt.BasicStroke(1.7f,
+                    java.awt.BasicStroke.CAP_ROUND,
+                    java.awt.BasicStroke.JOIN_ROUND));
+            g2.drawRoundRect(x + 2, y + 1, 13, 16, 2, 2);
+            g2.drawLine(x + 5, y + 6, x + 12, y + 6);
+            g2.drawLine(x + 5, y + 10, x + 12, y + 10);
+            g2.drawLine(x + 5, y + 14, x + 10, y + 14);
+            g2.dispose();
+        }
+    }
+
+    private static final class EncounterCalloutIcon extends javax.swing.JComponent {
+        private final boolean warning;
+
+        EncounterCalloutIcon(boolean warning) {
+            this.warning = warning;
+            setPreferredSize(new java.awt.Dimension(26, 26));
+            setMinimumSize(new java.awt.Dimension(26, 26));
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setStroke(new java.awt.BasicStroke(1.8f,
+                    java.awt.BasicStroke.CAP_ROUND,
+                    java.awt.BasicStroke.JOIN_ROUND));
+
+            if (warning) {
+                g2.setColor(new java.awt.Color(245, 158, 11));
+                java.awt.Polygon triangle = new java.awt.Polygon(
+                        new int[]{13, 3, 23}, new int[]{3, 22, 22}, 3);
+                g2.drawPolygon(triangle);
+                g2.drawLine(13, 9, 13, 15);
+                g2.fillOval(12, 18, 2, 2);
+            } else {
+                g2.setColor(new java.awt.Color(37, 99, 235));
+                g2.drawOval(3, 3, 20, 20);
+                g2.drawLine(13, 11, 13, 18);
+                g2.fillOval(12, 7, 2, 2);
+            }
+            g2.dispose();
+        }
+    }
+
+    private static final class EncounterCheckIcon implements javax.swing.Icon {
+        private final java.awt.Color color;
+        private final int size;
+
+        EncounterCheckIcon(java.awt.Color color, int size) {
+            this.color = color;
+            this.size = size;
+        }
+
+        @Override public int getIconWidth() { return size; }
+        @Override public int getIconHeight() { return size; }
+
+        @Override
+        public void paintIcon(java.awt.Component c, java.awt.Graphics g, int x, int y) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(color);
+            g2.setStroke(new java.awt.BasicStroke(1.7f,
+                    java.awt.BasicStroke.CAP_ROUND,
+                    java.awt.BasicStroke.JOIN_ROUND));
+            g2.drawOval(x + 1, y + 1, size - 3, size - 3);
+            g2.drawLine(x + 4, y + size / 2, x + 6, y + size - 5);
+            g2.drawLine(x + 6, y + size - 5, x + size - 4, y + 4);
+            g2.dispose();
+        }
     }
 
     // =================================================================
@@ -1710,107 +4490,7 @@ private String escapeHtml(String s) {
                     "Encounter sudah ada untuk no_rawat ini:\n" + existing);
             return;
         }
-
-        
-        
-        String pesanHtml =
-        "<html>" +
-        "<div style='width:500px;padding:12px;font-family:Segoe UI,Arial,sans-serif;'>" +
-
-        "<div style='text-align:center;'>" +
-        "<h2 style='color:#0d6efd;margin-bottom:5px;'>🩺 Konfirmasi Pembuatan Encounter SATUSEHAT</h2>" +
-        "<p style='color:#666666;margin-top:0;'>Silakan periksa kembali data berikut sebelum dikirim.</p>" +
-        "</div>" +
-
-        "<hr style='border:1px solid #0d6efd;'/>" +
-
-        "<table style='width:100%;border-collapse:collapse;margin-top:10px;'>" +
-
-        "<tr style='background:#f8f9fa;'>" +
-        "<td style='padding:8px;font-weight:bold;width:35%;'>👤 Nama Pasien</td>" +
-        "<td style='padding:8px;'>" + namaPasien + "</td>" +
-        "</tr>" +
-
-        "<tr>" +
-        "<td style='padding:8px;font-weight:bold;'>🆔 IHS Pasien</td>" +
-        "<td style='padding:8px;'>" + idPasienSatuSehat + "</td>" +
-        "</tr>" +
-
-        "<tr style='background:#f8f9fa;'>" +
-        "<td style='padding:8px;font-weight:bold;'>👨‍⚕️ IHS Dokter</td>" +
-        "<td style='padding:8px;'>" + kdDokterSatuSehat + "</td>" +
-        "</tr>" +
-
-        "<tr>" +
-        "<td style='padding:8px;font-weight:bold;'>📋 No. Rawat</td>" +
-        "<td style='padding:8px;'>" + noRawat + "</td>" +
-        "</tr>" +
-
-//        "<tr style='background:#f8f9fa;'>" +
-//        "<td style='padding:8px;font-weight:bold;'>🏥 Organisasi</td>" +
-//        "<td style='padding:8px;'>" + orgId + "</td>" +
-//        "</tr>" +
-
-        "<tr>" +
-        "<td style='padding:8px;font-weight:bold;'>📅 Tanggal Encounter</td>" +
-        "<td style='padding:8px;'>" +
-        new java.text.SimpleDateFormat("dd-MM-yyyy").format(new Date()) +
-        "</td>" +
-        "</tr>" +
-
-        "<tr style='background:#f8f9fa;'>" +
-        "<td style='padding:8px;font-weight:bold;'>📌 Status Encounter</td>" +
-        "<td style='padding:8px;'>ARRIVED</td>" +
-        "</tr>" +
-
-        "</table>" +
-
-        "<div style='margin-top:15px;padding:10px;background:#fff3cd;border:1px solid #ffe69c;border-radius:4px;'>" +
-        "<b>⚠ Perhatian</b><br>" +
-        "Encounter yang sudah berhasil dikirim ke SATUSEHAT tidak dapat diubah secara bebas. " +
-        "Pastikan pasien, dokter, dan nomor rawat sudah sesuai." +
-        "</div>" +
-
-        "<div style='margin-top:12px;padding:10px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:4px;'>" +
-        "<b>✓ Tindakan yang akan dilakukan :</b><br>" +
-        "• Membuat Encounter baru di SATUSEHAT<br>" +
-        "• Menghubungkan pasien dengan dokter yang dipilih<br>" +
-        "• Menyiapkan referensi Encounter untuk proses rujukan SATUSEHAT berikutnya" +
-        "</div>" +
-
-        "<p style='font-size:11px;color:#888888;margin-top:15px;text-align:center;'>" +
-        "Klik <b>Yes</b> untuk melanjutkan atau <b>No</b> untuk membatalkan proses." +
-        "</p>" +
-
-        "</div>" +
-        "</html>";
-
-    int conf = JOptionPane.showConfirmDialog(
-            this,
-            pesanHtml,
-            "Konfirmasi Encounter SATUSEHAT",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE
-    );
-
-    if (conf != JOptionPane.YES_OPTION) {
-        return;
-    }
-        
-        
-        
-        
-//        int conf = JOptionPane.showConfirmDialog(this,
-//                "Akan kirim Encounter baru ke Satu Sehat dengan data:\n\n"
-//                + "  Pasien    : " + namaPasien + "\n"
-//                + "  IHS       : " + idPasienSatuSehat + "\n"
-//                + "  Dokter    : " + kdDokterSatuSehat + "\n"
-//                + "  No.Rawat  : " + noRawat + "\n"
-//                + "  Periode   : " + new java.text.SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\n\n"
-//                + "Lanjutkan?",
-//                "Konfirmasi Buat Encounter",
-//                JOptionPane.YES_NO_OPTION);
-//        if (conf != JOptionPane.YES_OPTION) return;
+        if (!showEncounterConfirmationDialog()) return;
 
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         setStatus("Mengirim Encounter ke Satu Sehat...", false);
@@ -1829,6 +4509,7 @@ private String escapeHtml(String s) {
                 setStatus("Gagal buat Encounter (response kosong).", true);
             }
         } catch (Exception ex) {
+            rememberApiException("SATUSEHAT - POST Encounter", ex);
             setStatus("Error: " + ex.getMessage(), true);
             JOptionPane.showMessageDialog(this,
                     "Gagal buat Encounter:\n" + ex.getMessage());
@@ -2004,6 +4685,8 @@ private String escapeHtml(String s) {
             )
             .getBody();
 
+    rememberApiResponse("SATUSEHAT - POST Encounter", json);
+
     System.out.println("RESPONSE:");
     System.out.println(json);
 
@@ -2050,6 +4733,8 @@ private String escapeHtml(String s) {
             JsonNode resp = sisrute.getKriteriaRujukan(
                     kodeFaskesSatuSehat, kdPenyakitRujuk, encounterRef);
 
+            rememberApiResponse("BPJS/SISRUTE - Get Kriteria Rujukan", resp);
+
 //            if (!SisruteService.isOk(resp)) {
 //                JOptionPane.showMessageDialog(this,
 //                        "Gagal: " + SisruteService.getMessage(resp),
@@ -2063,8 +4748,8 @@ private String escapeHtml(String s) {
                 String msg =
                         safe(SisruteService.getMessage(resp));
 
-                ToastMessage.showToast(
-                        null,
+                showModernToast(
+                        this,
                         "Gagal Sisrute :<br>" + msg,
                         ToastMessage.ERROR,
                         0
@@ -2156,6 +4841,8 @@ private String escapeHtml(String s) {
                     kdProv, nmProv, kdKab, nmKab,
                     encounterRef);
 
+            rememberApiResponse("BPJS/SISRUTE - Get Faskes Rujukan", resp);
+
 //            if (!SisruteService.isOk(resp)) {
 //                JOptionPane.showMessageDialog(this,
 //                        "Gagal: " + SisruteService.getMessage(resp),
@@ -2171,8 +4858,8 @@ private String escapeHtml(String s) {
                 String msg =
                         safe(SisruteService.getMessage(resp));
 
-                ToastMessage.showToast(
-                        null,
+                showModernToast(
+                        this,
                         "Gagal Sisrute :<br>" + msg,
                         ToastMessage.ERROR,
                         0
@@ -2325,6 +5012,8 @@ private String escapeHtml(String s) {
         setStatus("Mengirim rujukan...", false);
         try {
             JsonNode resp = sisrute.insertRujukan(req);
+
+            rememberApiResponse("BPJS/SISRUTE - Kirim Rujukan", resp);
 
             if (!SisruteService.isOk(resp)) {
                 JOptionPane.showMessageDialog(this,
@@ -2564,6 +5253,8 @@ private String escapeHtml(String s) {
                     kdppkTujuan, kdDokterSatuSehat,
                     encounterRef, patientInstr, keteranganRujuk);
 
+            rememberApiResponse("BPJS/SISRUTE - Hapus Rujukan", resp);
+
             if (!SisruteService.isOk(resp)) {
                 JOptionPane.showMessageDialog(this,
                         "Gagal hapus: " + SisruteService.getMessage(resp),
@@ -2628,8 +5319,8 @@ private String escapeHtml(String s) {
     
     private boolean kosong(JTextField field, String pesan) {
     if (field.getText().trim().isEmpty()) {
-        ToastMessage.showToast(
-                null,
+        showModernToast(
+                this,
                 pesan,
                 ToastMessage.WARNING,
                 0
@@ -2643,6 +5334,7 @@ private String escapeHtml(String s) {
     private void handleApiError(Exception ex) {
         System.out.println("API error: " + ex);
         ex.printStackTrace();
+        rememberApiException("API BPJS/SATUSEHAT", ex);
         String msg = ex.toString();
         if (msg.contains("UnknownHostException")) {
             JOptionPane.showMessageDialog(this,
@@ -2703,8 +5395,56 @@ private String escapeHtml(String s) {
     }
 
     JDialog dialog = new JDialog((Frame) null, "Pilih Tindakan Medis (ICD-9)", true);
+    dialog.setUndecorated(true);
+    configureRoundedPopupWindow(dialog, true);
+    dialog.getRootPane().setBorder(new RoundedPopupBorder(
+            new Color(203, 213, 225)));
     dialog.setLayout(new BorderLayout(10, 10));
-    dialog.getContentPane().setBackground(new Color(240, 248, 255));
+    dialog.getContentPane().setBackground(Color.WHITE);
+
+    JPanel popupHeader = new JPanel(new BorderLayout(10, 0));
+    popupHeader.setBackground(new Color(248, 250, 252));
+    popupHeader.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(
+                    0, 0, 1, 0, new Color(226, 232, 240)),
+            BorderFactory.createEmptyBorder(12, 16, 11, 10)));
+
+    JLabel popupTitle = new JLabel("Pilih Tindakan Medis (ICD-9)");
+    popupTitle.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 14));
+    popupTitle.setForeground(new Color(30, 41, 59));
+
+    JButton popupClose = new JButton("\u00d7");
+    popupClose.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 18));
+    popupClose.setForeground(new Color(100, 116, 139));
+    popupClose.setPreferredSize(new Dimension(32, 28));
+    popupClose.setMargin(new Insets(0, 0, 2, 0));
+    popupClose.setFocusPainted(false);
+    popupClose.setBorderPainted(false);
+    popupClose.setContentAreaFilled(false);
+    popupClose.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    popupClose.addActionListener(e -> dialog.dispose());
+
+    popupHeader.add(popupTitle, BorderLayout.CENTER);
+    popupHeader.add(popupClose, BorderLayout.EAST);
+
+    final Point[] popupPressedAt = {null};
+    popupHeader.addMouseListener(new MouseAdapter() {
+        @Override
+        public void mousePressed(MouseEvent e) {
+            popupPressedAt[0] = e.getPoint();
+        }
+    });
+    popupHeader.addMouseMotionListener(new MouseMotionAdapter() {
+        @Override
+        public void mouseDragged(MouseEvent e) {
+            if (popupPressedAt[0] != null) {
+                Point screen = e.getLocationOnScreen();
+                dialog.setLocation(
+                        screen.x - popupPressedAt[0].x,
+                        screen.y - popupPressedAt[0].y);
+            }
+        }
+    });
 
     // ========== PANEL ATAS ==========
     JPanel topPanel = new JPanel(new BorderLayout(5, 5));
@@ -2713,7 +5453,12 @@ private String escapeHtml(String s) {
     JTextField txtCari = new JTextField();
     topPanel.add(lblCari, BorderLayout.WEST);
     topPanel.add(txtCari, BorderLayout.CENTER);
-    dialog.add(topPanel, BorderLayout.NORTH);
+
+    JPanel northPanel = new JPanel(new BorderLayout(0, 8));
+    northPanel.setBackground(Color.WHITE);
+    northPanel.add(popupHeader, BorderLayout.NORTH);
+    northPanel.add(topPanel, BorderLayout.CENTER);
+    dialog.add(northPanel, BorderLayout.NORTH);
 
     // ========== TABEL ==========
     String[] columnNames = {"Kode", "Deskripsi"};
@@ -2789,8 +5534,8 @@ private String escapeHtml(String s) {
                     && !"1".equals(item.getIm());
 
             if (!selectable) {
-                ToastMessage.showToast(
-                        null,
+                showModernToast(
+                        parent,
                         "Kode tidak bisa dipilih!!! ",
                         ToastMessage.WARNING,
                         0
@@ -2863,8 +5608,8 @@ private String escapeHtml(String s) {
                 Icd9Item item = listDisplay.get(row);
                 boolean selectable = "1".equals(item.getValidcode()) && !"1".equals(item.getIm());
                 if (!selectable) {
-                    ToastMessage.showToast(
-                        null,
+                    showModernToast(
+                        parent,
                         "Kode tidak bisa dipilih!!! ",
                         ToastMessage.WARNING,
                         0
@@ -2884,8 +5629,8 @@ private String escapeHtml(String s) {
         String hasil = txtSelected.getText().trim();
 
         if (hasil.isEmpty()) {
-           ToastMessage.showToast(
-                        null,
+           showModernToast(
+                        parent,
                         "Pilih minimal satu tindakan ",
                         ToastMessage.WARNING,
                         0
@@ -2916,7 +5661,14 @@ private String escapeHtml(String s) {
      dialog.getX(),
      dialog.getY() + 200
     );
-    dialog.setVisible(true);
+    java.awt.Window ownerWindow = parent == null
+            ? null
+            : javax.swing.SwingUtilities.getWindowAncestor(parent);
+    if (ownerWindow instanceof BPJSRujukanSatuSehat) {
+        ((BPJSRujukanSatuSehat) ownerWindow).showModalDialogWithBlur(dialog);
+    } else {
+        dialog.setVisible(true);
+    }
     System.out.println(parent.getClass().getName());
     return result[0];
 }
@@ -3006,6 +5758,7 @@ private static List<Icd9Item> fetchIcd9List(String keyword) {
     private widget.Button btnKirim;
     private widget.Button btnPilihDiagnosa;
     private widget.Button btnPilihPoli;
+    private widget.Button btnResponApi;
     private widget.Button btnTutup;
     private widget.ComboBox cbJnsPelayanan;
     private widget.ComboBox cbProvinsi;

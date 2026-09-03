@@ -2130,7 +2130,9 @@ private void ChkJlnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:
         }
 
         for(int baris=0;baris<tbPemeriksaan.getRowCount();baris++){
-            if(Boolean.TRUE.equals(tbPemeriksaan.getValueAt(baris,0))){
+            Object namaPemeriksaan=tbPemeriksaan.getValueAt(baris,2);
+            if(Boolean.TRUE.equals(tbPemeriksaan.getValueAt(baris,0))&&
+                    namaPemeriksaan!=null&&namaPemeriksaan.toString().toLowerCase(java.util.Locale.ROOT).contains("foto")){
                 for(int kolom=11;kolom<=18;kolom++){
                     Object nilai=tbPemeriksaan.getValueAt(baris,kolom);
                     if(nilai==null||nilai.toString().trim().equals("")){

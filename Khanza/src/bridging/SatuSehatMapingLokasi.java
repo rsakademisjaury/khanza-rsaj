@@ -1950,7 +1950,8 @@ public final class SatuSehatMapingLokasi extends javax.swing.JDialog {
                                 "\"resourceType\": \"Location\"," +
                                 "\"identifier\": [" +
                                     "{" +
-                                        "\"system\": \"http://sys-ids.kemkes.go.id/location/"+koneksiDB.IDSATUSEHAT()+"\"," +
+//                                        "\"system\": \"http://sys-ids.kemkes.go.id/location/"+koneksiDB.IDSATUSEHAT()+"\"," +
+                                        "\"system\": \"http://sys-ids.kemkes.go.id/location/100028359\"," +
                                         "\"value\": \""+KodePoli.getText()+"\"" +
                                     "}" +
                                 "]," +
@@ -1971,7 +1972,7 @@ public final class SatuSehatMapingLokasi extends javax.swing.JDialog {
                                     "}," +
                                     "{" +
                                         "\"system\": \"url\"," +
-                                        "\"value\": \"www."+akses.getemailrs()+"\"," +
+                                        "\"value\": \"http://rsakademisjaury.my.id\"," +
                                         "\"use\": \"work\"" +
                                     "}" +
                                 "]," +
@@ -2022,7 +2023,8 @@ public final class SatuSehatMapingLokasi extends javax.swing.JDialog {
                                     "\"altitude\": "+Altitude.getText()+
                                 "}," +
                                 "\"managingOrganization\": {" +
-                                    "\"reference\": \"Organization/"+IDOrganisasi.getText()+"\"" +
+//                                    "\"reference\": \"Organization/"+IDOrganisasi.getText()+"\"" +
+                                    "\"reference\": \"Organization/100028359\"" +
                                 "}" +
                             "}";
                     System.out.println("URL : "+link+"/Location");

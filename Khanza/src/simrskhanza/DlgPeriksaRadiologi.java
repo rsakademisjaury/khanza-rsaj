@@ -89,11 +89,11 @@ public final class DlgPeriksaRadiologi extends javax.swing.JDialog {
         
         tabMode=new DefaultTableModel(null,new Object[]{
             "P","Kode Periksa","Nama Pemeriksaan","Tarif","Bagian RS","BHP","Tarif Perujuk","Tarif Dokter","Tarif Petugas","Kso","Menejemen",
-            "Proyeksi","kV","mAS","FFD","BSF","Inak","Jml Penyinaran","Dosis Radiasi"
+            "Proyeksi","kV","mAS","FFD","BSF","Inak","Jml Penyinaran","Kamar"
         }){
               @Override public boolean isCellEditable(int rowIndex, int colIndex){
                 boolean a = false;
-                if ((colIndex==0)||(colIndex==11)||(colIndex==12)||(colIndex==13)||(colIndex==14)||(colIndex==15)||(colIndex==16)||(colIndex==17)||(colIndex==18)) {
+                if ((colIndex==0)||(colIndex==11)||(colIndex==12)||(colIndex==13)||(colIndex==14)||(colIndex==17)||(colIndex==18)) {
                     a=true;
                 }
                 return a;
@@ -134,10 +134,10 @@ public final class DlgPeriksaRadiologi extends javax.swing.JDialog {
                 column.setPreferredWidth(35);
             }else if(i==14){
                 column.setPreferredWidth(35);
-            }else if(i==15){
-                column.setPreferredWidth(35);
-            }else if(i==16){
-                column.setPreferredWidth(35);
+            }else if((i==15)||(i==16)){
+                column.setMinWidth(0);
+                column.setMaxWidth(0);
+                column.setPreferredWidth(0);
             }else if(i==17){
                 column.setPreferredWidth(85);
             }else if(i==18){
@@ -2133,14 +2133,15 @@ private void ChkJlnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:
             Object namaPemeriksaan=tbPemeriksaan.getValueAt(baris,2);
             if(Boolean.TRUE.equals(tbPemeriksaan.getValueAt(baris,0))&&
                     namaPemeriksaan!=null&&namaPemeriksaan.toString().toLowerCase(java.util.Locale.ROOT).contains("foto")){
-                for(int kolom=11;kolom<=18;kolom++){
+                int[] kolomWajib={11,12,13,14,17,18};
+                for(int kolom:kolomWajib){
                     Object nilai=tbPemeriksaan.getValueAt(baris,kolom);
                     if(nilai==null||nilai.toString().trim().equals("")){
                         tbPemeriksaan.changeSelection(baris,kolom,false,false);
                         tbPemeriksaan.scrollRectToVisible(tbPemeriksaan.getCellRect(baris,kolom,true));
                         tbPemeriksaan.requestFocus();
                         JOptionPane.showMessageDialog(rootPane,
-                                "Maaf, data Proyeksi, kV, mAS, FFD, BSF, Inak, Jml Penyinaran, dan Dosis Radiasi harus diisi.\n"+
+                                "Maaf, data Proyeksi, kV, mAS, FFD, Jml Penyinaran, dan Kamar harus diisi.\n"+
                                 "Minimal isi dengan tanda '-' jika memang tidak ada.",
                                 "Data Belum Lengkap",JOptionPane.WARNING_MESSAGE);
                         return false;

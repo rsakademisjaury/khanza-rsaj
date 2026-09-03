@@ -14,11 +14,17 @@ package bridging;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fungsi.WarnaTable;
 import fungsi.batasInput;
 import fungsi.koneksiDB;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
+import javax.swing.BorderFactory;
 import javax.swing.JTable;
+import javax.swing.JLabel;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import fungsi.sekuel;
@@ -135,7 +141,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
     private Calendar cal = Calendar.getInstance();
     private int day = cal.get(Calendar.DAY_OF_WEEK);
     private Period p;
-    private boolean empt=false,statusantrean=true;
+    private boolean empt=false,statusantrean=true,simpanRegistrasiTanpaSEP=false,registrasiTersimpan=false;
     private HttpHeaders headers;
     private HttpEntity requestEntity;
     private ObjectMapper mapper = new ObjectMapper();
@@ -144,6 +150,49 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
     private JsonNode response;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private Date parsedDate;
+
+    private final class RujukanTableCellRenderer extends DefaultTableCellRenderer {
+        private final Font fontNormal=new Font("Segoe UI",Font.PLAIN,12);
+        private final Font fontLabel=new Font("Segoe UI Semibold",Font.PLAIN,12);
+        private final Font fontBagian=new Font("Segoe UI Semibold",Font.PLAIN,12);
+        private final Color warnaPutih=new Color(255,255,255);
+        private final Color warnaSelang=new Color(248,250,252);
+        private final Color warnaBagian=new Color(232,241,249);
+        private final Color warnaTeks=new Color(45,55,65);
+        private final Color warnaLabel=new Color(63,79,92);
+        private final Color warnaBiru=new Color(31,92,140);
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table,Object value,boolean isSelected,
+                boolean hasFocus,int row,int column){
+            JLabel label=(JLabel)super.getTableCellRendererComponent(table,value,isSelected,hasFocus,row,column);
+            int modelRow=table.convertRowIndexToModel(row);
+            String namaBaris=table.getModel().getValueAt(modelRow,0)==null?"":table.getModel().getValueAt(modelRow,0).toString();
+            boolean barisBagian=isBarisBagian(namaBaris);
+
+            label.setHorizontalAlignment(SwingConstants.LEFT);
+            label.setBorder(BorderFactory.createEmptyBorder(0,12,0,12));
+            label.setOpaque(true);
+
+            if(barisBagian){
+                label.setBackground(warnaBagian);
+                label.setForeground(warnaBiru);
+                label.setFont(fontBagian);
+                if(column==1){
+                    label.setText("");
+                }
+            }else if(isSelected){
+                label.setBackground(new Color(217,235,249));
+                label.setForeground(new Color(22,73,112));
+                label.setFont(column==0?fontLabel:fontNormal);
+            }else{
+                label.setBackground((row%2==0)?warnaPutih:warnaSelang);
+                label.setForeground(column==0?warnaLabel:warnaTeks);
+                label.setFont(column==0?fontLabel:fontNormal);
+            }
+            return label;
+        }
+    }
 
     /** Creates new form DlgKamar
      * @param parent
@@ -161,19 +210,31 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
         };
         tbKamar.setModel(tabMode);
 
-        //tbKamar.setDefaultRenderer(Object.class, new WarnaTable(panelJudul.getBackground(),tbKamar.getBackground()));
         tbKamar.setPreferredScrollableViewportSize(new Dimension(500,500));
-        tbKamar.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        tbKamar.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+        tbKamar.setAutoCreateRowSorter(false);
+        tbKamar.setRowHeight(30);
+        tbKamar.setShowGrid(false);
+        tbKamar.setIntercellSpacing(new Dimension(0,1));
+        tbKamar.setFillsViewportHeight(true);
+        tbKamar.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tbKamar.setTableHeader(null);
+        tbKamar.setToolTipText("Data rujukan peserta BPJS");
+        tbKamar.setBackground(Color.WHITE);
+        Scroll.setBorder(BorderFactory.createEmptyBorder(8,8,8,8));
+        Scroll.getViewport().setBackground(Color.WHITE);
 
         for (int i = 0; i < 2; i++) {
             TableColumn column = tbKamar.getColumnModel().getColumn(i);
             if(i==0){
-                column.setPreferredWidth(170);
+                column.setMinWidth(175);
+                column.setPreferredWidth(190);
+                column.setMaxWidth(230);
             }else if(i==1){
-                column.setPreferredWidth(450);
+                column.setPreferredWidth(520);
             }
         }
-        tbKamar.setDefaultRenderer(Object.class, new WarnaTable());
+        tbKamar.setDefaultRenderer(Object.class, new RujukanTableCellRenderer());
     
         faskes.addWindowListener(new WindowListener() {
             @Override
@@ -1778,6 +1839,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
         jLabel17 = new widget.Label();
         BtnPrint = new widget.Button();
         BtnSimpan = new widget.Button();
+        BtnSimpanRegistrasi = new widget.Button();
         BtnCari1 = new widget.Button();
         BtnKeluar = new widget.Button();
         panelCari = new widget.panelisi();
@@ -2229,15 +2291,15 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
             }
         });
 
-        internalFrame1.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(240, 245, 235)), "::[ Pencarian Data Rujukan RS Berdasarkan Nomor Rujukan ]::", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Tahoma", 0, 11), new java.awt.Color(50, 50, 50))); // NOI18N
+        internalFrame1.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(214, 224, 232)), " Data Rujukan RS BPJS ", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Segoe UI Semibold", 0, 12), new java.awt.Color(43, 72, 94))); // NOI18N
         internalFrame1.setName("internalFrame1"); // NOI18N
         internalFrame1.setLayout(new java.awt.BorderLayout(1, 1));
 
         Scroll.setName("Scroll"); // NOI18N
         Scroll.setOpaque(true);
 
-        tbKamar.setAutoCreateRowSorter(true);
-        tbKamar.setToolTipText("Silahkan klik untuk memilih data yang mau diedit ataupun dihapus");
+        tbKamar.setAutoCreateRowSorter(false);
+        tbKamar.setToolTipText("Data rujukan peserta BPJS");
         tbKamar.setComponentPopupMenu(jPopupMenu1);
         tbKamar.setName("tbKamar"); // NOI18N
         Scroll.setViewportView(tbKamar);
@@ -2251,7 +2313,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
 
         ChkCari.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/145.png"))); // NOI18N
         ChkCari.setMnemonic('I');
-        ChkCari.setText("  .: Input Registrasi");
+        ChkCari.setText("  .: Detail Registrasi Pasien");
         ChkCari.setToolTipText("Alt+I");
         ChkCari.setBorderPainted(true);
         ChkCari.setBorderPaintedFlat(true);
@@ -2271,7 +2333,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
         PanelInput.add(ChkCari, java.awt.BorderLayout.PAGE_START);
 
         panelGlass6.setName("panelGlass6"); // NOI18N
-        panelGlass6.setPreferredSize(new java.awt.Dimension(44, 54));
+        panelGlass6.setPreferredSize(new java.awt.Dimension(44, 86));
         panelGlass6.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 9));
 
         jLabel16.setText("No. Rujukan :");
@@ -2336,10 +2398,10 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
 
         BtnSimpan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/save-16x16.png"))); // NOI18N
         BtnSimpan.setMnemonic('S');
-        BtnSimpan.setText("Simpan");
-        BtnSimpan.setToolTipText("Alt+S");
+        BtnSimpan.setText("Simpan + SEP");
+        BtnSimpan.setToolTipText("Simpan registrasi dan terbitkan SEP (Alt+S)");
         BtnSimpan.setName("BtnSimpan"); // NOI18N
-        BtnSimpan.setPreferredSize(new java.awt.Dimension(100, 30));
+        BtnSimpan.setPreferredSize(new java.awt.Dimension(125, 30));
         BtnSimpan.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 BtnSimpanActionPerformed(evt);
@@ -2351,6 +2413,24 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
             }
         });
         panelGlass6.add(BtnSimpan);
+
+        BtnSimpanRegistrasi.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/save-16x16.png"))); // NOI18N
+        BtnSimpanRegistrasi.setMnemonic('R');
+        BtnSimpanRegistrasi.setText("Simpan Registrasi");
+        BtnSimpanRegistrasi.setToolTipText("Simpan registrasi rawat jalan tanpa menerbitkan SEP (Alt+R)");
+        BtnSimpanRegistrasi.setName("BtnSimpanRegistrasi"); // NOI18N
+        BtnSimpanRegistrasi.setPreferredSize(new java.awt.Dimension(155, 30));
+        BtnSimpanRegistrasi.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnSimpanRegistrasiActionPerformed(evt);
+            }
+        });
+        BtnSimpanRegistrasi.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                BtnSimpanRegistrasiKeyPressed(evt);
+            }
+        });
+        panelGlass6.add(BtnSimpanRegistrasi);
 
         BtnCari1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/Search-16x16.png"))); // NOI18N
         BtnCari1.setMnemonic('E');
@@ -4302,6 +4382,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
         if(empt==false){
             emptTeks();
             BtnSimpan.setVisible(false);
+            BtnSimpanRegistrasi.setVisible(false);
         }else if(empt==true){            
             ChkCari.setSelected(true);
             chkPolri.setSelected(false);
@@ -4360,7 +4441,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
     }//GEN-LAST:event_BtnCari1ActionPerformed
 
     private void BtnCari1KeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnCari1KeyPressed
-        Valid.pindah(evt, BtnSimpan, BtnKeluar);
+        Valid.pindah(evt, BtnSimpanRegistrasi, BtnKeluar);
     }//GEN-LAST:event_BtnCari1KeyPressed
 
     private void TTmpKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TTmpKeyPressed
@@ -5152,6 +5233,15 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
     }//GEN-LAST:event_btnDPJPKeyPressed
 
     private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpanActionPerformed
+        simpanRegistrasiTanpaSEP=false;
+        prosesSimpan();
+    }//GEN-LAST:event_BtnSimpanActionPerformed
+
+    private void prosesSimpan(){
+        if(registrasiTersimpan){
+            JOptionPane.showMessageDialog(null,"Registrasi sudah tersimpan dengan No.Rawat "+TNoRw.getText()+".\nSilahkan cari nomor rujukan berikutnya untuk membuat registrasi baru.");
+            return;
+        }
         if(no_ktp.equals("Yes")&&(TKtp.getText().trim().length()<p_no_ktp)){
             TKtp.setText("-");
         }
@@ -5235,7 +5325,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
             Valid.textKosong(btnKabupaten,"Kabupaten");
         }else if((LakaLantas.getSelectedIndex()==1)&&NmKecamatan.getText().equals("")) {
             Valid.textKosong(btnKecamatan,"Kecamatan");
-        }else if (KdDPJP.getText().trim().equals("")||NmDPJP.getText().trim().equals("")) {
+        }else if ((!simpanRegistrasiTanpaSEP)&&(KdDPJP.getText().trim().equals("")||NmDPJP.getText().trim().equals(""))) {
             Valid.textKosong(KdDPJP, "DPJP");
         }else if(Sequel.cariInteger("select count(pasien.no_rkm_medis) from pasien inner join reg_periksa inner join kamar_inap "+
             "on reg_periksa.no_rkm_medis=pasien.no_rkm_medis and reg_periksa.no_rawat=kamar_inap.no_rawat "+
@@ -5246,7 +5336,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
             Valid.textKosong(NoRujukan, "Nomor Rujukan");
         }else if(KdPpkRujukan.getText().trim().equals("")||NmPpkRujukan.getText().trim().equals("")){
             Valid.textKosong(KdPpkRujukan, "PPK Rujukan");
-        }else if(KdPPK.getText().trim().equals("")||NmPPK.getText().trim().equals("")){
+        }else if((!simpanRegistrasiTanpaSEP)&&(KdPPK.getText().trim().equals("")||NmPPK.getText().trim().equals(""))){
             Valid.textKosong(KdPPK, "PPK Pelayanan");
         }else if(KdPenyakit.getText().trim().equals("")||NmPenyakit.getText().trim().equals("")){
             Valid.textKosong(KdPenyakit, "Diagnosa");
@@ -5255,7 +5345,9 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
         }else if(Catatan.getText().trim().equals("")){
             Valid.textKosong(Catatan, "Catatan");
         }else{
-            if((JenisPelayanan.getSelectedIndex()==1)&&(NmPoli.getText().toLowerCase().contains("darurat"))){
+            if(simpanRegistrasiTanpaSEP){
+                insertPasien();
+            }else if((JenisPelayanan.getSelectedIndex()==1)&&(NmPoli.getText().toLowerCase().contains("darurat"))){
                 if(Sequel.cariInteger("select count(bridging_sep.no_kartu) from bridging_sep where bridging_sep.no_kartu='"+no_peserta+"' and bridging_sep.jnspelayanan='"+JenisPelayanan.getSelectedItem().toString().substring(0,1)+"' and bridging_sep.tglsep like '%"+Valid.SetTgl(TanggalSEP.getSelectedItem()+"").substring(0,10)+"%' and bridging_sep.nmpolitujuan like '%darurat%'")>=3){
                     JOptionPane.showMessageDialog(null,"Maaf, sebelumnya sudah dilakukan 3x pembuatan SEP di jenis pelayanan yang sama..!!");
                     NoRujukan.requestFocus();
@@ -5273,15 +5365,38 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
                 insertPasien();
             }
         }
-    }//GEN-LAST:event_BtnSimpanActionPerformed
+    }
 
     private void BtnSimpanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnSimpanKeyPressed
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
             BtnSimpanActionPerformed(null);
         }else{
-            Valid.pindah(evt,BtnDokter,NoRujukan);
+            Valid.pindah(evt,BtnDokter,BtnSimpanRegistrasi);
         }
     }//GEN-LAST:event_BtnSimpanKeyPressed
+
+    private void BtnSimpanRegistrasiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpanRegistrasiActionPerformed
+        if(JenisPelayanan.getSelectedIndex()!=1){
+            JOptionPane.showMessageDialog(null,"Simpan Registrasi tanpa SEP hanya berlaku untuk pelayanan Rawat Jalan.");
+            JenisPelayanan.requestFocus();
+            return;
+        }
+        int jawab=JOptionPane.showConfirmDialog(null,
+                "Registrasi rawat jalan akan disimpan tanpa menerbitkan SEP.\nLanjutkan proses?",
+                "Konfirmasi Simpan Registrasi",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE);
+        if(jawab==JOptionPane.YES_OPTION){
+            simpanRegistrasiTanpaSEP=true;
+            prosesSimpan();
+        }
+    }//GEN-LAST:event_BtnSimpanRegistrasiActionPerformed
+
+    private void BtnSimpanRegistrasiKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnSimpanRegistrasiKeyPressed
+        if(evt.getKeyCode()==KeyEvent.VK_SPACE){
+            BtnSimpanRegistrasiActionPerformed(null);
+        }else{
+            Valid.pindah(evt,BtnSimpan,BtnCari1);
+        }
+    }//GEN-LAST:event_BtnSimpanRegistrasiKeyPressed
 
     private void AsalRujukanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_AsalRujukanKeyPressed
         Valid.pindah(evt,TNoReg,NoSKDP);
@@ -5868,6 +5983,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
     private widget.Button BtnSatuanPolri;
     private widget.Button BtnSatuanTNI;
     private widget.Button BtnSimpan;
+    private widget.Button BtnSimpanRegistrasi;
     private widget.Button BtnSuku;
     private widget.ComboBox CMbGd;
     private widget.ComboBox CMbPnd;
@@ -6081,6 +6197,102 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
     private widget.Table tbKamar;
     // End of variables declaration//GEN-END:variables
 
+    private boolean isBarisBagian(String namaBaris){
+        return namaBaris.equals("RINGKASAN RUJUKAN")||
+               namaBaris.equals("IDENTITAS PESERTA")||
+               namaBaris.equals("STATUS KEPESERTAAN")||
+               namaBaris.equals("COB & INFORMASI TAMBAHAN");
+    }
+
+    private String nilaiJson(JsonNode data){
+        if(data==null||data.isMissingNode()||data.isNull()){
+            return "-";
+        }
+        String nilai=data.asText().trim();
+        if(nilai.equals("")||nilai.equalsIgnoreCase("null")){
+            return "-";
+        }
+        return nilai;
+    }
+
+    private String gabungKodeNama(JsonNode kode,JsonNode nama){
+        String nilaiKode=nilaiJson(kode);
+        String nilaiNama=nilaiJson(nama);
+        if(nilaiKode.equals("-")){
+            return nilaiNama;
+        }
+        if(nilaiNama.equals("-")){
+            return nilaiKode;
+        }
+        return nilaiKode+" - "+nilaiNama;
+    }
+
+    private void tambahBagianRujukan(String judul){
+        tabMode.addRow(new Object[]{judul,""});
+    }
+
+    private void tambahDataRujukan(String label,String nilai){
+        String isi=(nilai==null||nilai.trim().equals("")||nilai.trim().equalsIgnoreCase("null"))?"-":nilai.trim();
+        tabMode.addRow(new Object[]{label,": "+isi});
+    }
+
+    private void tampilkanDataRujukan(JsonNode data){
+        Valid.tabelKosong(tabMode);
+
+        tambahBagianRujukan("RINGKASAN RUJUKAN");
+        tambahDataRujukan("Nomor Rujukan",nilaiJson(data.path("noKunjungan")));
+        tambahDataRujukan("Tanggal Kunjungan",nilaiJson(data.path("tglKunjungan")));
+        tambahDataRujukan("Jenis Pelayanan",gabungKodeNama(data.path("pelayanan").path("kode"),data.path("pelayanan").path("nama")));
+        tambahDataRujukan("Poli Rujukan",gabungKodeNama(data.path("poliRujukan").path("kode"),data.path("poliRujukan").path("nama")));
+        tambahDataRujukan("Diagnosa",gabungKodeNama(data.path("diagnosa").path("kode"),data.path("diagnosa").path("nama")));
+        tambahDataRujukan("Keluhan",nilaiJson(data.path("keluhan")));
+        tambahDataRujukan("Faskes Perujuk",gabungKodeNama(data.path("provPerujuk").path("kode"),data.path("provPerujuk").path("nama")));
+
+        String kelamin=nilaiJson(data.path("peserta").path("sex"));
+        if(kelamin.equalsIgnoreCase("L")){
+            kelamin="Laki-Laki";
+        }else if(kelamin.equalsIgnoreCase("P")){
+            kelamin="Perempuan";
+        }
+
+        tambahBagianRujukan("IDENTITAS PESERTA");
+        tambahDataRujukan("Nama Pasien",nilaiJson(data.path("peserta").path("nama")));
+        tambahDataRujukan("NIK",nilaiJson(data.path("peserta").path("nik")));
+        tambahDataRujukan("Nomor Kartu",nilaiJson(data.path("peserta").path("noKartu")));
+        tambahDataRujukan("Nomor RM",nilaiJson(data.path("peserta").path("mr").path("noMR")));
+        tambahDataRujukan("Nomor Telepon",nilaiJson(data.path("peserta").path("mr").path("noTelepon")));
+        tambahDataRujukan("Jenis Kelamin",kelamin);
+        tambahDataRujukan("Tanggal Lahir",nilaiJson(data.path("peserta").path("tglLahir")));
+        tambahDataRujukan("Umur Saat Pelayanan",nilaiJson(data.path("peserta").path("umur").path("umurSaatPelayanan")));
+        tambahDataRujukan("Umur Sekarang",nilaiJson(data.path("peserta").path("umur").path("umurSekarang")));
+
+        tambahBagianRujukan("STATUS KEPESERTAAN");
+        tambahDataRujukan("Status Peserta",gabungKodeNama(data.path("peserta").path("statusPeserta").path("kode"),data.path("peserta").path("statusPeserta").path("keterangan")));
+        tambahDataRujukan("Jenis Peserta",gabungKodeNama(data.path("peserta").path("jenisPeserta").path("kode"),data.path("peserta").path("jenisPeserta").path("keterangan")));
+        tambahDataRujukan("Hak Kelas",gabungKodeNama(data.path("peserta").path("hakKelas").path("kode"),data.path("peserta").path("hakKelas").path("keterangan")));
+        tambahDataRujukan("PISA",nilaiJson(data.path("peserta").path("pisa")));
+        tambahDataRujukan("Provider Umum",gabungKodeNama(data.path("peserta").path("provUmum").path("kdProvider"),data.path("peserta").path("provUmum").path("nmProvider")));
+        tambahDataRujukan("Tanggal Cetak Kartu",nilaiJson(data.path("peserta").path("tglCetakKartu")));
+        tambahDataRujukan("Tanggal TAT",nilaiJson(data.path("peserta").path("tglTAT")));
+        tambahDataRujukan("Tanggal TMT",nilaiJson(data.path("peserta").path("tglTMT")));
+
+        tambahBagianRujukan("COB & INFORMASI TAMBAHAN");
+        tambahDataRujukan("Nama Asuransi",nilaiJson(data.path("peserta").path("cob").path("nmAsuransi")));
+        tambahDataRujukan("Nomor Asuransi",nilaiJson(data.path("peserta").path("cob").path("noAsuransi")));
+        tambahDataRujukan("Tanggal TAT COB",nilaiJson(data.path("peserta").path("cob").path("tglTAT")));
+        tambahDataRujukan("Tanggal TMT COB",nilaiJson(data.path("peserta").path("cob").path("tglTMT")));
+        tambahDataRujukan("Dinsos",nilaiJson(data.path("peserta").path("informasi").path("dinsos")));
+        tambahDataRujukan("Nomor SKTM",nilaiJson(data.path("peserta").path("informasi").path("noSKTM")));
+        tambahDataRujukan("Prolanis PRB",nilaiJson(data.path("peserta").path("informasi").path("prolanisPRB")));
+
+        for(int i=0;i<tabMode.getRowCount();i++){
+            tbKamar.setRowHeight(i,isBarisBagian(tabMode.getValueAt(i,0).toString())?34:30);
+        }
+        if(tabMode.getRowCount()>0){
+            tbKamar.scrollRectToVisible(tbKamar.getCellRect(0,0,true));
+        }
+    }
+
     public void tampil(String nomorrujukan) {
         try {
             URL = link+"/Rujukan/RS/"+nomorrujukan;
@@ -6096,61 +6308,17 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
             nameNode = root.path("metaData");
             peserta="";
             if(nameNode.path("code").asText().equals("200")){
-                Valid.tabelKosong(tabMode);
                 response = mapper.readTree(api.Decrypt(root.path("response").asText(),utc)).path("rujukan");
                 //response = root.path("response").path("rujukan");
-                tabMode.addRow(new Object[]{
-                    "Diagnosa",": "+response.path("diagnosa").path("kode").asText()+" "+response.path("diagnosa").path("nama").asText()
-                });                   
+                tampilkanDataRujukan(response);
+                registrasiTersimpan=false;
+                BtnSimpan.setEnabled(akses.getbpjs_sep());
+                BtnSimpanRegistrasi.setEnabled(akses.getbpjs_sep());
+
                 KdPenyakit.setText(response.path("diagnosa").path("kode").asText());
                 NmPenyakit.setText(response.path("diagnosa").path("nama").asText());
-                tabMode.addRow(new Object[]{
-                    "Keluhan",": "+response.path("keluhan").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "No.Kunjungan",": "+response.path("noKunjungan").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "Pelayanan",": "+response.path("pelayanan").path("kode").asText()+" "+response.path("pelayanan").path("nama").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "Peserta",": "
-                }); 
-                tabMode.addRow(new Object[]{
-                    "       COB",": "
-                });
-                tabMode.addRow(new Object[]{
-                    "              Nama Asuransi",": "+response.path("peserta").path("cob").path("nmAsuransi").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "              No. Asuransi",": "+response.path("peserta").path("cob").path("noAsuransi").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "              Tanggal TAT",": "+response.path("peserta").path("cob").path("tglTAT").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "              Tanggal TMT",": "+response.path("peserta").path("cob").path("tglTMT").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "       Hak Kelas",": "+response.path("peserta").path("hakKelas").path("kode").asText()+". "+response.path("peserta").path("hakKelas").path("keterangan").asText()
-                });
                 Kelas.setSelectedItem(response.path("peserta").path("hakKelas").path("kode").asText()+". "+response.path("peserta").path("hakKelas").path("keterangan").asText().replaceAll("KELAS","Kelas"));
-                tabMode.addRow(new Object[]{
-                    "       Informasi",": "
-                });
-                tabMode.addRow(new Object[]{
-                    "              Dinsos",": "+response.path("peserta").path("informasi").path("dinsos").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "              No.SKTM",": "+response.path("peserta").path("informasi").path("noSKTM").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "              Prolanis PRB",": "+response.path("peserta").path("informasi").path("prolanisPRB").asText()
-                }); 
                 prb=response.path("peserta").path("informasi").path("prolanisPRB").asText().replaceAll("null","");
-                tabMode.addRow(new Object[]{
-                    "       Jenis Peserta",": "+response.path("peserta").path("jenisPeserta").path("kode").asText()+". "+response.path("peserta").path("jenisPeserta").path("keterangan").asText()
-                });
                 Pekerjaan.setText(response.path("peserta").path("jenisPeserta").path("keterangan").asText());
                 if(tampilkantni.equals("Yes")){
                     if(Pekerjaan.getText().toLowerCase().contains("tni")){
@@ -6161,64 +6329,13 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
                     }
                 }
                 peserta=response.path("peserta").path("jenisPeserta").path("keterangan").asText();
-                tabMode.addRow(new Object[]{
-                    "       Medical Record",": "
-                });
-                tabMode.addRow(new Object[]{
-                    "              Nomor RM",": "+response.path("peserta").path("mr").path("noMR").asText()
-                }); 
-                tabMode.addRow(new Object[]{
-                    "              Nomor Telp",": "+response.path("peserta").path("mr").path("noTelepon").asText()
-                });
                 TTlp.setText(response.path("peserta").path("mr").path("noTelepon").asText());
-                tabMode.addRow(new Object[]{
-                    "       Nama Pasien",": "+response.path("peserta").path("nama").asText()
-                });
                 TNm.setText(response.path("peserta").path("nama").asText());
-                tabMode.addRow(new Object[]{
-                    "       NIK",": "+response.path("peserta").path("nik").asText()
-                });
                 TKtp.setText(response.path("peserta").path("nik").asText());
-                tabMode.addRow(new Object[]{
-                    "       No.Kartu",": "+response.path("peserta").path("noKartu").asText()
-                });
                 TNoPeserta.setText(response.path("peserta").path("noKartu").asText());
-                tabMode.addRow(new Object[]{
-                    "       Pisa",": "+response.path("peserta").path("pisa").asText()
-                });
-                tabMode.addRow(new Object[]{
-                    "       Provider",": "+response.path("peserta").path("provUmum").path("kdProvider").asText()+" "+response.path("peserta").path("provUmum").path("nmProvider").asText()
-                });
-                tabMode.addRow(new Object[]{
-                    "       Jenis Kelamin",": "+response.path("peserta").path("sex").asText().replaceAll("L","Laki-Laki").replaceAll("P","Perempuan")
-                });
                 CmbJk.setSelectedItem(response.path("peserta").path("sex").asText());
-                tabMode.addRow(new Object[]{
-                    "       Status Peserta",": "+response.path("peserta").path("statusPeserta").path("kode").asText()+" "+response.path("peserta").path("statusPeserta").path("keterangan").asText()
-                });
-                tabMode.addRow(new Object[]{
-                    "       Tgl. Cetak Kartu",": "+response.path("peserta").path("tglCetakKartu").asText()
-                });
-                tabMode.addRow(new Object[]{
-                    "       Tgl. Lahir",": "+response.path("peserta").path("tglLahir").asText()
-                });
                 Valid.SetTgl(DTPLahir,response.path("peserta").path("tglLahir").asText());
-                tabMode.addRow(new Object[]{
-                    "       Tgl. TAT",": "+response.path("peserta").path("tglTAT").asText()
-                });
-                tabMode.addRow(new Object[]{
-                    "       Tgl. TMT",": "+response.path("peserta").path("tglTMT").asText()
-                });
-                tabMode.addRow(new Object[]{
-                    "       Umur Saat Pelayanan",": "+response.path("peserta").path("umur").path("umurSaatPelayanan").asText()
-                });
-                tabMode.addRow(new Object[]{
-                    "       Umur Sekarang",": "+response.path("peserta").path("umur").path("umurSekarang").asText()
-                });
                 TUmur.setText(response.path("peserta").path("umur").path("umurSekarang").asText().replaceAll("tahun","Th ").replaceAll("bulan","Bl ").replaceAll("hari","Hr"));
-                tabMode.addRow(new Object[]{
-                    "Poli Rujukan",": "+response.path("poliRujukan").path("kode").asText()+" "+response.path("poliRujukan").path("nama").asText()
-                }); 
                 KdPoli.setText(response.path("poliRujukan").path("kode").asText());
                 kdpoli.setText(Sequel.cariIsi("select kd_poli_rs from maping_poli_bpjs where kd_poli_bpjs=?",response.path("poliRujukan").path("kode").asText()));
                 if(!kdpoli.getText().equals("")){
@@ -6238,14 +6355,8 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
                     }
                 }
                 NmPoli.setText(response.path("poliRujukan").path("nama").asText());
-                tabMode.addRow(new Object[]{
-                    "Provider Perujuk",": "+response.path("provPerujuk").path("kode").asText()+" "+response.path("provPerujuk").path("nama").asText()
-                });
                 KdPpkRujukan.setText(response.path("provPerujuk").path("kode").asText());
                 NmPpkRujukan.setText(response.path("provPerujuk").path("nama").asText());                
-                tabMode.addRow(new Object[]{
-                    "Tanggal Kunjungan",": "+response.path("tglKunjungan").asText()
-                }); 
                 Valid.SetTgl(TanggalRujuk,response.path("tglKunjungan").asText());
                 isNumber();
                 Kdpnj.setText("BPJ");
@@ -6504,15 +6615,19 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
                 
             isNumber();
             BtnSimpan.setVisible(true);
+            BtnSimpanRegistrasi.setVisible(true);
             TTmp.requestFocus();
         }else if(ChkCari.isSelected()==false){           
             panelCari.setVisible(false);      
-            PanelInput.setPreferredSize(new Dimension(WIDTH,77));
+            PanelInput.setPreferredSize(new Dimension(WIDTH,109));
             BtnSimpan.setVisible(false);
+            BtnSimpanRegistrasi.setVisible(false);
         }
     }
     
     public void emptTeks() {
+        registrasiTersimpan=false;
+        simpanRegistrasiTanpaSEP=false;
         TNo.setText("");
         TNm.setText("");
         CmbJk.setSelectedIndex(0);
@@ -7009,7 +7124,10 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
                         }
                     }
                     
-                    if(ADDANTRIANAPIMOBILEJKN.equals("yes")){
+                    // Jalur tambahan khusus registrasi Ralan lokal tanpa API antrean dan tanpa penerbitan SEP.
+                    if(simpanRegistrasiTanpaSEP){
+                        selesaiRegistrasiTanpaSEP();
+                    }else if(ADDANTRIANAPIMOBILEJKN.equals("yes")){
                         if(SimpanAntrianOnSite()==true){
                             insertSEP();
                         }else{
@@ -7067,7 +7185,22 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
             }
         }
     }
-    
+
+    private void selesaiRegistrasiTanpaSEP(){
+        nosep="";
+        Sequel.queryu2("update booking_registrasi set status='Terdaftar' where no_rkm_medis=? and tanggal_periksa=?",2,new String[]{
+            TNo.getText(),Valid.SetTgl(TanggalSEP.getSelectedItem()+"")
+        });
+        registrasiTersimpan=true;
+        BtnSimpan.setEnabled(false);
+        BtnSimpanRegistrasi.setEnabled(false);
+        JOptionPane.showMessageDialog(null,
+                "Registrasi rawat jalan berhasil disimpan tanpa penerbitan SEP.\n"+
+                "No. Rawat : "+TNoRw.getText()+"\n"+
+                "No. RM    : "+TNo.getText(),
+                "Registrasi Tersimpan",JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private void insertSEP(){
         try {
             tglkkl="0000-00-00";
@@ -7292,6 +7425,7 @@ public final class BPJSCekNoRujukanRS extends javax.swing.JDialog {
 
     public void isCek(){
         BtnSimpan.setEnabled(akses.getbpjs_sep());
+        BtnSimpanRegistrasi.setEnabled(akses.getbpjs_sep());
         ppPengajuan.setEnabled(akses.getbpjs_sep());
         ppPengajuan1.setEnabled(akses.getbpjs_sep());
         ppPengajuan2.setEnabled(akses.getbpjs_sep());

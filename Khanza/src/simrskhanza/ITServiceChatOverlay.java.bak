@@ -99,13 +99,16 @@ import simrskhanza.BaseToast;
  * menunggu siklus polling atau refresh daftar.
  *
  * V23: toast ditempatkan pada JWindow milik frmUtama agar selalu berada di atas
- * seluruh JInternalFrame. Listener klik-luar hanya aktif saat toast terlihat dan
- * tidak menambah polling, request HTTP, query database, atau thread background.
+ * seluruh JInternalFrame. Listener klik-luar hanya aktif saat toast terlihat.
+ *
+ * V25: polling adaptif 2/4 detik dan sinkronisasi komentar incremental. Pesan baru
+ * ditambahkan langsung pada percakapan aktif tanpa keluar-masuk daftar tiket.
  */
 public final class ITServiceChatOverlay {
 
-    private static final int POLL_INITIAL_DELAY_SECONDS = 8;
-    private static final int POLL_INTERVAL_SECONDS = 15;
+    private static final int POLL_INITIAL_DELAY_SECONDS = 1;
+    private static final int POLL_INTERVAL_SECONDS = 2;
+    private static final long BACKGROUND_POLL_INTERVAL_MS = 4_000L;
     private static final int CONNECT_TIMEOUT_MS = 2200;
     private static final int READ_TIMEOUT_MS = 3200;
     private static final int MAX_RESPONSE_CHARS = 600_000;
@@ -153,6 +156,8 @@ public final class ITServiceChatOverlay {
     private volatile int currentTicketId = 0;
     private volatile int unreadCount = 0;
     private volatile int lastNotifiedEventId = 0;
+    private volatile int lastMessageId = 0;
+    private volatile long lastBackgroundPollAt = 0L;
 
     private JLabel statusBarTrigger;
     private MouseAdapter statusBarTriggerListener;
@@ -165,7 +170,7 @@ public final class ITServiceChatOverlay {
     private boolean outsideClickListenerInstalled = false;
     private boolean suppressOutsideClickAutoMinimize = false;
     private boolean chatOpenedOnce = false;
-    private String activeView = "LIST";
+    private volatile String activeView = "LIST";
     private JPanel dialogRoot;
     private CardLayout bodyCards;
     private JPanel bodyPanel;
@@ -196,6 +201,7 @@ public final class ITServiceChatOverlay {
     private JTextArea newDetailArea;
     private JButton createTicketButton;
     private final Map<Integer, Ticket> ticketCache = new LinkedHashMap<Integer, Ticket>();
+    private final Map<Integer, Boolean> renderedMessageIds = new LinkedHashMap<Integer, Boolean>();
     private Ticket currentTicket;
     private ComponentAdapter ownerMoveListener;
 
@@ -241,6 +247,9 @@ public final class ITServiceChatOverlay {
         nextPollAllowedAt = 0L;
         unreadCount = 0;
         lastNotifiedEventId = 0;
+        lastMessageId = 0;
+        lastBackgroundPollAt = 0L;
+        synchronized (renderedMessageIds) { renderedMessageIds.clear(); }
         ensureUiAsync();
         interactionExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
             @Override
@@ -286,8 +295,11 @@ public final class ITServiceChatOverlay {
         currentTicketId = 0;
         unreadCount = 0;
         lastNotifiedEventId = 0;
+        lastMessageId = 0;
+        lastBackgroundPollAt = 0L;
         currentTicket = null;
         ticketCache.clear();
+        synchronized (renderedMessageIds) { renderedMessageIds.clear(); }
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -297,10 +309,17 @@ public final class ITServiceChatOverlay {
     }
 
     private void pollCycle() {
-        if (!running.get() || System.currentTimeMillis() < nextPollAllowedAt
-                || !requestBusy.compareAndSet(false, true)) {
-            return;
-        }
+        final long now = System.currentTimeMillis();
+        if (!running.get() || now < nextPollAllowedAt) return;
+
+        // Saat toast diminimalkan polling tetap berjalan, tetapi cukup setiap 4
+        // detik. Ketika toast terbuka scheduler 2 detik dipakai penuh agar pesan
+        // pada percakapan aktif terasa realtime tanpa menambah thread baru.
+        final boolean foreground = isDialogVisible();
+        if (!foreground && now - lastBackgroundPollAt < BACKGROUND_POLL_INTERVAL_MS) return;
+        if (!requestBusy.compareAndSet(false, true)) return;
+        if (!foreground) lastBackgroundPollAt = now;
+
         try {
             if (!configurationLoaded) {
                 loadConfiguration();
@@ -311,7 +330,12 @@ public final class ITServiceChatOverlay {
                 return;
             }
 
-            ApiResponse response = callApi("poll", currentTicketId, 0, "");
+            final int polledTicketId = currentTicketId;
+            Map<String, String> pollParams = new LinkedHashMap<String, String>();
+            pollParams.put("after_message_id", polledTicketId > 0 ? String.valueOf(lastMessageId) : "0");
+            pollParams.put("after_event_id", String.valueOf(lastNotifiedEventId));
+            pollParams.put("conversation_active", isDialogVisible() && "CHAT".equals(activeView) ? "1" : "0");
+            ApiResponse response = callApi("poll", polledTicketId, 0, "", pollParams);
             if (!response.ok) {
                 markPollFailure();
                 updateConnectionState(false, response.error);
@@ -338,15 +362,36 @@ public final class ITServiceChatOverlay {
             }
             if (newestEventId > lastNotifiedEventId) lastNotifiedEventId = newestEventId;
 
+            if (!response.tickets.isEmpty()) {
+                mergeTickets(response.tickets);
+                updateTicketListAsync(snapshotTickets());
+            }
+
             if (response.unreadCount >= 0) unreadCount = response.unreadCount;
             updateBadgeAsync(unreadCount);
 
+            // Endpoint poll V25 mengirim metadata tiket aktif dan hanya komentar
+            // baru setelah lastMessageId. Bubble ditambahkan langsung pada card
+            // CHAT, tanpa reload history dan tanpa menghapus teks balasan user.
+            if (polledTicketId > 0 && polledTicketId == currentTicketId
+                    && (!response.messages.isEmpty() || !response.tickets.isEmpty())
+                    && !historyLoading.get()) {
+                final ApiResponse live = response;
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!running.get() || polledTicketId != currentTicketId) return;
+                        applyIncrementalPoll(live, polledTicketId);
+                    }
+                });
+            }
+
             cycle++;
-            // Daftar hanya perlu disegarkan otomatis saat kartu antrean memang
-            // sedang terlihat. Saat user membaca histori, polling cukup mengambil
-            // event dan badge sehingga tidak membebani server dengan query list.
-            boolean refreshList = latestNewEvent != null || response.revokedTicketId > 0
-                    || cycle == 1 || (cycle % 5 == 0 && isTicketListVisible());
+            // Data tiket dari event sudah ikut dibawa oleh response poll. Daftar
+            // lengkap hanya disinkronkan saat awal, saat tiket direbut petugas
+            // lain, atau berkala ketika halaman Daftar benar-benar terlihat.
+            boolean refreshList = response.revokedTicketId > 0
+                    || cycle == 1 || (cycle % 15 == 0 && isTicketListVisible());
             if (refreshList && listLoading.compareAndSet(false, true)) {
                 try {
                     ApiResponse list = callApi("list", 0, 0, "");
@@ -379,6 +424,20 @@ public final class ITServiceChatOverlay {
         } finally {
             requestBusy.set(false);
         }
+    }
+
+    private void applyIncrementalPoll(ApiResponse response, int ticketId) {
+        for (Ticket ticket : response.tickets) {
+            if (ticket.id == ticketId) {
+                currentTicket = ticket;
+                break;
+            }
+        }
+        updateTicketHeader();
+        setComposerEnabled(currentTicket != null && currentTicket.canReply
+                && !isFinalStatus(currentTicket.status));
+        appendMessagesIncrementally(response.messages);
+        updateTicketListModel(snapshotTickets());
     }
 
     private int countOtherTicketEvents(List<Event> events, int currentId) {
@@ -504,6 +563,9 @@ public final class ITServiceChatOverlay {
             params.put("hostname", hostname);
             params.put("ticket_id", ticketId > 0 ? String.valueOf(ticketId) : "");
             params.put("event_id", eventId > 0 ? String.valueOf(eventId) : "");
+            params.put("after_message_id", "0");
+            params.put("after_event_id", "0");
+            params.put("conversation_active", "0");
             params.put("message", safe(message));
             params.put("request_type", "");
             params.put("title", "");
@@ -579,6 +641,9 @@ public final class ITServiceChatOverlay {
             params.put("hostname", hostname);
             params.put("ticket_id", "");
             params.put("event_id", "");
+            params.put("after_message_id", "0");
+            params.put("after_event_id", "0");
+            params.put("conversation_active", "0");
             params.put("message", "");
             params.put("request_type", "");
             params.put("title", "");
@@ -1690,6 +1755,7 @@ public final class ITServiceChatOverlay {
 
     private void renderMessages(List<Message> messages) {
         if (messagesPanel == null) return;
+        resetRenderedMessageTracking(messages);
         messagesPanel.removeAll();
         if (messages.isEmpty()) {
             showEmptyMessages("Belum ada pesan dalam Diskusi/Klarifikasi.");
@@ -1707,6 +1773,61 @@ public final class ITServiceChatOverlay {
                 messagesScroll.getVerticalScrollBar().getMaximum()));
         timer.setRepeats(false);
         timer.start();
+    }
+
+    private void resetRenderedMessageTracking(List<Message> messages) {
+        int newest = 0;
+        synchronized (renderedMessageIds) {
+            renderedMessageIds.clear();
+            if (messages != null) {
+                for (Message message : messages) {
+                    if (message.id > 0) {
+                        renderedMessageIds.put(message.id, Boolean.TRUE);
+                        if (message.id > newest) newest = message.id;
+                    }
+                }
+            }
+        }
+        lastMessageId = newest;
+    }
+
+    private boolean registerRenderedMessage(Message message) {
+        if (message == null || message.id <= 0) return false;
+        synchronized (renderedMessageIds) {
+            if (renderedMessageIds.containsKey(message.id)) return false;
+            renderedMessageIds.put(message.id, Boolean.TRUE);
+            if (message.id > lastMessageId) lastMessageId = message.id;
+            return true;
+        }
+    }
+
+    private void appendMessagesIncrementally(List<Message> messages) {
+        if (messagesPanel == null || messages == null || messages.isEmpty()) return;
+        boolean nearBottom = true;
+        if (messagesScroll != null) {
+            javax.swing.JScrollBar bar = messagesScroll.getVerticalScrollBar();
+            nearBottom = bar.getMaximum() - (bar.getValue() + bar.getVisibleAmount()) <= 48;
+        }
+
+        int added = 0;
+        for (Message message : messages) {
+            if (!registerRenderedMessage(message)) continue;
+            if (messagesPanel.getComponentCount() > 0) {
+                messagesPanel.add(Box.createVerticalStrut(4));
+            }
+            messagesPanel.add(createMessageRow(message));
+            added++;
+        }
+        if (added == 0) return;
+
+        messagesPanel.revalidate();
+        messagesPanel.repaint();
+        if (nearBottom && messagesScroll != null) {
+            Timer timer = new Timer(70, e -> messagesScroll.getVerticalScrollBar().setValue(
+                    messagesScroll.getVerticalScrollBar().getMaximum()));
+            timer.setRepeats(false);
+            timer.start();
+        }
     }
 
     private Component createMessageRow(Message message) {
@@ -2075,13 +2196,30 @@ public final class ITServiceChatOverlay {
             public void run() {
                 ApiResponse sent = callApi("send", currentTicketId, 0, message);
                 if (sent.ok) {
+                    if (!sent.tickets.isEmpty()) mergeTickets(sent.tickets);
+                    final int sentTicketId = currentTicketId;
                     SwingUtilities.invokeLater(new Runnable() {
                         @Override
                         public void run() {
-                            replyArea.setText("");
+                            if (replyArea != null) replyArea.setText("");
+                            for (Ticket ticket : sent.tickets) {
+                                if (ticket.id == sentTicketId) {
+                                    currentTicket = ticket;
+                                    break;
+                                }
+                            }
+                            updateTicketHeader();
+                            setComposerEnabled(currentTicket != null && currentTicket.canReply
+                                    && !isFinalStatus(currentTicket.status));
+                            appendMessagesIncrementally(sent.messages);
+                            updateTicketListModel(snapshotTickets());
                         }
                     });
-                    loadTicketInCurrentThread(currentTicketId, false);
+                    // Fallback untuk server lama: bila response SEND belum memuat
+                    // MESSAGE, history tetap disegarkan satu kali seperti V24.
+                    if (sent.messages.isEmpty()) {
+                        loadTicketInCurrentThread(sentTicketId, false);
+                    }
                 } else {
                     showErrorToast(sent.error);
                     if (actor != null && "IT".equalsIgnoreCase(actor.role)) {

@@ -482,127 +482,77 @@ private void BtnTemplateKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:eve
             Valid.textKosong(NoHp,"No.Rekam Medis");
         }else if(TPesan.getText().trim().equals("")){
             Valid.textKosong(TPesan,"Isi Pesan Terlebih dahulu.. ");
-        }else{  
-        try {                                         
-            String url = "https://api.fonnte.com/send";
-            String TokenWA = koneksiDBWA.TOKENWA();
-            
-            
-            // Parameter yang akan dikirimkan
-            String target = NoHp.getText()+"|"+TPasien.getText()+"|"+TNoRM.getText()+"|"+NoReg.getText()+"|"+TPoli.getText()+"|"+TDokter.getText()+"|"+DTPReg.getSelectedItem();
-            String message = TPesan.getText();
-            String pesan = TPesan.getText();
-            String kontrol = "Salam,\n "
-                            + "*{nama}*, No. Rekam Medis  *{rm}*, diinformasikan bahwa jadwal kontrol Bapak / Ibu ke \n"
-                            + "Poliklinik *{poli}* \n "
-                            + "Dokter Spesialis *{dokter}* \n "
-                            + "Tgl. Kontrol *{tanggal}* \n "
-                            + "\n"
-                            + "Untuk datang kontrol di RS. Akademis Jaury Jusuf Putera Makassar sesuai dengan jadwal di atas.\n" 
-                            + "Dimohon untuk datang lebih awal _( 1 jam Sebelum Praktek Dokter)_.\n" 
-                            + "Jika Anda pasien _*BPJS Kesehatan*_ , Pendaftaran Wajib menggunakan Aplikasi _*JKN Mobile*_. \n" 
-                            + "\n"
-                            + "Terima kasih, selamat beraktifitas dan selalu jaga kesehatan.\n"
-                            + "Info lebih lanjut, hubungi Customer service 085242554146";
-            
-            String countryCode = "62"; // optional            
-            String tanggal = (String) DTPReg.getSelectedItem();
-            message = message.replace("{nama}", TPasien.getText())
-                 .replace("{rm}", TNoRM.getText())
-                 .replace("{antrian}", NoReg.getText())
-                 .replace("{poli}", TPoli.getText())
-                 .replace("{dokter}", TDokter.getText())
-                 .replace("{tanggal}", tanggal); 
-            
-            pesan = pesan.replace("{nama}", TPasien.getText())
-                 .replace("{rm}", TNoRM.getText())
-                 .replace("{antrian}", NoReg.getText())
-                 .replace("{poli}", TPoli.getText())
-                 .replace("{dokter}", TDokter.getText())
-                 .replace("{tanggal}", tanggal)
-                 .replace("*", "")
-                 .replace("_", "")
-                 .replace("{", "")
-                 .replace("}", "");
-                 
-               
-            
-             
-            // Menggabungkan parameter ke dalam format yang sesuai untuk dikirimkan
-            String postData = "target=" + target + "&message=" + message + "&countryCode=" + countryCode + "&kontrol=" + kontrol;
-            
-            // Membuat objek URL
-            URL obj = new URL(url);
-            
-            // Membuka koneksi HttpURLConnection
-            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            
-            // Mengatur properti untuk koneksi
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Authorization", TokenWA);
-            con.setDoOutput(true);
-            
-            // Mengirim data
-            try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
-                wr.write(postData.getBytes(StandardCharsets.UTF_8));
-            } catch (IOException ex) {
-                Logger.getLogger(WhatsappKirimFonnte.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            
-            // Menerima respon dari server
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
-                String inputLine;
-                StringBuilder response = new StringBuilder();
-                
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
+        }else{
+            try {
+                // Format target Fonnte lama tetap dipertahankan agar source/template
+                // yang sudah berjalan tidak berubah. GoWA hanya memakai NoHp.
+                String target = NoHp.getText()+"|"+TPasien.getText()+"|"+TNoRM.getText()+"|"+NoReg.getText()+"|"+TPoli.getText()+"|"+TDokter.getText()+"|"+DTPReg.getSelectedItem();
+                String message = TPesan.getText();
+                String pesan = TPesan.getText();
+                String kontrol = "Salam,\n "
+                                + "*{nama}*, No. Rekam Medis  *{rm}*, diinformasikan bahwa jadwal kontrol Bapak / Ibu ke \n"
+                                + "Poliklinik *{poli}* \n "
+                                + "Dokter Spesialis *{dokter}* \n "
+                                + "Tgl. Kontrol *{tanggal}* \n "
+                                + "\n"
+                                + "Untuk datang kontrol di RS. Akademis Jaury Jusuf Putera Makassar sesuai dengan jadwal di atas.\n"
+                                + "Dimohon untuk datang lebih awal _( 1 jam Sebelum Praktek Dokter)_.\n"
+                                + "Jika Anda pasien _*BPJS Kesehatan*_ , Pendaftaran Wajib menggunakan Aplikasi _*JKN Mobile*_. \n"
+                                + "\n"
+                                + "Terima kasih, selamat beraktifitas dan selalu jaga kesehatan.\n"
+                                + "Info lebih lanjut, hubungi Customer service 085242554146";
+
+                String tanggal = (String) DTPReg.getSelectedItem();
+                message = message.replace("{nama}", TPasien.getText())
+                     .replace("{rm}", TNoRM.getText())
+                     .replace("{antrian}", NoReg.getText())
+                     .replace("{poli}", TPoli.getText())
+                     .replace("{dokter}", TDokter.getText())
+                     .replace("{tanggal}", tanggal);
+
+                pesan = pesan.replace("{nama}", TPasien.getText())
+                     .replace("{rm}", TNoRM.getText())
+                     .replace("{antrian}", NoReg.getText())
+                     .replace("{poli}", TPoli.getText())
+                     .replace("{dokter}", TDokter.getText())
+                     .replace("{tanggal}", tanggal)
+                     .replace("*", "")
+                     .replace("_", "")
+                     .replace("{", "")
+                     .replace("}", "");
+
+                java.util.LinkedHashMap<String,String> fieldFonnte = new java.util.LinkedHashMap<String,String>();
+                fieldFonnte.put("countryCode", "62");
+                // Field custom lama tetap ikut dikirim ke Fonnte.
+                fieldFonnte.put("kontrol", kontrol);
+
+                WhatsappGateway.Hasil hasil = WhatsappGateway.kirimPesan(
+                        NoHp.getText(), message, target, fieldFonnte);
+
+                if(hasil.berhasil()){
+                    LocalDateTime now = LocalDateTime.now();
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    String DateNow = now.format(formatter);
+                    Sequel.queryu("insert into wa_report values('"+hasil.getMessageId()+"','"+TNoRM.getText()+"','"+NoHp.getText()+"','"+akses.getkode()+"','SIMRS Khanza','"+hasil.getTarget()+"','"+kontrol+"','','true','','"+DateNow+"','"+DateNow+"')");
+                    JOptionPane.showMessageDialog(null,
+                            "Berhasil Mengirim Pesan !!\nGateway : " + hasil.getProviderLabel(),
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    BtnKeluarActionPerformed(evt);
+                }else{
+                    String tambahan = hasil.statusTidakPasti()
+                            ? "\n\nStatus pengiriman tidak dapat dipastikan. Sistem tidak menjalankan fallback otomatis agar pesan tidak terkirim dua kali."
+                            : "";
+                    JOptionPane.showMessageDialog(null,
+                            "Gagal mengirim melalui Whatsapp Gateway.\n" + hasil.getPesan() + tambahan,
+                            "Error", JOptionPane.ERROR_MESSAGE);
                 }
-                
-                // Menampilkan respon
-                System.out.println(response.toString());
-        
-        ObjectMapper objectMapper = new ObjectMapper();
-        // Mengonversi JSON String menjadi JsonNode
-        JsonNode jsonNode = objectMapper.readTree(response.toString());
-        
-        // Menampilkan nilai JSON
-//        System.out.println("detail: " + jsonNode.get("detail").asText());
-//        System.out.println("id: " + jsonNode.get("id").get(0).asText());
-//        System.out.println("proses: " + jsonNode.get("process").asText());
-//        System.out.println("status: " + jsonNode.get("status").asText());
-//        System.out.println("target: " + jsonNode.get("target").get(0).asText());
-        
-
-    if ("false".equals(jsonNode.get("status").asText())) {
-        //pesan error     
-        JOptionPane.showMessageDialog(null, "Gagal mengirim, mohon cek koneksi Whatsapp Gateway !!", "Error", JOptionPane.ERROR_MESSAGE);
-            
-        } else if ("true".equals(jsonNode.get("status").asText())) {
-         LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-        // Mengonversi LocalDateTime ke String dengan format yang diinginkan
-        String DateNow = now.format(formatter);
-        Sequel.queryu("insert into wa_report values('"+jsonNode.get("id").get(0).asText()+"','"+TNoRM.getText()+"','"+NoHp.getText()+"','"+akses.getkode()+"','SIMRS Khanza','"+jsonNode.get("target").get(0).asText()+"','"+kontrol+"','','"+jsonNode.get("status").asText()+"','','"+DateNow+"','"+DateNow+"')");
-        //pesan sukses     
-        JOptionPane.showMessageDialog(null, "Berhasil Mengirim Pesan !!", "Success", JOptionPane.INFORMATION_MESSAGE);
-        BtnKeluarActionPerformed(evt);
-        }
-
-       
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 Logger.getLogger(WhatsappKirimFonnte.class.getName()).log(Level.SEVERE, null, ex);
+                JOptionPane.showMessageDialog(null,
+                        "Terjadi kesalahan saat mengirim WhatsApp : " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
-            
-        } catch (ProtocolException ex) {
-            Logger.getLogger(WhatsappKirimFonnte.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(WhatsappKirimFonnte.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        
-        
-    }          
     }//GEN-LAST:event_BtnKirimActionPerformed
 
     private void BtnKirimKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnKirimKeyPressed

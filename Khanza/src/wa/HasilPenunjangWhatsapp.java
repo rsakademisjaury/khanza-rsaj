@@ -3,7 +3,6 @@ package wa;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import fungsi.koneksiDBWA;
 import fungsi.koneksiDB;
 import fungsi.akses;
 import java.awt.Color;
@@ -17,7 +16,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.net.URLConnection;
@@ -47,9 +45,10 @@ import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
 
 /**
- * Pengiriman satu PDF hasil Lab/Radiologi melalui Fonnte.
- * Browser hanya dipakai sebagai popup input nomor; token Fonnte dan file PDF
- * tetap diproses di aplikasi Java, tidak pernah dikirim ke browser.
+ * Pengiriman satu PDF hasil Lab/Radiologi melalui WhatsappGateway.
+ * Fonnte tetap menjadi provider utama, sedangkan GoWA dapat menjadi fallback
+ * sesuai setting/whatsapp-gateway.properties. File PDF tetap diproses di
+ * aplikasi Java dan tidak pernah dikirim ke browser.
  */
 public final class HasilPenunjangWhatsapp {
 
@@ -338,18 +337,22 @@ public final class HasilPenunjangWhatsapp {
             File pdf = null;
             try {
                 pdf = buatPdfHasil(sesi, pilihan);
-                String respons = kirimPdfFonnte(noHp, sesi, pdf, pilihan.size());
-                if (statusSukses(respons)) {
-                    String catatan = "";
+                WhatsappGateway.Hasil hasil = kirimPdfWhatsapp(noHp, sesi, pdf, pilihan.size());
+                if (hasil.berhasil()) {
+                    String catatan = "Dikirim melalui " + hasil.getProviderLabel() + ".";
                     try {
                         catatBerkasTerkirim(pilihan, noHp);
                     } catch (Exception exCatat) {
-                        catatan = "PDF berhasil terkirim, tetapi catatan status berkas belum tersimpan. Jalankan SQL patch lalu hubungi IT bila masalah berlanjut.";
+                        catatan += " PDF berhasil terkirim, tetapi catatan status berkas belum tersimpan. Jalankan SQL patch lalu hubungi IT bila masalah berlanjut.";
                     }
                     SESI.remove(form.get("sesi"));
                     kirimHtml(exchange, 200, halamanSukses(sesi, noHp, pilihan.size(), pdf.getName(), catatan, kirimUlang));
                 } else {
-                    kirimHtml(exchange, 500, halamanPesan("Gagal mengirim PDF", "Gateway WhatsApp menolak pengiriman. Detail: " + ambilPesanAman(respons)));
+                    String detail = hasil.getPesan();
+                    if (hasil.statusTidakPasti()) {
+                        detail += " Status pengiriman tidak dapat dipastikan; fallback otomatis tidak dijalankan untuk mencegah file terkirim dua kali.";
+                    }
+                    kirimHtml(exchange, 500, halamanPesan("Gagal mengirim PDF", "Gateway WhatsApp gagal. Detail: " + ambilPesanAman(detail)));
                 }
             } catch (Exception ex) {
                 kirimHtml(exchange, 500, halamanPesan("Gagal membuat atau mengirim PDF", ex.getMessage() == null ? ex.toString() : ex.getMessage()));
@@ -592,61 +595,13 @@ public final class HasilPenunjangWhatsapp {
         return out.toByteArray();
     }
 
-    private static String kirimPdfFonnte(String noHp, Sesi sesi, File pdf, int jumlahBerkas) throws Exception {
-        String token = koneksiDBWA.TOKENWA();
-        if (token == null || token.trim().equals("")) throw new IOException("Token Fonnte belum tersedia di konfigurasi aplikasi.");
+    private static WhatsappGateway.Hasil kirimPdfWhatsapp(String noHp, Sesi sesi,
+            File pdf, int jumlahBerkas) throws Exception {
         String namaLampiran = namaAman(sesi.judul) + "_" + namaAman(sesi.noRawat) + ".pdf";
         String pesan = "Salam Sehat,\n\nBerikut kami kirimkan hasil pemeriksaan " + sesi.judul
                 + " an. " + sesi.namaPasien + " (No. Rawat " + sesi.noRawat + ").\n"
                 + "Lampiran berisi " + jumlahBerkas + " hasil pemeriksaan dalam satu file PDF.\n\nTerima kasih.";
-        String country = noHp.startsWith("0") ? "62" : "0";
-        String boundary = "----KhanzaHasil" + System.currentTimeMillis();
-        HttpURLConnection conn = (HttpURLConnection) new URL("https://api.fonnte.com/send").openConnection();
-        conn.setConnectTimeout(30000);
-        conn.setReadTimeout(90000);
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Authorization", token.trim());
-        conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
-        conn.setDoOutput(true);
-        OutputStream out = conn.getOutputStream();
-        try {
-            tulisField(out, boundary, "target", noHp);
-            tulisField(out, boundary, "message", pesan);
-            tulisField(out, boundary, "countryCode", country);
-            tulisField(out, boundary, "filename", namaLampiran);
-            tulisFile(out, boundary, "file", namaLampiran, pdf);
-            out.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
-            out.flush();
-        } finally {
-            try { out.close(); } catch (Exception ex) {}
-        }
-        int kode = conn.getResponseCode();
-        InputStream in = kode >= 400 ? conn.getErrorStream() : conn.getInputStream();
-        String respons = in == null ? "HTTP " + kode : bacaTeks(in);
-        conn.disconnect();
-        return respons;
-    }
-
-    private static void tulisField(OutputStream out, String boundary, String nama, String nilai) throws IOException {
-        out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-        out.write(("Content-Disposition: form-data; name=\"" + nama + "\"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
-        out.write((nilai == null ? "" : nilai).getBytes(StandardCharsets.UTF_8));
-        out.write("\r\n".getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static void tulisFile(OutputStream out, String boundary, String namaField, String namaFile, File file) throws IOException {
-        out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-        out.write(("Content-Disposition: form-data; name=\"" + namaField + "\"; filename=\"" + namaFile + "\"\r\n").getBytes(StandardCharsets.UTF_8));
-        out.write("Content-Type: application/pdf\r\n\r\n".getBytes(StandardCharsets.UTF_8));
-        InputStream in = new java.io.FileInputStream(file);
-        try {
-            byte[] buffer = new byte[8192];
-            int baca;
-            while ((baca = in.read(buffer)) != -1) out.write(buffer, 0, baca);
-        } finally {
-            in.close();
-        }
-        out.write("\r\n".getBytes(StandardCharsets.UTF_8));
+        return WhatsappGateway.kirimFile(noHp, pesan, pdf, namaLampiran);
     }
 
     private static String normalisasiNomor(String nomor) {
@@ -654,13 +609,9 @@ public final class HasilPenunjangWhatsapp {
         return nomor.replaceAll("[^0-9]", "").trim();
     }
 
-    private static boolean statusSukses(String response) {
-        return response != null && response.matches("(?is).*\\\"status\\\"\\s*:\\s*true.*");
-    }
-
     private static String ambilPesanAman(String response) {
         if (response == null || response.trim().equals("")) return "Tidak ada respons dari gateway.";
-        String bersih = response.replaceAll("[\\r\\n]+", " ").replaceAll("<[^>]*>", " ").trim();
+        String bersih = response.replaceAll("[\r\n]+", " ").replaceAll("<[^>]*>", " ").trim();
         if (bersih.length() > 350) bersih = bersih.substring(0, 350) + "...";
         return escapeHtml(bersih);
     }

@@ -1199,7 +1199,24 @@ public class frmUtama extends javax.swing.JFrame {
     private static final Properties propVerLocal = new Properties();
     public static String versionlocal;
     private static final Properties propDatabase = new Properties();
+    private static final int LEBAR_KARTU_LOGIN = 710;
+    private static final int TINGGI_KARTU_LOGIN = 550;
+    private static final int MARGIN_BAYANGAN_ATAS = 32;
+    private static final int MARGIN_BAYANGAN_KIRI = 32;
+    private static final int MARGIN_BAYANGAN_BAWAH = 40;
+    private static final int MARGIN_BAYANGAN_KANAN = 32;
+    private static final int LEBAR_DIALOG_LOGIN = LEBAR_KARTU_LOGIN
+            + MARGIN_BAYANGAN_KIRI + MARGIN_BAYANGAN_KANAN;
+    private static final int TINGGI_DIALOG_LOGIN = TINGGI_KARTU_LOGIN
+            + MARGIN_BAYANGAN_ATAS + MARGIN_BAYANGAN_BAWAH;
     private SwingWorker<ImageIcon, Void> workerPosterLogin;
+    private LoginBackdropPanel backdropLogin;
+    private Component glassPaneSebelumLogin;
+    private boolean glassPaneSebelumnyaTerlihat;
+    private boolean sinkronisasiLoginTerjadwal;
+    private boolean pemulihanFokusLoginTerjadwal;
+    private javax.swing.Timer timerPulsaFokusLogin;
+    private java.beans.PropertyChangeListener pemantauWindowAktifLogin;
     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize(); 
     
     // notif konsul    
@@ -1298,7 +1315,9 @@ public class frmUtama extends javax.swing.JFrame {
         mulaiTahap = System.nanoTime();
         laporStartup(31, "Membangun antarmuka utama...");
         initComponents();
+        pasangPemilikDialogLogin();
         pasangTemaLoginModern();
+        pasangSinkronisasiLogin();
         muatPosterLoginDariWebapps();
         catatDurasi("Antarmuka utama", mulaiTahap);
 
@@ -1381,8 +1400,7 @@ public class frmUtama extends javax.swing.JFrame {
         jLabel7.setText("© Copyright SIMKES Khanza Indonesia. All rights reserved & Dimodifikasi oleh TIM IT.RS - Versi "+versionlocal);
         
         
-        DlgLogin.setSize(710, 550);
-        DlgLogin.setLocationRelativeTo(null);        
+        DlgLogin.setSize(LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN);
 
         cariNIK.getTable().addKeyListener(new KeyListener() {
             @Override
@@ -1610,6 +1628,39 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     /**
+     * NetBeans membuat DlgLogin sebagai JDialog tanpa owner. Akibatnya Windows
+     * dapat menaruh dialog di belakang frmUtama ketika pengguna kembali dari
+     * aplikasi lain. Dialog dibuat ulang dengan frmUtama sebagai owner, lalu
+     * panel beserta seluruh listener hasil Form Editor tetap digunakan kembali.
+     */
+    private void pasangPemilikDialogLogin() {
+        javax.swing.JDialog dialogTanpaPemilik = DlgLogin;
+        java.awt.Container indukPanelLogin = jPanel1.getParent();
+        if (indukPanelLogin != null) {
+            indukPanelLogin.remove(jPanel1);
+        }
+
+        javax.swing.JDialog dialogDenganPemilik = new javax.swing.JDialog(this);
+        dialogDenganPemilik.setDefaultCloseOperation(
+                javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+        dialogDenganPemilik.setTitle(dialogTanpaPemilik.getTitle());
+        dialogDenganPemilik.setBackground(dialogTanpaPemilik.getBackground());
+        dialogDenganPemilik.setMinimumSize(dialogTanpaPemilik.getMinimumSize());
+        dialogDenganPemilik.setModalExclusionType(
+                dialogTanpaPemilik.getModalExclusionType());
+        dialogDenganPemilik.setName(dialogTanpaPemilik.getName());
+        dialogDenganPemilik.setUndecorated(true);
+        dialogDenganPemilik.setResizable(false);
+        dialogDenganPemilik.setAutoRequestFocus(true);
+        dialogDenganPemilik.setFocusableWindowState(true);
+        dialogDenganPemilik.setAlwaysOnTop(false);
+        dialogDenganPemilik.setSize(dialogTanpaPemilik.getSize());
+
+        DlgLogin = dialogDenganPemilik;
+        dialogTanpaPemilik.dispose();
+    }
+
+    /**
      * Memasang tampilan modern pada dialog login tanpa mengganti komponen,
      * posisi, maupun event yang dibuat oleh NetBeans Form Editor.
      */
@@ -1618,8 +1669,15 @@ public class frmUtama extends javax.swing.JFrame {
 
         LoginBackgroundPanel latarLogin = new LoginBackgroundPanel();
         latarLogin.setLayout(new java.awt.BorderLayout());
-        DlgLogin.setContentPane(latarLogin);
         latarLogin.add(jPanel1, java.awt.BorderLayout.CENTER);
+
+        LoginShadowPanel wadahLogin = new LoginShadowPanel();
+        wadahLogin.setLayout(new java.awt.BorderLayout());
+        wadahLogin.setBorder(javax.swing.BorderFactory.createEmptyBorder(
+                MARGIN_BAYANGAN_ATAS, MARGIN_BAYANGAN_KIRI,
+                MARGIN_BAYANGAN_BAWAH, MARGIN_BAYANGAN_KANAN));
+        wadahLogin.add(latarLogin, java.awt.BorderLayout.CENTER);
+        DlgLogin.setContentPane(wadahLogin);
 
         try {
             DlgLogin.setBackground(new Color(0, 0, 0, 0));
@@ -1650,6 +1708,12 @@ public class frmUtama extends javax.swing.JFrame {
             @Override
             public void componentShown(java.awt.event.ComponentEvent evt) {
                 perbaruiSudutLogin();
+                posisikanLoginDiTengahMonitor();
+            }
+
+            @Override
+            public void componentHidden(java.awt.event.ComponentEvent evt) {
+                sembunyikanBackdropLogin();
             }
         });
         perbaruiSudutLogin();
@@ -1693,11 +1757,473 @@ public class frmUtama extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Menjaga dialog login tetap berada di tengah monitor yang sedang dipakai
+     * frmUtama. Sinkronisasi dijalankan setelah event resize selesai agar posisi
+     * tidak dihitung ketika proses maximize masih berlangsung.
+     */
+    private void pasangSinkronisasiLogin() {
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                jadwalkanSinkronisasiLogin();
+            }
+
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent evt) {
+                jadwalkanSinkronisasiLogin();
+            }
+        });
+
+        java.awt.event.WindowAdapter pemulihLogin =
+                new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowActivated(java.awt.event.WindowEvent evt) {
+                jadwalkanPemulihanFokusLogin();
+            }
+
+            @Override
+            public void windowGainedFocus(java.awt.event.WindowEvent evt) {
+                jadwalkanPemulihanFokusLogin();
+            }
+
+            @Override
+            public void windowDeiconified(java.awt.event.WindowEvent evt) {
+                jadwalkanPemulihanFokusLogin();
+            }
+        };
+        addWindowListener(pemulihLogin);
+        addWindowFocusListener(pemulihLogin);
+
+        // WindowActivated pada JFrame tidak selalu dikirim ulang oleh Windows ketika
+        // aplikasi kembali lewat Alt+Tab. Pantau activeWindow JVM sebagai jalur
+        // kedua, tetapi hanya bereaksi jika yang aktif adalah frmUtama/DlgLogin.
+        if (pemantauWindowAktifLogin == null) {
+            pemantauWindowAktifLogin = evt -> {
+                Object windowAktif = evt.getNewValue();
+                if (DlgLogin.isVisible()
+                        && (windowAktif == this || windowAktif == DlgLogin)) {
+                    jadwalkanPemulihanFokusLogin();
+                }
+            };
+            java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                    .addPropertyChangeListener("activeWindow",
+                            pemantauWindowAktifLogin);
+        }
+    }
+
+    /**
+     * Mengangkat kembali dialog login ketika frmUtama aktif setelah pengguna
+     * berpindah ke browser, WhatsApp, atau aplikasi lain. Fokus terakhir pada
+     * field login dipertahankan agar pengguna dapat langsung melanjutkan input.
+     */
+    private void jadwalkanPemulihanFokusLogin() {
+        if (!DlgLogin.isVisible() || pemulihanFokusLoginTerjadwal) {
+            return;
+        }
+
+        pemulihanFokusLoginTerjadwal = true;
+        java.awt.EventQueue.invokeLater(() -> {
+            pemulihanFokusLoginTerjadwal = false;
+            if (!DlgLogin.isVisible() || !isShowing()) {
+                return;
+            }
+
+            Component fokusTerakhir = DlgLogin.getMostRecentFocusOwner();
+            angkatDialogLogin(fokusTerakhir);
+        });
+    }
+
+    /**
+     * Memaksa native Z-order Windows mengembalikan DlgLogin ke atas frmUtama.
+     * AlwaysOnTop hanya dipakai sesaat, lalu dikembalikan false supaya dialog
+     * login tidak ikut berada di atas browser/WhatsApp saat user pindah aplikasi.
+     */
+    private void angkatDialogLogin(Component fokusTerakhir) {
+        if (!DlgLogin.isVisible() || !isShowing()) {
+            return;
+        }
+
+        posisikanLoginDiTengahMonitor();
+
+        if (timerPulsaFokusLogin != null) {
+            timerPulsaFokusLogin.stop();
+            timerPulsaFokusLogin = null;
+        }
+
+        try {
+            DlgLogin.setAlwaysOnTop(true);
+        } catch (SecurityException | UnsupportedOperationException ex) {
+            // Tetap lanjut dengan toFront jika topmost tidak didukung OS/JVM.
+        }
+
+        DlgLogin.toFront();
+        DlgLogin.requestFocus();
+        pulihkanFokusKomponenLogin(fokusTerakhir);
+
+        // Beri waktu native Window Manager menyelesaikan perubahan Z-order.
+        timerPulsaFokusLogin = new javax.swing.Timer(180, evt -> {
+            javax.swing.Timer timer = (javax.swing.Timer) evt.getSource();
+            timer.stop();
+            timerPulsaFokusLogin = null;
+
+            try {
+                DlgLogin.setAlwaysOnTop(false);
+            } catch (SecurityException | UnsupportedOperationException ex) {
+                // Tidak fatal; dialog tetap dimiliki frmUtama dan masih bisa toFront.
+            }
+
+            if (DlgLogin.isVisible() && isShowing()) {
+                posisikanLoginDiTengahMonitor();
+                DlgLogin.toFront();
+                pulihkanFokusKomponenLogin(fokusTerakhir);
+            }
+        });
+        timerPulsaFokusLogin.setRepeats(false);
+        timerPulsaFokusLogin.start();
+    }
+
+    private void pulihkanFokusKomponenLogin(Component fokusTerakhir) {
+        if (fokusTerakhir != null
+                && javax.swing.SwingUtilities.isDescendingFrom(
+                        fokusTerakhir, DlgLogin)) {
+            fokusTerakhir.requestFocusInWindow();
+        } else {
+            edAdmin.requestFocusInWindow();
+        }
+    }
+
+    private void jadwalkanSinkronisasiLogin() {
+        if (!DlgLogin.isVisible() || sinkronisasiLoginTerjadwal) {
+            return;
+        }
+
+        sinkronisasiLoginTerjadwal = true;
+        java.awt.EventQueue.invokeLater(() -> {
+            sinkronisasiLoginTerjadwal = false;
+            if (DlgLogin.isVisible()) {
+                posisikanLoginDiTengahMonitor();
+                perbaruiBackdropLogin();
+                DlgLogin.toFront();
+            }
+        });
+    }
+
+    /**
+     * Menghitung titik tengah berdasarkan usable bounds monitor aktif, bukan
+     * berdasarkan default screen. Ini membuat posisi konsisten pada satu maupun
+     * beberapa monitor dan tidak bergantung pada gerakan mouse.
+     */
+    private void posisikanLoginDiTengahMonitor() {
+        if (!isShowing()) {
+            return;
+        }
+
+        java.awt.GraphicsConfiguration konfigurasi = getGraphicsConfiguration();
+        if (konfigurasi == null) {
+            DlgLogin.setLocationRelativeTo(this);
+            return;
+        }
+
+        java.awt.Rectangle batasMonitor = konfigurasi.getBounds();
+        java.awt.Insets areaSistem = Toolkit.getDefaultToolkit()
+                .getScreenInsets(konfigurasi);
+
+        int areaX = batasMonitor.x + areaSistem.left;
+        int areaY = batasMonitor.y + areaSistem.top;
+        int areaLebar = batasMonitor.width - areaSistem.left - areaSistem.right;
+        int areaTinggi = batasMonitor.height - areaSistem.top - areaSistem.bottom;
+
+        int posisiX = areaX + Math.max(0, (areaLebar - DlgLogin.getWidth()) / 2);
+        int posisiY = areaY + Math.max(0, (areaTinggi - DlgLogin.getHeight()) / 2);
+        DlgLogin.setLocation(posisiX, posisiY);
+    }
+
+    private void tampilkanDialogLogin() {
+        if (!javax.swing.SwingUtilities.isEventDispatchThread()) {
+            java.awt.EventQueue.invokeLater(this::tampilkanDialogLogin);
+            return;
+        }
+
+        DlgLogin.setSize(LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN);
+        posisikanLoginDiTengahMonitor();
+        aktifkanBackdropLogin();
+
+        if (!DlgLogin.isVisible()) {
+            DlgLogin.setVisible(true);
+        }
+
+        // Ulangi setelah native peer dialog terbentuk untuk menghindari posisi
+        // sementara ketika JFrame baru selesai maximize.
+        angkatDialogLogin(edAdmin);
+        java.awt.EventQueue.invokeLater(() -> {
+            if (DlgLogin.isVisible()) {
+                angkatDialogLogin(DlgLogin.getMostRecentFocusOwner());
+            }
+        });
+    }
+
+    private void aktifkanBackdropLogin() {
+        if (backdropLogin == null) {
+            backdropLogin = new LoginBackdropPanel();
+        }
+
+        if (getGlassPane() != backdropLogin) {
+            glassPaneSebelumLogin = getGlassPane();
+            glassPaneSebelumnyaTerlihat = glassPaneSebelumLogin != null
+                    && glassPaneSebelumLogin.isVisible();
+            if (glassPaneSebelumLogin != null) {
+                glassPaneSebelumLogin.setVisible(false);
+            }
+            setGlassPane(backdropLogin);
+        }
+
+        backdropLogin.setVisible(false);
+        backdropLogin.perbaruiGambar();
+        backdropLogin.setVisible(true);
+        backdropLogin.repaint();
+    }
+
+    private void perbaruiBackdropLogin() {
+        if (backdropLogin == null || getGlassPane() != backdropLogin
+                || !DlgLogin.isVisible()) {
+            return;
+        }
+
+        boolean sedangTerlihat = backdropLogin.isVisible();
+        backdropLogin.setVisible(false);
+        backdropLogin.perbaruiGambar();
+        backdropLogin.setVisible(sedangTerlihat);
+        backdropLogin.repaint();
+    }
+
+    private void sembunyikanBackdropLogin() {
+        if (backdropLogin != null) {
+            backdropLogin.setVisible(false);
+            backdropLogin.bersihkanGambar();
+        }
+
+        if (getGlassPane() == backdropLogin && glassPaneSebelumLogin != null) {
+            Component glassPaneLama = glassPaneSebelumLogin;
+            boolean tampilkanKembali = glassPaneSebelumnyaTerlihat;
+            glassPaneSebelumLogin = null;
+            glassPaneSebelumnyaTerlihat = false;
+            setGlassPane(glassPaneLama);
+            glassPaneLama.setVisible(tampilkanKembali);
+        }
+    }
+
+    /**
+     * Backdrop login mengambil satu snapshot jendela utama, mengecilkannya,
+     * memberi Gaussian blur, lalu menambahkan lapisan biru gelap transparan.
+     * Snapshot membuat efek tetap ringan karena tidak dihitung di setiap repaint.
+     */
+    private final class LoginBackdropPanel extends javax.swing.JComponent {
+        private BufferedImage gambarKabur;
+
+        private LoginBackdropPanel() {
+            setOpaque(false);
+            setFocusable(true);
+            setVisible(false);
+
+            java.awt.event.MouseAdapter penahanMouse = new java.awt.event.MouseAdapter() {
+                @Override
+                public void mousePressed(java.awt.event.MouseEvent evt) {
+                    evt.consume();
+                    if (DlgLogin.isVisible()) {
+                        jadwalkanPemulihanFokusLogin();
+                    }
+                }
+
+                @Override
+                public void mouseReleased(java.awt.event.MouseEvent evt) {
+                    evt.consume();
+                }
+
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent evt) {
+                    evt.consume();
+                }
+
+                @Override
+                public void mouseMoved(java.awt.event.MouseEvent evt) {
+                    evt.consume();
+                }
+
+                @Override
+                public void mouseDragged(java.awt.event.MouseEvent evt) {
+                    evt.consume();
+                }
+            };
+            addMouseListener(penahanMouse);
+            addMouseMotionListener(penahanMouse);
+            addMouseWheelListener(evt -> evt.consume());
+        }
+
+        private void perbaruiGambar() {
+            int lebar = getRootPane().getWidth();
+            int tinggi = getRootPane().getHeight();
+            if (lebar <= 0 || tinggi <= 0) {
+                gambarKabur = null;
+                return;
+            }
+
+            BufferedImage tangkapan = new BufferedImage(
+                    lebar, tinggi, BufferedImage.TYPE_INT_RGB);
+            Graphics2D grafis = tangkapan.createGraphics();
+            try {
+                grafis.setRenderingHint(RenderingHints.KEY_RENDERING,
+                        RenderingHints.VALUE_RENDER_QUALITY);
+                getRootPane().paintAll(grafis);
+            } finally {
+                grafis.dispose();
+            }
+
+            int lebarKecil = Math.max(1, lebar / 4);
+            int tinggiKecil = Math.max(1, tinggi / 4);
+            BufferedImage gambarKecil = new BufferedImage(
+                    lebarKecil, tinggiKecil, BufferedImage.TYPE_INT_RGB);
+            Graphics2D grafisKecil = gambarKecil.createGraphics();
+            try {
+                grafisKecil.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                grafisKecil.setRenderingHint(RenderingHints.KEY_RENDERING,
+                        RenderingHints.VALUE_RENDER_QUALITY);
+                grafisKecil.drawImage(tangkapan, 0, 0,
+                        lebarKecil, tinggiKecil, null);
+            } finally {
+                grafisKecil.dispose();
+            }
+
+            float[] gaussian = {
+                1f / 256f, 4f / 256f, 6f / 256f, 4f / 256f, 1f / 256f,
+                4f / 256f, 16f / 256f, 24f / 256f, 16f / 256f, 4f / 256f,
+                6f / 256f, 24f / 256f, 36f / 256f, 24f / 256f, 6f / 256f,
+                4f / 256f, 16f / 256f, 24f / 256f, 16f / 256f, 4f / 256f,
+                1f / 256f, 4f / 256f, 6f / 256f, 4f / 256f, 1f / 256f
+            };
+            java.awt.image.ConvolveOp blur = new java.awt.image.ConvolveOp(
+                    new java.awt.image.Kernel(5, 5, gaussian),
+                    java.awt.image.ConvolveOp.EDGE_NO_OP, null);
+            gambarKabur = blur.filter(gambarKecil, null);
+        }
+
+        private void bersihkanGambar() {
+            gambarKabur = null;
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+                        RenderingHints.VALUE_RENDER_QUALITY);
+                if (gambarKabur != null) {
+                    g2.drawImage(gambarKabur, 0, 0,
+                            getWidth(), getHeight(), null);
+                }
+                g2.setColor(new Color(3, 25, 45, 90));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            } finally {
+                g2.dispose();
+            }
+        }
+    }
+
+    /**
+     * Wadah transparan yang menyediakan ruang di luar kartu login agar drop
+     * shadow tidak terpotong oleh batas JDialog.
+     */
+    private static final class LoginShadowPanel extends javax.swing.JPanel {
+        private static final int RADIUS_KARTU = 24;
+        private static final int RADIUS_BAYANGAN = 28;
+        private static final int OFFSET_BAYANGAN_Y = 7;
+
+        private LoginShadowPanel() {
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics graphics) {
+            super.paintComponent(graphics);
+
+            int xKartu = MARGIN_BAYANGAN_KIRI;
+            int yKartu = MARGIN_BAYANGAN_ATAS;
+            int lebarKartu = getWidth()
+                    - MARGIN_BAYANGAN_KIRI - MARGIN_BAYANGAN_KANAN;
+            int tinggiKartu = getHeight()
+                    - MARGIN_BAYANGAN_ATAS - MARGIN_BAYANGAN_BAWAH;
+            if (lebarKartu <= 0 || tinggiKartu <= 0) {
+                return;
+            }
+
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                        java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+
+                // Contact shadow dibuat sedikit lebih kuat di sisi bawah agar
+                // kartu tampak terangkat, tetapi tetap ringan dan profesional.
+                g2.setColor(new Color(0, 22, 42, 22));
+                g2.fillRoundRect(xKartu + 3, yKartu + 9,
+                        lebarKartu - 6, tinggiKartu,
+                        RADIUS_KARTU, RADIUS_KARTU);
+
+                // Beberapa lapisan transparan menghasilkan transisi lembut
+                // tanpa menghitung Gaussian blur pada setiap repaint.
+                for (int lapisan = RADIUS_BAYANGAN; lapisan >= 1; lapisan--) {
+                    float kedekatan = 1f - ((float) lapisan
+                            / (RADIUS_BAYANGAN + 1f));
+                    int alpha = 1 + Math.round(5f * kedekatan * kedekatan);
+                    g2.setColor(new Color(0, 27, 50, alpha));
+                    g2.fillRoundRect(
+                            xKartu - lapisan,
+                            yKartu + OFFSET_BAYANGAN_Y - lapisan,
+                            lebarKartu + (lapisan * 2),
+                            tinggiKartu + (lapisan * 2),
+                            RADIUS_KARTU + (lapisan * 2),
+                            RADIUS_KARTU + (lapisan * 2));
+                }
+            } finally {
+                g2.dispose();
+            }
+        }
+    }
+
     private static final class LoginBackgroundPanel extends javax.swing.JPanel {
         private static final int LEBAR_PANEL_LOGIN = 400;
+        private static final int RADIUS_KARTU = 24;
 
         private LoginBackgroundPanel() {
             setOpaque(false);
+        }
+
+        @Override
+        public void paint(java.awt.Graphics graphics) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                java.awt.Shape bentukKartu =
+                        new java.awt.geom.RoundRectangle2D.Double(
+                                0, 0, getWidth(), getHeight(),
+                                RADIUS_KARTU, RADIUS_KARTU);
+                g2.clip(bentukKartu);
+                super.paint(g2);
+
+                // Garis tipis membantu memisahkan tepi terang kartu dari
+                // backdrop tanpa membuatnya terlihat seperti kotak keras.
+                g2.setColor(new Color(255, 255, 255, 70));
+                g2.setStroke(new java.awt.BasicStroke(1f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1,
+                        RADIUS_KARTU, RADIUS_KARTU);
+            } finally {
+                g2.dispose();
+            }
         }
 
         @Override
@@ -1947,11 +2473,11 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     public void tampilkanLoginAwal() {
-        if (!DlgLogin.isVisible()) {
-            DlgLogin.setSize(710, 550);
-            DlgLogin.setLocationRelativeTo(null);
-            DlgLogin.setVisible(true);
-        }
+        java.awt.EventQueue.invokeLater(() -> {
+            if (!DlgLogin.isVisible()) {
+                tampilkanDialogLogin();
+            }
+        });
     }
    
 
@@ -9398,12 +9924,12 @@ private void BtnLogActionPerformed(java.awt.event.ActionEvent evt) {
             akses.setLogOut();
             isTutup();
 
-            DlgLogin.setVisible(true);
+            tampilkanDialogLogin();
             resetLoginFields();
             break;
 
         case "Log In":
-            DlgLogin.setVisible(true);
+            tampilkanDialogLogin();
             resetLoginFields();
             break;
     }
@@ -11798,7 +12324,11 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         Window[] wins = Window.getWindows();
         for (Window win : wins) {
             if (win instanceof JDialog) {
-                win.setLocationRelativeTo(PanelUtama);
+                if (win == DlgLogin) {
+                    posisikanLoginDiTengahMonitor();
+                } else {
+                    win.setLocationRelativeTo(PanelUtama);
+                }
                 win.toFront();
             }
         }
@@ -11811,7 +12341,11 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         Window[] wins = Window.getWindows();
         for (Window win : wins) {
             if (win instanceof JDialog) {
-                win.setLocationRelativeTo(PanelUtama);
+                if (win == DlgLogin) {
+                    posisikanLoginDiTengahMonitor();
+                } else {
+                    win.setLocationRelativeTo(PanelUtama);
+                }
                 win.toFront();
             }
         }
@@ -15398,6 +15932,7 @@ private void setAdminAccess() {
 // Method untuk mengatur akses Pengguna
 private void setUserAccess() {
     BtnMenu.setEnabled(true);
+    sembunyikanBackdropLogin();
     DlgLogin.dispose();
     BtnLog.setText("Log Out");
 //    MnLogin.setText("Log Out");
@@ -15494,6 +16029,7 @@ private void logTracker(String user) {
 
 // Method untuk memperbarui status login di label
 private void updateLoginStatus(String status, String userName, String iconPath) {
+    sembunyikanBackdropLogin();
     DlgLogin.dispose();
     BtnLog.setText("Log Out");
 //    MnLogin.setText("Log Out");

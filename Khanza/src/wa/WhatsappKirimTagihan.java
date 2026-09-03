@@ -489,130 +489,69 @@ private void BtnTemplateKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:eve
             Valid.textKosong(NoHp,"No.Rekam Medis");
         }else if(TPesan.getText().trim().equals("")){
             Valid.textKosong(TPesan,"Isi Pesan Terlebih dahulu.. ");
-        }else{  
-        try {                                         
-            String url = "https://api.fonnte.com/send";
-            String TokenWA = koneksiDBWA.TOKENWA();
-            
-            int angka = Integer.parseInt(SisaPiutang.getText());// value text
-            int angka1 = Integer.parseInt(TotalPiutang.getText());// value text
+        }else{
+            try {
+                int angka = Integer.parseInt(SisaPiutang.getText());
+                int angka1 = Integer.parseInt(TotalPiutang.getText());
 
-        // Membuat instance NumberFormat untuk locale Indonesia
-        NumberFormat format = NumberFormat.getNumberInstance(new Locale("id", "ID"));
+                NumberFormat format = NumberFormat.getNumberInstance(new Locale("id", "ID"));
+                String angkaFormatted = format.format(angka);
+                String angkaFormatted1 = format.format(angka1);
 
-        // Memformat angka
-        String angkaFormatted = format.format(angka);
-        String angkaFormatted1 = format.format(angka1);
+                // Target Fonnte lama dipertahankan; GoWA hanya menggunakan NoHp.
+                String target = NoHp.getText()+"|"+TPasienCari.getText()+"|"+TNoRMCari.getText()+"|"+TNoRwCari.getText()+"|"+SisaPiutang.getText()+"|"+TotalPiutang.getText()+"|"+DTPReg.getSelectedItem();
+                String message = TPesan.getText();
+                String pesan = TPesan.getText();
+                String tanggal = (String) DTPReg.getSelectedItem();
 
-        // Menampilkan hasil
-//        System.out.println("Angka terformat: " + angkaFormatted);
-        
-        
-        
-            // Parameter yang akan dikirimkan
-            String target = NoHp.getText()+"|"+TPasienCari.getText()+"|"+TNoRMCari.getText()+"|"+TNoRwCari.getText()+"|"+SisaPiutang.getText()+"|"+TotalPiutang.getText()+"|"+DTPReg.getSelectedItem();
-            String message = TPesan.getText();
-            String pesan = TPesan.getText();
-            String countryCode = "62"; // optional            
-            String tanggal = (String) DTPReg.getSelectedItem();
-            message = message.replace("{nama}", TPasienCari.getText())
-                 .replace("{rm}", TNoRMCari.getText())
-                 .replace("{norawat}", TNoRwCari.getText())
-//                 .replace("{sisapiutang}", SisaPiutang.getText())
-//                 .replace("{totalpiutang}", TotalPiutang.getText())
-                    .replace("{sisapiutang}", angkaFormatted)
-                 .replace("{totalpiutang}", angkaFormatted1)
-                 .replace("{tanggal}", tanggal); 
-            
-            pesan = pesan.replace("{nama}", TPasienCari.getText())
-                 .replace("{rm}", TNoRMCari.getText())
-                 .replace("{norawat}", TNoRwCari.getText())
-//                 .replace("{sisapiutang}", SisaPiutang.getText())
-                    .replace("{sisapiutang}", angkaFormatted)
-//                 .replace("{totalpiutang}", TotalPiutang.getText())
-                    .replace("{totalpiutang}", angkaFormatted1)
-                 .replace("{tanggal}", tanggal)
-                 .replace("*", "")
-                 .replace("_", "")
-                 .replace("{", "")
-                 .replace("}", "");
-            
-             
-            // Menggabungkan parameter ke dalam format yang sesuai untuk dikirimkan
-            String postData = "target=" + target + "&message=" + message + "&countryCode=" + countryCode;
-            
-            // Membuat objek URL
-            URL obj = new URL(url);
-            
-            // Membuka koneksi HttpURLConnection
-            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            
-            // Mengatur properti untuk koneksi
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Authorization", TokenWA);
-            con.setDoOutput(true);
-            
-            // Mengirim data
-            try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
-                wr.write(postData.getBytes(StandardCharsets.UTF_8));
-            } catch (IOException ex) {
-                Logger.getLogger(WhatsappKirimTagihan.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            
-            // Menerima respon dari server
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
-                String inputLine;
-                StringBuilder response = new StringBuilder();
-                
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
+                message = message.replace("{nama}", TPasienCari.getText())
+                     .replace("{rm}", TNoRMCari.getText())
+                     .replace("{norawat}", TNoRwCari.getText())
+                     .replace("{sisapiutang}", angkaFormatted)
+                     .replace("{totalpiutang}", angkaFormatted1)
+                     .replace("{tanggal}", tanggal);
+
+                pesan = pesan.replace("{nama}", TPasienCari.getText())
+                     .replace("{rm}", TNoRMCari.getText())
+                     .replace("{norawat}", TNoRwCari.getText())
+                     .replace("{sisapiutang}", angkaFormatted)
+                     .replace("{totalpiutang}", angkaFormatted1)
+                     .replace("{tanggal}", tanggal)
+                     .replace("*", "")
+                     .replace("_", "")
+                     .replace("{", "")
+                     .replace("}", "");
+
+                java.util.LinkedHashMap<String,String> fieldFonnte = new java.util.LinkedHashMap<String,String>();
+                fieldFonnte.put("countryCode", "62");
+
+                WhatsappGateway.Hasil hasil = WhatsappGateway.kirimPesan(
+                        NoHp.getText(), message, target, fieldFonnte);
+
+                if(hasil.berhasil()){
+                    LocalDateTime now = LocalDateTime.now();
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    String DateNow = now.format(formatter);
+                    Sequel.queryu("insert into wa_report values('"+hasil.getMessageId()+"','"+TNoRMCari.getText()+"','"+NoHp.getText()+"','"+akses.getkode()+"','SIMRS Khanza','"+hasil.getTarget()+"','"+pesan+"','','true','','"+DateNow+"','"+DateNow+"')");
+                    JOptionPane.showMessageDialog(null,
+                            "Berhasil Mengirim Pesan !!\nGateway : " + hasil.getProviderLabel(),
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    BtnKeluarActionPerformed(evt);
+                }else{
+                    String tambahan = hasil.statusTidakPasti()
+                            ? "\n\nStatus pengiriman tidak dapat dipastikan. Sistem tidak menjalankan fallback otomatis agar pesan tidak terkirim dua kali."
+                            : "";
+                    JOptionPane.showMessageDialog(null,
+                            "Gagal mengirim melalui Whatsapp Gateway.\n" + hasil.getPesan() + tambahan,
+                            "Error", JOptionPane.ERROR_MESSAGE);
                 }
-                
-                // Menampilkan respon
-                System.out.println(response.toString());
-        
-        ObjectMapper objectMapper = new ObjectMapper();
-        // Mengonversi JSON String menjadi JsonNode
-        JsonNode jsonNode = objectMapper.readTree(response.toString());
-        
-        // Menampilkan nilai JSON
-//        System.out.println("detail: " + jsonNode.get("detail").asText());
-//        System.out.println("id: " + jsonNode.get("id").get(0).asText());
-//        System.out.println("proses: " + jsonNode.get("process").asText());
-//        System.out.println("status: " + jsonNode.get("status").asText());
-//        System.out.println("target: " + jsonNode.get("target").get(0).asText());
-        
-
-    if ("false".equals(jsonNode.get("status").asText())) {
-        //pesan error     
-        JOptionPane.showMessageDialog(null, "Gagal mengirim, mohon cek koneksi Whatsapp Gateway !!", "Error", JOptionPane.ERROR_MESSAGE);
-            
-        } else if ("true".equals(jsonNode.get("status").asText())) {
-         LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-        // Mengonversi LocalDateTime ke String dengan format yang diinginkan
-        String DateNow = now.format(formatter);
-        Sequel.queryu("insert into wa_report values('"+jsonNode.get("id").get(0).asText()+"','"+TNoRMCari.getText()+"','"+NoHp.getText()+"','"+akses.getkode()+"','SIMRS Khanza','"+jsonNode.get("target").get(0).asText()+"','"+pesan+"','','"+jsonNode.get("status").asText()+"','','"+DateNow+"','"+DateNow+"')");
-        //pesan sukses     
-        JOptionPane.showMessageDialog(null, "Berhasil Mengirim Pesan !!", "Success", JOptionPane.INFORMATION_MESSAGE);
-        BtnKeluarActionPerformed(evt);
-        }
-
-       
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 Logger.getLogger(WhatsappKirimTagihan.class.getName()).log(Level.SEVERE, null, ex);
+                JOptionPane.showMessageDialog(null,
+                        "Terjadi kesalahan saat mengirim WhatsApp : " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
-            
-        } catch (ProtocolException ex) {
-            Logger.getLogger(WhatsappKirimTagihan.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(WhatsappKirimTagihan.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        
-        
-    }          
     }//GEN-LAST:event_BtnKirimActionPerformed
 
     private void BtnKirimKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnKirimKeyPressed

@@ -1009,11 +1009,12 @@ public final class ITServiceChatOverlay {
         replyArea.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         replyArea.setBorder(new EmptyBorder(7, 8, 7, 8));
         replyArea.setOpaque(false);
-        replyArea.setToolTipText("Tulis balasan. Ctrl+Enter untuk mengirim.");
+        replyArea.setToolTipText("Enter untuk mengirim. Shift+Enter untuk baris baru.");
         replyArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isControlDown()) {
+                // Perilaku seperti WhatsApp: Enter mengirim, Shift+Enter membuat baris baru.
+                if (e.getKeyCode() == KeyEvent.VK_ENTER && !e.isShiftDown()) {
                     e.consume();
                     sendCurrentMessage();
                 }
@@ -1211,6 +1212,19 @@ public final class ITServiceChatOverlay {
         newDetailArea.setBorder(new EmptyBorder(6, 8, 6, 8));
         newDetailArea.setBackground(Color.WHITE);
         newDetailArea.setOpaque(false);
+        newDetailArea.setToolTipText("Enter untuk mengirim pengaduan. Shift+Enter untuk baris baru.");
+        newDetailArea.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                // Sama dengan tombol Kirim Pengaduan; Shift+Enter tetap untuk newline.
+                if (e.getKeyCode() == KeyEvent.VK_ENTER && !e.isShiftDown()) {
+                    e.consume();
+                    if (createTicketButton == null || createTicketButton.isEnabled()) {
+                        sendNewTicket();
+                    }
+                }
+            }
+        });
         JScrollPane detailScroll = new JScrollPane(newDetailArea);
         detailScroll.setBorder(null);
         detailScroll.setOpaque(false);
@@ -2339,7 +2353,7 @@ public final class ITServiceChatOverlay {
             if (currentTicket != null && !currentTicket.canReply && currentTicket.assignedName.length() > 0) {
                 tooltip = "Tiket sedang ditangani oleh " + currentTicket.assignedName + ".";
             } else if (enabled) {
-                tooltip = "Tulis balasan. Ctrl+Enter untuk mengirim.";
+                tooltip = "Enter untuk mengirim. Shift+Enter untuk baris baru.";
             }
             replyArea.setToolTipText(tooltip);
         }
@@ -2921,16 +2935,52 @@ public final class ITServiceChatOverlay {
         }
     }
 
-    /** Tombol kirim berbentuk pesawat kertas agar tetap jelas di semua Look & Feel. */
+    /**
+     * Tombol kirim transparan yang memakai resource /picture/paper-plane.png.
+     * Jika resource belum tersedia, fallback lama tetap digambar agar tombol tidak hilang.
+     */
     private static final class SendIconButton extends JButton {
+        private static final int SEND_ICON_SIZE = 44;
+
         SendIconButton() {
             setOpaque(false);
             setContentAreaFilled(false);
             setBorderPainted(false);
             setFocusPainted(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setHorizontalAlignment(SwingConstants.CENTER);
+            setVerticalAlignment(SwingConstants.CENTER);
+
+            try {
+                URL resource = ITServiceChatOverlay.class.getResource("/picture/paper-plane.png");
+                if (resource != null) {
+                    ImageIcon raw = new ImageIcon(resource);
+                    if (raw.getIconWidth() > 0 && raw.getIconHeight() > 0) {
+                        int sourceW = raw.getIconWidth();
+                        int sourceH = raw.getIconHeight();
+                        double ratio = Math.min((double) SEND_ICON_SIZE / sourceW,
+                                (double) SEND_ICON_SIZE / sourceH);
+                        int targetW = Math.max(1, (int) Math.round(sourceW * ratio));
+                        int targetH = Math.max(1, (int) Math.round(sourceH * ratio));
+                        Image scaled = raw.getImage().getScaledInstance(
+                                targetW, targetH, Image.SCALE_SMOOTH);
+                        setIcon(new ImageIcon(scaled));
+                    }
+                }
+            } catch (Throwable ignore) {
+                // Fallback paint di bawah menjaga tombol tetap dapat digunakan.
+            }
         }
+
         @Override protected void paintComponent(Graphics g) {
+            // Jika icon custom tersedia, biarkan JButton hanya menggambar icon tersebut.
+            // Tidak ada lingkaran/background tambahan dari source Java.
+            if (getIcon() != null) {
+                super.paintComponent(g);
+                return;
+            }
+
+            // Fallback lama apabila paper-plane.png belum ikut terpasang di resource.
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             Color fill;
@@ -2946,14 +2996,8 @@ public final class ITServiceChatOverlay {
 
             int cx = getWidth() / 2;
             int cy = getHeight() / 2;
-
-            // Pesawat kertas miring ke kanan-atas seperti ikon Telegram.
-            int[] planeX = {
-                cx - 13, cx + 14, cx + 5, cx + 1, cx - 5, cx - 2
-            };
-            int[] planeY = {
-                cy - 7, cy - 13, cy + 13, cy + 4, cy + 9, cy + 1
-            };
+            int[] planeX = {cx - 13, cx + 14, cx + 5, cx + 1, cx - 5, cx - 2};
+            int[] planeY = {cy - 7, cy - 13, cy + 13, cy + 4, cy + 9, cy + 1};
             g2.setColor(Color.WHITE);
             g2.fillPolygon(planeX, planeY, planeX.length);
             g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));

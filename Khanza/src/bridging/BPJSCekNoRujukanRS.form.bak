@@ -466,14 +466,14 @@
       <Properties>
         <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
           <Border info="org.netbeans.modules.form.compat2.border.TitledBorderInfo">
-            <TitledBorder title=" Data Rujukan RS BPJS ">
+            <TitledBorder title="::[ Pencarian Data Rujukan RS Berdasarkan Nomor Rujukan ]::">
               <Border PropertyName="innerBorder" info="org.netbeans.modules.form.compat2.border.LineBorderInfo">
                 <LineBorder>
-                  <Color PropertyName="color" blue="e8" green="e0" red="d6" type="rgb"/>
+                  <Color PropertyName="color" blue="eb" green="f5" red="f0" type="rgb"/>
                 </LineBorder>
               </Border>
-              <Font PropertyName="font" name="Segoe UI Semibold" size="12" style="0"/>
-              <Color PropertyName="color" blue="5e" green="48" red="2b" type="rgb"/>
+              <Font PropertyName="font" name="Tahoma" size="11" style="0"/>
+              <Color PropertyName="color" blue="32" green="32" red="32" type="rgb"/>
             </TitledBorder>
           </Border>
         </Property>
@@ -505,7 +505,8 @@
           <SubComponents>
             <Component class="widget.Table" name="tbKamar">
               <Properties>
-                <Property name="toolTipText" type="java.lang.String" value="Data rujukan peserta BPJS"/>
+                <Property name="autoCreateRowSorter" type="boolean" value="true"/>
+                <Property name="toolTipText" type="java.lang.String" value="Silahkan klik untuk memilih data yang mau diedit ataupun dihapus"/>
                 <Property name="componentPopupMenu" type="javax.swing.JPopupMenu" editor="org.netbeans.modules.form.ComponentChooserEditor">
                   <ComponentRef name="jPopupMenu1"/>
                 </Property>
@@ -539,7 +540,7 @@
                   <Image iconType="3" name="/picture/145.png"/>
                 </Property>
                 <Property name="mnemonic" type="int" value="73"/>
-                <Property name="text" type="java.lang.String" value="  .: Detail Registrasi Pasien"/>
+                <Property name="text" type="java.lang.String" value="  .: Input Registrasi"/>
                 <Property name="toolTipText" type="java.lang.String" value="Alt+I"/>
                 <Property name="borderPainted" type="boolean" value="true"/>
                 <Property name="borderPaintedFlat" type="boolean" value="true"/>
@@ -573,7 +574,7 @@
               <Properties>
                 <Property name="name" type="java.lang.String" value="panelGlass6" noResource="true"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                  <Dimension value="[44, 86]"/>
+                  <Dimension value="[44, 54]"/>
                 </Property>
               </Properties>
               <Constraints>
@@ -671,34 +672,16 @@
                       <Image iconType="3" name="/picture/save-16x16.png"/>
                     </Property>
                     <Property name="mnemonic" type="int" value="83"/>
-                    <Property name="text" type="java.lang.String" value="Simpan + SEP"/>
-                    <Property name="toolTipText" type="java.lang.String" value="Simpan registrasi dan terbitkan SEP (Alt+S)"/>
+                    <Property name="text" type="java.lang.String" value="Simpan"/>
+                    <Property name="toolTipText" type="java.lang.String" value="Alt+S"/>
                     <Property name="name" type="java.lang.String" value="BtnSimpan" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[125, 30]"/>
+                      <Dimension value="[100, 30]"/>
                     </Property>
                   </Properties>
                   <Events>
                     <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="BtnSimpanActionPerformed"/>
                     <EventHandler event="keyPressed" listener="java.awt.event.KeyListener" parameters="java.awt.event.KeyEvent" handler="BtnSimpanKeyPressed"/>
-                  </Events>
-                </Component>
-                <Component class="widget.Button" name="BtnSimpanRegistrasi">
-                  <Properties>
-                    <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                      <Image iconType="3" name="/picture/save-16x16.png"/>
-                    </Property>
-                    <Property name="mnemonic" type="int" value="82"/>
-                    <Property name="text" type="java.lang.String" value="Simpan Registrasi"/>
-                    <Property name="toolTipText" type="java.lang.String" value="Simpan registrasi rawat jalan tanpa menerbitkan SEP (Alt+R)"/>
-                    <Property name="name" type="java.lang.String" value="BtnSimpanRegistrasi" noResource="true"/>
-                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[155, 30]"/>
-                    </Property>
-                  </Properties>
-                  <Events>
-                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="BtnSimpanRegistrasiActionPerformed"/>
-                    <EventHandler event="keyPressed" listener="java.awt.event.KeyListener" parameters="java.awt.event.KeyEvent" handler="BtnSimpanRegistrasiKeyPressed"/>
                   </Events>
                 </Component>
                 <Component class="widget.Button" name="BtnCari1">
@@ -1285,7 +1268,7 @@
                               <Properties>
                                 <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
                                   <StringArray count="1">
-                                    <StringItem index="0" value="26-08-2026 14:09:45"/>
+                                    <StringItem index="0" value="26-08-2026 13:35:26"/>
                                   </StringArray>
                                 </Property>
                                 <Property name="displayFormat" type="java.lang.String" value="dd-MM-yyyy HH:mm:ss"/>

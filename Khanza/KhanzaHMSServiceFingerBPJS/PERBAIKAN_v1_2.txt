@@ -1,0 +1,19 @@
+PERBAIKAN SERVICE FINGER BPJS v1.2
+==================================
+
+Masalah yang diperbaiki:
+- Error NoClassDefFoundError: org/apache/commons/codec/binary/Base64.
+
+Perbaikan:
+- Ditambahkan lib/commons-codec-1.10.jar dari dependency Service Aplicare.
+- jalankan_service_finger.bat diperbaiki memakai lib/* agar seluruh dependency otomatis terbaca.
+
+Pemasangan:
+1. Extract ZIP ini ke folder baru.
+2. Salin setting/database.xml dari service Aplicare aktif ke folder setting/.
+3. Pastikan tabel bpjs_finger_monitor dan bpjs_finger_hit_log sudah dibuat.
+4. Jalankan jalankan_service_finger.bat.
+
+Catatan:
+- Error sebelumnya terjadi sebelum service sempat mengolah antrean atau melakukan hit BPJS.
+- Jangan menjalankan service lama dan service revisi bersamaan.

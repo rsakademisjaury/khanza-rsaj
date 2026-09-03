@@ -8017,6 +8017,84 @@ public final class DlgReg extends javax.swing.JDialog {
         return false;
     }
 
+    /**
+     * Memastikan kuota yang dipakai saat simpan selalu berasal dari jadwal
+     * dokter pada tanggal dan poli yang sedang dipilih. Nilai field kuota
+     * tetap dipertahankan untuk alur pemilihan dokter yang sudah berjalan,
+     * tetapi tidak dijadikan sumber utama validasi karena dapat bernilai 0
+     * atau tertinggal ketika dokter/tanggal diisi melalui alur lain.
+     */
+    private boolean validasiKuotaRegistrasiSebelumSimpan(){
+        String tanggalRegistrasi = Valid.SetTgl(DTPReg.getSelectedItem() + "");
+        String hariKerja = hariKerjaRegistrasiAutocomplete();
+        int jumlahJadwal = 0;
+        int kuotaJadwal = 0;
+
+        String sqlKuota = "SELECT COUNT(*) AS jumlah_jadwal,"+
+                "COALESCE(SUM(jadwal.kuota),0) AS kuota " +
+                "FROM jadwal WHERE jadwal.kd_dokter=? AND jadwal.kd_poli=? " +
+                "AND UPPER(TRIM(jadwal.hari_kerja))=?";
+
+        try (PreparedStatement psKuota = koneksi.prepareStatement(sqlKuota)) {
+            psKuota.setString(1, KdDokter.getText().trim());
+            psKuota.setString(2, kdpoli.getText().trim());
+            psKuota.setString(3, hariKerja);
+            try (ResultSet rsKuota = psKuota.executeQuery()) {
+                if (rsKuota.next()) {
+                    jumlahJadwal = rsKuota.getInt("jumlah_jadwal");
+                    kuotaJadwal = rsKuota.getInt("kuota");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Notifikasi Validasi Kuota Registrasi : " + e);
+            JOptionPane.showMessageDialog(rootPane,
+                    "Validasi kuota registrasi gagal dilakukan.\n"+
+                    "Silakan ulangi proses simpan.",
+                    "Registrasi", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        if (jumlahJadwal == 0) {
+            JOptionPane.showMessageDialog(rootPane,
+                    "Jadwal dokter pada poliklinik dan tanggal registrasi yang dipilih tidak ditemukan.",
+                    "Registrasi", JOptionPane.WARNING_MESSAGE);
+            TDokter.requestFocus();
+            return false;
+        }
+
+        int jumlahPendaftaran = 0;
+        String sqlJumlahPendaftaran = "SELECT COUNT(reg_periksa.no_rawat) AS jumlah " +
+                "FROM reg_periksa WHERE reg_periksa.kd_dokter=? " +
+                "AND reg_periksa.kd_poli=? AND reg_periksa.tgl_registrasi=? " +
+                "AND reg_periksa.stts<>'Batal'";
+
+        try (PreparedStatement psJumlah = koneksi.prepareStatement(sqlJumlahPendaftaran)) {
+            psJumlah.setString(1, KdDokter.getText().trim());
+            psJumlah.setString(2, kdpoli.getText().trim());
+            psJumlah.setString(3, tanggalRegistrasi);
+            try (ResultSet rsJumlah = psJumlah.executeQuery()) {
+                if (rsJumlah.next()) {
+                    jumlahPendaftaran = rsJumlah.getInt("jumlah");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Notifikasi Hitung Kuota Registrasi : " + e);
+            JOptionPane.showMessageDialog(rootPane,
+                    "Jumlah pendaftaran dokter tidak dapat diperiksa.\n"+
+                    "Silakan ulangi proses simpan.",
+                    "Registrasi", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        if (jumlahPendaftaran >= kuotaJadwal) {
+            JOptionPane.showMessageDialog(null, "Eiiits, Kuota registrasi penuh..!!!");
+            TCari.requestFocus();
+            return false;
+        }
+
+        return true;
+    }
+
     private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpanActionPerformed
     if(sedangMemperbaruiDataRegistrasi){
         return;
@@ -8072,16 +8150,7 @@ public final class DlgReg extends javax.swing.JDialog {
             isRegistrasi();
         } else {
             if (aktifjadwal.equals("aktif")) {
-                String tanggalRegistrasi = Valid.SetTgl(DTPReg.getSelectedItem() + "");
-                int jumlahPendaftaran = Sequel.cariInteger(
-                    "SELECT COUNT(reg_periksa.no_rawat) FROM reg_periksa WHERE reg_periksa.kd_dokter = ? AND reg_periksa.tgl_registrasi = ?",
-                    KdDokter.getText(), tanggalRegistrasi
-                );
-
-                if (jumlahPendaftaran >= kuota) {
-                    JOptionPane.showMessageDialog(null, "Eiiits, Kuota registrasi penuh..!!!");
-                    TCari.requestFocus();
-                } else {
+                if (validasiKuotaRegistrasiSebelumSimpan()) {
                     isRegistrasi();
                 }
             } else {
@@ -10225,7 +10294,8 @@ public final class DlgReg extends javax.swing.JDialog {
         Calendar kalender = Calendar.getInstance(new Locale("id", "ID"));
         java.util.Date tanggal = DTPReg.getDate();
         if (tanggal != null) kalender.setTime(tanggal);
-        String[] namaHari = {"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"};
+        // Disamakan dengan nilai hari yang dipakai DlgCariDokter2/tabel jadwal.
+        String[] namaHari = {"AKHAD", "SENIN", "SELASA", "RABU", "KAMIS", "JUMAT", "SABTU"};
         return namaHari[kalender.get(Calendar.DAY_OF_WEEK) - 1];
     }
 

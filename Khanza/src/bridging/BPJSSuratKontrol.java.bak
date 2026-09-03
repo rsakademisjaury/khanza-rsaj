@@ -2046,7 +2046,7 @@ private File findFolderRecursively(File dir, String folderName) {
             param.put("kamar",Sequel.cariIsi("SELECT b.nm_bangsal FROM kamar_inap ki JOIN kamar k ON ki.kd_kamar = k.kd_kamar JOIN bangsal b ON k.kd_bangsal = b.kd_bangsal WHERE ki.stts_pulang <> 'Pindah Kamar' AND ki.no_rawat =?",NoRawat.getText()));
             param.put("tglmasuk",Sequel.cariIsi("SELECT MIN( tgl_masuk ) AS tgl_terawal FROM kamar_inap WHERE no_rawat =? GROUP BY no_rawat",NoRawat.getText()));
             param.put("tglkeluar",Sequel.cariIsi("SELECT tgl_keluar FROM kamar_inap WHERE stts_pulang <> 'Pindah Kamar' AND no_rawat =?",NoRawat.getText()));
-            param.put("diagnosa",Sequel.cariIsi("SELECT kd_diagnosa_utama FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
+            param.put("diagnosa",Sequel.cariIsi("SELECT COALESCE(NULLIF(TRIM(diagnosa_utama),''),NULLIF(TRIM(kd_diagnosa_utama),''),'') FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
             param.put("obatpulang",Sequel.cariIsi("SELECT obat_pulang FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
             param.put("hasillab",Sequel.cariIsi("SELECT hasil_laborat FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
             param.put("hasilrab",Sequel.cariIsi("SELECT pemeriksaan_penunjang FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
@@ -3287,7 +3287,7 @@ private void CreatePDFLepasRawat(String FileName) {
         param.put("kamar",Sequel.cariIsi("SELECT b.nm_bangsal FROM kamar_inap ki JOIN kamar k ON ki.kd_kamar = k.kd_kamar JOIN bangsal b ON k.kd_bangsal = b.kd_bangsal WHERE ki.stts_pulang <> 'Pindah Kamar' AND ki.no_rawat =?",noRawatAsal));
         param.put("tglmasuk",Sequel.cariIsi("SELECT MIN(tgl_masuk) AS tgl_terawal FROM kamar_inap WHERE no_rawat =? GROUP BY no_rawat",noRawatAsal));
         param.put("tglkeluar",Sequel.cariIsi("SELECT tgl_keluar FROM kamar_inap WHERE stts_pulang <> 'Pindah Kamar' AND no_rawat =?",noRawatAsal));
-        param.put("diagnosa",Sequel.cariIsi("SELECT kd_diagnosa_utama FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));
+        param.put("diagnosa",Sequel.cariIsi("SELECT COALESCE(NULLIF(TRIM(diagnosa_utama),''),NULLIF(TRIM(kd_diagnosa_utama),''),'') FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));
         param.put("obatpulang",Sequel.cariIsi("SELECT obat_pulang FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));
         param.put("hasillab",Sequel.cariIsi("SELECT hasil_laborat FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));
         param.put("hasilrab",Sequel.cariIsi("SELECT pemeriksaan_penunjang FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));

@@ -1,0 +1,30 @@
+PERBAIKAN SERVICE FINGER BPJS v1.3
+====================================
+
+Gejala yang diperbaiki:
+- Console menampilkan "Konfigurasi URL/kredensial API BPJS belum lengkap".
+- Versi sebelumnya telah menaikkan percobaan meski request belum terkirim karena konfigurasi kosong.
+
+Perubahan v1.3:
+1. Service memvalidasi konfigurasi VClaim sebelum mengambil antrean.
+2. Bila konfigurasi belum lengkap, console menyebut NAMA key yang kosong/tidak terbaca:
+   URLAPIBPJS, CONSIDAPIBPJS, SECRETKEYAPIBPJS, atau USERKEYAPIBPJS.
+3. Antrean ditahan dan attempt_count tidak bertambah selama konfigurasi belum lengkap.
+4. Tidak ada nilai rahasia yang dicetak ke console.
+
+Langkah uji:
+1. Extract ZIP ini ke folder baru.
+2. Salin setting/database.xml dari instalasi SIMKES/Service Aplicare yang benar-benar aktif
+   ke folder setting/ pada service ini.
+3. Jalankan jalankan_service_finger.bat.
+4. Bila masih ada key kosong, kirim screenshot console yang menyebut nama key saja.
+
+Reset antrean pasien yang sudah terlanjur berkurang percobaannya pada versi sebelumnya:
+UPDATE bpjs_finger_monitor
+SET status='ACTIVE', attempt_count=0, last_checked_at=NULL, next_check_at=NOW(),
+    response_code=NULL, response_message=NULL, completed_at=NULL, updated_at=NOW()
+WHERE no_rawat='2026/05/30/000062';
+
+Catatan:
+- Jangan mengirim file database.xml ke chat karena memuat kredensial BPJS/database.
+- Saat konfigurasi belum lengkap, request endpoint BPJS belum dikirim.

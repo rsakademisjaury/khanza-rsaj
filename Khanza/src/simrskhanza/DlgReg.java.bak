@@ -17975,10 +17975,6 @@ private void MnSudahTerbitSEPActionPerformed(java.awt.event.ActionEvent evt) {
         THbngn.setText("");
         TAlmt.setText("");
         TStatus.setText("");
-        kdpoli.setText("");
-        TPoli.setText("");
-        KdDokter.setText("");
-        TDokter.setText("");
         isiPerujukOtomatis("", "");   
         NoKa.setText("");        
         if(!sedangMenyiapkanPembukaan){
@@ -19878,16 +19874,24 @@ private void MnSudahTerbitSEPActionPerformed(java.awt.event.ActionEvent evt) {
         }
     }
     
+    private void aturNomorRegistrasiTerbaruBerdasarkanPoli(){
+        String tanggalRegistrasi=Valid.SetTgl(DTPReg.getSelectedItem()+"");
+        String kodePoli=kdpoli.getText().trim();
+        String queryNomorBooking="select ifnull(MAX(CONVERT(booking_registrasi.no_reg,signed)),0) from booking_registrasi where booking_registrasi.kd_poli='"+kodePoli+"' and booking_registrasi.tanggal_periksa='"+tanggalRegistrasi+"'";
+        String queryNomorRegistrasi="select ifnull(MAX(CONVERT(reg_periksa.no_reg,signed)),0) from reg_periksa where reg_periksa.kd_poli='"+kodePoli+"' and reg_periksa.tgl_registrasi='"+tanggalRegistrasi+"'";
+
+        if(Sequel.cariInteger(queryNomorBooking)>=Sequel.cariInteger(queryNomorRegistrasi)){
+            Valid.autoNomer3(queryNomorBooking,"",3,TNoReg);
+        }else{
+            Valid.autoNomer3(queryNomorRegistrasi,"",3,TNoReg);
+        }
+    }
+
     private void isNumber(){         
         if(BASENOREG.equals("booking")){
             switch (URUTNOREG) {
                 case "poli":
-                    if(Sequel.cariInteger("select ifnull(MAX(CONVERT(booking_registrasi.no_reg,signed)),0) from booking_registrasi where booking_registrasi.kd_poli='"+kdpoli.getText()+"' and booking_registrasi.tanggal_periksa='"+Valid.SetTgl(DTPReg.getSelectedItem()+"")+"'")>=
-                            Sequel.cariInteger("select ifnull(MAX(CONVERT(reg_periksa.no_reg,signed)),0) from reg_periksa where reg_periksa.kd_poli='"+kdpoli.getText()+"' and reg_periksa.tgl_registrasi='"+Valid.SetTgl(DTPReg.getSelectedItem()+"")+"'")){
-                        Valid.autoNomer3("select ifnull(MAX(CONVERT(booking_registrasi.no_reg,signed)),0) from booking_registrasi where booking_registrasi.kd_poli='"+kdpoli.getText()+"' and booking_registrasi.tanggal_periksa='"+Valid.SetTgl(DTPReg.getSelectedItem()+"")+"'","",3,TNoReg);
-                    }else{
-                        Valid.autoNomer3("select ifnull(MAX(CONVERT(reg_periksa.no_reg,signed)),0) from reg_periksa where reg_periksa.kd_poli='"+kdpoli.getText()+"' and reg_periksa.tgl_registrasi='"+Valid.SetTgl(DTPReg.getSelectedItem()+"")+"'","",3,TNoReg);
-                    }
+                    aturNomorRegistrasiTerbaruBerdasarkanPoli();
                     break;
                 case "dokter":
                     if(Sequel.cariInteger("select ifnull(MAX(CONVERT(booking_registrasi.no_reg,signed)),0) from booking_registrasi where booking_registrasi.kd_dokter='"+KdDokter.getText()+"' and booking_registrasi.tanggal_periksa='"+Valid.SetTgl(DTPReg.getSelectedItem()+"")+"'")>=
@@ -19917,7 +19921,7 @@ private void MnSudahTerbitSEPActionPerformed(java.awt.event.ActionEvent evt) {
         }else{
             switch (URUTNOREG) {
                 case "poli":
-                    Valid.autoNomer3("select ifnull(MAX(CONVERT(reg_periksa.no_reg,signed)),0) from reg_periksa where reg_periksa.kd_poli='"+kdpoli.getText()+"' and reg_periksa.tgl_registrasi='"+Valid.SetTgl(DTPReg.getSelectedItem()+"")+"'","",3,TNoReg);
+                    aturNomorRegistrasiTerbaruBerdasarkanPoli();
                     break;
                 case "dokter":
                     Valid.autoNomer3("select ifnull(MAX(CONVERT(reg_periksa.no_reg,signed)),0) from reg_periksa where reg_periksa.kd_dokter='"+KdDokter.getText()+"' and reg_periksa.tgl_registrasi='"+Valid.SetTgl(DTPReg.getSelectedItem()+"")+"'","",3,TNoReg);
@@ -20157,6 +20161,7 @@ private void MnSudahTerbitSEPActionPerformed(java.awt.event.ActionEvent evt) {
         if(Sequel.cariInteger("select count(reg_periksa.no_rkm_medis) from reg_periksa where reg_periksa.no_rkm_medis=? and reg_periksa.kd_poli=?",TNoRM.getText(),kdpoli.getText())>0){
             status="Lama";
         }
+        isNumber();
         
         if(Sequel.menyimpantf2("reg_periksa","?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?","No.Rawat",19,
                 new String[]{TNoReg.getText(),TNoRw.getText(),Valid.SetTgl(DTPReg.getSelectedItem()+""),CmbJam.getSelectedItem()+":"+CmbMenit.getSelectedItem()+":"+CmbDetik.getSelectedItem(),

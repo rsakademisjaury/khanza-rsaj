@@ -1,0 +1,1 @@
+Salin file setting/database.xml dari service Aplicare yang saat ini berjalan ke folder ini sebelum menjalankan service finger. File kredensial tidak disertakan demi keamanan.
