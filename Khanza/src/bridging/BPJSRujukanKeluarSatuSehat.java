@@ -57,6 +57,18 @@ import org.springframework.web.client.RestTemplate;
 
 import fungsi.ToastMessage;
 import java.awt.Color;
+import java.awt.BorderLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 
 
 /**
@@ -84,6 +96,16 @@ public final class BPJSRujukanKeluarSatuSehat extends javax.swing.JDialog {
     private JsonNode nameNode;
     private JsonNode response;
     private final SisruteService sisrute = new SisruteService();
+    private static final Color UI_PAGE = new Color(248, 250, 252);
+    private static final Color UI_LINE = new Color(226, 232, 240);
+    private static final Color UI_TEXT = new Color(30, 41, 59);
+    private static final Color UI_MUTED = new Color(100, 116, 139);
+    private static final Color UI_BLUE = new Color(37, 99, 235);
+    private final JTextField pasienUi = new JTextField();
+    private final JTextField noRawatUi = new JTextField();
+    private final JTextField noRmUi = new JTextField();
+    private final JTextField encounterUi = new JTextField();
+    private final JLabel statusRujukanUi = new JLabel("Belum dipilih");
     /** Creates new form DlgRujuk
      * @param parent
      * @param modal */
@@ -91,7 +113,7 @@ public final class BPJSRujukanKeluarSatuSehat extends javax.swing.JDialog {
         super(parent, modal);
         initComponents();
         this.setLocation(8,1);
-        setSize(628,674);
+        setSize(1240,780);
 
 
         Object[] row={
@@ -294,6 +316,535 @@ public final class BPJSRujukanKeluarSatuSehat extends javax.swing.JDialog {
         } catch (Exception e) {
             user=akses.getkode();
         }
+        setupModernUi();
+    }
+
+    // Reuse the generated fields and their listeners; only rebuild their containers.
+    private void setupModernUi() {
+        setTitle("Data Rujukan Keluar BPJS + SATUSEHAT");
+        setResizable(true);
+        setMinimumSize(new Dimension(640, 520));
+        for (JTextField field : new JTextField[]{pasienUi, noRawatUi, noRmUi, encounterUi}) {
+            field.setEditable(false);
+        }
+        for (JComponent field : new JComponent[]{pasienUi, noRawatUi, noRmUi, encounterUi,
+                NoSep, NoRujukanBPJS, NoRujukanSatuSehat, KdPpkRujukan1, NmPpkRujukan1,
+                KdPenyakit1, NmPenyakit1, KdPoli1, NmPoli1, JenisPelayanan1, TipeRujukan,
+                TanggalRujukKeluar, TanggalKunjungRujukan, Catatan1, tAlasan,
+                TCari, DTPCari1, DTPCari2, cmbStatus}) {
+            styleInputUi(field);
+        }
+        jLabel13.setText("No. RJK BPJS");
+        jLabel14.setText("No. RJK SATUSEHAT");
+        jLabel15.setText("No. SEP");
+        jLabel12.setText("PPK Tujuan");
+        jLabel32.setText("Diagnosa Rujuk");
+        LabelPoli1.setText("Poli Tujuan");
+        jLabel31.setText("Jenis Pelayanan");
+        jLabel33.setText("Tipe Rujukan");
+        jLabel30.setText("Tanggal Rujukan");
+        jLabel50.setText("Rencana Kunjungan");
+        jLabel34.setText("Catatan");
+        for (javax.swing.AbstractButton picker : new javax.swing.AbstractButton[]{
+                btnPPKRujukan1, btnDiagnosa1, btnPoli1}) {
+            styleButtonUi(picker, Color.WHITE, UI_BLUE);
+            picker.setPreferredSize(new Dimension(30, 28));
+            picker.setMinimumSize(new Dimension(30, 28));
+        }
+        btnPPKRujukan1.setToolTipText("Pilih fasilitas kesehatan tujuan");
+        btnDiagnosa1.setToolTipText("Pilih diagnosa rujukan");
+        btnPoli1.setToolTipText("Pilih poli tujuan");
+
+        JPanel identity = rowsUi(
+                formRowUi(new JLabel("Nama Pasien"), pasienUi),
+                pairedRowUi(new JLabel("No. Rawat"), noRawatUi, new JLabel("No. RM"), noRmUi),
+                formRowUi(jLabel15, NoSep),
+                formRowUi(jLabel13, copyFieldUi(NoRujukanBPJS)),
+                formRowUi(jLabel14, copyFieldUi(NoRujukanSatuSehat)),
+                formRowUi(new JLabel("Encounter"), encounterUi));
+        JPanel identityCard = cardUi("Identitas Pasien",
+                "Data kunjungan dan identitas integrasi SATUSEHAT", identity);
+        styleBadgeUi(statusRujukanUi, new Color(239, 246, 255), UI_BLUE);
+        ((JPanel) identityCard.getComponent(0)).add(statusRujukanUi, BorderLayout.EAST);
+
+        JPanel detail = rowsUi(
+                formRowUi(jLabel12, pickerUi(KdPpkRujukan1, NmPpkRujukan1, btnPPKRujukan1)),
+                formRowUi(jLabel32, pickerUi(KdPenyakit1, NmPenyakit1, btnDiagnosa1)),
+                formRowUi(LabelPoli1, pickerUi(KdPoli1, NmPoli1, btnPoli1)),
+                pairedRowUi(jLabel31, JenisPelayanan1, jLabel33, TipeRujukan),
+                pairedRowUi(jLabel30, TanggalRujukKeluar, jLabel50, TanggalKunjungRujukan));
+
+        tStatus.setEditable(false);
+        tStatus.setLineWrap(true);
+        tStatus.setWrapStyleWord(true);
+        tStatus.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tStatus.setForeground(UI_MUTED);
+        tStatus.setBackground(UI_PAGE);
+        tStatus.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        tStatus.setText("Pilih data pada tabel untuk melihat detail rujukan.");
+        JScrollPane statusScroll = new JScrollPane(tStatus);
+        styleScrollUi(statusScroll);
+        statusScroll.setPreferredSize(new Dimension(100, 52));
+        statusScroll.setBorder(BorderFactory.createLineBorder(UI_LINE));
+        tAlasan.setToolTipText("Isi alasan sebelum menghapus atau membatalkan rujukan");
+        JPanel notes = rowsUi(formRowUi(jLabel34, Catatan1),
+                formRowUi(new JLabel("Alasan Pembatalan"), tAlasan),
+                formRowUi(new JLabel("Status Proses"), statusScroll));
+
+        JPanel cards = new JPanel(new GridBagLayout());
+        cards.setBackground(UI_PAGE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(0, 0, 8, 0);
+        cards.add(identityCard, gbc);
+        gbc.gridy = 1;
+        cards.add(cardUi("Detail Rujukan", "Tujuan, diagnosa, jenis layanan, dan jadwal rujukan", detail), gbc);
+        gbc.gridy = 2;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        cards.add(cardUi("Catatan Tambahan", "Catatan klinis dan keterangan pendukung rujukan", notes), gbc);
+        JPanel formTop = new ReferralFormPanelUi();
+        formTop.setBackground(UI_PAGE);
+        formTop.add(cards, BorderLayout.NORTH);
+        JScrollPane formScroll = new JScrollPane(formTop);
+        styleScrollUi(formScroll);
+        formScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        formScroll.setMinimumSize(new Dimension(540, 180));
+        formScroll.setPreferredSize(new Dimension(590, 650));
+
+        JPanel listCard = createReferralListUi();
+        listCard.setMinimumSize(new Dimension(380, 200));
+        javax.swing.JSplitPane split = new javax.swing.JSplitPane(
+                javax.swing.JSplitPane.HORIZONTAL_SPLIT, formScroll, listCard);
+        split.setBorder(BorderFactory.createEmptyBorder());
+        split.setBackground(UI_PAGE);
+        split.setContinuousLayout(true);
+        split.setDividerSize(8);
+        split.setResizeWeight(0);
+
+        JPanel scrollBody = new ReferralFormPanelUi();
+        scrollBody.setBackground(UI_PAGE);
+        scrollBody.add(split, BorderLayout.CENTER);
+        JScrollPane contentScroll = new JScrollPane(scrollBody);
+        styleScrollUi(contentScroll);
+        contentScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        JPanel content = new JPanel(new BorderLayout());
+        content.setBackground(UI_PAGE);
+        content.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        content.add(contentScroll, BorderLayout.CENTER);
+        JPanel actions = createActionBarUi();
+        internalFrame1.removeAll();
+        internalFrame1.setBorder(BorderFactory.createLineBorder(UI_LINE));
+        internalFrame1.setLayout(new BorderLayout());
+        internalFrame1.setWarnaAtas(UI_PAGE);
+        internalFrame1.setWarnaBawah(UI_PAGE);
+        internalFrame1.add(createHeaderUi(), BorderLayout.NORTH);
+        internalFrame1.add(content, BorderLayout.CENTER);
+        internalFrame1.add(actions, BorderLayout.SOUTH);
+
+        Runnable resize = () -> {
+            boolean compact = content.getWidth() < 1120;
+            int orientation = compact ? javax.swing.JSplitPane.VERTICAL_SPLIT
+                    : javax.swing.JSplitPane.HORIZONTAL_SPLIT;
+            if (split.getOrientation() != orientation || split.getDividerLocation() < 0) {
+                split.setOrientation(orientation);
+                split.setResizeWeight(compact ? 0.55 : 0);
+                scrollBody.putClientProperty("ui.fill.viewport", !compact);
+                split.setPreferredSize(new Dimension(100,
+                        compact ? cards.getPreferredSize().height + 428 : 650));
+                contentScroll.getVerticalScrollBar().setValue(0);
+                scrollBody.revalidate();
+                javax.swing.SwingUtilities.invokeLater(() -> split.setDividerLocation(
+                        compact ? cards.getPreferredSize().height : 590));
+            }
+            java.awt.GridLayout layout = (java.awt.GridLayout) actions.getLayout();
+            int columns = internalFrame1.getWidth() < 760 ? 3 : 5;
+            if (layout.getColumns() != columns) {
+                layout.setColumns(columns);
+                actions.revalidate();
+            }
+        };
+        content.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) {
+                resize.run();
+            }
+        });
+        tbObat.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                if (tbObat.getSelectedRow() >= 0) getData();
+                updatePatientIdentityUi();
+            }
+        });
+        updatePatientIdentityUi();
+        javax.swing.SwingUtilities.invokeLater(resize);
+        internalFrame1.revalidate();
+        internalFrame1.repaint();
+    }
+
+    private JPanel createHeaderUi() {
+        JPanel header = sectionHeaderUi("Data Rujukan Keluar",
+                "Rujukan keluar terintegrasi BPJS VClaim dan SATUSEHAT");
+        JPanel accent = new JPanel();
+        accent.setBackground(UI_BLUE);
+        accent.setPreferredSize(new Dimension(4, 32));
+        header.add(accent, BorderLayout.WEST);
+        JLabel badge = new JLabel("BPJS  /  SATUSEHAT");
+        styleBadgeUi(badge, new Color(239, 246, 255), new Color(30, 64, 175));
+        header.add(badge, BorderLayout.EAST);
+        return header;
+    }
+
+    private static final class ReferralFormPanelUi extends JPanel implements javax.swing.Scrollable {
+        ReferralFormPanelUi() {
+            super(new BorderLayout());
+        }
+        @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+        @Override public int getScrollableUnitIncrement(java.awt.Rectangle visible, int orientation, int direction) {
+            return 24;
+        }
+        @Override public int getScrollableBlockIncrement(java.awt.Rectangle visible, int orientation, int direction) {
+            return Math.max(24, (orientation == SwingConstants.VERTICAL ? visible.height : visible.width) - 24);
+        }
+        @Override public boolean getScrollableTracksViewportWidth() { return true; }
+        @Override public boolean getScrollableTracksViewportHeight() {
+            return Boolean.TRUE.equals(getClientProperty("ui.fill.viewport"))
+                    || getParent() != null && getPreferredSize().height < getParent().getHeight();
+        }
+    }
+
+    private JPanel createReferralListUi() {
+        styleTableUi(tbObat);
+        styleScrollUi(Scroll);
+        Scroll.setColumnHeaderView(tbObat.getTableHeader());
+        JPanel range = new JPanel(new GridBagLayout());
+        range.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
+        range.add(DTPCari1, gbc);
+        gbc.weightx = 0;
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 6, 0, 6);
+        range.add(new JLabel("s.d."), gbc);
+        gbc.gridx = 2;
+        gbc.weightx = 1;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        range.add(DTPCari2, gbc);
+
+        JPanel search = new JPanel(new BorderLayout(6, 0));
+        search.setOpaque(false);
+        search.add(TCari, BorderLayout.CENTER);
+        JPanel searchButtons = new JPanel(new java.awt.GridLayout(1, 2, 6, 0));
+        searchButtons.setOpaque(false);
+        BtnCari.setText("Cari");
+        BtnAll.setText("Semua");
+        styleButtonUi(BtnCari, new Color(239, 246, 255), UI_BLUE);
+        styleButtonUi(BtnAll, Color.WHITE, UI_TEXT);
+        BtnCari.setPreferredSize(new Dimension(76, 28));
+        BtnAll.setPreferredSize(new Dimension(88, 28));
+        searchButtons.add(BtnCari);
+        searchButtons.add(BtnAll);
+        search.add(searchButtons, BorderLayout.EAST);
+        TCari.setToolTipText("Cari nomor SEP, nomor rawat, nomor RM, nama pasien, atau nomor rujukan");
+        JPanel filters = rowsUi(formRowUi(new JLabel("Tanggal Rujukan"), range),
+                formRowUi(new JLabel("Status Rujukan"), cmbStatus),
+                formRowUi(new JLabel("Kata Kunci"), search));
+        filters.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        JPanel body = new JPanel(new BorderLayout());
+        body.setBackground(Color.WHITE);
+        body.add(filters, BorderLayout.NORTH);
+        body.add(Scroll, BorderLayout.CENTER);
+        JLabel hint = new JLabel("Klik baris untuk detail  |  Klik kanan untuk surat rujukan");
+        hint.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        hint.setForeground(UI_MUTED);
+        hint.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        body.add(hint, BorderLayout.SOUTH);
+        JPanel card = cardUi("Daftar Rujukan", "Riwayat rujukan aktif dan batal", body);
+        JPanel count = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 5, 0));
+        count.setOpaque(false);
+        JLabel countLabel = new JLabel("Total data");
+        countLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        countLabel.setForeground(UI_MUTED);
+        LCount.setPreferredSize(null);
+        styleBadgeUi(LCount, new Color(239, 246, 255), UI_BLUE);
+        count.add(countLabel);
+        count.add(LCount);
+        ((JPanel) card.getComponent(0)).add(count, BorderLayout.EAST);
+        return card;
+    }
+
+    private JPanel createActionBarUi() {
+        JPanel actions = new JPanel(new java.awt.GridLayout(0, 5, 8, 8));
+        actions.setBackground(Color.WHITE);
+        actions.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, UI_LINE),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+        for (javax.swing.AbstractButton button : new javax.swing.AbstractButton[]{
+                btnKirim, BtnEdit, BtnPrint, BtnHapus, BtnKeluar}) {
+            styleButtonUi(button, Color.WHITE, UI_TEXT);
+            actions.add(button);
+        }
+        btnKirim.setText("Input Rujukan");
+        BtnEdit.setText("Ganti Data");
+        BtnPrint.setText("Cetak Data");
+        BtnHapus.setText("Hapus Rujukan");
+        btnKirim.putClientProperty("ui.button.background", UI_BLUE);
+        btnKirim.setBackground(UI_BLUE);
+        btnKirim.setForeground(Color.WHITE);
+        BtnHapus.putClientProperty("ui.button.background", new Color(254, 242, 242));
+        BtnHapus.setBackground(new Color(254, 242, 242));
+        BtnHapus.setForeground(new Color(185, 28, 28));
+        return actions;
+    }
+
+    private JPanel sectionHeaderUi(String title, String subtitle) {
+        JPanel header = new JPanel(new BorderLayout(10, 0));
+        header.setBackground(Color.WHITE);
+        header.setPreferredSize(new Dimension(10, 44));
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, UI_LINE),
+                BorderFactory.createEmptyBorder(7, 12, 7, 12)));
+        JPanel heading = new JPanel(new java.awt.GridLayout(2, 1, 0, 2));
+        heading.setOpaque(false);
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 13));
+        titleLabel.setForeground(UI_TEXT);
+        JLabel subtitleLabel = new JLabel(subtitle);
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        subtitleLabel.setForeground(UI_MUTED);
+        heading.add(titleLabel);
+        heading.add(subtitleLabel);
+        header.add(heading, BorderLayout.CENTER);
+        return header;
+    }
+
+    private JPanel cardUi(String title, String subtitle, JPanel body) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createLineBorder(UI_LINE));
+        card.add(sectionHeaderUi(title, subtitle), BorderLayout.NORTH);
+        card.add(body, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel rowsUi(JPanel... rows) {
+        JPanel body = new JPanel(new GridBagLayout());
+        body.setBackground(Color.WHITE);
+        body.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        for (int row = 0; row < rows.length; row++) {
+            gbc.gridy = row;
+            gbc.insets = new Insets(row == 0 ? 0 : 6, 0, 0, 0);
+            body.add(rows[row], gbc);
+        }
+        return body;
+    }
+
+    private JPanel formRowUi(JLabel label, JComponent field) {
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        row.setOpaque(false);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        label.setForeground(new Color(71, 85, 105));
+        label.setHorizontalAlignment(SwingConstants.LEFT);
+        label.setPreferredSize(new Dimension(112, 28));
+        row.add(label, BorderLayout.WEST);
+        row.add(field, BorderLayout.CENTER);
+        return row;
+    }
+
+    private JPanel pairedRowUi(JLabel leftLabel, JComponent left, JLabel rightLabel, JComponent right) {
+        JPanel row = new JPanel(new java.awt.GridLayout(1, 2, 14, 0));
+        row.setOpaque(false);
+        row.add(formRowUi(leftLabel, left));
+        row.add(formRowUi(rightLabel, right));
+        return row;
+    }
+
+    private JPanel pickerUi(JTextField code, JTextField name, javax.swing.AbstractButton picker) {
+        JPanel fields = new JPanel(new BorderLayout(6, 0));
+        fields.setOpaque(false);
+        JPanel codeCell = new JPanel(new BorderLayout());
+        codeCell.setOpaque(false);
+        codeCell.setPreferredSize(new Dimension(70, 28));
+        codeCell.add(code, BorderLayout.CENTER);
+        fields.add(codeCell, BorderLayout.WEST);
+        fields.add(name, BorderLayout.CENTER);
+        fields.add(picker, BorderLayout.EAST);
+        return fields;
+    }
+
+    private JPanel copyFieldUi(JTextField field) {
+        JPanel wrapper = new JPanel(new BorderLayout(6, 0));
+        wrapper.setOpaque(false);
+        javax.swing.JButton copy = new javax.swing.JButton("Salin");
+        styleButtonUi(copy, new Color(255, 251, 235), new Color(146, 64, 14));
+        copy.setPreferredSize(new Dimension(54, 28));
+        copy.setToolTipText("Salin " + (field == NoRujukanBPJS ? "nomor rujukan BPJS" : "nomor rujukan SATUSEHAT"));
+        copy.addActionListener(e -> {
+            if (field.getText().trim().isEmpty()) return;
+            try {
+                java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                        new java.awt.datatransfer.StringSelection(field.getText()), null);
+                setStatus("Nomor rujukan berhasil disalin.", false);
+            } catch (IllegalStateException | SecurityException ex) {
+                setStatus("Nomor rujukan belum dapat disalin. Silakan coba lagi.", true);
+            }
+        });
+        wrapper.add(field, BorderLayout.CENTER);
+        wrapper.add(copy, BorderLayout.EAST);
+        return wrapper;
+    }
+
+    private void styleInputUi(JComponent field) {
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        field.setForeground(UI_TEXT);
+        field.setBackground(field instanceof JTextField && !((JTextField) field).isEditable()
+                ? UI_PAGE : Color.WHITE);
+        field.setPreferredSize(new Dimension(120, 28));
+        field.setMinimumSize(new Dimension(40, 28));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225)),
+                BorderFactory.createEmptyBorder(0, 6, 0, 6)));
+    }
+
+    private void styleBadgeUi(JLabel label, Color background, Color foreground) {
+        label.setOpaque(true);
+        label.setBackground(background);
+        label.setForeground(foreground);
+        label.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 10));
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        label.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+    }
+
+    private void styleButtonUi(javax.swing.AbstractButton button, Color background, Color foreground) {
+        button.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 11));
+        button.setBackground(background);
+        button.setForeground(foreground);
+        button.setPreferredSize(new Dimension(130, 34));
+        button.setMinimumSize(new Dimension(110, 34));
+        button.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UI_LINE),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)));
+        button.setBorderPainted(true);
+        button.setFocusPainted(true);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.putClientProperty("ui.button.background", background);
+        // Restore the chosen palette after widget.Button's built-in mouse effects.
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) {
+                Color base = (Color) button.getClientProperty("ui.button.background");
+                button.setBackground(!button.isEnabled() ? base
+                        : Color.WHITE.equals(base) ? new Color(239, 246, 255) : base.darker());
+            }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) {
+                button.setBackground((Color) button.getClientProperty("ui.button.background"));
+            }
+        });
+    }
+
+    private void styleScrollUi(JScrollPane scroll) {
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(UI_PAGE);
+        scroll.getVerticalScrollBar().setUnitIncrement(24);
+        for (javax.swing.JScrollBar bar : new javax.swing.JScrollBar[]{
+                scroll.getVerticalScrollBar(), scroll.getHorizontalScrollBar()}) {
+            bar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+                @Override protected void configureScrollBarColors() {
+                    thumbColor = new Color(203, 213, 225);
+                    trackColor = UI_PAGE;
+                }
+                @Override protected javax.swing.JButton createDecreaseButton(int orientation) {
+                    return emptyButton();
+                }
+                @Override protected javax.swing.JButton createIncreaseButton(int orientation) {
+                    return emptyButton();
+                }
+                private javax.swing.JButton emptyButton() {
+                    javax.swing.JButton button = new javax.swing.JButton();
+                    button.setPreferredSize(new Dimension(0, 0));
+                    button.setMinimumSize(new Dimension(0, 0));
+                    button.setMaximumSize(new Dimension(0, 0));
+                    return button;
+                }
+            });
+            bar.setPreferredSize(bar.getOrientation() == SwingConstants.VERTICAL
+                    ? new Dimension(10, 0) : new Dimension(0, 10));
+        }
+    }
+
+    private void styleTableUi(JTable table) {
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        table.setRowHeight(30);
+        table.setBackground(Color.WHITE);
+        table.setForeground(UI_TEXT);
+        table.setSelectionBackground(new Color(219, 234, 254));
+        table.setSelectionForeground(new Color(30, 64, 175));
+        table.setGridColor(new Color(241, 245, 249));
+        table.setShowVerticalLines(false);
+        table.setIntercellSpacing(new Dimension(0, 1));
+        table.setFillsViewportHeight(true);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 32));
+        table.getTableHeader().setReorderingAllowed(false);
+        final javax.swing.table.TableCellRenderer baseHeader = table.getTableHeader().getDefaultRenderer();
+        table.getTableHeader().setDefaultRenderer((t, value, selected, focus, row, column) -> {
+            java.awt.Component rendered = baseHeader.getTableCellRendererComponent(t, value, selected, focus, row, column);
+            rendered.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 11));
+            rendered.setBackground(new Color(241, 245, 249));
+            rendered.setForeground(new Color(51, 65, 85));
+            if (rendered instanceof JLabel) {
+                ((JLabel) rendered).setHorizontalAlignment(SwingConstants.LEFT);
+                ((JLabel) rendered).setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+            }
+            return rendered;
+        });
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override public java.awt.Component getTableCellRendererComponent(JTable t, Object value,
+                    boolean selected, boolean focus, int row, int column) {
+                super.getTableCellRendererComponent(t, value, selected, focus, row, column);
+                setBackground(selected ? t.getSelectionBackground() : row % 2 == 0 ? Color.WHITE : UI_PAGE);
+                setForeground(selected ? t.getSelectionForeground() : UI_TEXT);
+                setBorder(BorderFactory.createCompoundBorder(focus
+                        ? BorderFactory.createLineBorder(UI_BLUE) : BorderFactory.createEmptyBorder(1, 1, 1, 1),
+                        BorderFactory.createEmptyBorder(0, 9, 0, 9)));
+                if (t.convertColumnIndexToModel(column) == 22 && !selected) {
+                    boolean active = "Aktif".equals(value);
+                    setBackground(active ? new Color(240, 253, 244) : new Color(255, 247, 237));
+                    setForeground(active ? new Color(22, 101, 52) : new Color(154, 52, 18));
+                }
+                setToolTipText(value == null ? null : value.toString());
+                return this;
+            }
+        });
+    }
+
+    private String selectedValueUi(int column) {
+        int row = tbObat.getSelectedRow();
+        Object value = row < 0 ? null : tbObat.getValueAt(row, column);
+        return value == null ? "" : value.toString();
+    }
+
+    private void updatePatientIdentityUi() {
+        NoSep.setText(selectedValueUi(0));
+        NoRujukanBPJS.setText(selectedValueUi(5));
+        NoRujukanSatuSehat.setText(selectedValueUi(16));
+        pasienUi.setText(selectedValueUi(3));
+        noRawatUi.setText(selectedValueUi(1));
+        noRmUi.setText(selectedValueUi(2));
+        encounterUi.setText(selectedValueUi(19));
+        for (JTextField field : new JTextField[]{pasienUi, noRawatUi, noRmUi, encounterUi}) {
+            field.setCaretPosition(0);
+            field.setToolTipText(field.getText());
+        }
+        String status = selectedValueUi(22);
+        statusRujukanUi.setText(status.isEmpty() ? "Belum dipilih" : status);
+        boolean active = "Aktif".equals(status);
+        styleBadgeUi(statusRujukanUi, status.isEmpty() ? UI_PAGE
+                : active ? new Color(240, 253, 244) : new Color(255, 247, 237),
+                status.isEmpty() ? UI_MUTED : active ? new Color(22, 101, 52) : new Color(154, 52, 18));
     }
 
 
@@ -1265,6 +1816,7 @@ public final class BPJSRujukanKeluarSatuSehat extends javax.swing.JDialog {
     String tSatusehat;
     String keterangan;
     String aktif ;
+
    if (status.equals("Batal")) {
         tBpjs = "bridging_rujukan_bpjs_batal";
         tSatusehat = "bridging_rujukan_satusehat_batal";
@@ -1532,16 +2084,16 @@ public final class BPJSRujukanKeluarSatuSehat extends javax.swing.JDialog {
                 jLabel34.setText("Catatan");
                 BtnHapus.setEnabled(true);
                 BtnEdit.setEnabled(true);
-                NoRujukanBPJS.setBackground(Color.GREEN);
-                NoRujukanSatuSehat.setBackground(Color.GREEN);
-                NoSep.setBackground(Color.GREEN);
+                NoRujukanBPJS.setBackground(new Color(240, 253, 244));
+                NoRujukanSatuSehat.setBackground(new Color(240, 253, 244));
+                NoSep.setBackground(new Color(240, 253, 244));
             }else{    
                 jLabel34.setText("Alasan batal");
                 BtnHapus.setEnabled(false);
                 BtnEdit.setEnabled(false);
-                NoRujukanBPJS.setBackground(Color.ORANGE);
-                NoRujukanSatuSehat.setBackground(Color.ORANGE);
-                NoSep.setBackground(Color.ORANGE);
+                NoRujukanBPJS.setBackground(new Color(255, 247, 237));
+                NoRujukanSatuSehat.setBackground(new Color(255, 247, 237));
+                NoSep.setBackground(new Color(255, 247, 237));
             }
         }
     }
@@ -1651,10 +2203,6 @@ public final class BPJSRujukanKeluarSatuSehat extends javax.swing.JDialog {
             return;
         }
 
-//        int konfirmasi = JOptionPane.showConfirmDialog(this,
-//                "Hapus rujukan No. " + noRujukan + " ?",
-//                "Konfirmasi", JOptionPane.YES_NO_OPTION);
-//        if (konfirmasi != JOptionPane.YES_OPTION) return;
         String pasien =tbObat.getValueAt(tbObat.getSelectedRow(),3).toString();
         String tgl =tbObat.getValueAt(tbObat.getSelectedRow(),4).toString();
         String pesanhapus =
@@ -1733,12 +2281,6 @@ public final class BPJSRujukanKeluarSatuSehat extends javax.swing.JDialog {
     if (conf != JOptionPane.YES_OPTION) {
         return;
     }
-        
-        
-        
-        
-        
-        
         
 
         // Ambil data tambahan dari bridging_rujukan_satusehat

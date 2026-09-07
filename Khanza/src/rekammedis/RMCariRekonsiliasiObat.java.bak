@@ -1009,48 +1009,36 @@ private void BtnHapusKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
     private void tampil() {
         try {
             Valid.tabelKosong(tabMode);
-
-            /*
-             * Jika form dipanggil dengan No. Rawat tertentu melalui SetNoRw(),
-             * pencarian diprioritaskan berdasarkan no_rawat dan tidak dibatasi
-             * rentang tanggal. Ini memastikan data rekonsiliasi yang sudah
-             * tersimpan tetap tampil saat form dibuka kembali.
-             *
-             * Jika No. Rawat kosong, perilaku pencarian lama tetap digunakan:
-             * berdasarkan rentang tanggal dan keyword.
-             */
-            boolean filterNoRawat=!NoRawat.getText().trim().equals("");
-
+            String noRawatCari=NoRawat.getText().trim();
             ps=koneksi.prepareStatement(
                 "select rekonsiliasi_obat.no_rekonsiliasi,rekonsiliasi_obat.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.jk,"+
                 "reg_periksa.umurdaftar,reg_periksa.sttsumur,rekonsiliasi_obat.tanggal_wawancara,rekonsiliasi_obat.rekonsiliasi_obat_saat,"+
                 "rekonsiliasi_obat.alergi_obat,rekonsiliasi_obat.manifestasi_alergi,rekonsiliasi_obat.dampak_alergi,rekonsiliasi_obat.nip,"+
                 "petugas.nama from rekonsiliasi_obat inner join reg_periksa on reg_periksa.no_rawat=rekonsiliasi_obat.no_rawat "+
                 "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis inner join petugas on rekonsiliasi_obat.nip=petugas.nip "+
-                (filterNoRawat ?
-                    "where rekonsiliasi_obat.no_rawat=? " :
-                    "where rekonsiliasi_obat.tanggal_wawancara between ? and ? ")+
+                (noRawatCari.equals("")?
+                    "where rekonsiliasi_obat.tanggal_wawancara between ? and ? ":
+                    "where rekonsiliasi_obat.no_rawat=? ")+
                 (TCari.getText().trim().equals("")?"":" and "+
                 "(rekonsiliasi_obat.no_rawat like ? or reg_periksa.no_rkm_medis like ? or pasien.nm_pasien like ? or "+
                 "rekonsiliasi_obat.rekonsiliasi_obat_saat like ? or rekonsiliasi_obat.nip like ? or petugas.nama like ?) ")+
                 "order by rekonsiliasi_obat.tanggal_wawancara");
             try {
                 int parameter=1;
-                if(filterNoRawat){
-                    ps.setString(parameter++,NoRawat.getText().trim());
-                }else{
+                if(noRawatCari.equals("")){
                     ps.setString(parameter++,Valid.SetTgl(Tgl1.getSelectedItem()+"")+" 00:00:00");
                     ps.setString(parameter++,Valid.SetTgl(Tgl2.getSelectedItem()+"")+" 23:59:59");
+                }else{
+                    ps.setString(parameter++,noRawatCari);
                 }
-
                 if(!TCari.getText().trim().equals("")){
-                    String cari="%"+TCari.getText().trim()+"%";
-                    ps.setString(parameter++,cari);
-                    ps.setString(parameter++,cari);
-                    ps.setString(parameter++,cari);
-                    ps.setString(parameter++,cari);
-                    ps.setString(parameter++,cari);
-                    ps.setString(parameter++,cari);
+                    String kataCari="%"+TCari.getText().trim()+"%";
+                    ps.setString(parameter++,kataCari);
+                    ps.setString(parameter++,kataCari);
+                    ps.setString(parameter++,kataCari);
+                    ps.setString(parameter++,kataCari);
+                    ps.setString(parameter++,kataCari);
+                    ps.setString(parameter++,kataCari);
                 }
                 rs=ps.executeQuery();
                 while(rs.next()){
@@ -1125,6 +1113,7 @@ private void BtnHapusKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         } catch (Exception e) {
             System.out.println("Notif 1 : "+e);
         }
+        
     }
     
     public void SetNoRw(String norw){

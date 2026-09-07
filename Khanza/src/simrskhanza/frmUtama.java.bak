@@ -684,12 +684,8 @@ import java.awt.Toolkit;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import kepegawaian.DlgAuditBundleIADP;
 import kepegawaian.DlgAuditBundleIDO;
@@ -1152,7 +1148,6 @@ import keuangan.KeuanganBayarPiutangLain;
 import keuangan.KeuanganPiutangLainLain;
 import javax.swing.JButton;
 import javax.swing.UIManager;
-import javax.imageio.ImageIO;
 import javax.swing.SwingWorker;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -1199,22 +1194,137 @@ public class frmUtama extends javax.swing.JFrame {
     private static final Properties propVerLocal = new Properties();
     public static String versionlocal;
     private static final Properties propDatabase = new Properties();
-    private static final int LEBAR_KARTU_LOGIN = 710;
-    private static final int TINGGI_KARTU_LOGIN = 550;
-    private static final int MARGIN_BAYANGAN_ATAS = 32;
-    private static final int MARGIN_BAYANGAN_KIRI = 32;
-    private static final int MARGIN_BAYANGAN_BAWAH = 40;
-    private static final int MARGIN_BAYANGAN_KANAN = 32;
+    private static final int LEBAR_KARTU_LOGIN = 380;
+    private static final int TINGGI_KARTU_LOGIN = 400;
+    private static final int UKURAN_LOGO_LOGIN = 112;
+    private static final int TUMPUKAN_LOGO_LOGIN = UKURAN_LOGO_LOGIN / 2;
+    private static final int TINGGI_AREA_LOGIN = TINGGI_KARTU_LOGIN
+            + TUMPUKAN_LOGO_LOGIN;
+    private static final int MARGIN_BAYANGAN_ATAS = 18;
+    private static final int MARGIN_BAYANGAN_KIRI = 28;
+    private static final int MARGIN_BAYANGAN_BAWAH = 30;
+    private static final int MARGIN_BAYANGAN_KANAN = 28;
+    private static final int MARGIN_LOGIN_DARI_KANAN = 194;
+
+    // ================================================================
+    // PENGATURAN CEPAT TAMPILAN LOGIN
+    // Ubah nilai di blok ini jika suatu hari ukuran/transparansi/radius
+    // kartu login ingin disesuaikan lagi. Tidak perlu menyentuh event login.
+    // ================================================================
+    // Posisi + ukuran textbox username/password dan tombol Login.
+    // Lebar sekarang 258 px = versi sebelumnya 208 px + 25 px kiri
+    // + 25 px kanan. X otomatis bergeser 25 px ke kiri agar tetap simetris.
+    private static final int X_KOMPONEN_LOGIN = 61;
+    private static final int LEBAR_KOMPONEN_LOGIN = 258;
+    private static final int TINGGI_FIELD_LOGIN = 41;
+    private static final int TINGGI_TOMBOL_LOGIN = 43;
+
+    // TRANSPARANSI LATAR FORM LOGIN:
+    // Rentang alpha Java = 0 (benar-benar transparan) s/d 255 (solid).
+    // Jika ingin LATAR FORM LOGIN LEBIH TRANSPARAN, KECILKAN dua angka ini.
+    // Jika ingin lebih pekat, BESARKAN. Contoh aman: 150 - 220.
+    private static final int ALPHA_LOGIN_ATAS = 155; 
+    private static final int ALPHA_LOGIN_BAWAH = 145;
+
+    // LENGKUNG SUDUT FORM LOGIN:
+    // Semakin besar nilai ini, sudut kartu login semakin membulat.
+    private static final int RADIUS_SUDUT_KARTU_LOGIN = 38;
+
     private static final int LEBAR_DIALOG_LOGIN = LEBAR_KARTU_LOGIN
             + MARGIN_BAYANGAN_KIRI + MARGIN_BAYANGAN_KANAN;
-    private static final int TINGGI_DIALOG_LOGIN = TINGGI_KARTU_LOGIN
+    private static final int TINGGI_DIALOG_LOGIN = TINGGI_AREA_LOGIN
             + MARGIN_BAYANGAN_ATAS + MARGIN_BAYANGAN_BAWAH;
-    private SwingWorker<ImageIcon, Void> workerPosterLogin;
+    // ================================================================
+    // PENGATURAN CEPAT WALLPAPER LOGIN
+    // Semua efek di bawah HANYA digambar ketika mode login aktif.
+    // Ketiga wallpaper tetap dimuat satu kali lalu dipakai dari cache RAM.
+    // ================================================================
+    // Jarak pergantian otomatis wallpaper. 30 * 1000 = 30 detik.
+    private static final int INTERVAL_ROTASI_WALLPAPER = 30 * 1000;
+
+    // Durasi zoom dibuat SAMA PERSIS dengan interval rotasi.
+    // Artinya wallpaper bergerak halus selama 30 detik penuh, mencapai
+    // zoom akhir tepat ketika wallpaper berikutnya akan ditampilkan.
+    private static final int DURASI_ANIMASI_WALLPAPER_LOGIN =
+            INTERVAL_ROTASI_WALLPAPER;
+
+    // Zoom login 100% -> 110%.
+    // PENTING: sisi kiri menjadi ANCHOR/TITIK TETAP. Jadi koordinat X
+    // sisi kiri gambar tidak ikut bergeser; gambar membesar ke arah kanan.
+    // Jika suatu hari zoom terasa terlalu kuat, ubah 1.10 menjadi 1.06-1.08.
+    private static final double ZOOM_AWAL_WALLPAPER_LOGIN = 1.00;
+    private static final double ZOOM_AKHIR_WALLPAPER_LOGIN = 1.10;
+
+    // ================================================================
+    // MODE ADAPTIF OTOMATIS SESUAI SPEK KOMPUTER
+    // AUTO   : sistem memilih RINGAN / SEDANG / FULL secara otomatis.
+    // RINGAN : tanpa zoom terus-menerus; hanya fade singkat saat ganti gambar.
+    // SEDANG : zoom 100% -> 105% pada ~25 FPS + fade 600 ms.
+    // FULL   : zoom 100% -> 110% pada ~60 FPS + fade 1200 ms.
+    //
+    // Jika suatu hari Tim IT ingin memaksa mode tertentu pada semua PC,
+    // cukup ganti "AUTO" menjadi "RINGAN", "SEDANG", atau "FULL".
+    // Tidak perlu menyentuh fungsi animasi di bawah.
+    // ================================================================
+    private static final String MODE_EFEK_WALLPAPER_LOGIN = "AUTO";
+
+    // Ambang AUTO dibuat konservatif untuk PC SIMRS lama di lapangan.
+    // Windows 7 ATAU RAM <= 3 GB ATAU CPU <= 2 core => RINGAN.
+    // RAM <= 6 GB ATAU CPU <= 3 core                  => SEDANG.
+    // Di atas itu                                      => FULL.
+    private static final long BATAS_RAM_RINGAN_BYTES =
+            3L * 1024L * 1024L * 1024L;
+    private static final long BATAS_RAM_SEDANG_BYTES =
+            6L * 1024L * 1024L * 1024L;
+    private static final int BATAS_CORE_RINGAN = 2;
+    private static final int BATAS_CORE_SEDANG = 3;
+
+    // Nilai efek masing-masing mode. MODE RINGAN sengaja tidak melakukan
+    // repaint sepanjang 30 detik; timer animasi hanya hidup saat fade singkat.
+    private static final int FRAME_RINGAN_MS = 60;   // ~16 FPS, hanya saat fade
+    private static final int FRAME_SEDANG_MS = 40;   // ~25 FPS
+    private static final int FRAME_FULL_MS = 16;     // ~60 FPS
+    private static final int FADE_RINGAN_MS = 240;
+    private static final int FADE_SEDANG_MS = 600;
+    private static final int FADE_FULL_MS = 1200;
+    private static final double ZOOM_SEDANG = 1.05;
+    private static final double ZOOM_FULL = ZOOM_AKHIR_WALLPAPER_LOGIN;
+
+    private static final String[] NAMA_WALLPAPER_JAR = {
+        "wallpaper1.png", "wallpaper2.png", "wallpaper3.png"
+    };
+
+    // CACHE WALLPAPER: gambar dibaca dari JAR hanya sekali saat startup.
+    // Pergantian/animasi berikutnya memakai ImageIcon yang sudah di RAM.
+    private final java.util.List<ImageIcon> daftarWallpaper =
+            new java.util.ArrayList<>();
+    private SwingWorker<java.util.List<ImageIcon>, Void> workerWallpaper;
+    private javax.swing.Timer timerRotasiWallpaper;
+    private javax.swing.Timer timerAnimasiWallpaperLogin;
+    private long waktuMulaiAnimasiWallpaperLogin;
+    private double progressAnimasiWallpaperLogin = 1.0;
+
+    // Hasil deteksi spek dibaca SEKALI saat startup, bukan setiap frame.
+    private enum ModeEfekWallpaperLogin { RINGAN, SEDANG, FULL }
+    private ModeEfekWallpaperLogin modeEfekWallpaperLogin =
+            ModeEfekWallpaperLogin.FULL;
+    private long totalRamFisikWallpaperLogin = -1L;
+    private int jumlahCoreWallpaperLogin = 1;
+    private String namaOSWallpaperLogin = "";
+
+    // State crossfade. Tidak menyimpan bitmap tambahan; hanya indeks wallpaper
+    // sebelumnya dan progress alpha karena semua ImageIcon sudah ada di cache.
+    private int indeksWallpaperSebelumnya = -1;
+    private double progressFadeWallpaperLogin = 1.0;
+    private int indeksWallpaper;
+    private ImageIcon gambarPanelJudul;
     private LoginBackdropPanel backdropLogin;
     private Component glassPaneSebelumLogin;
     private boolean glassPaneSebelumnyaTerlihat;
     private boolean sinkronisasiLoginTerjadwal;
     private boolean pemulihanFokusLoginTerjadwal;
+    private javax.swing.Timer timerPulsaFokusLogin;
+    private java.beans.PropertyChangeListener pemantauWindowAktifLogin;
     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize(); 
     
     // notif konsul    
@@ -1313,15 +1423,19 @@ public class frmUtama extends javax.swing.JFrame {
         mulaiTahap = System.nanoTime();
         laporStartup(31, "Membangun antarmuka utama...");
         initComponents();
+        siapkanGambarPanelJudul();
         pasangPemilikDialogLogin();
         pasangTemaLoginModern();
         pasangSinkronisasiLogin();
-        muatPosterLoginDariWebapps();
+        // Deteksi dilakukan sekali saat startup agar animasi wallpaper login
+        // otomatis menyesuaikan kemampuan PC user tanpa beban berulang.
+        deteksiModeEfekWallpaperLogin();
         catatDurasi("Antarmuka utama", mulaiTahap);
 
         mulaiTahap = System.nanoTime();
         laporStartup(72, "Menyiapkan menu dan ikon aplikasi...");
         initKhanza();
+        mulaiRotasiWallpaperDariJar();
         catatDurasi("Menu dan ikon aplikasi", mulaiTahap);
 
         mulaiTahap = System.nanoTime();
@@ -1498,120 +1612,389 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     /**
-     * PATCH RSAJ - Poster login dinamis dari folder webapps.
-     *
-     * Alamat mengikuti konfigurasi web Khanza yang sudah ada:
-     * http://HOSTHYBRIDWEB:PORTWEB/HYBRIDWEB/poster.png
-     *
-     * Proses unduh dijalankan di background agar DlgLogin tidak ikut lambat
-     * ketika server web tidak tersedia. Icon /picture/logohut.png dari file
-     * form tetap menjadi fallback apabila poster online gagal dimuat.
+     * Gambar pada panelJudul baru ditampilkan setelah autentikasi berhasil.
+     * Resource disimpan sekali agar login/logout tidak membaca file berulang.
      */
-    private void muatPosterLoginDariWebapps() {
-        if (workerPosterLogin != null && !workerPosterLogin.isDone()) {
+    private void siapkanGambarPanelJudul() {
+        URL sumber = getClass().getResource("/picture/nama dan logo rs.png");
+        gambarPanelJudul = sumber == null ? null : new ImageIcon(sumber);
+        aturGambarPanelJudul(false);
+    }
+
+    private void aturGambarPanelJudul(boolean tampilkan) {
+        if (panelJudul == null) {
+            return;
+        }
+        panelJudul.setBackgroundImage(tampilkan ? gambarPanelJudul : null);
+        panelJudul.repaint();
+    }
+
+    /**
+     * Memuat wallpaper1.png, wallpaper2.png, dan wallpaper3.png dari resource
+     * /picture di dalam JAR satu kali pada background. Pergantian berikutnya
+     * hanya memakai cache memori dan tidak mengakses server.
+     */
+    private void mulaiRotasiWallpaperDariJar() {
+        if (workerWallpaper != null && !workerWallpaper.isDone()) {
             return;
         }
 
-        final String alamatPoster = "http://"
-                + koneksiDB.HOSTHYBRIDWEB() + ":"
-                + koneksiDB.PORTWEB() + "/"
-                + koneksiDB.HYBRIDWEB() + "/poster.png";
+        if (timerRotasiWallpaper != null) {
+            timerRotasiWallpaper.stop();
+            timerRotasiWallpaper = null;
+        }
 
-        final int lebarPoster = poster.getWidth() > 0 ? poster.getWidth() : 310;
-        final int tinggiPoster = poster.getHeight() > 0 ? poster.getHeight() : 550;
-
-        workerPosterLogin = new SwingWorker<ImageIcon, Void>() {
+        workerWallpaper = new SwingWorker<java.util.List<ImageIcon>, Void>() {
             @Override
-            protected ImageIcon doInBackground() throws Exception {
-                String pemisah = alamatPoster.contains("?") ? "&" : "?";
-                URL url = new URL(alamatPoster + pemisah + "v=" + System.currentTimeMillis());
-                HttpURLConnection koneksiPoster = (HttpURLConnection) url.openConnection();
-
-                try {
-                    koneksiPoster.setConnectTimeout(2000);
-                    koneksiPoster.setReadTimeout(5000);
-                    koneksiPoster.setUseCaches(false);
-                    koneksiPoster.setInstanceFollowRedirects(true);
-                    koneksiPoster.setRequestProperty("Cache-Control", "no-cache, no-store");
-                    koneksiPoster.setRequestProperty("Pragma", "no-cache");
-                    koneksiPoster.setRequestProperty("Accept", "image/png,image/jpeg");
-
-                    int status = koneksiPoster.getResponseCode();
-                    if (status != HttpURLConnection.HTTP_OK) {
-                        throw new IOException("HTTP " + status);
+            protected java.util.List<ImageIcon> doInBackground() {
+                java.util.List<ImageIcon> hasil = new java.util.ArrayList<>();
+                for (String namaFile : NAMA_WALLPAPER_JAR) {
+                    if (isCancelled()) {
+                        break;
                     }
-
-                    int ukuranFile = koneksiPoster.getContentLength();
-                    if (ukuranFile > (10 * 1024 * 1024)) {
-                        throw new IOException("Ukuran poster melebihi 10 MB");
+                    ImageIcon wallpaper = muatWallpaperDariJar(namaFile);
+                    if (wallpaper != null) {
+                        hasil.add(wallpaper);
                     }
-
-                    try (InputStream input = koneksiPoster.getInputStream()) {
-                        BufferedImage gambar = ImageIO.read(input);
-                        if (gambar == null) {
-                            throw new IOException("File poster bukan gambar PNG/JPG yang valid");
-                        }
-                        return buatIconPoster(gambar, lebarPoster, tinggiPoster);
-                    }
-                } finally {
-                    koneksiPoster.disconnect();
                 }
+                return hasil;
             }
 
             @Override
             protected void done() {
                 try {
-                    ImageIcon gambarPoster = get();
-                    if (gambarPoster != null) {
-                        poster.setText("");
-                        poster.setIcon(gambarPoster);
-                        poster.revalidate();
-                        poster.repaint();
-//                        System.out.println("[POSTER-LOGIN] Poster berhasil dimuat dari " + alamatPoster);
+                    if (isCancelled()) {
+                        return;
+                    }
+                    java.util.List<ImageIcon> hasil = get();
+                    if (!hasil.isEmpty()) {
+                        daftarWallpaper.clear();
+                        daftarWallpaper.addAll(hasil);
+                        indeksWallpaper = 0;
+                        indeksWallpaperSebelumnya = -1;
+                        progressFadeWallpaperLogin = 1.0;
+                        tampilkanWallpaperAktif();
+                        pasangTimerRotasiWallpaper();
                     }
                 } catch (Exception e) {
-//                    System.out.println("[POSTER-LOGIN] Menggunakan poster bawaan, poster web gagal dimuat: " + e.getMessage());
+                    // Wallpaper bawaan/setting tetap dipakai jika resource gagal.
                 } finally {
-                    workerPosterLogin = null;
+                    workerWallpaper = null;
                 }
             }
         };
+        workerWallpaper.execute();
+    }
 
-        workerPosterLogin.execute();
+    private ImageIcon muatWallpaperDariJar(String namaFile) {
+        URL sumber = getClass().getResource("/picture/" + namaFile);
+        if (sumber == null) {
+            return null;
+        }
+
+        ImageIcon wallpaper = new ImageIcon(sumber);
+        return wallpaper.getIconWidth() > 0 && wallpaper.getIconHeight() > 0
+                ? wallpaper : null;
+    }
+
+    private void pasangTimerRotasiWallpaper() {
+        if (timerRotasiWallpaper != null) {
+            timerRotasiWallpaper.stop();
+        }
+        if (daftarWallpaper.size() < 2) {
+            timerRotasiWallpaper = null;
+            return;
+        }
+
+        timerRotasiWallpaper = new javax.swing.Timer(
+                INTERVAL_ROTASI_WALLPAPER, evt -> {
+            // Simpan indeks lama untuk crossfade. Gambar tidak disalin dan
+            // tidak dibaca ulang; kita hanya menyimpan nomor indeks cache.
+            indeksWallpaperSebelumnya = indeksWallpaper;
+            indeksWallpaper = (indeksWallpaper + 1)
+                    % daftarWallpaper.size();
+            progressFadeWallpaperLogin = 0.0;
+            tampilkanWallpaperAktif();
+        });
+        timerRotasiWallpaper.setInitialDelay(INTERVAL_ROTASI_WALLPAPER);
+        timerRotasiWallpaper.setRepeats(true);
+        timerRotasiWallpaper.start();
+    }
+
+    private void tampilkanWallpaperAktif() {
+        if (daftarWallpaper.isEmpty()) {
+            return;
+        }
+
+        // PanelWall tetap diberi wallpaper normal sebagai fallback.
+        // Saat login aktif, LoginBackdropPanel menggambar ulang gambar cache
+        // dengan zoom anchor-kiri + fade ringan tanpa membuat bitmap baru.
+        PanelWall.setBackgroundImage(daftarWallpaper.get(indeksWallpaper));
+        PanelWall.repaint();
+
+        if (modeLoginSedangAktif()) {
+            mulaiAnimasiWallpaperLogin();
+        } else if (backdropLogin != null) {
+            backdropLogin.repaint();
+        }
     }
 
     /**
-     * Menyesuaikan gambar ke bidang poster 310x550 tanpa merusak rasio.
-     * Bagian berlebih dipotong dari tengah (cover/crop) sehingga label selalu
-     * penuh dan tidak menyisakan ruang kosong.
+     * Memulai efek wallpaper HANYA saat form login sedang aktif.
+     *
+     * MODE RINGAN:
+     * - Tidak ada zoom/repaint terus-menerus selama 30 detik.
+     * - Timer hanya hidup ±240 ms ketika crossfade berlangsung.
+     *
+     * MODE SEDANG/FULL:
+     * - Zoom tetap berjalan selama interval wallpaper, tetapi FPS dan besar
+     *   zoom disesuaikan dengan kemampuan komputer.
+     *
+     * Semua mode tetap memakai wallpaper dari cache RAM.
      */
-    private ImageIcon buatIconPoster(BufferedImage sumber, int lebar, int tinggi) {
-        BufferedImage hasil = new BufferedImage(lebar, tinggi, BufferedImage.TYPE_INT_RGB);
-        Graphics2D grafis = hasil.createGraphics();
-
-        try {
-            grafis.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            grafis.setRenderingHint(RenderingHints.KEY_RENDERING,
-                    RenderingHints.VALUE_RENDER_QUALITY);
-            grafis.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-
-            double skala = Math.max(
-                    (double) lebar / sumber.getWidth(),
-                    (double) tinggi / sumber.getHeight());
-
-            int lebarBaru = (int) Math.round(sumber.getWidth() * skala);
-            int tinggiBaru = (int) Math.round(sumber.getHeight() * skala);
-            int posisiX = (lebar - lebarBaru) / 2;
-            int posisiY = (tinggi - tinggiBaru) / 2;
-
-            grafis.drawImage(sumber, posisiX, posisiY, lebarBaru, tinggiBaru, null);
-        } finally {
-            grafis.dispose();
+    private void mulaiAnimasiWallpaperLogin() {
+        if (!modeLoginSedangAktif() || daftarWallpaper.isEmpty()) {
+            return;
         }
 
-        return new ImageIcon(hasil);
+        hentikanAnimasiWallpaperLogin();
+
+        final boolean pakaiZoom = gunakanZoomWallpaperLogin();
+        final boolean adaFade = indeksWallpaperSebelumnya >= 0
+                && progressFadeWallpaperLogin < 1.0;
+        final int durasiFade = durasiFadeWallpaperLogin();
+
+        // LOW SPEC tanpa perpindahan wallpaper: tidak perlu Timer sama sekali.
+        if (!pakaiZoom && !adaFade) {
+            progressAnimasiWallpaperLogin = 1.0;
+            progressFadeWallpaperLogin = 1.0;
+            if (backdropLogin != null) {
+                backdropLogin.repaint();
+            }
+            return;
+        }
+
+        progressAnimasiWallpaperLogin = pakaiZoom ? 0.0 : 1.0;
+        waktuMulaiAnimasiWallpaperLogin = System.nanoTime();
+
+        timerAnimasiWallpaperLogin = new javax.swing.Timer(
+                frameAnimasiWallpaperLogin(), evt -> {
+            long berjalanNano = System.nanoTime()
+                    - waktuMulaiAnimasiWallpaperLogin;
+
+            double progressZoom = 1.0;
+            if (pakaiZoom) {
+                progressZoom = Math.min(1.0,
+                        berjalanNano / (DURASI_ANIMASI_WALLPAPER_LOGIN
+                        * 1_000_000.0));
+                // Smoothstep agar awal dan akhir zoom tidak menghentak.
+                progressAnimasiWallpaperLogin = progressZoom * progressZoom
+                        * (3.0 - (2.0 * progressZoom));
+            } else {
+                progressAnimasiWallpaperLogin = 1.0;
+            }
+
+            if (indeksWallpaperSebelumnya >= 0
+                    && progressFadeWallpaperLogin < 1.0) {
+                double progressFade = Math.min(1.0,
+                        berjalanNano / (durasiFade * 1_000_000.0));
+                progressFadeWallpaperLogin = progressFade * progressFade
+                        * (3.0 - (2.0 * progressFade));
+                if (progressFade >= 1.0) {
+                    progressFadeWallpaperLogin = 1.0;
+                    indeksWallpaperSebelumnya = -1;
+                }
+            } else {
+                progressFadeWallpaperLogin = 1.0;
+            }
+
+            if (backdropLogin != null) {
+                backdropLogin.repaint();
+            }
+
+            // RINGAN berhenti segera setelah fade selesai. SEDANG/FULL baru
+            // berhenti setelah zoom 30 detik selesai.
+            boolean selesai = pakaiZoom
+                    ? progressZoom >= 1.0
+                    : progressFadeWallpaperLogin >= 1.0;
+            if (selesai) {
+                progressAnimasiWallpaperLogin = 1.0;
+                progressFadeWallpaperLogin = 1.0;
+                hentikanAnimasiWallpaperLogin();
+                if (backdropLogin != null) {
+                    backdropLogin.repaint();
+                }
+            }
+        });
+        timerAnimasiWallpaperLogin.setInitialDelay(0);
+        timerAnimasiWallpaperLogin.setRepeats(true);
+        timerAnimasiWallpaperLogin.setCoalesce(true);
+        timerAnimasiWallpaperLogin.start();
+    }
+
+    // ================================================================
+    // DETEKSI SPEK PC UNTUK WALLPAPER LOGIN
+    // Dibaca SEKALI saat frmUtama dibuat. Tidak dipanggil setiap repaint.
+    // ================================================================
+    private void deteksiModeEfekWallpaperLogin() {
+        namaOSWallpaperLogin = System.getProperty("os.name", "");
+        jumlahCoreWallpaperLogin = Math.max(1,
+                Runtime.getRuntime().availableProcessors());
+        totalRamFisikWallpaperLogin = bacaTotalRamFisikKomputer();
+
+        String paksaMode = MODE_EFEK_WALLPAPER_LOGIN == null
+                ? "AUTO" : MODE_EFEK_WALLPAPER_LOGIN.trim().toUpperCase();
+
+        if ("RINGAN".equals(paksaMode)) {
+            modeEfekWallpaperLogin = ModeEfekWallpaperLogin.RINGAN;
+        } else if ("SEDANG".equals(paksaMode)) {
+            modeEfekWallpaperLogin = ModeEfekWallpaperLogin.SEDANG;
+        } else if ("FULL".equals(paksaMode)) {
+            modeEfekWallpaperLogin = ModeEfekWallpaperLogin.FULL;
+        } else {
+            boolean windows7 = namaOSWallpaperLogin.toLowerCase()
+                    .contains("windows 7");
+            boolean ramDiketahui = totalRamFisikWallpaperLogin > 0L;
+            boolean ramRendah = ramDiketahui
+                    && totalRamFisikWallpaperLogin <= BATAS_RAM_RINGAN_BYTES;
+            boolean ramSedang = ramDiketahui
+                    && totalRamFisikWallpaperLogin <= BATAS_RAM_SEDANG_BYTES;
+
+            if (windows7 || ramRendah
+                    || jumlahCoreWallpaperLogin <= BATAS_CORE_RINGAN) {
+                modeEfekWallpaperLogin = ModeEfekWallpaperLogin.RINGAN;
+            } else if (ramSedang
+                    || jumlahCoreWallpaperLogin <= BATAS_CORE_SEDANG) {
+                modeEfekWallpaperLogin = ModeEfekWallpaperLogin.SEDANG;
+            } else {
+                modeEfekWallpaperLogin = ModeEfekWallpaperLogin.FULL;
+            }
+        }
+
+        // Log satu kali untuk memudahkan Tim IT mengecek mode yang dipilih.
+        double ramGB = totalRamFisikWallpaperLogin > 0L
+                ? totalRamFisikWallpaperLogin / (1024.0 * 1024.0 * 1024.0)
+                : -1.0;
+        System.out.println("[Wallpaper Login] Mode=" + modeEfekWallpaperLogin
+                + ", OS=" + namaOSWallpaperLogin
+                + ", RAM=" + (ramGB > 0 ? String.format("%.1f GB", ramGB)
+                        : "tidak terbaca")
+                + ", Core=" + jumlahCoreWallpaperLogin);
+    }
+
+    /**
+     * Membaca RAM FISIK komputer, bukan heap Java. Jika JVM/OS tertentu tidak
+     * menyediakan informasi ini, kembalikan -1 dan AUTO tetap berjalan
+     * berdasarkan OS + jumlah core CPU.
+     */
+    private long bacaTotalRamFisikKomputer() {
+        try {
+            java.lang.management.OperatingSystemMXBean bean =
+                    java.lang.management.ManagementFactory
+                            .getOperatingSystemMXBean();
+            if (bean instanceof com.sun.management.OperatingSystemMXBean) {
+                return ((com.sun.management.OperatingSystemMXBean) bean)
+                        .getTotalPhysicalMemorySize();
+            }
+        } catch (Throwable e) {
+            // Jangan ganggu startup SIMRS hanya karena info hardware gagal.
+        }
+        return -1L;
+    }
+
+    private boolean gunakanZoomWallpaperLogin() {
+        return modeEfekWallpaperLogin != ModeEfekWallpaperLogin.RINGAN;
+    }
+
+    private int frameAnimasiWallpaperLogin() {
+        switch (modeEfekWallpaperLogin) {
+            case RINGAN:
+                return FRAME_RINGAN_MS;
+            case SEDANG:
+                return FRAME_SEDANG_MS;
+            default:
+                return FRAME_FULL_MS;
+        }
+    }
+
+    private int durasiFadeWallpaperLogin() {
+        switch (modeEfekWallpaperLogin) {
+            case RINGAN:
+                return FADE_RINGAN_MS;
+            case SEDANG:
+                return FADE_SEDANG_MS;
+            default:
+                return FADE_FULL_MS;
+        }
+    }
+
+    private double zoomAkhirWallpaperLogin() {
+        switch (modeEfekWallpaperLogin) {
+            case RINGAN:
+                return 1.00;
+            case SEDANG:
+                return ZOOM_SEDANG;
+            default:
+                return ZOOM_FULL;
+        }
+    }
+
+    private void hentikanAnimasiWallpaperLogin() {
+        if (timerAnimasiWallpaperLogin != null) {
+            timerAnimasiWallpaperLogin.stop();
+            timerAnimasiWallpaperLogin = null;
+        }
+    }
+
+    private boolean modeLoginSedangAktif() {
+        return backdropLogin != null
+                && getGlassPane() == backdropLogin
+                && backdropLogin.isVisible()
+                && DlgLogin != null
+                && DlgLogin.isVisible();
+    }
+
+    /**
+     * Memilih wallpaper secara manual dari indikator bulat di kiri bawah.
+     * Setelah dipilih, hitungan rotasi otomatis dimulai lagi dari 30 detik agar
+     * wallpaper pilihan pengguna tidak langsung terganti oleh timer lama.
+     */
+    private void pilihWallpaperManual(int indeks) {
+        if (indeks < 0 || indeks >= daftarWallpaper.size()) {
+            return;
+        }
+
+        if (indeks != indeksWallpaper) {
+            indeksWallpaperSebelumnya = indeksWallpaper;
+            indeksWallpaper = indeks;
+            progressFadeWallpaperLogin = 0.0;
+            tampilkanWallpaperAktif();
+        } else if (modeLoginSedangAktif()) {
+            // Klik wallpaper yang sedang aktif cukup mengulang zoom dari awal
+            // tanpa fade ke gambar yang sama.
+            indeksWallpaperSebelumnya = -1;
+            progressFadeWallpaperLogin = 1.0;
+            mulaiAnimasiWallpaperLogin();
+        }
+
+        if (timerRotasiWallpaper != null) {
+            timerRotasiWallpaper.restart();
+        }
+    }
+
+    private void hentikanRotasiWallpaper() {
+        hentikanAnimasiWallpaperLogin();
+        if (timerRotasiWallpaper != null) {
+            timerRotasiWallpaper.stop();
+            timerRotasiWallpaper = null;
+        }
+        if (workerWallpaper != null && !workerWallpaper.isDone()) {
+            workerWallpaper.cancel(true);
+            workerWallpaper = null;
+        }
+        daftarWallpaper.clear();
+        indeksWallpaperSebelumnya = -1;
+        progressFadeWallpaperLogin = 1.0;
     }
 
     private void laporStartup(int percent, String message) {
@@ -1659,11 +2042,12 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     /**
-     * Memasang tampilan modern pada dialog login tanpa mengganti komponen,
-     * posisi, maupun event yang dibuat oleh NetBeans Form Editor.
+     * Memasang tampilan modern pada dialog login dengan tetap menggunakan
+     * komponen dan seluruh event yang dibuat oleh NetBeans Form Editor.
      */
     private void pasangTemaLoginModern() {
         jPanel1.setOpaque(false);
+        aturKomponenLoginModern();
 
         LoginBackgroundPanel latarLogin = new LoginBackgroundPanel();
         latarLogin.setLayout(new java.awt.BorderLayout());
@@ -1676,6 +2060,9 @@ public class frmUtama extends javax.swing.JFrame {
                 MARGIN_BAYANGAN_BAWAH, MARGIN_BAYANGAN_KANAN));
         wadahLogin.add(latarLogin, java.awt.BorderLayout.CENTER);
         DlgLogin.setContentPane(wadahLogin);
+        DlgLogin.setMinimumSize(new Dimension(
+                LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN));
+        DlgLogin.setSize(LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN);
 
         try {
             DlgLogin.setBackground(new Color(0, 0, 0, 0));
@@ -1706,7 +2093,7 @@ public class frmUtama extends javax.swing.JFrame {
             @Override
             public void componentShown(java.awt.event.ComponentEvent evt) {
                 perbaruiSudutLogin();
-                posisikanLoginDiTengahMonitor();
+                posisikanLoginDiSisiKanan();
             }
 
             @Override
@@ -1717,11 +2104,118 @@ public class frmUtama extends javax.swing.JFrame {
         perbaruiSudutLogin();
     }
 
+    /**
+     * Menata ulang komponen bawaan Form Editor menjadi kartu login ringkas.
+     * Seluruh field dan event lama tetap dipakai; hanya tampilan dan posisinya
+     * yang disesuaikan dengan mockup.
+     */
+    private void aturKomponenLoginModern() {
+        Dimension ukuranArea = new Dimension(
+                LEBAR_KARTU_LOGIN, TINGGI_AREA_LOGIN);
+        jPanel1.setMinimumSize(ukuranArea);
+        jPanel1.setPreferredSize(ukuranArea);
+        jPanel1.setSize(ukuranArea);
+
+        javax.swing.Icon logoAsli = jLabelPassword.getIcon();
+        if (logoAsli instanceof ImageIcon) {
+            jLabelPassword.setIcon(new FloatingLogoIcon(
+                    (ImageIcon) logoAsli));
+        }
+        jLabelPassword.setBounds(
+                (LEBAR_KARTU_LOGIN - UKURAN_LOGO_LOGIN) / 2,
+                0, UKURAN_LOGO_LOGIN, UKURAN_LOGO_LOGIN);
+        jLabelPassword.setMinimumSize(new Dimension(
+                UKURAN_LOGO_LOGIN, UKURAN_LOGO_LOGIN));
+        jLabelPassword.setPreferredSize(new Dimension(
+                UKURAN_LOGO_LOGIN, UKURAN_LOGO_LOGIN));
+        jLabelPassword.setMaximumSize(new Dimension(
+                UKURAN_LOGO_LOGIN, UKURAN_LOGO_LOGIN));
+
+        jLabel4.setText("RS. Akademis Jaury Jusuf Putera");
+        jLabel4.setFont(new java.awt.Font(
+                "Segoe UI Semibold", java.awt.Font.PLAIN, 20));
+        jLabel4.setBounds(20, 117, 340, 30);
+
+        // Subtitle tidak lagi dipakai agar kartu login lebih bersih dan ringkas.
+        jLabel5.setText("");
+        jLabel5.setVisible(false);
+
+        // Ukuran komponen login memakai konstanta PENGATURAN CEPAT di atas.
+        // Dengan cara ini, perubahan ukuran berikutnya cukup dilakukan di
+        // X_KOMPONEN_LOGIN / LEBAR_KOMPONEN_LOGIN tanpa mengubah event login.
+        pasangTemaFieldLogin(edAdmin, 48, 16);
+        edAdmin.setBounds(X_KOMPONEN_LOGIN, 184,
+                LEBAR_KOMPONEN_LOGIN, TINGGI_FIELD_LOGIN);
+        pasangTemaFieldLogin(edPwd, 48, 48);
+        edPwd.setBounds(X_KOMPONEN_LOGIN, 240,
+                LEBAR_KOMPONEN_LOGIN, TINGGI_FIELD_LOGIN);
+
+        // Pastikan ikon user, kunci, dan mata tetap tampil di atas field.
+        // Posisi ikon mengikuti X/lebar field sehingga tetap rapi bila ukuran
+        // textbox diubah lagi melalui konstanta PENGATURAN CEPAT.
+        jLabelUser.setVisible(true);
+        jLabelPassword1.setVisible(true);
+        cekBox1.setVisible(true);
+        jLabelUser.setBounds(X_KOMPONEN_LOGIN + 14, 197, 16, 16);
+        jLabelPassword1.setBounds(X_KOMPONEN_LOGIN + 14, 253, 16, 16);
+
+        cekBox1.setOpaque(false);
+        cekBox1.setContentAreaFilled(false);
+        cekBox1.setBorderPainted(false);
+        cekBox1.setFocusPainted(false);
+        cekBox1.setBounds(
+                X_KOMPONEN_LOGIN + LEBAR_KOMPONEN_LOGIN - 44,
+                240, 34, TINGGI_FIELD_LOGIN);
+
+        // Field ditambahkan lebih dulu oleh Form Editor sehingga sebelumnya
+        // dapat menutup ikon. Pindahkan ketiga ikon ke lapisan terdepan.
+        jPanel1.setComponentZOrder(jLabelUser, 0);
+        jPanel1.setComponentZOrder(jLabelPassword1, 0);
+        jPanel1.setComponentZOrder(cekBox1, 0);
+
+        // Tombol Login selalu mengikuti X dan lebar textbox di atas.
+        BtnLogin.setBounds(X_KOMPONEN_LOGIN, 298,
+                LEBAR_KOMPONEN_LOGIN, TINGGI_TOMBOL_LOGIN);
+
+        jLabel2.setText("Belum punya akses? Hubungi Tim IT");
+        jLabel2.setFont(new java.awt.Font(
+                "Segoe UI", java.awt.Font.PLAIN, 12));
+        jLabel2.setBounds(20, 358, 340, 20);
+
+        jLabel3.setVisible(false);
+        jLabelUser1.setVisible(false);
+        jLabelUser2.setVisible(false);
+        jLabel10.setVisible(false);
+
+        jLabel6.setText("");
+        jLabel6.setOpaque(false);
+        jLabel6.setBorder(javax.swing.BorderFactory.createMatteBorder(
+                1, 0, 0, 0, new Color(255, 255, 255, 42)));
+        jLabel6.setBounds(24, 388, 332, 1);
+
+        BtnCancel.setText("Keluar");
+        BtnCancel.setBounds(140, 399, 100, 30);
+    }
+
+    private void pasangTemaFieldLogin(javax.swing.JPasswordField field,
+            int insetKiri, int insetKanan) {
+        field.setUI(new ModernPasswordFieldUI());
+        field.setOpaque(false);
+        field.setFont(new java.awt.Font(
+                "Segoe UI", java.awt.Font.PLAIN, 14));
+        field.setForeground(new Color(38, 50, 61));
+        field.setCaretColor(new Color(8, 105, 171));
+        field.setSelectionColor(new Color(178, 224, 246));
+        field.setSelectedTextColor(new Color(25, 44, 58));
+        field.setBorder(javax.swing.BorderFactory.createEmptyBorder(
+                0, insetKiri, 0, insetKanan));
+    }
+
     private void pasangTombolLoginModern() {
         BtnLogin.setUI(new ModernLoginButtonUI());
-        BtnLogin.setText("Login");
-        BtnLogin.setIcon(new LoginArrowIcon());
-        BtnLogin.setSelectedIcon(new LoginArrowIcon());
+        BtnLogin.setText("Masuk");
+        BtnLogin.setIcon(null);
+        BtnLogin.setSelectedIcon(null);
         BtnLogin.setPressedIcon(null);
         BtnLogin.setRolloverIcon(null);
         BtnLogin.setDisabledIcon(null);
@@ -1729,9 +2223,9 @@ public class frmUtama extends javax.swing.JFrame {
         BtnLogin.setFont(new java.awt.Font(
                 "Segoe UI Semibold", java.awt.Font.PLAIN, 15));
         BtnLogin.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        BtnLogin.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        BtnLogin.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         BtnLogin.setVerticalTextPosition(javax.swing.SwingConstants.CENTER);
-        BtnLogin.setIconTextGap(9);
+        BtnLogin.setIconTextGap(0);
         BtnLogin.setMargin(new java.awt.Insets(0, 0, 0, 0));
         BtnLogin.setBorder(javax.swing.BorderFactory.createEmptyBorder());
         BtnLogin.setBorderPainted(false);
@@ -1756,9 +2250,9 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     /**
-     * Menjaga dialog login tetap berada di tengah monitor yang sedang dipakai
-     * frmUtama. Sinkronisasi dijalankan setelah event resize selesai agar posisi
-     * tidak dihitung ketika proses maximize masih berlangsung.
+     * Menjaga dialog login tetap berada di sisi kanan monitor yang sedang
+     * dipakai frmUtama. Sinkronisasi dijalankan setelah event resize selesai
+     * agar posisi tidak dihitung ketika proses maximize masih berlangsung.
      */
     private void pasangSinkronisasiLogin() {
         addComponentListener(new java.awt.event.ComponentAdapter() {
@@ -1784,9 +2278,30 @@ public class frmUtama extends javax.swing.JFrame {
             public void windowGainedFocus(java.awt.event.WindowEvent evt) {
                 jadwalkanPemulihanFokusLogin();
             }
+
+            @Override
+            public void windowDeiconified(java.awt.event.WindowEvent evt) {
+                jadwalkanPemulihanFokusLogin();
+            }
         };
         addWindowListener(pemulihLogin);
         addWindowFocusListener(pemulihLogin);
+
+        // WindowActivated pada JFrame tidak selalu dikirim ulang oleh Windows ketika
+        // aplikasi kembali lewat Alt+Tab. Pantau activeWindow JVM sebagai jalur
+        // kedua, tetapi hanya bereaksi jika yang aktif adalah frmUtama/DlgLogin.
+        if (pemantauWindowAktifLogin == null) {
+            pemantauWindowAktifLogin = evt -> {
+                Object windowAktif = evt.getNewValue();
+                if (DlgLogin.isVisible()
+                        && (windowAktif == this || windowAktif == DlgLogin)) {
+                    jadwalkanPemulihanFokusLogin();
+                }
+            };
+            java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                    .addPropertyChangeListener("activeWindow",
+                            pemantauWindowAktifLogin);
+        }
     }
 
     /**
@@ -1807,18 +2322,67 @@ public class frmUtama extends javax.swing.JFrame {
             }
 
             Component fokusTerakhir = DlgLogin.getMostRecentFocusOwner();
-            posisikanLoginDiTengahMonitor();
-            DlgLogin.toFront();
-            DlgLogin.requestFocus();
+            angkatDialogLogin(fokusTerakhir);
+        });
+    }
 
-            if (fokusTerakhir != null
-                    && javax.swing.SwingUtilities.isDescendingFrom(
-                            fokusTerakhir, DlgLogin)) {
-                fokusTerakhir.requestFocusInWindow();
-            } else {
-                edAdmin.requestFocusInWindow();
+    /**
+     * Memaksa native Z-order Windows mengembalikan DlgLogin ke atas frmUtama.
+     * AlwaysOnTop hanya dipakai sesaat, lalu dikembalikan false supaya dialog
+     * login tidak ikut berada di atas browser/WhatsApp saat user pindah aplikasi.
+     */
+    private void angkatDialogLogin(Component fokusTerakhir) {
+        if (!DlgLogin.isVisible() || !isShowing()) {
+            return;
+        }
+
+        posisikanLoginDiSisiKanan();
+
+        if (timerPulsaFokusLogin != null) {
+            timerPulsaFokusLogin.stop();
+            timerPulsaFokusLogin = null;
+        }
+
+        try {
+            DlgLogin.setAlwaysOnTop(true);
+        } catch (SecurityException | UnsupportedOperationException ex) {
+            // Tetap lanjut dengan toFront jika topmost tidak didukung OS/JVM.
+        }
+
+        DlgLogin.toFront();
+        DlgLogin.requestFocus();
+        pulihkanFokusKomponenLogin(fokusTerakhir);
+
+        // Beri waktu native Window Manager menyelesaikan perubahan Z-order.
+        timerPulsaFokusLogin = new javax.swing.Timer(180, evt -> {
+            javax.swing.Timer timer = (javax.swing.Timer) evt.getSource();
+            timer.stop();
+            timerPulsaFokusLogin = null;
+
+            try {
+                DlgLogin.setAlwaysOnTop(false);
+            } catch (SecurityException | UnsupportedOperationException ex) {
+                // Tidak fatal; dialog tetap dimiliki frmUtama dan masih bisa toFront.
+            }
+
+            if (DlgLogin.isVisible() && isShowing()) {
+                posisikanLoginDiSisiKanan();
+                DlgLogin.toFront();
+                pulihkanFokusKomponenLogin(fokusTerakhir);
             }
         });
+        timerPulsaFokusLogin.setRepeats(false);
+        timerPulsaFokusLogin.start();
+    }
+
+    private void pulihkanFokusKomponenLogin(Component fokusTerakhir) {
+        if (fokusTerakhir != null
+                && javax.swing.SwingUtilities.isDescendingFrom(
+                        fokusTerakhir, DlgLogin)) {
+            fokusTerakhir.requestFocusInWindow();
+        } else {
+            edAdmin.requestFocusInWindow();
+        }
     }
 
     private void jadwalkanSinkronisasiLogin() {
@@ -1830,7 +2394,7 @@ public class frmUtama extends javax.swing.JFrame {
         java.awt.EventQueue.invokeLater(() -> {
             sinkronisasiLoginTerjadwal = false;
             if (DlgLogin.isVisible()) {
-                posisikanLoginDiTengahMonitor();
+                posisikanLoginDiSisiKanan();
                 perbaruiBackdropLogin();
                 DlgLogin.toFront();
             }
@@ -1838,19 +2402,20 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     /**
-     * Menghitung titik tengah berdasarkan usable bounds monitor aktif, bukan
-     * berdasarkan default screen. Ini membuat posisi konsisten pada satu maupun
-     * beberapa monitor dan tidak bergantung pada gerakan mouse.
+     * Menempatkan dialog di sisi kanan usable bounds monitor yang dipakai
+     * frmUtama, dengan posisi vertikal tetap di tengah. Perhitungan ini aman
+     * untuk taskbar serta konfigurasi satu atau beberapa monitor.
      */
-    private void posisikanLoginDiTengahMonitor() {
+    private void posisikanLoginDiSisiKanan() {
         if (!isShowing()) {
             return;
         }
 
         java.awt.GraphicsConfiguration konfigurasi = getGraphicsConfiguration();
         if (konfigurasi == null) {
-            DlgLogin.setLocationRelativeTo(this);
-            return;
+            konfigurasi = java.awt.GraphicsEnvironment
+                    .getLocalGraphicsEnvironment().getDefaultScreenDevice()
+                    .getDefaultConfiguration();
         }
 
         java.awt.Rectangle batasMonitor = konfigurasi.getBounds();
@@ -1862,7 +2427,8 @@ public class frmUtama extends javax.swing.JFrame {
         int areaLebar = batasMonitor.width - areaSistem.left - areaSistem.right;
         int areaTinggi = batasMonitor.height - areaSistem.top - areaSistem.bottom;
 
-        int posisiX = areaX + Math.max(0, (areaLebar - DlgLogin.getWidth()) / 2);
+        int posisiX = areaX + Math.max(0, areaLebar
+                - DlgLogin.getWidth() - MARGIN_LOGIN_DARI_KANAN);
         int posisiY = areaY + Math.max(0, (areaTinggi - DlgLogin.getHeight()) / 2);
         DlgLogin.setLocation(posisiX, posisiY);
     }
@@ -1873,24 +2439,28 @@ public class frmUtama extends javax.swing.JFrame {
             return;
         }
 
+        aturGambarPanelJudul(false);
+        BtnLogin.setSelected(false);
         DlgLogin.setSize(LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN);
-        posisikanLoginDiTengahMonitor();
+        posisikanLoginDiSisiKanan();
         aktifkanBackdropLogin();
 
         if (!DlgLogin.isVisible()) {
             DlgLogin.setVisible(true);
         }
 
+        // Jalankan animasi sesudah dialog benar-benar visible. Ini penting
+        // karena pengecekan mode login sengaja mensyaratkan DlgLogin aktif.
+        if (!daftarWallpaper.isEmpty()) {
+            mulaiAnimasiWallpaperLogin();
+        }
+
         // Ulangi setelah native peer dialog terbentuk untuk menghindari posisi
         // sementara ketika JFrame baru selesai maximize.
-        posisikanLoginDiTengahMonitor();
-        DlgLogin.toFront();
-        DlgLogin.requestFocus();
-        edAdmin.requestFocusInWindow();
+        angkatDialogLogin(edAdmin);
         java.awt.EventQueue.invokeLater(() -> {
             if (DlgLogin.isVisible()) {
-                posisikanLoginDiTengahMonitor();
-                DlgLogin.toFront();
+                angkatDialogLogin(DlgLogin.getMostRecentFocusOwner());
             }
         });
     }
@@ -1910,8 +2480,6 @@ public class frmUtama extends javax.swing.JFrame {
             setGlassPane(backdropLogin);
         }
 
-        backdropLogin.setVisible(false);
-        backdropLogin.perbaruiGambar();
         backdropLogin.setVisible(true);
         backdropLogin.repaint();
     }
@@ -1922,17 +2490,19 @@ public class frmUtama extends javax.swing.JFrame {
             return;
         }
 
-        boolean sedangTerlihat = backdropLogin.isVisible();
-        backdropLogin.setVisible(false);
-        backdropLogin.perbaruiGambar();
-        backdropLogin.setVisible(sedangTerlihat);
         backdropLogin.repaint();
     }
 
     private void sembunyikanBackdropLogin() {
+        // PENTING: animasi hanya boleh hidup saat login. Begitu login selesai
+        // atau dialog disembunyikan, timer animasi langsung dihentikan.
+        hentikanAnimasiWallpaperLogin();
+        progressAnimasiWallpaperLogin = 1.0;
+        progressFadeWallpaperLogin = 1.0;
+        indeksWallpaperSebelumnya = -1;
+
         if (backdropLogin != null) {
             backdropLogin.setVisible(false);
-            backdropLogin.bersihkanGambar();
         }
 
         if (getGlassPane() == backdropLogin && glassPaneSebelumLogin != null) {
@@ -1946,12 +2516,16 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     /**
-     * Backdrop login mengambil satu snapshot jendela utama, mengecilkannya,
-     * memberi Gaussian blur, lalu menambahkan lapisan biru gelap transparan.
-     * Snapshot membuat efek tetap ringan karena tidak dihitung di setiap repaint.
+     * Glass pane ini hanya menahan klik pada form utama selama login. Komponen
+     * sengaja sepenuhnya transparan agar wallpaper tetap tajam tanpa blur atau
+     * lapisan gelap.
      */
     private final class LoginBackdropPanel extends javax.swing.JComponent {
-        private BufferedImage gambarKabur;
+        private static final int TITIK_DIAMETER = 11;
+        private static final int TITIK_JARAK = 10;
+        private static final int TITIK_X_AWAL = 28;
+        private static final int TITIK_MARGIN_BAWAH = 58;
+        private static final int AREA_KLIK_TITIK = 24;
 
         private LoginBackdropPanel() {
             setOpaque(false);
@@ -1962,8 +2536,11 @@ public class frmUtama extends javax.swing.JFrame {
                 @Override
                 public void mousePressed(java.awt.event.MouseEvent evt) {
                     evt.consume();
+                    if (tanganiKlikNavigasiWallpaper(evt.getPoint())) {
+                        return;
+                    }
                     if (DlgLogin.isVisible()) {
-                        DlgLogin.toFront();
+                        jadwalkanPemulihanFokusLogin();
                     }
                 }
 
@@ -1980,6 +2557,7 @@ public class frmUtama extends javax.swing.JFrame {
                 @Override
                 public void mouseMoved(java.awt.event.MouseEvent evt) {
                     evt.consume();
+                    setCursor(cursorUntukPosisi(evt.getPoint()));
                 }
 
                 @Override
@@ -1992,75 +2570,241 @@ public class frmUtama extends javax.swing.JFrame {
             addMouseWheelListener(evt -> evt.consume());
         }
 
-        private void perbaruiGambar() {
-            int lebar = getRootPane().getWidth();
-            int tinggi = getRootPane().getHeight();
-            if (lebar <= 0 || tinggi <= 0) {
-                gambarKabur = null;
+        @Override
+        protected void paintComponent(java.awt.Graphics graphics) {
+            super.paintComponent(graphics);
+            int jumlah = Math.min(NAMA_WALLPAPER_JAR.length,
+                    daftarWallpaper.size());
+            if (jumlah <= 0) {
                 return;
             }
 
-            BufferedImage tangkapan = new BufferedImage(
-                    lebar, tinggi, BufferedImage.TYPE_INT_RGB);
-            Graphics2D grafis = tangkapan.createGraphics();
-            try {
-                grafis.setRenderingHint(RenderingHints.KEY_RENDERING,
-                        RenderingHints.VALUE_RENDER_QUALITY);
-                getRootPane().paintAll(grafis);
-            } finally {
-                grafis.dispose();
+            // ============================================================
+            // BATAS AREA WALLPAPER LOGIN
+            // Wallpaper HANYA boleh digambar di viewport/area tengah SIMRS.
+            // Dengan demikian MenuBar, internalFrame1 (header), dan
+            // internalFrame4 (footer/status) tetap terlihat normal.
+            // ============================================================
+            java.awt.Rectangle areaWallpaper = areaWallpaperLogin();
+            if (areaWallpaper.width <= 0 || areaWallpaper.height <= 0) {
+                return;
             }
 
-            int lebarKecil = Math.max(1, lebar / 4);
-            int tinggiKecil = Math.max(1, tinggi / 4);
-            BufferedImage gambarKecil = new BufferedImage(
-                    lebarKecil, tinggiKecil, BufferedImage.TYPE_INT_RGB);
-            Graphics2D grafisKecil = gambarKecil.createGraphics();
+            java.awt.Graphics2D g2 =
+                    (java.awt.Graphics2D) graphics.create();
             try {
-                grafisKecil.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                grafisKecil.setRenderingHint(RenderingHints.KEY_RENDERING,
-                        RenderingHints.VALUE_RENDER_QUALITY);
-                grafisKecil.drawImage(tangkapan, 0, 0,
-                        lebarKecil, tinggiKecil, null);
-            } finally {
-                grafisKecil.dispose();
-            }
+                // Clip mutlak mencegah wallpaper/fade keluar ke MenuBar,
+                // internalFrame1 maupun internalFrame4.
+                g2.clip(areaWallpaper);
 
-            float[] gaussian = {
-                1f / 256f, 4f / 256f, 6f / 256f, 4f / 256f, 1f / 256f,
-                4f / 256f, 16f / 256f, 24f / 256f, 16f / 256f, 4f / 256f,
-                6f / 256f, 24f / 256f, 36f / 256f, 24f / 256f, 6f / 256f,
-                4f / 256f, 16f / 256f, 24f / 256f, 16f / 256f, 4f / 256f,
-                1f / 256f, 4f / 256f, 6f / 256f, 4f / 256f, 1f / 256f
-            };
-            java.awt.image.ConvolveOp blur = new java.awt.image.ConvolveOp(
-                    new java.awt.image.Kernel(5, 5, gaussian),
-                    java.awt.image.ConvolveOp.EDGE_NO_OP, null);
-            gambarKabur = blur.filter(gambarKecil, null);
-        }
+                // Wallpaper animasi digambar langsung dari ImageIcon cache.
+                // Tidak ada ImageIO/read disk dan tidak membuat bitmap baru
+                // pada setiap frame. Crossfade juga hanya memakai alpha.
+                gambarWallpaperLogin(g2, areaWallpaper);
 
-        private void bersihkanGambar() {
-            gambarKabur = null;
-        }
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
 
-        @Override
-        protected void paintComponent(java.awt.Graphics graphics) {
-            Graphics2D g2 = (Graphics2D) graphics.create();
-            try {
-                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                g2.setRenderingHint(RenderingHints.KEY_RENDERING,
-                        RenderingHints.VALUE_RENDER_QUALITY);
-                if (gambarKabur != null) {
-                    g2.drawImage(gambarKabur, 0, 0,
-                            getWidth(), getHeight(), null);
+                int y = pusatYTitik(areaWallpaper);
+                for (int indeks = 0; indeks < jumlah; indeks++) {
+                    int x = pusatXTitik(indeks, areaWallpaper);
+                    boolean aktif = indeks == indeksWallpaper;
+                    int diameter = aktif ? TITIK_DIAMETER + 3 : TITIK_DIAMETER;
+                    int radius = diameter / 2;
+
+                    // Bayangan/outline tipis menjaga titik tetap terlihat pada
+                    // wallpaper terang maupun gelap.
+                    g2.setColor(new Color(0, 38, 72, 70));
+                    g2.fillOval(x - radius - 1, y - radius - 1,
+                            diameter + 2, diameter + 2);
+                    g2.setColor(aktif
+                            ? new Color(255, 255, 255, 245)
+                            : new Color(255, 255, 255, 150));
+                    g2.fillOval(x - radius, y - radius, diameter, diameter);
                 }
-                g2.setColor(new Color(3, 25, 45, 90));
-                g2.fillRect(0, 0, getWidth(), getHeight());
             } finally {
                 g2.dispose();
             }
+        }
+
+        /**
+         * Menggambar wallpaper aktif dari cache dengan mode cover.
+         *
+         * MODEL ZOOM ADAPTIF V6:
+         * - Sisi kiri gambar adalah anchor/titik tetap (X tidak berubah).
+         * - RINGAN tanpa zoom; SEDANG 100%->105%; FULL 100%->110%.
+         * - Vertikal tetap dicenter agar komposisi tidak meloncat.
+         * - AffineTransform memakai koordinat double/sub-pixel sehingga
+         *   gerakan jauh lebih halus dibanding mengubah width/height integer.
+         * - Tidak membuat BufferedImage/file baru pada setiap frame.
+         */
+        private void gambarWallpaperLogin(java.awt.Graphics2D g2,
+                java.awt.Rectangle areaWallpaper) {
+            if (daftarWallpaper.isEmpty()
+                    || indeksWallpaper < 0
+                    || indeksWallpaper >= daftarWallpaper.size()
+                    || areaWallpaper.width <= 0 || areaWallpaper.height <= 0) {
+                return;
+            }
+
+            // Saat fade, wallpaper lama digambar lebih dulu pada zoom akhirnya
+            // (110%), lalu wallpaper baru ditumpuk dengan alpha yang naik.
+            // Setelah fade selesai indeks lama dibuang sehingga frame berikutnya
+            // kembali hanya menggambar SATU wallpaper.
+            if (indeksWallpaperSebelumnya >= 0
+                    && indeksWallpaperSebelumnya < daftarWallpaper.size()
+                    && progressFadeWallpaperLogin < 1.0) {
+                float alphaLama = (float) Math.max(0.0,
+                        1.0 - progressFadeWallpaperLogin);
+                if (alphaLama > 0.001f) {
+                    gambarSatuWallpaper(g2, areaWallpaper,
+                            indeksWallpaperSebelumnya, 1.0, alphaLama);
+                }
+
+                float alphaBaru = (float) Math.max(0.0,
+                        Math.min(1.0, progressFadeWallpaperLogin));
+                if (alphaBaru > 0.001f) {
+                    gambarSatuWallpaper(g2, areaWallpaper,
+                            indeksWallpaper, progressAnimasiWallpaperLogin,
+                            alphaBaru);
+                }
+            } else {
+                gambarSatuWallpaper(g2, areaWallpaper, indeksWallpaper,
+                        progressAnimasiWallpaperLogin, 1.0f);
+            }
+        }
+
+        /**
+         * Menggambar satu wallpaper dari CACHE RAM.
+         *
+         * Anchor kiri mengikuti X area viewport, bukan X seluruh glass pane.
+         * Karena X tidak berubah selama zoom, sisi kiri gambar tetap diam dan
+         * pertambahan ukuran berkembang ke arah kanan.
+         */
+        private void gambarSatuWallpaper(java.awt.Graphics2D g2,
+                java.awt.Rectangle areaWallpaper, int indeks,
+                double progressZoom, float alpha) {
+            if (indeks < 0 || indeks >= daftarWallpaper.size()) {
+                return;
+            }
+
+            ImageIcon icon = daftarWallpaper.get(indeks);
+            java.awt.Image gambar = icon.getImage();
+            int lebarAsli = icon.getIconWidth();
+            int tinggiAsli = icon.getIconHeight();
+            if (gambar == null || lebarAsli <= 0 || tinggiAsli <= 0) {
+                return;
+            }
+
+            double progress = Math.max(0.0, Math.min(1.0, progressZoom));
+            double zoomAkhir = zoomAkhirWallpaperLogin();
+            double zoom = ZOOM_AWAL_WALLPAPER_LOGIN
+                    + ((zoomAkhir - ZOOM_AWAL_WALLPAPER_LOGIN) * progress);
+
+            // Cover dihitung KHUSUS berdasarkan viewport tengah. Jadi gambar
+            // tidak pernah dihitung terhadap tinggi MenuBar/header/footer.
+            double skalaCover = Math.max(
+                    (double) areaWallpaper.width / lebarAsli,
+                    (double) areaWallpaper.height / tinggiAsli);
+            double skalaAkhir = skalaCover * zoom;
+
+            // ANCHOR KIRI: X selalu areaWallpaper.x. Tidak ada translate X
+            // tambahan ketika zoom; sisi kiri tetap dan gambar tumbuh ke kanan.
+            double x = areaWallpaper.x;
+            double tinggiGambar = tinggiAsli * skalaAkhir;
+            double y = areaWallpaper.y
+                    + ((areaWallpaper.height - tinggiGambar) / 2.0);
+
+            java.awt.geom.AffineTransform transform =
+                    new java.awt.geom.AffineTransform();
+            transform.translate(x, y);
+            transform.scale(skalaAkhir, skalaAkhir);
+
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                    java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+
+            java.awt.Composite compositeLama = g2.getComposite();
+            try {
+                if (alpha < 0.999f) {
+                    g2.setComposite(java.awt.AlphaComposite.getInstance(
+                            java.awt.AlphaComposite.SRC_OVER, alpha));
+                }
+                g2.drawImage(gambar, transform, this);
+            } finally {
+                g2.setComposite(compositeLama);
+            }
+        }
+
+        /**
+         * Mengambil area viewport scrollPane1 dan mengubah koordinatnya ke
+         * glass pane login. Ini adalah satu-satunya area tempat wallpaper
+         * animasi boleh digambar.
+         */
+        private java.awt.Rectangle areaWallpaperLogin() {
+            if (scrollPane1 == null || scrollPane1.getViewport() == null
+                    || !scrollPane1.isShowing()) {
+                return new java.awt.Rectangle();
+            }
+
+            javax.swing.JViewport viewport = scrollPane1.getViewport();
+            java.awt.Rectangle batasViewport = new java.awt.Rectangle(
+                    0, 0, viewport.getWidth(), viewport.getHeight());
+            java.awt.Rectangle hasil = javax.swing.SwingUtilities
+                    .convertRectangle(viewport, batasViewport, this);
+
+            // Pastikan rectangle tetap berada dalam glass pane walau layout
+            // sedang resize/maximize.
+            return hasil.intersection(new java.awt.Rectangle(
+                    0, 0, getWidth(), getHeight()));
+        }
+
+        private boolean tanganiKlikNavigasiWallpaper(java.awt.Point titik) {
+            int jumlah = Math.min(NAMA_WALLPAPER_JAR.length,
+                    daftarWallpaper.size());
+            java.awt.Rectangle areaWallpaper = areaWallpaperLogin();
+            int y = pusatYTitik(areaWallpaper);
+            for (int indeks = 0; indeks < jumlah; indeks++) {
+                int x = pusatXTitik(indeks, areaWallpaper);
+                java.awt.Rectangle areaKlik = new java.awt.Rectangle(
+                        x - (AREA_KLIK_TITIK / 2),
+                        y - (AREA_KLIK_TITIK / 2),
+                        AREA_KLIK_TITIK, AREA_KLIK_TITIK);
+                if (areaKlik.contains(titik)) {
+                    pilihWallpaperManual(indeks);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private Cursor cursorUntukPosisi(java.awt.Point titik) {
+            int jumlah = Math.min(NAMA_WALLPAPER_JAR.length,
+                    daftarWallpaper.size());
+            java.awt.Rectangle areaWallpaper = areaWallpaperLogin();
+            int y = pusatYTitik(areaWallpaper);
+            for (int indeks = 0; indeks < jumlah; indeks++) {
+                int x = pusatXTitik(indeks, areaWallpaper);
+                if (new java.awt.Rectangle(
+                        x - (AREA_KLIK_TITIK / 2),
+                        y - (AREA_KLIK_TITIK / 2),
+                        AREA_KLIK_TITIK, AREA_KLIK_TITIK).contains(titik)) {
+                    return Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
+                }
+            }
+            return Cursor.getDefaultCursor();
+        }
+
+        private int pusatXTitik(int indeks, java.awt.Rectangle areaWallpaper) {
+            return areaWallpaper.x + TITIK_X_AWAL
+                    + indeks * (TITIK_DIAMETER + TITIK_JARAK);
+        }
+
+        private int pusatYTitik(java.awt.Rectangle areaWallpaper) {
+            return Math.max(areaWallpaper.y + TITIK_DIAMETER,
+                    areaWallpaper.y + areaWallpaper.height
+                    - TITIK_MARGIN_BAWAH);
         }
     }
 
@@ -2069,7 +2813,8 @@ public class frmUtama extends javax.swing.JFrame {
      * shadow tidak terpotong oleh batas JDialog.
      */
     private static final class LoginShadowPanel extends javax.swing.JPanel {
-        private static final int RADIUS_KARTU = 24;
+        // Mengikuti radius kartu utama agar bentuk bayangan tetap konsisten.
+        private static final int RADIUS_KARTU = RADIUS_SUDUT_KARTU_LOGIN;
         private static final int RADIUS_BAYANGAN = 28;
         private static final int OFFSET_BAYANGAN_Y = 7;
 
@@ -2082,11 +2827,11 @@ public class frmUtama extends javax.swing.JFrame {
             super.paintComponent(graphics);
 
             int xKartu = MARGIN_BAYANGAN_KIRI;
-            int yKartu = MARGIN_BAYANGAN_ATAS;
+            int yKartu = MARGIN_BAYANGAN_ATAS + TUMPUKAN_LOGO_LOGIN;
             int lebarKartu = getWidth()
                     - MARGIN_BAYANGAN_KIRI - MARGIN_BAYANGAN_KANAN;
             int tinggiKartu = getHeight()
-                    - MARGIN_BAYANGAN_ATAS - MARGIN_BAYANGAN_BAWAH;
+                    - yKartu - MARGIN_BAYANGAN_BAWAH;
             if (lebarKartu <= 0 || tinggiKartu <= 0) {
                 return;
             }
@@ -2105,8 +2850,8 @@ public class frmUtama extends javax.swing.JFrame {
                         lebarKartu - 6, tinggiKartu,
                         RADIUS_KARTU, RADIUS_KARTU);
 
-                // Beberapa lapisan transparan menghasilkan transisi lembut
-                // tanpa menghitung Gaussian blur pada setiap repaint.
+                // Beberapa lapisan transparan menghasilkan bayangan lembut
+                // tanpa filter gambar berat pada setiap repaint.
                 for (int lapisan = RADIUS_BAYANGAN; lapisan >= 1; lapisan--) {
                     float kedekatan = 1f - ((float) lapisan
                             / (RADIUS_BAYANGAN + 1f));
@@ -2127,61 +2872,136 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     private static final class LoginBackgroundPanel extends javax.swing.JPanel {
-        private static final int LEBAR_PANEL_LOGIN = 400;
-        private static final int RADIUS_KARTU = 24;
+        // Radius sudut diatur dari blok PENGATURAN CEPAT TAMPILAN LOGIN.
+        private static final int RADIUS_KARTU = RADIUS_SUDUT_KARTU_LOGIN;
 
         private LoginBackgroundPanel() {
             setOpaque(false);
         }
 
         @Override
-        public void paint(java.awt.Graphics graphics) {
+        protected void paintComponent(java.awt.Graphics graphics) {
+            super.paintComponent(graphics);
             java.awt.Graphics2D g2 = (java.awt.Graphics2D) graphics.create();
             try {
                 g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
                         java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                        java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+
+                int yKartu = TUMPUKAN_LOGO_LOGIN;
+                int tinggiKartu = getHeight() - yKartu;
                 java.awt.Shape bentukKartu =
                         new java.awt.geom.RoundRectangle2D.Double(
-                                0, 0, getWidth(), getHeight(),
+                                0, yKartu, getWidth() - 1,
+                                tinggiKartu - 1,
                                 RADIUS_KARTU, RADIUS_KARTU);
-                g2.clip(bentukKartu);
-                super.paint(g2);
 
-                // Garis tipis membantu memisahkan tepi terang kartu dari
-                // backdrop tanpa membuatnya terlihat seperti kotak keras.
-                g2.setColor(new Color(255, 255, 255, 70));
-                g2.setStroke(new java.awt.BasicStroke(1f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1,
-                        RADIUS_KARTU, RADIUS_KARTU);
+                // TRANSPARANSI LATAR FORM LOGIN DIATUR DI BAGIAN ATAS FILE:
+                // ALPHA_LOGIN_ATAS dan ALPHA_LOGIN_BAWAH.
+                // Kecilkan alpha = makin transparan; besarkan = makin pekat.
+                java.awt.GradientPaint gradasi = new java.awt.GradientPaint(
+                        0, yKartu, new Color(7, 82, 145, ALPHA_LOGIN_ATAS),
+                        getWidth(), getHeight(),
+                        new Color(28, 148, 201, ALPHA_LOGIN_BAWAH));
+                g2.setPaint(gradasi);
+                g2.fill(bentukKartu);
+
+                java.awt.Shape klipSebelumnya = g2.getClip();
+                g2.clip(bentukKartu);
+                g2.setColor(new Color(139, 235, 250, 22));
+                g2.fillOval(250, yKartu - 100, 240, 240);
+                g2.setColor(new Color(0, 59, 116, 22));
+                g2.fillOval(-145, getHeight() - 165, 280, 280);
+                g2.setClip(klipSebelumnya);
+
+                g2.setColor(new Color(255, 255, 255, 105));
+                g2.setStroke(new java.awt.BasicStroke(1.2f));
+                g2.draw(bentukKartu);
             } finally {
                 g2.dispose();
             }
         }
+    }
+
+    private static final class FloatingLogoIcon implements javax.swing.Icon {
+        private final java.awt.Image gambarLogo;
+
+        private FloatingLogoIcon(ImageIcon sumber) {
+            gambarLogo = sumber.getImage();
+        }
 
         @Override
-        protected void paintComponent(java.awt.Graphics graphics) {
-            super.paintComponent(graphics);
-            java.awt.Graphics2D g2 = (java.awt.Graphics2D) graphics.create();
-            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
-                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
-                    java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+        public int getIconWidth() {
+            return UKURAN_LOGO_LOGIN;
+        }
 
-            int lebarKiri = Math.min(LEBAR_PANEL_LOGIN, getWidth());
-            g2.setColor(Color.WHITE);
-            g2.fillRect(0, 0, getWidth(), getHeight());
+        @Override
+        public int getIconHeight() {
+            return UKURAN_LOGO_LOGIN;
+        }
 
-            java.awt.GradientPaint gradasi = new java.awt.GradientPaint(
-                    0, 0, new Color(7, 81, 138),
-                    lebarKiri, getHeight(), new Color(11, 167, 213));
-            g2.setPaint(gradasi);
-            g2.fillRect(0, 0, lebarKiri, getHeight());
+        @Override
+        public void paintIcon(java.awt.Component component,
+                java.awt.Graphics graphics, int x, int y) {
+            java.awt.Graphics2D g2 =
+                    (java.awt.Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                        java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                        java.awt.RenderingHints.VALUE_RENDER_QUALITY);
 
-            g2.setColor(new Color(125, 231, 245, 18));
-            g2.fillOval(265, -105, 270, 270);
-            g2.setColor(new Color(0, 65, 125, 28));
-            g2.fillOval(-165, 375, 335, 335);
-            g2.dispose();
+                g2.setColor(new Color(0, 38, 72, 45));
+                g2.fillOval(x + 4, y + 8,
+                        UKURAN_LOGO_LOGIN - 8, UKURAN_LOGO_LOGIN - 8);
+                g2.setColor(Color.WHITE);
+                g2.fillOval(x + 3, y + 3,
+                        UKURAN_LOGO_LOGIN - 7, UKURAN_LOGO_LOGIN - 7);
+                g2.setColor(new Color(184, 229, 249));
+                g2.setStroke(new java.awt.BasicStroke(2f));
+                g2.drawOval(x + 4, y + 4,
+                        UKURAN_LOGO_LOGIN - 9, UKURAN_LOGO_LOGIN - 9);
+
+                int insetLogo = 13;
+                g2.drawImage(gambarLogo,
+                        x + insetLogo, y + insetLogo,
+                        UKURAN_LOGO_LOGIN - (insetLogo * 2),
+                        UKURAN_LOGO_LOGIN - (insetLogo * 2), null);
+            } finally {
+                g2.dispose();
+            }
+        }
+    }
+
+    private static final class ModernPasswordFieldUI
+            extends javax.swing.plaf.basic.BasicPasswordFieldUI {
+
+        @Override
+        protected void paintSafely(java.awt.Graphics graphics) {
+            javax.swing.text.JTextComponent field = getComponent();
+            java.awt.Graphics2D g2 =
+                    (java.awt.Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                int lengkung = Math.max(1, field.getHeight());
+                g2.setColor(new Color(255, 255, 255, 244));
+                g2.fillRoundRect(0, 0, field.getWidth() - 1,
+                        field.getHeight() - 1, lengkung, lengkung);
+                g2.setColor(field.hasFocus()
+                        ? new Color(117, 220, 247, 230)
+                        : new Color(255, 255, 255, 110));
+                g2.setStroke(new java.awt.BasicStroke(
+                        field.hasFocus() ? 1.5f : 1f));
+                g2.drawRoundRect(0, 0, field.getWidth() - 2,
+                        field.getHeight() - 2, lengkung, lengkung);
+            } finally {
+                g2.dispose();
+            }
+            super.paintSafely(graphics);
         }
     }
 
@@ -2196,20 +3016,15 @@ public class frmUtama extends javax.swing.JFrame {
             g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
                     java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
 
-            Color warnaIsi = new Color(5, 67, 121, 205);
             if (model.isPressed()) {
-                warnaIsi = new Color(3, 51, 96, 235);
+                g2.setColor(new Color(255, 255, 255, 42));
+                g2.fillRoundRect(0, 0, component.getWidth() - 1,
+                        component.getHeight() - 1, 16, 16);
             } else if (model.isRollover()) {
-                warnaIsi = new Color(5, 111, 163, 225);
+                g2.setColor(new Color(255, 255, 255, 24));
+                g2.fillRoundRect(0, 0, component.getWidth() - 1,
+                        component.getHeight() - 1, 16, 16);
             }
-
-            g2.setColor(warnaIsi);
-            g2.fillRoundRect(0, 0, component.getWidth() - 1,
-                    component.getHeight() - 1, 18, 18);
-            g2.setColor(new Color(125, 231, 245, 225));
-            g2.setStroke(new java.awt.BasicStroke(1.2f));
-            g2.drawRoundRect(0, 0, component.getWidth() - 2,
-                    component.getHeight() - 2, 18, 18);
             g2.dispose();
 
             super.paint(graphics, component);
@@ -2245,14 +3060,14 @@ public class frmUtama extends javax.swing.JFrame {
                 warnaAtas = new Color(180, 187, 192);
                 warnaBawah = new Color(142, 151, 158);
             } else if (model.isPressed() && model.isArmed()) {
-                warnaAtas = new Color(55, 204, 131);
-                warnaBawah = new Color(20, 150, 87);
-            } else if (model.isRollover()) {
-                warnaAtas = new Color(255, 198, 67);
-                warnaBawah = new Color(255, 151, 24);
+                warnaAtas = new Color(8, 139, 199);
+                warnaBawah = new Color(5, 105, 164);
+            } else if (model.isRollover() || model.isSelected()) {
+                warnaAtas = new Color(47, 193, 239);
+                warnaBawah = new Color(10, 149, 211);
             } else {
-                warnaAtas = new Color(255, 184, 42);
-                warnaBawah = new Color(245, 133, 20);
+                warnaAtas = new Color(255, 184, 45);
+                warnaBawah = new Color(245, 125, 18);
             }
 
             java.awt.GradientPaint gradasi = new java.awt.GradientPaint(
@@ -2267,40 +3082,6 @@ public class frmUtama extends javax.swing.JFrame {
             g2.dispose();
 
             super.paint(graphics, component);
-        }
-    }
-
-    private static final class LoginArrowIcon implements javax.swing.Icon {
-        private static final int UKURAN = 18;
-
-        @Override
-        public int getIconWidth() {
-            return UKURAN;
-        }
-
-        @Override
-        public int getIconHeight() {
-            return UKURAN;
-        }
-
-        @Override
-        public void paintIcon(java.awt.Component component,
-                java.awt.Graphics graphics, int x, int y) {
-            java.awt.Graphics2D g2 = (java.awt.Graphics2D) graphics.create();
-            g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
-                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(component.isEnabled()
-                    ? Color.WHITE : new Color(255, 255, 255, 150));
-            g2.setStroke(new java.awt.BasicStroke(1.8f,
-                    java.awt.BasicStroke.CAP_ROUND,
-                    java.awt.BasicStroke.JOIN_ROUND));
-
-            g2.drawRoundRect(x + 9, y + 2, 7, 14, 3, 3);
-            g2.drawLine(x + 2, y + 9, x + 12, y + 9);
-            g2.drawLine(x + 7, y + 5, x + 12, y + 9);
-            g2.drawLine(x + 7, y + 13, x + 12, y + 9);
-            g2.fillOval(x + 13, y + 8, 2, 2);
-            g2.dispose();
         }
     }
 
@@ -2440,7 +3221,6 @@ public class frmUtama extends javax.swing.JFrame {
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         jLabel10 = new javax.swing.JLabel();
-        poster = new javax.swing.JLabel();
         DlgHome = new javax.swing.JDialog();
         panelMenu = new widget.InternalFrame();
         panelisi2 = new widget.panelisi();
@@ -3016,40 +3796,42 @@ public class frmUtama extends javax.swing.JFrame {
         DlgLogin.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         DlgLogin.setTitle("Login");
         DlgLogin.setBackground(new java.awt.Color(0, 156, 215));
-        DlgLogin.setBounds(new java.awt.Rectangle(0, 0, 400, 550));
+        DlgLogin.setBounds(new java.awt.Rectangle(0, 0, 380, 456));
         DlgLogin.setLocation(new java.awt.Point(0, 0));
-        DlgLogin.setMinimumSize(new java.awt.Dimension(400, 550));
+        DlgLogin.setMinimumSize(new java.awt.Dimension(380, 456));
         DlgLogin.setModalExclusionType(java.awt.Dialog.ModalExclusionType.APPLICATION_EXCLUDE);
         DlgLogin.setName("DlgLogin"); // NOI18N
         DlgLogin.setUndecorated(true);
         DlgLogin.setResizable(false);
-        DlgLogin.setSize(new java.awt.Dimension(400, 550));
+        DlgLogin.setSize(new java.awt.Dimension(380, 456));
 
         jPanel1.setBackground(new java.awt.Color(0, 156, 215));
         jPanel1.setForeground(new java.awt.Color(255, 255, 255));
         jPanel1.setInheritsPopupMenu(true);
-        jPanel1.setMinimumSize(new java.awt.Dimension(400, 550));
+        jPanel1.setMinimumSize(new java.awt.Dimension(380, 456));
         jPanel1.setName("jPanel1"); // NOI18N
-        jPanel1.setPreferredSize(new java.awt.Dimension(710, 550));
+        jPanel1.setPreferredSize(new java.awt.Dimension(380, 456));
         jPanel1.setLayout(null);
 
         jLabel2.setForeground(new java.awt.Color(255, 255, 255));
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel2.setText("Belum Punya Username ?");
+        jLabel2.setFont(new java.awt.Font("Segoe UI", 0, 12)); // NOI18N
+        jLabel2.setText("Belum punya akses? Hubungi Tim IT");
         jLabel2.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jLabel2.setName("jLabel2"); // NOI18N
         jPanel1.add(jLabel2);
-        jLabel2.setBounds(3, 380, 390, 16);
+        jLabel2.setBounds(20, 358, 340, 20);
 
         jLabel3.setForeground(new java.awt.Color(255, 255, 255));
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel3.setText("Hubungi Team IT");
         jLabel3.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jLabel3.setName("jLabel3"); // NOI18N
+        jLabel3.setVisible(false);
         jPanel1.add(jLabel3);
         jLabel3.setBounds(0, 395, 400, 16);
 
-        edAdmin.setFont(new java.awt.Font("Trebuchet MS", 0, 14)); // NOI18N
+        edAdmin.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         edAdmin.setBorder(null);
         edAdmin.setName("edAdmin"); // NOI18N
         edAdmin.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -3071,15 +3853,15 @@ public class frmUtama extends javax.swing.JFrame {
             }
         });
         jPanel1.add(edAdmin);
-        edAdmin.setBounds(120, 225, 193, 25);
+        edAdmin.setBounds(36, 184, 308, 46);
 
         jLabelUser.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabelUser.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/userline.png"))); // NOI18N
         jLabelUser.setName("jLabelUser"); // NOI18N
         jPanel1.add(jLabelUser);
-        jLabelUser.setBounds(93, 230, 16, 16);
+        jLabelUser.setBounds(50, 199, 16, 16);
 
-        edPwd.setFont(new java.awt.Font("Trebuchet MS", 0, 14)); // NOI18N
+        edPwd.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         edPwd.setBorder(null);
         edPwd.setName("edPwd"); // NOI18N
         edPwd.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -3101,7 +3883,7 @@ public class frmUtama extends javax.swing.JFrame {
             }
         });
         jPanel1.add(edPwd);
-        edPwd.setBounds(120, 275, 170, 25);
+        edPwd.setBounds(36, 240, 308, 46);
 
         cekBox1.setBackground(new java.awt.Color(255, 255, 255));
         cekBox1.setForeground(new java.awt.Color(255, 255, 255));
@@ -3124,92 +3906,92 @@ public class frmUtama extends javax.swing.JFrame {
             }
         });
         jPanel1.add(cekBox1);
-        cekBox1.setBounds(293, 275, 25, 25);
+        cekBox1.setBounds(300, 240, 34, 46);
 
         BtnLogin.setBackground(new java.awt.Color(0, 0, 0));
         BtnLogin.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         BtnLogin.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        BtnLogin.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/menu login orengs.png"))); // NOI18N
+        BtnLogin.setText("Masuk");
         BtnLogin.setIconTextGap(0);
         BtnLogin.setName("BtnLogin"); // NOI18N
-        BtnLogin.setPreferredSize(new java.awt.Dimension(249, 35));
-        BtnLogin.setPressedIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/menu login hijau.png"))); // NOI18N
-        BtnLogin.setRolloverIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/menu login hijau.png"))); // NOI18N
+        BtnLogin.setPreferredSize(new java.awt.Dimension(308, 48));
         BtnLogin.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 BtnLoginActionPerformed(evt);
             }
         });
         jPanel1.add(BtnLogin);
-        BtnLogin.setBounds(80, 320, 249, 35);
+        BtnLogin.setBounds(36, 298, 308, 48);
 
         jLabelPassword.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabelPassword.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/logo rsja mlite (1).png"))); // NOI18N
-        jLabelPassword.setMaximumSize(new java.awt.Dimension(90, 90));
-        jLabelPassword.setMinimumSize(new java.awt.Dimension(90, 90));
+        jLabelPassword.setMaximumSize(new java.awt.Dimension(112, 112));
+        jLabelPassword.setMinimumSize(new java.awt.Dimension(112, 112));
         jLabelPassword.setName("jLabelPassword"); // NOI18N
-        jLabelPassword.setPreferredSize(new java.awt.Dimension(90, 90));
+        jLabelPassword.setPreferredSize(new java.awt.Dimension(112, 112));
         jPanel1.add(jLabelPassword);
-        jLabelPassword.setBounds(0, 40, 400, 100);
+        jLabelPassword.setBounds(134, 0, 112, 112);
 
         BtnCancel.setBackground(new java.awt.Color(102, 102, 102));
         BtnCancel.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
-        BtnCancel.setText("Exit");
+        BtnCancel.setText("Keluar");
         BtnCancel.setName("BtnCancel"); // NOI18N
         BtnCancel.setOpaque(false);
-        BtnCancel.setPreferredSize(new java.awt.Dimension(57, 25));
+        BtnCancel.setPreferredSize(new java.awt.Dimension(100, 30));
         BtnCancel.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 BtnCancelActionPerformed(evt);
             }
         });
         jPanel1.add(BtnCancel);
-        BtnCancel.setBounds(170, 430, 60, 25);
+        BtnCancel.setBounds(140, 399, 100, 30);
 
         jLabelPassword1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabelPassword1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/keyline.png"))); // NOI18N
         jLabelPassword1.setName("jLabelPassword1"); // NOI18N
         jPanel1.add(jLabelPassword1);
-        jLabelPassword1.setBounds(93, 280, 16, 16);
+        jLabelPassword1.setBounds(50, 255, 16, 16);
 
         jLabelUser1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabelUser1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/texbox.png"))); // NOI18N
         jLabelUser1.setName("jLabelUser1"); // NOI18N
+        jLabelUser1.setVisible(false);
         jPanel1.add(jLabelUser1);
         jLabelUser1.setBounds(80, 220, 249, 35);
 
         jLabelUser2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabelUser2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/texbox.png"))); // NOI18N
         jLabelUser2.setName("jLabelUser2"); // NOI18N
+        jLabelUser2.setVisible(false);
         jPanel1.add(jLabelUser2);
         jLabelUser2.setBounds(80, 270, 249, 35);
 
-        jLabel4.setFont(new java.awt.Font("Segoe UI", 0, 17)); // NOI18N
+        jLabel4.setFont(new java.awt.Font("Segoe UI Semibold", 0, 20)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(255, 255, 255));
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel4.setText("Rumah Sakit");
+        jLabel4.setText("RS. Akademis Jaury Jusuf Putera");
         jLabel4.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jLabel4.setName("jLabel4"); // NOI18N
         jPanel1.add(jLabel4);
-        jLabel4.setBounds(0, 150, 400, 30);
+        jLabel4.setBounds(20, 117, 340, 30);
 
-        jLabel5.setFont(new java.awt.Font("Segoe UI", 0, 22)); // NOI18N
+        jLabel5.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel5.setForeground(new java.awt.Color(255, 255, 255));
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel5.setText("Akademis Jaury Jusuf Putera");
+        jLabel5.setText("Masuk ke SIMRS");
         jLabel5.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jLabel5.setName("jLabel5"); // NOI18N
         jPanel1.add(jLabel5);
-        jLabel5.setBounds(0, 170, 400, 40);
+        jLabel5.setBounds(20, 148, 340, 22);
 
         jLabel6.setFont(new java.awt.Font("Segoe UI", 0, 11)); // NOI18N
         jLabel6.setForeground(new java.awt.Color(255, 255, 255));
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel6.setText("© 2024 YASKI. All rights reserved.");
+        jLabel6.setText("");
         jLabel6.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jLabel6.setName("jLabel6"); // NOI18N
         jPanel1.add(jLabel6);
-        jLabel6.setBounds(0, 510, 400, 20);
+        jLabel6.setBounds(24, 388, 332, 1);
 
         jLabel10.setFont(new java.awt.Font("Segoe UI", 0, 11)); // NOI18N
         jLabel10.setForeground(new java.awt.Color(255, 255, 255));
@@ -3217,19 +3999,9 @@ public class frmUtama extends javax.swing.JFrame {
         jLabel10.setText("TIM IT - RS. Akademis Jaury Jusuf Putera");
         jLabel10.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jLabel10.setName("jLabel10"); // NOI18N
+        jLabel10.setVisible(false);
         jPanel1.add(jLabel10);
         jLabel10.setBounds(0, 495, 400, 20);
-
-        poster.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        poster.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/logohut.png"))); // NOI18N
-        poster.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-        poster.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
-        poster.setMaximumSize(new java.awt.Dimension(90, 90));
-        poster.setMinimumSize(new java.awt.Dimension(90, 90));
-        poster.setName("poster"); // NOI18N
-        poster.setPreferredSize(new java.awt.Dimension(90, 90));
-        jPanel1.add(poster);
-        poster.setBounds(400, 0, 310, 550);
 
         DlgLogin.getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
 
@@ -9012,7 +9784,6 @@ public class frmUtama extends javax.swing.JFrame {
 
         panelJudul.setAlpha(0.0F);
         panelJudul.setBackground(new java.awt.Color(255, 255, 255));
-        panelJudul.setBackgroundImage(new javax.swing.ImageIcon(getClass().getResource("/picture/nama dan logo rs.png"))); // NOI18N
         panelJudul.setBackgroundImageType(usu.widget.constan.BackgroundConstan.BACKGROUND_IMAGE_RIGHT_TOP);
         panelJudul.setOpaqueGradient(true);
         panelJudul.setPreferredSize(new java.awt.Dimension(1200, 250));
@@ -9781,6 +10552,7 @@ public class frmUtama extends javax.swing.JFrame {
 
     private void formWindowClosed(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosed
         stopITServiceChat();
+        hentikanRotasiWallpaper();
         DlgHome.dispose();
         System.exit(0);
     }//GEN-LAST:event_formWindowClosed
@@ -12257,7 +13029,7 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         for (Window win : wins) {
             if (win instanceof JDialog) {
                 if (win == DlgLogin) {
-                    posisikanLoginDiTengahMonitor();
+                    posisikanLoginDiSisiKanan();
                 } else {
                     win.setLocationRelativeTo(PanelUtama);
                 }
@@ -12274,7 +13046,7 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         for (Window win : wins) {
             if (win instanceof JDialog) {
                 if (win == DlgLogin) {
-                    posisikanLoginDiTengahMonitor();
+                    posisikanLoginDiSisiKanan();
                 } else {
                     win.setLocationRelativeTo(PanelUtama);
                 }
@@ -15798,6 +16570,7 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
     }//GEN-LAST:event_MnPenyerahanResepActionPerformed
 
     private void BtnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnLoginActionPerformed
+    BtnLogin.setSelected(true);
     // Memeriksa input username dan password
     if (edAdmin.getText().trim().isEmpty()) {
         Valid.textKosong(edAdmin, "Username");
@@ -15866,6 +16639,7 @@ private void setUserAccess() {
     BtnMenu.setEnabled(true);
     sembunyikanBackdropLogin();
     DlgLogin.dispose();
+    aturGambarPanelJudul(true);
     BtnLog.setText("Log Out");
 //    MnLogin.setText("Log Out");
     lblStts.setText("Pengguna : ");
@@ -15963,6 +16737,7 @@ private void logTracker(String user) {
 private void updateLoginStatus(String status, String userName, String iconPath) {
     sembunyikanBackdropLogin();
     DlgLogin.dispose();
+    aturGambarPanelJudul(true);
     BtnLog.setText("Log Out");
 //    MnLogin.setText("Log Out");
     lblStts.setText(status);
@@ -25290,7 +26065,6 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     private javax.swing.JPanel panelKiri1;
     private widget.InternalFrame panelMenu;
     private widget.panelisi panelisi2;
-    private javax.swing.JLabel poster;
     private widget.ScrollPane scrollPane1;
     private widget.ScrollPane scrollPane2;
     private widget.Tanggal tanggal;
@@ -25435,7 +26209,10 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
                     akses.setkontakrs(rs.getString("kontak"));
                     akses.setemailrs(rs.getString("email"));
                     akses.setkodeppkbpjs(rs.getString("kode_ppk"));
-                    if("Yes".equals(rs.getString("aktifkan"))){
+                    // BLOB lama hanya menjadi fallback jika ketiga resource
+                    // /picture/wallpaper*.png belum berhasil dimuat dari JAR.
+                    if("Yes".equals(rs.getString("aktifkan"))
+                            && daftarWallpaper.isEmpty()){
                         Blob blob = rs.getBlob("wallpaper");
                         PanelWall.setBackgroundImage(new javax.swing.ImageIcon(blob.getBytes(1, (int) (blob.length()))));
                         repaint();
