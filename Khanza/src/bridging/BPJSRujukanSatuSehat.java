@@ -4,10 +4,14 @@
  * Form Rujukan Keluar terintegrasi BPJS + Satu Sehat (Sisrute).
  * Dipanggil dari BPJSDataSEP setelah user memilih SEP rawat jalan.
  *
- * PATCH CETAK SEP V11 - 07 September 2026
+ * PATCH CETAK SEP V12 - 09 September 2026
  * - transaksi atomik untuk snapshot dan tiga tabel bridging
  * - composite key no_rujukan + link_id untuk banyak kriteria
  * - preview modern serta tombol Cetak SEP Rujukan
+ * - tabel penyimpanan lokal dibuat/dimigrasikan otomatis sebelum kirim
+ * - PATCH ALUR KRITERIA V13 - 09 September 2026
+ * - sinkronisasi satu-dari-tiga kriteria dapat dinonaktifkan oleh user
+ * - alur tombol Cek Kriteria > Cari Faskes > Kirim Rujukan
  *
  * Flow:
  *   1. setDataSEP(...) dipanggil parent → form auto-isi data
@@ -181,6 +185,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
     private javax.swing.JLabel lblJumlahKriteriaUi;
     private javax.swing.JLabel lblJumlahFaskesUi;
     private javax.swing.JTextField txtCariFaskesUi;
+    private javax.swing.JCheckBox chkSinkronKriteriaUi;
     private javax.swing.table.TableRowSorter<DefaultTableModel> sorterFaskesUi;
     private javax.swing.JPanel notesCardUi;
     private javax.swing.JButton btnCopyNoRujukanBpjsUi;
@@ -188,6 +193,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
     private final widget.Button btnPulihkanRujukanUi = new widget.Button();
     private final widget.Button btnCetakSepRujukanUi = new widget.Button();
     private static final int TOAST_INFO = Integer.MIN_VALUE;
+    private boolean syncingCriteriaAnswers = false;
 
     /** Satu catatan panggilan API selama proses pemulihan rujukan lama. */
     private static final class RecoveryApiLog {
@@ -926,20 +932,31 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
                         selectedNmppkTujuan = "";
                          
                     }
+                    updateReferralActionState();
                 }
             });
 
             // Tinggi kedua panel selalu dihitung ulang setelah isi model berubah.
-            modelKriteria.addTableModelListener(e ->
-                    javax.swing.SwingUtilities.invokeLater(() -> {
+            modelKriteria.addTableModelListener(e -> {
+                if (e.getType() == javax.swing.event.TableModelEvent.UPDATE
+                        && e.getColumn() == 3
+                        && !syncingCriteriaAnswers
+                        && !restoringReferralSnapshot) {
+                    applyCriteriaSynchronization(e.getFirstRow());
+                    clearFaskesResultsAfterCriteriaChange();
+                }
+                javax.swing.SwingUtilities.invokeLater(() -> {
                         adjustKriteriaQuestionColumnWidth();
                         adjustKriteriaAnswerColumnWidth();
                         updateDynamicTableHeights();
-                    }));
+                        updateReferralActionState();
+                    });
+            });
             modelFaskes.addTableModelListener(e ->
                     javax.swing.SwingUtilities.invokeLater(() -> {
                         adjustFaskesColumnWidths();
                         updateDynamicTableHeights();
+                        updateReferralActionState();
                     }));
             javax.swing.SwingUtilities.invokeLater(() -> {
                 adjustKriteriaQuestionColumnWidth();
@@ -969,10 +986,8 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         frameKriteria.setBackground(java.awt.Color.WHITE);
         frameKriteria.setBorder(javax.swing.BorderFactory.createLineBorder(line));
         frameKriteria.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
-        frameKriteria.add(createTableSectionHeader(
-                "Kriteria Rujukan",
-                "Isi jawaban pada kolom paling kanan sesuai kondisi pasien.",
-                lblJumlahKriteriaUi), java.awt.BorderLayout.NORTH);
+        frameKriteria.add(createCriteriaTableSectionHeader(),
+                java.awt.BorderLayout.NORTH);
         frameKriteria.add(scrollKriteria, java.awt.BorderLayout.CENTER);
 
         frameFaskes.removeAll();
@@ -1176,8 +1191,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         updateDynamicTableHeights();
     }
 
-    private javax.swing.JPanel createTableSectionHeader(String titleText,
-            String subtitleText, javax.swing.JLabel countBadge) {
+    private javax.swing.JPanel createCriteriaTableSectionHeader() {
         javax.swing.JPanel header = new javax.swing.JPanel(new java.awt.BorderLayout(10, 0));
         header.setBackground(java.awt.Color.WHITE);
         header.setBorder(javax.swing.BorderFactory.createCompoundBorder(
@@ -1190,22 +1204,39 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         textBox.setOpaque(false);
         textBox.setLayout(new javax.swing.BoxLayout(textBox, javax.swing.BoxLayout.Y_AXIS));
 
-        javax.swing.JLabel title = new javax.swing.JLabel(titleText);
+        javax.swing.JLabel title = new javax.swing.JLabel("Kriteria Rujukan");
         title.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 13));
         title.setForeground(new java.awt.Color(30, 41, 59));
 
-        javax.swing.JLabel subtitle = new javax.swing.JLabel(subtitleText);
+        javax.swing.JLabel subtitle = new javax.swing.JLabel(
+                "Pilih satu kriteria atau nonaktifkan sinkronisasi untuk input manual.");
         subtitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 10));
         subtitle.setForeground(new java.awt.Color(100, 116, 139));
         subtitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 0, 0, 0));
 
         textBox.add(title);
         textBox.add(subtitle);
-        javax.swing.JPanel badgeBox = new javax.swing.JPanel(new java.awt.GridBagLayout());
-        badgeBox.setOpaque(false);
-        badgeBox.add(countBadge);
+
+        chkSinkronKriteriaUi = new javax.swing.JCheckBox("Sinkron otomatis", true);
+        chkSinkronKriteriaUi.setOpaque(false);
+        chkSinkronKriteriaUi.setFocusPainted(false);
+        chkSinkronKriteriaUi.setFont(new java.awt.Font(
+                "Segoe UI", java.awt.Font.PLAIN, 10));
+        chkSinkronKriteriaUi.setForeground(new java.awt.Color(51, 65, 85));
+        chkSinkronKriteriaUi.setCursor(java.awt.Cursor.getPredefinedCursor(
+                java.awt.Cursor.HAND_CURSOR));
+        chkSinkronKriteriaUi.setToolTipText(
+                "Hilangkan centang untuk mengisi ketiga kriteria secara manual");
+        chkSinkronKriteriaUi.addActionListener(
+                e -> handleCriteriaSynchronizationToggle());
+
+        javax.swing.JPanel actionBox = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 10, 0));
+        actionBox.setOpaque(false);
+        actionBox.add(chkSinkronKriteriaUi);
+        actionBox.add(lblJumlahKriteriaUi);
         header.add(textBox, java.awt.BorderLayout.CENTER);
-        header.add(badgeBox, java.awt.BorderLayout.EAST);
+        header.add(actionBox, java.awt.BorderLayout.EAST);
         return header;
     }
 
@@ -1664,8 +1695,8 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
     }
 
     /**
-     * Menjaga tombol operasional tetap di kiri dan tombol Respon API selalu
-     * menempel di sisi kanan panel, berapa pun lebar formnya.
+     * Menjaga urutan tombol proses di kiri. Pulihkan dan Respon API ditempatkan
+     * berdampingan di sisi kanan agar tidak memutus alur utama rujukan.
      */
     private void setupPanelTombolModern() {
         javax.swing.JPanel panelKiri = new javax.swing.JPanel(
@@ -1698,18 +1729,20 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         btnCetakSepRujukanUi.setVisible(false);
         panelKiri.add(btnCetakSepRujukanUi);
 
+        btnHapus.setVisible(false);
         panelKiri.add(btnHapus);
 
-        btnPulihkanRujukanUi.setText("Pulihkan");
-        btnPulihkanRujukanUi.setIcon(new RecoveryButtonIcon(
-                new java.awt.Color(37, 99, 235)));
+        btnPulihkanRujukanUi.setText("");
+        java.net.URL redoIcon = getClass().getResource("/picture/redo.png");
+        btnPulihkanRujukanUi.setIcon(redoIcon == null
+                ? new RecoveryButtonIcon(new java.awt.Color(37, 99, 235))
+                : new javax.swing.ImageIcon(redoIcon));
         btnPulihkanRujukanUi.setFont(new java.awt.Font(
                 "Segoe UI", java.awt.Font.PLAIN, 11));
         btnPulihkanRujukanUi.setPreferredSize(
                 new java.awt.Dimension(120, 30));
         btnPulihkanRujukanUi.setToolTipText(
                 "Tarik kembali rujukan lama dari BPJS/SATUSEHAT tanpa mengirim ulang");
-        panelKiri.add(btnPulihkanRujukanUi);
 
         panelKiri.add(BtnPrint);
         panelKiri.add(btnTutup);
@@ -1717,6 +1750,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         btnResponApi.setIcon(new JsonButtonIcon());
         btnResponApi.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.PLAIN, 11));
         btnResponApi.setToolTipText("Lihat seluruh riwayat respon API dalam format JSON");
+        panelKanan.add(btnPulihkanRujukanUi);
         panelKanan.add(btnResponApi);
 
         panelTombol.add(panelKiri, java.awt.BorderLayout.CENTER);
@@ -1887,8 +1921,8 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
      */
     private javax.swing.JComponent createCopyableReferralField(
             final javax.swing.JTextField field, final boolean bpjsNumber) {
-        final java.awt.Color background = new java.awt.Color(255, 251, 235);
-        final java.awt.Color border = new java.awt.Color(253, 230, 138);
+        final java.awt.Color background = new java.awt.Color(239, 246, 255);
+        final java.awt.Color border = new java.awt.Color(191, 219, 254);
 
         javax.swing.JPanel wrapper = new javax.swing.JPanel(
                 new java.awt.BorderLayout(0, 0)) {
@@ -1931,10 +1965,12 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         field.setBackground(background);
 
         javax.swing.JButton copy = new javax.swing.JButton(
-                new ReferralCopyIcon(new java.awt.Color(71, 85, 105)));
-        copy.setPreferredSize(new java.awt.Dimension(28, 26));
-        copy.setMinimumSize(new java.awt.Dimension(28, 26));
-        copy.setMaximumSize(new java.awt.Dimension(28, 26));
+                new javax.swing.ImageIcon(getClass().getResource("/picture/copy_.png")));
+        copy.setPreferredSize(new java.awt.Dimension(32, 26));
+        copy.setMinimumSize(new java.awt.Dimension(32, 26));
+        copy.setMaximumSize(new java.awt.Dimension(32, 26));
+        copy.setBackground(background);
+        copy.setForeground(new java.awt.Color(37, 99, 235));
         copy.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 5));
         copy.setContentAreaFilled(false);
         copy.setBorderPainted(false);
@@ -2231,8 +2267,8 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         java.awt.Color white = java.awt.Color.WHITE;
         java.awt.Color readOnly = new java.awt.Color(248, 250, 252);
         java.awt.Color line = new java.awt.Color(203, 213, 225);
-        java.awt.Color result = new java.awt.Color(255, 251, 235);
-        java.awt.Color resultLine = new java.awt.Color(253, 230, 138);
+        java.awt.Color result = new java.awt.Color(239, 246, 255);
+        java.awt.Color resultLine = new java.awt.Color(191, 219, 254);
 
         styleModernFormInput(tNoRawat, white, line);
         styleModernFormInput(tNmDiagnosaRujuk, white, line);
@@ -3973,6 +4009,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
             if (tblKriteria != null && tblKriteria.getColumnModel().getColumnCount() > 3) {
                 tblKriteria.getColumnModel().getColumn(3).setCellEditor(new KriteriaJawabanCellEditor(tblKriteria));
                 tblKriteria.getColumnModel().getColumn(3).setCellRenderer(new KriteriaJawabanRenderer());
+                tblKriteria.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
                 tblKriteria.setRowHeight(24);
             }
         } catch (Exception e) {
@@ -3981,7 +4018,7 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
     }
 
     private String defaultJawabanUntukTipe(String tipe) {
-        return "boolean".equalsIgnoreCase(safe(tipe)) ? "YA" : "";
+        return "boolean".equalsIgnoreCase(safe(tipe)) ? "TIDAK" : "";
     }
 
     private String normalisasiBooleanKriteria(String jawaban) {
@@ -3989,6 +4026,162 @@ public final class BPJSRujukanSatuSehat extends javax.swing.JDialog {
         if (v.equals("ya") || v.equals("y") || v.equals("true") || v.equals("1")) return "true";
         if (v.equals("tidak") || v.equals("tdk") || v.equals("t") || v.equals("false") || v.equals("0")) return "false";
         return null;
+    }
+
+    /**
+     * Saat aktif, tepat satu dari tiga baris kriteria boleh dipilih. Baris
+     * kedua dianggap dipilih ketika kode tindakan medis tidak kosong.
+     */
+    private boolean isCriteriaSynchronizationEnabled() {
+        return chkSinkronKriteriaUi == null
+                || chkSinkronKriteriaUi.isSelected();
+    }
+
+    private void handleCriteriaSynchronizationToggle() {
+        if (isCriteriaSynchronizationEnabled()
+                && modelKriteria.getRowCount() >= 3) {
+            int activeRow = findSingleActiveCriteriaRow();
+            if (activeRow >= 0) {
+                applyCriteriaSynchronization(activeRow);
+            } else if (countActiveCriteriaRows() > 1) {
+                showModernToast(this,
+                        "Sinkronisasi otomatis aktif kembali. Pilih tepat satu "
+                                + "kriteria agar dapat melanjutkan Cari Faskes.",
+                        ToastMessage.WARNING, 0);
+            }
+        }
+        clearFaskesResultsAfterCriteriaChange();
+        updateReferralActionState();
+    }
+
+    private void applyCriteriaSynchronization(int changedRow) {
+        if (!isCriteriaSynchronizationEnabled()
+                || syncingCriteriaAnswers
+                || modelKriteria.getRowCount() < 3
+                || changedRow < 0
+                || changedRow >= modelKriteria.getRowCount()) {
+            return;
+        }
+
+        boolean selected = false;
+        if (changedRow == 0 || changedRow == 2) {
+            selected = "true".equalsIgnoreCase(normalisasiBooleanKriteria(
+                    tableValue(modelKriteria, changedRow, 3)));
+        } else if (changedRow == 1) {
+            selected = !tableValue(modelKriteria, changedRow, 3).isEmpty();
+        }
+        if (!selected) return;
+
+        syncingCriteriaAnswers = true;
+        try {
+            if (changedRow == 0) {
+                setCriteriaAnswerIfChanged(0, "YA");
+                setCriteriaAnswerIfChanged(1, "");
+                setCriteriaAnswerIfChanged(2, "TIDAK");
+            } else if (changedRow == 1) {
+                setCriteriaAnswerIfChanged(0, "TIDAK");
+                setCriteriaAnswerIfChanged(2, "TIDAK");
+            } else if (changedRow == 2) {
+                setCriteriaAnswerIfChanged(0, "TIDAK");
+                setCriteriaAnswerIfChanged(1, "");
+                setCriteriaAnswerIfChanged(2, "YA");
+            }
+        } finally {
+            syncingCriteriaAnswers = false;
+        }
+    }
+
+    private void setCriteriaAnswerIfChanged(int row, String value) {
+        if (row < 0 || row >= modelKriteria.getRowCount()) return;
+        String current = tableValue(modelKriteria, row, 3);
+        if (!safe(value).equals(current)) {
+            modelKriteria.setValueAt(value, row, 3);
+        }
+    }
+
+    private int countActiveCriteriaRows() {
+        if (modelKriteria.getRowCount() < 3) return 0;
+        int count = 0;
+        if ("true".equalsIgnoreCase(normalisasiBooleanKriteria(
+                tableValue(modelKriteria, 0, 3)))) count++;
+        if (!tableValue(modelKriteria, 1, 3).isEmpty()) count++;
+        if ("true".equalsIgnoreCase(normalisasiBooleanKriteria(
+                tableValue(modelKriteria, 2, 3)))) count++;
+        return count;
+    }
+
+    private int findSingleActiveCriteriaRow() {
+        if (countActiveCriteriaRows() != 1) return -1;
+        if ("true".equalsIgnoreCase(normalisasiBooleanKriteria(
+                tableValue(modelKriteria, 0, 3)))) return 0;
+        if (!tableValue(modelKriteria, 1, 3).isEmpty()) return 1;
+        if ("true".equalsIgnoreCase(normalisasiBooleanKriteria(
+                tableValue(modelKriteria, 2, 3)))) return 2;
+        return -1;
+    }
+
+    private boolean commitCriteriaCellEditing() {
+        if (tblKriteria == null || !tblKriteria.isEditing()) return true;
+        javax.swing.table.TableCellEditor editor = tblKriteria.getCellEditor();
+        if (editor == null || editor.stopCellEditing()) return true;
+        showModernToast(this,
+                "Selesaikan dahulu pengisian jawaban kriteria yang sedang aktif.",
+                ToastMessage.WARNING, 0);
+        return false;
+    }
+
+    private boolean validateCriteriaSelectionForRequest() {
+        if (!isCriteriaSynchronizationEnabled()
+                || modelKriteria.getRowCount() < 3) {
+            return true;
+        }
+        if (countActiveCriteriaRows() == 1) return true;
+
+        showModernToast(this,
+                "Pilih tepat satu kriteria: baris pertama, Tindakan Medis, "
+                        + "atau baris ketiga. Hilangkan centang Sinkron otomatis "
+                        + "jika diperlukan pengisian manual.",
+                ToastMessage.WARNING, 0);
+        return false;
+    }
+
+    private boolean isCriteriaReadyForFaskes() {
+        if (modelKriteria.getRowCount() == 0) return false;
+        for (int row = 0; row < modelKriteria.getRowCount(); row++) {
+            String type = tableValue(modelKriteria, row, 2);
+            if ("boolean".equalsIgnoreCase(type)
+                    && normalisasiBooleanKriteria(
+                            tableValue(modelKriteria, row, 3)) == null) {
+                return false;
+            }
+        }
+        return !isCriteriaSynchronizationEnabled()
+                || modelKriteria.getRowCount() < 3
+                || countActiveCriteriaRows() == 1;
+    }
+
+    private void clearFaskesResultsAfterCriteriaChange() {
+        if (tNoRujukanBpjs != null
+                && !safe(tNoRujukanBpjs.getText()).isEmpty()) return;
+
+        boolean hadFaskesData = modelFaskes.getRowCount() > 0
+                || !safe(selectedKdppkTujuan).isEmpty();
+        if (!hadFaskesData) return;
+
+        restoringReferralSnapshot = true;
+        try {
+            if (txtCariFaskesUi != null) txtCariFaskesUi.setText("");
+            if (sorterFaskesUi != null) sorterFaskesUi.setRowFilter(null);
+            modelFaskes.setRowCount(0);
+        } finally {
+            restoringReferralSnapshot = false;
+        }
+        selectedKdppkSatuSehatTujuan = "";
+        selectedKdppkTujuan = "";
+        selectedNmppkTujuan = "";
+        if (tblFaskes != null) tblFaskes.clearSelection();
+        setStatus("Kriteria berubah. Klik [Cari Faskes] kembali.", false);
+        updateReferralActionState();
     }
 
     private static boolean isKriteriaTindakanMedis(String kriteriaText) {
@@ -4035,6 +4228,7 @@ private static class KriteriaJawabanCellEditor extends javax.swing.AbstractCellE
     private java.awt.Component active;
     private JTable ownerTable;
     private int editingRow, editingCol;
+    private boolean loadingEditorValue;
 
     KriteriaJawabanCellEditor(JTable table) {
         this.ownerTable = table;
@@ -4050,12 +4244,41 @@ private static class KriteriaJawabanCellEditor extends javax.swing.AbstractCellE
         cmbBoolean.setMaximumSize(booleanSize);
         pnlBoolean.setOpaque(false);
         pnlBoolean.add(cmbBoolean);
+        cmbBoolean.addActionListener(e -> {
+            if (!loadingEditorValue && ownerTable != null
+                    && ownerTable.isEditing()
+                    && ownerTable.getCellEditor() == this) {
+                stopCellEditing();
+            }
+        });
 
         // Textbox prosedur memenuhi ruang jawaban; tombol selalu menempel kanan.
         txtIcd9.setEditable(true); // tetap dapat dikoreksi/dihapus manual
         txtIcd9.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         txtIcd9.setPreferredSize(new Dimension(240, 26));
         txtIcd9.setMinimumSize(new Dimension(120, 26));
+        txtIcd9.getDocument().addDocumentListener(
+                new javax.swing.event.DocumentListener() {
+            private void changed() {
+                updateIcd9ValueInModel();
+            }
+
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                changed();
+            }
+        });
+        txtIcd9.addActionListener(e -> stopCellEditing());
 
         btnCariIcd9.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         btnCariIcd9.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 10));
@@ -4074,7 +4297,8 @@ private static class KriteriaJawabanCellEditor extends javax.swing.AbstractCellE
         btnCariIcd9.setMaximumSize(searchButtonSize);
 
         pnlIcd9.setOpaque(false);
-        pnlIcd9.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 0));
+        // Beri jarak dari garis kanan card agar tombol tidak terlihat menempel.
+        pnlIcd9.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 10));
         pnlIcd9.add(txtIcd9, BorderLayout.CENTER);
         pnlIcd9.add(btnCariIcd9, BorderLayout.EAST);
         
@@ -4097,6 +4321,23 @@ private static class KriteriaJawabanCellEditor extends javax.swing.AbstractCellE
             int modelRow = ownerTable.convertRowIndexToModel(editingRow);
             int modelColumn = ownerTable.convertColumnIndexToModel(editingCol);
             ownerTable.getModel().setValueAt(combined, modelRow, modelColumn);
+        }
+    }
+
+    private void updateIcd9ValueInModel() {
+        if (loadingEditorValue || ownerTable == null
+                || !ownerTable.isEditing()
+                || ownerTable.getCellEditor() != this
+                || editingRow < 0 || editingRow >= ownerTable.getRowCount()
+                || editingCol < 0 || editingCol >= ownerTable.getColumnCount()) {
+            return;
+        }
+        int modelRow = ownerTable.convertRowIndexToModel(editingRow);
+        int modelColumn = ownerTable.convertColumnIndexToModel(editingCol);
+        String value = txtIcd9.getText();
+        Object current = ownerTable.getModel().getValueAt(modelRow, modelColumn);
+        if (current == null || !value.equals(current.toString())) {
+            ownerTable.getModel().setValueAt(value, modelRow, modelColumn);
         }
     }
     
@@ -4125,11 +4366,16 @@ private static class KriteriaJawabanCellEditor extends javax.swing.AbstractCellE
 
         // --- Khusus untuk tipe boolean
         if ("boolean".equalsIgnoreCase(tipe)) {
-            String val = value == null ? "YA" : value.toString().trim();
+            String val = value == null ? "TIDAK" : value.toString().trim();
             if ("true".equalsIgnoreCase(val) || "1".equals(val) || "Y".equalsIgnoreCase(val)) val = "YA";
             if ("false".equalsIgnoreCase(val) || "0".equals(val) || "T".equalsIgnoreCase(val) || "TDK".equalsIgnoreCase(val)) val = "TIDAK";
-            if (!"YA".equalsIgnoreCase(val) && !"TIDAK".equalsIgnoreCase(val)) val = "YA";
-            cmbBoolean.setSelectedItem(val.toUpperCase());
+            if (!"YA".equalsIgnoreCase(val) && !"TIDAK".equalsIgnoreCase(val)) val = "TIDAK";
+            loadingEditorValue = true;
+            try {
+                cmbBoolean.setSelectedItem(val.toUpperCase());
+            } finally {
+                loadingEditorValue = false;
+            }
             active = pnlBoolean;
             return pnlBoolean;
         }
@@ -4137,7 +4383,12 @@ private static class KriteriaJawabanCellEditor extends javax.swing.AbstractCellE
         // --- Untuk tipe text, cek apakah kriteria ini mengharuskan ICD-9
         if (isKriteriaTindakanMedis(kriteriaText)) {
             String currentValue = (value == null) ? "" : value.toString();
-            txtIcd9.setText(currentValue);
+            loadingEditorValue = true;
+            try {
+                txtIcd9.setText(currentValue);
+            } finally {
+                loadingEditorValue = false;
+            }
             active = pnlIcd9;
             return pnlIcd9;
         }
@@ -5911,6 +6162,7 @@ private String escapeHtml(String s) {
             }
             
             // Isi tabel kriteria
+            clearFaskesResultsAfterCriteriaChange();
             modelKriteria.setRowCount(0);
             String kodeTindakanPasien = loadKodeTindakanPasien();
             JsonNode arr = resp.path("response").path("kriteriaRujukan");
@@ -5932,6 +6184,15 @@ private String escapeHtml(String s) {
                     });
                 }
             }
+
+            // Bila tindakan pasien sudah tersedia, baris kedua menjadi pilihan
+            // aktif dan kedua baris boolean tetap TIDAK.
+            if (isCriteriaSynchronizationEnabled()
+                    && modelKriteria.getRowCount() >= 3
+                    && !tableValue(modelKriteria, 1, 3).isEmpty()) {
+                applyCriteriaSynchronization(1);
+            }
+            updateReferralActionState();
 
             setStatus("Berhasil. Isi jawaban kriteria, lalu klik [Cari Faskes].", false);
             showModernToast(this,
@@ -5959,17 +6220,6 @@ private String escapeHtml(String s) {
                     "Klik [Cek Kriteria] dulu untuk mengambil daftar kriteria.",
                     ToastMessage.WARNING, 0);
             return;
-        }
-
-        // Validasi semua jawaban kriteria sudah diisi
-        for (int i = 0; i < modelKriteria.getRowCount(); i++) {
-            String jwb = String.valueOf(modelKriteria.getValueAt(i, 3)).trim();
-            if (jwb.isEmpty()) {
-                showModernToast(this,
-                        "Jawaban kriteria belum lengkap (baris " + (i + 1) + ").",
-                        ToastMessage.WARNING, 0);
-                return;
-            }
         }
 
         // Build JSON kriteria item
@@ -6084,6 +6334,9 @@ private String escapeHtml(String s) {
 
     /** Build kriteriaRujukan.item JSON dari isi tabel. */
     private String buildKriteriaJsonItem() {
+        if (!commitCriteriaCellEditing()
+                || !validateCriteriaSelectionForRequest()) return null;
+
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < modelKriteria.getRowCount(); i++) {
             String linkId = String.valueOf(modelKriteria.getValueAt(i, 0));
@@ -6131,6 +6384,7 @@ private String escapeHtml(String s) {
         }
 
         if (!validateBeforeApi()) return;
+        if (!commitCriteriaCellEditing()) return;
 
         if (selectedKdppkTujuan.isEmpty()) {
             showModernToast(this,
@@ -6257,12 +6511,36 @@ private String escapeHtml(String s) {
     }
 
     /**
-     * Mencegah API menerbitkan rujukan ketika struktur penyimpanan lokal belum
-     * siap. Satu rujukan dapat memiliki banyak kriteria, sehingga key tabel
-     * kriteria wajib berupa pasangan no_rujukan + link_id.
+     * Menyiapkan tabel milik fitur ini sebelum API menerbitkan rujukan. V11
+     * hanya memeriksa tabel dan langsung menghentikan proses ketika tabel
+     * snapshot belum pernah dibuat. V12 membuat tiga tabel khusus fitur ini
+     * secara otomatis dan memperbarui key tabel kriteria tanpa menyentuh isi
+     * tabel bridging BPJS bawaan Khanza.
      */
     private boolean validateLocalReferralStorage() {
-        String tableSql = "select count(*) from information_schema.tables "
+        try {
+            ensureLocalReferralStorage();
+        } catch (Exception ex) {
+            String detail = friendlyLocalDatabaseError(ex);
+            showModernToast(this,
+                    "Penyimpanan rujukan belum dapat disiapkan otomatis. "
+                            + "Pastikan user database memiliki izin CREATE/ALTER.\n"
+                            + "Detail: " + detail,
+                    ToastMessage.ERROR, 0);
+            setStatus("Penyimpanan lokal gagal disiapkan; API belum dipanggil.",
+                    true);
+            System.out.println("Gagal menyiapkan tabel rujukan SatuSehat: " + ex);
+            return false;
+        }
+
+        java.util.LinkedHashSet<String> requiredTables =
+                new java.util.LinkedHashSet<>();
+        requiredTables.add(SNAPSHOT_TABLE);
+        requiredTables.add("bridging_kriteria_rujukan_satusehat");
+        requiredTables.add("bridging_rujukan_satusehat");
+        requiredTables.add("bridging_rujukan_bpjs");
+
+        String tableSql = "select table_name from information_schema.tables "
                 + "where table_schema=database() and table_name in (?,?,?,?)";
         try (PreparedStatement statement = koneksi.prepareStatement(tableSql)) {
             statement.setString(1, SNAPSHOT_TABLE);
@@ -6270,14 +6548,16 @@ private String escapeHtml(String s) {
             statement.setString(3, "bridging_rujukan_satusehat");
             statement.setString(4, "bridging_rujukan_bpjs");
             try (ResultSet result = statement.executeQuery()) {
-                if (!result.next() || result.getInt(1) < 4) {
-                    showModernToast(this,
-                            "Tabel penyimpanan rujukan belum lengkap. Jalankan "
-                                    + "SQL migrasi rujukan SatuSehat terlebih dahulu.",
-                            ToastMessage.ERROR, 0);
-                    setStatus("Penyimpanan lokal belum siap; API belum dipanggil.",
-                            true);
-                    return false;
+                while (result.next()) {
+                    String found = safe(result.getString(1));
+                    java.util.Iterator<String> iterator =
+                            requiredTables.iterator();
+                    while (iterator.hasNext()) {
+                        if (iterator.next().equalsIgnoreCase(found)) {
+                            iterator.remove();
+                            break;
+                        }
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -6289,19 +6569,174 @@ private String escapeHtml(String s) {
             return false;
         }
 
-        String indexSql = "select index_name," 
+        if (!requiredTables.isEmpty()) {
+            showModernToast(this,
+                    "Tabel penyimpanan yang belum tersedia: "
+                            + String.join(", ", requiredTables)
+                            + ". Rujukan belum dikirim.",
+                    ToastMessage.ERROR, 0);
+            setStatus("Penyimpanan lokal belum lengkap; API belum dipanggil.",
+                    true);
+            return false;
+        }
+
+        return hasCompositeCriteriaKey();
+    }
+
+    private void ensureLocalReferralStorage() throws Exception {
+        if (!databaseTableExists(SNAPSHOT_TABLE)) {
+            executeStorageDdl("create table if not exists `"
+                + SNAPSHOT_TABLE + "` ("
+                + "`no_rawat` varchar(17) not null,"
+                + "`no_sep` varchar(40) not null default '',"
+                + "`no_rujukan_bpjs` varchar(50) not null,"
+                + "`no_rujukan_satusehat` varchar(100) not null default '',"
+                + "`service_request_id` varchar(100) not null default '',"
+                + "`no_rkm_medis` varchar(20) not null default '',"
+                + "`nama_pasien` varchar(100) not null default '',"
+                + "`kode_faskes_satusehat` varchar(100) not null default '',"
+                + "`id_pasien_satusehat` varchar(100) not null default '',"
+                + "`kdppk_satusehat_tujuan` varchar(100) not null default '',"
+                + "`kode_ppk_tujuan` varchar(50) not null default '',"
+                + "`nama_faskes_tujuan` varchar(255) not null default '',"
+                + "`kd_dokter_rs` varchar(20) not null default '',"
+                + "`kd_dokter_satusehat` varchar(100) not null default '',"
+                + "`encounter_reference` varchar(100) not null default '',"
+                + "`patient_instruction` text not null,"
+                + "`keterangan_rujukan` text not null,"
+                + "`user` varchar(50) not null default '',"
+                + "`form_json` longtext not null,"
+                + "`kriteria_json` longtext not null,"
+                + "`faskes_json` longtext not null,"
+                + "`response_api_json` longtext not null,"
+                + "`created_at` datetime not null,"
+                + "`updated_at` datetime not null,"
+                + "primary key (`no_rawat`),"
+                + "unique key `uk_brsf_no_rujukan_bpjs` "
+                + "(`no_rujukan_bpjs`),"
+                + "key `idx_brsf_no_sep` (`no_sep`),"
+                + "key `idx_brsf_no_rujukan_satusehat` "
+                + "(`no_rujukan_satusehat`)"
+                + ") engine=InnoDB default charset=utf8mb4");
+        }
+
+        if (!databaseTableExists("bridging_rujukan_satusehat")) {
+            executeStorageDdl("create table if not exists "
+                + "`bridging_rujukan_satusehat` ("
+                + "`no_rujukan` varchar(50) not null,"
+                + "`no_rujukan_satusehat` varchar(100) not null default '',"
+                + "`service_request_id` varchar(100) not null default '',"
+                + "`kode_faskes_satusehat` varchar(100) not null default '',"
+                + "`id_pasien_satusehat` varchar(100) not null default '',"
+                + "`kdppk_satusehat_tujuan` varchar(100) not null default '',"
+                + "`nama_faskes_tujuan` varchar(255) not null default '',"
+                + "`kd_dokter_satusehat` varchar(100) not null default '',"
+                + "`encounter_reference` varchar(100) not null default '',"
+                + "`patient_instruction` text not null,"
+                + "`keterangan_rujukan` text not null,"
+                + "`kode_propinsi` varchar(10) not null default '',"
+                + "`nama_propinsi` varchar(100) not null default '',"
+                + "`kode_kabupaten` varchar(10) not null default '',"
+                + "`nama_kabupaten` varchar(100) not null default '',"
+                + "`kode_poli_rujuk` varchar(20) not null default '',"
+                + "`created_at` datetime not null default current_timestamp,"
+                + "`update_at` datetime not null default current_timestamp "
+                + "on update current_timestamp,"
+                + "primary key (`no_rujukan`),"
+                + "key `idx_brss_no_rujukan_satusehat` "
+                + "(`no_rujukan_satusehat`),"
+                + "key `idx_brss_service_request_id` (`service_request_id`)"
+                + ") engine=InnoDB default charset=utf8mb4");
+        }
+
+        if (!databaseTableExists("bridging_kriteria_rujukan_satusehat")) {
+            executeStorageDdl("create table if not exists "
+                + "`bridging_kriteria_rujukan_satusehat` ("
+                + "`no_rujukan` varchar(50) not null,"
+                + "`link_id` varchar(50) not null,"
+                + "`pertanyaan` varchar(500) not null default '',"
+                + "`tipe` varchar(20) not null default '',"
+                + "`jawaban_boolean` varchar(5) not null default '',"
+                + "`jawaban_text` text not null,"
+                + "primary key (`no_rujukan`,`link_id`),"
+                + "key `idx_bkrss_link_id` (`link_id`)"
+                + ") engine=InnoDB default charset=utf8mb4");
+        }
+
+        migrateCriteriaCompositeKey();
+    }
+
+    private boolean databaseTableExists(String tableName) throws Exception {
+        String sql = "select count(*) from information_schema.tables "
+                + "where table_schema=database() and table_name=?";
+        try (PreparedStatement statement = koneksi.prepareStatement(sql)) {
+            statement.setString(1, tableName);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() && result.getInt(1) > 0;
+            }
+        }
+    }
+
+    private void executeStorageDdl(String sql) throws Exception {
+        try (java.sql.Statement statement = koneksi.createStatement()) {
+            statement.executeUpdate(sql);
+        }
+    }
+
+    private void migrateCriteriaCompositeKey() throws Exception {
+        String indexSql = "select index_name,"
                 + "group_concat(column_name order by seq_in_index separator ',') "
                 + "from information_schema.statistics "
                 + "where table_schema=database() "
                 + "and table_name='bridging_kriteria_rujukan_satusehat' "
                 + "and non_unique=0 group by index_name";
+        String primaryColumns = "";
+        java.util.ArrayList<String> obsoleteUniqueIndexes =
+                new java.util.ArrayList<>();
+
         try (PreparedStatement statement = koneksi.prepareStatement(indexSql);
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
-                if ("no_rujukan,link_id".equalsIgnoreCase(
-                        safe(result.getString(2)))) {
-                    return true;
+                String indexName = safe(result.getString(1));
+                String columns = safe(result.getString(2));
+                if ("PRIMARY".equalsIgnoreCase(indexName)) {
+                    primaryColumns = columns;
+                } else if ("no_rujukan".equalsIgnoreCase(columns)) {
+                    obsoleteUniqueIndexes.add(indexName);
                 }
+            }
+        }
+
+        for (String indexName : obsoleteUniqueIndexes) {
+            String quotedName = indexName.replace("`", "``");
+            executeStorageDdl("alter table "
+                    + "`bridging_kriteria_rujukan_satusehat` drop index `"
+                    + quotedName + "`");
+        }
+
+        if (!"no_rujukan,link_id".equalsIgnoreCase(primaryColumns)) {
+            String alterSql = "alter table "
+                    + "`bridging_kriteria_rujukan_satusehat` ";
+            if (!primaryColumns.isEmpty()) {
+                alterSql += "drop primary key, ";
+            }
+            alterSql += "add primary key (`no_rujukan`,`link_id`)";
+            executeStorageDdl(alterSql);
+        }
+    }
+
+    private boolean hasCompositeCriteriaKey() {
+        String indexSql = "select "
+                + "group_concat(column_name order by seq_in_index separator ',') "
+                + "from information_schema.statistics "
+                + "where table_schema=database() "
+                + "and table_name='bridging_kriteria_rujukan_satusehat' "
+                + "and index_name='PRIMARY' group by index_name";
+        try (PreparedStatement statement = koneksi.prepareStatement(indexSql);
+                ResultSet result = statement.executeQuery()) {
+            if (result.next() && "no_rujukan,link_id".equalsIgnoreCase(
+                    safe(result.getString(1)))) {
+                return true;
             }
         } catch (Exception ex) {
             showModernToast(this,
@@ -6313,11 +6748,11 @@ private String escapeHtml(String s) {
         }
 
         showModernToast(this,
-                "Struktur key tabel kriteria masih versi lama. Jalankan SQL "
-                        + "migrasi agar key menjadi no_rujukan + link_id. "
-                        + "Rujukan belum dikirim.",
+                "Key tabel kriteria belum berhasil diubah menjadi "
+                        + "no_rujukan + link_id. Rujukan belum dikirim.",
                 ToastMessage.ERROR, 0);
-        setStatus("Migrasi key kriteria diperlukan; API belum dipanggil.", true);
+        setStatus("Migrasi key kriteria belum berhasil; API belum dipanggil.",
+                true);
         return false;
     }
 
@@ -7237,18 +7672,49 @@ private String escapeHtml(String s) {
     private void updateReferralActionState() {
         boolean active = tNoRujukanBpjs != null
                 && !safe(tNoRujukanBpjs.getText()).isEmpty();
+        boolean criteriaAvailable = modelKriteria != null
+                && modelKriteria.getRowCount() > 0;
+        boolean criteriaReady = criteriaAvailable
+                && isCriteriaReadyForFaskes();
+        boolean facilitySelected = !safe(selectedKdppkTujuan).isEmpty()
+                && !safe(selectedKdppkSatuSehatTujuan).isEmpty();
         boolean printable = active && referralPersisted;
+
+        if (btnCekKriteria != null) {
+            btnCekKriteria.setEnabled(!active);
+            btnCekKriteria.setToolTipText(active
+                    ? "Hapus rujukan aktif sebelum memulai proses baru"
+                    : "Langkah 1: ambil kriteria rujukan");
+        }
+        if (chkSinkronKriteriaUi != null) {
+            chkSinkronKriteriaUi.setEnabled(!active);
+        }
+        if (btnCariFaskes != null) {
+            btnCariFaskes.setEnabled(!active && criteriaReady);
+            btnCariFaskes.setToolTipText(active
+                    ? "Hapus rujukan aktif sebelum mencari faskes lain"
+                    : !criteriaAvailable
+                            ? "Selesaikan langkah Cek Kriteria terlebih dahulu"
+                            : !criteriaReady
+                                    ? "Pilih kriteria sesuai aturan sebelum mencari faskes"
+                                    : "Langkah 2: cari faskes tujuan");
+        }
         if (btnHapus != null) {
             btnHapus.setEnabled(active);
+            btnHapus.setVisible(active);
             btnHapus.setToolTipText(active
                     ? "Hapus rujukan aktif agar dapat memilih faskes lain"
                     : "Belum ada rujukan aktif yang dapat dihapus");
         }
         if (btnKirim != null) {
-            btnKirim.setEnabled(!active);
+            btnKirim.setEnabled(!active && criteriaReady && facilitySelected);
             btnKirim.setToolTipText(active
                     ? "Hapus rujukan aktif sebelum mengirim rujukan baru"
-                    : "Kirim rujukan ke faskes yang dipilih");
+                    : !criteriaReady
+                            ? "Selesaikan Cek Kriteria dan Cari Faskes terlebih dahulu"
+                            : !facilitySelected
+                                    ? "Pilih satu faskes tujuan terlebih dahulu"
+                                    : "Langkah 3: kirim rujukan ke faskes terpilih");
         }
         if (btnCetakSepRujukanUi != null) {
             btnCetakSepRujukanUi.setVisible(printable);
@@ -9377,6 +9843,15 @@ private String escapeHtml(String s) {
     }
 
     private void resetReferralAfterDelete() {
+        if (tblKriteria != null && tblKriteria.isEditing()
+                && tblKriteria.getCellEditor() != null) {
+            tblKriteria.getCellEditor().cancelCellEditing();
+        }
+        if (tblFaskes != null && tblFaskes.isEditing()
+                && tblFaskes.getCellEditor() != null) {
+            tblFaskes.getCellEditor().cancelCellEditing();
+        }
+
         tNoRujukanBpjs.setText("");
         tNoRujukanSatuSehat.setText("");
         noRujukanBPJS = "";
@@ -9385,19 +9860,25 @@ private String escapeHtml(String s) {
         referralPersisted = false;
 
         restoringReferralSnapshot = true;
+        syncingCriteriaAnswers = true;
         try {
-            for (int row = 0; row < modelFaskes.getRowCount(); row++) {
-                if (Boolean.TRUE.equals(modelFaskes.getValueAt(row, 0))) {
-                    modelFaskes.setValueAt(Boolean.FALSE, row, 0);
-                }
-            }
+            modelKriteria.setRowCount(0);
+            modelFaskes.setRowCount(0);
+            if (txtCariFaskesUi != null) txtCariFaskesUi.setText("");
+            if (sorterFaskesUi != null) sorterFaskesUi.setRowFilter(null);
         } finally {
+            syncingCriteriaAnswers = false;
             restoringReferralSnapshot = false;
+        }
+        if (chkSinkronKriteriaUi != null) {
+            chkSinkronKriteriaUi.setSelected(true);
         }
         selectedKdppkSatuSehatTujuan = "";
         selectedKdppkTujuan = "";
         selectedNmppkTujuan = "";
+        tblKriteria.clearSelection();
         tblFaskes.clearSelection();
+        updateDynamicTableHeights();
         updateReferralActionState();
     }
 

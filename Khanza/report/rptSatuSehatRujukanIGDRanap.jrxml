@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="rptSatuSehatRujukanIGDRanap" pageWidth="595" pageHeight="842" columnWidth="547"
+              leftMargin="24" rightMargin="24" topMargin="20" bottomMargin="20" uuid="02f96712-44d4-4d3c-a0bf-a98d32d79914">
+
+    <property name="ireport.zoom" value="1.0"/>
+    <property name="ireport.x" value="0"/>
+    <property name="ireport.y" value="0"/>
+
+    <parameter name="namars" class="java.lang.String"/>
+    <parameter name="alamatrs" class="java.lang.String"/>
+    <parameter name="kotars" class="java.lang.String"/>
+    <parameter name="propinsirs" class="java.lang.String"/>
+    <parameter name="kontakrs" class="java.lang.String"/>
+    <parameter name="emailrs" class="java.lang.String"/>
+    <parameter name="logo" class="java.io.InputStream"/>
+    <parameter name="nomor_rujukan_nasional" class="java.lang.String"/>
+    <parameter name="jenis_rujukan" class="java.lang.String"/>
+    <parameter name="ihs_pasien" class="java.lang.String"/>
+    <parameter name="no_sep" class="java.lang.String"/>
+    <parameter name="diagnosis" class="java.lang.String"/>
+    <parameter name="alasan_rujukan" class="java.lang.String"/>
+    <parameter name="dokter_pengirim" class="java.lang.String"/>
+    <parameter name="rs_tujuan" class="java.lang.String"/>
+    <parameter name="org_tujuan" class="java.lang.String"/>
+    <parameter name="service_request_id" class="java.lang.String"/>
+    <parameter name="encounter_id" class="java.lang.String"/>
+    <parameter name="tanggal_cetak" class="java.lang.String"/>
+    <parameter name="status_rujukan" class="java.lang.String"/>
+    <parameter name="qr_image" class="java.awt.Image"/>
+
+    <field name="no_rawat" class="java.lang.String"/>
+    <field name="no_rkm_medis" class="java.lang.String"/>
+    <field name="nm_pasien" class="java.lang.String"/>
+    <field name="no_ktp" class="java.lang.String"/>
+    <field name="tgl_lahir" class="java.sql.Date"/>
+    <field name="jk" class="java.lang.String"/>
+
+    <background><band splitType="Stretch"/></background>
+
+    <title>
+        <band height="120" splitType="Stretch">
+            <image scaleImage="RetainShape" onErrorType="Blank">
+                <reportElement x="0" y="2" width="72" height="62" uuid="d0ce948b-2dc1-459d-8b03-cad781f422aa"/>
+                <imageExpression><![CDATA[$P{logo}]]></imageExpression>
+            </image>
+            <textField isBlankWhenNull="true">
+                <reportElement x="80" y="2" width="467" height="24" uuid="3b962caf-37b5-4ea1-b93d-71379bed1d87"/>
+                <textElement verticalAlignment="Middle"><font fontName="SansSerif" size="15" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{namars}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement x="80" y="27" width="467" height="16" uuid="4c1c05cc-fb00-42f1-b9cd-2208648c474e"/>
+                <textElement><font fontName="SansSerif" size="9"/></textElement>
+                <textFieldExpression><![CDATA[$P{alamatrs} + ", " + $P{kotars} + " - " + $P{propinsirs}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement x="80" y="43" width="467" height="16" uuid="c8ea2f8c-9c6e-4a60-8e2f-71802e28cd50"/>
+                <textElement><font fontName="SansSerif" size="9"/></textElement>
+                <textFieldExpression><![CDATA["Kontak: " + $P{kontakrs} + "   Email: " + $P{emailrs}]]></textFieldExpression>
+            </textField>
+            <line>
+                <reportElement x="0" y="70" width="547" height="1" forecolor="#1C5D87" uuid="786c1d20-c7df-4176-8f8c-faa976cf8116"/>
+            </line>
+            <staticText>
+                <reportElement x="0" y="78" width="547" height="26" uuid="b458dd9a-e38e-4716-92dd-295f72541665"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" size="16" isBold="true"/></textElement>
+                <text><![CDATA[SURAT RUJUKAN SATUSEHAT]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="0" y="104" width="547" height="16" uuid="eb35b77f-3a14-41ca-a813-9f450d883bff"/>
+                <textElement textAlignment="Center"><font fontName="SansSerif" size="9"/></textElement>
+                <textFieldExpression><![CDATA["Jenis Rujukan: " + $P{jenis_rujukan}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <detail>
+        <band height="505" splitType="Stretch">
+            <rectangle radius="8">
+                <reportElement x="0" y="5" width="547" height="72" backcolor="#EDF7FD" mode="Opaque" forecolor="#B9D9EC" uuid="7ac49bdc-1385-4edc-9944-929719cbdc92"/>
+            </rectangle>
+            <staticText>
+                <reportElement x="16" y="14" width="260" height="15" uuid="ab715c95-f1f1-493c-b75e-3a5b0bb093ef"/>
+                <textElement><font fontName="SansSerif" size="9" isBold="true"/></textElement>
+                <text><![CDATA[NOMOR RUJUKAN NASIONAL]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="16" y="30" width="370" height="34" uuid="a871c057-4f55-48c7-96ae-47c279cc7580"/>
+                <textElement verticalAlignment="Middle"><font fontName="SansSerif" size="22" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{nomor_rujukan_nasional}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="395" y="16" width="136" height="18" uuid="1b8d8707-ea29-4efc-a621-820b272c075b"/>
+                <textElement textAlignment="Right"><font fontName="SansSerif" size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{status_rujukan}]]></textFieldExpression>
+            </textField>
+
+            <staticText><reportElement x="0" y="91" width="547" height="18" uuid="8529b62b-69ee-4a8a-9b5a-dddc63dff8f8"/><textElement><font fontName="SansSerif" size="11" isBold="true"/></textElement><text><![CDATA[IDENTITAS PASIEN]]></text></staticText>
+            <line><reportElement x="0" y="111" width="547" height="1" forecolor="#D6E1E8" uuid="06311e2d-2ca7-45ca-bfbb-e51c49190cd8"/></line>
+
+            <staticText><reportElement x="0" y="120" width="120" height="16" uuid="aad06466-ff9e-4018-bb28-a17c41116c20"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[Nama Pasien]]></text></staticText>
+            <textField isBlankWhenNull="true"><reportElement x="128" y="120" width="419" height="16" uuid="7b1f8a54-bcc7-467d-af59-b9c24ded8d32"/><textElement><font fontName="SansSerif" size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$F{nm_pasien}]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="140" width="120" height="16" uuid="c29eaa7c-f44c-409a-bc2c-64f2cf5a9d5e"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[No. RM / No. Rawat]]></text></staticText>
+            <textField><reportElement x="128" y="140" width="419" height="16" uuid="298e930c-7024-4491-8077-101749996c58"/><textElement><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$F{no_rkm_medis}+" / "+$F{no_rawat}]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="160" width="120" height="16" uuid="4d5db80c-fc21-40ac-b69e-6945327221f5"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[NIK]]></text></staticText>
+            <textField isBlankWhenNull="true"><reportElement x="128" y="160" width="180" height="16" uuid="55354766-17f8-4617-b3c7-b8acfdb53e5c"/><textElement><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$F{no_ktp}]]></textFieldExpression></textField>
+            <staticText><reportElement x="310" y="160" width="70" height="16" uuid="f0f66cf3-43c2-44f9-b8b5-6b6eb3458d48"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[JK / Tgl Lahir]]></text></staticText>
+            <textField isBlankWhenNull="true"><reportElement x="385" y="160" width="162" height="16" uuid="902d1283-8a5c-477c-ab44-e53e9d764913"/><textElement><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$F{jk}+" / "+($F{tgl_lahir}==null?"-":new java.text.SimpleDateFormat("dd-MM-yyyy").format($F{tgl_lahir}))]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="180" width="120" height="16" uuid="b221622a-d8ba-46e2-9776-92342ca9fd79"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[IHS Pasien]]></text></staticText>
+            <textField><reportElement x="128" y="180" width="180" height="16" uuid="c072e30e-9576-460b-8a62-6bd6033882e2"/><textElement><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{ihs_pasien}]]></textFieldExpression></textField>
+            <staticText><reportElement x="310" y="180" width="70" height="16" uuid="399ab73b-0883-4496-956a-b5952069f538"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[No. SEP]]></text></staticText>
+            <textField><reportElement x="385" y="180" width="162" height="16" uuid="75b7f978-bcbb-4628-8fd7-90adb27ef243"/><textElement><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{no_sep}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="211" width="547" height="18" uuid="e5bac8e3-2f27-4fe0-9dad-a6897e5ad1ce"/><textElement><font fontName="SansSerif" size="11" isBold="true"/></textElement><text><![CDATA[INFORMASI RUJUKAN]]></text></staticText>
+            <line><reportElement x="0" y="231" width="547" height="1" forecolor="#D6E1E8" uuid="4c46e3b0-d790-4d1b-a81b-4fb0a827fedb"/></line>
+            <staticText><reportElement x="0" y="240" width="120" height="16" uuid="9d2f63dc-20f4-4e42-afc8-dfa1d2e7846f"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[Diagnosis Utama]]></text></staticText>
+            <textField isStretchWithOverflow="true"><reportElement x="128" y="240" width="419" height="30" uuid="bd5da7a8-b141-41c8-b520-8bce3715a24e"/><textElement><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{diagnosis}]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="274" width="120" height="16" uuid="b4359e14-d013-4bf9-b9f8-32a8d48568fb"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[Alasan Rujukan]]></text></staticText>
+            <textField isStretchWithOverflow="true"><reportElement x="128" y="274" width="419" height="38" uuid="e3416e56-0f26-4119-b024-51e96d87d989"/><textElement><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{alasan_rujukan}]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="317" width="120" height="16" uuid="d15cbd32-3d0d-43b4-bd04-408b6c9701cb"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[RS Tujuan]]></text></staticText>
+            <textField><reportElement x="128" y="317" width="419" height="16" uuid="5c40d4ae-909f-46cd-ad1d-a174b69eed22"/><textElement><font fontName="SansSerif" size="9" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{rs_tujuan}]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="337" width="120" height="16" uuid="34c50b1b-d5ba-47ce-a815-75dd9f0ecb32"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[Org ID Tujuan]]></text></staticText>
+            <textField><reportElement x="128" y="337" width="419" height="16" uuid="72934ebc-2c62-4bea-b3c2-b2c285e47ae5"/><textElement><font fontName="SansSerif" size="8"/></textElement><textFieldExpression><![CDATA[$P{org_tujuan}]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="357" width="120" height="16" uuid="60101b1f-f7ee-43dd-962e-b0297b655496"/><textElement><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[Dokter Pengirim]]></text></staticText>
+            <textField><reportElement x="128" y="357" width="419" height="16" uuid="c1647729-54dc-41af-8533-3380c72940f6"/><textElement><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{dokter_pengirim}]]></textFieldExpression></textField>
+
+            <staticText><reportElement x="0" y="388" width="547" height="18" uuid="3be117b0-0090-41ac-840d-5e1aed37d4c0"/><textElement><font fontName="SansSerif" size="11" isBold="true"/></textElement><text><![CDATA[REFERENSI SATUSEHAT]]></text></staticText>
+            <line><reportElement x="0" y="408" width="547" height="1" forecolor="#D6E1E8" uuid="152f06af-733c-47f1-9183-bae5282fb071"/></line>
+            <staticText><reportElement x="0" y="417" width="120" height="16" uuid="b8bd9cf9-359f-4fe0-a0df-07faf114725b"/><textElement><font fontName="SansSerif" size="8"/></textElement><text><![CDATA[ServiceRequest ID]]></text></staticText>
+            <textField><reportElement x="128" y="417" width="300" height="16" uuid="bb24432b-ed76-470f-b21a-58a2d4d58b56"/><textElement><font fontName="SansSerif" size="8"/></textElement><textFieldExpression><![CDATA[$P{service_request_id}]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="437" width="120" height="16" uuid="94b1061f-270e-414c-a430-e4a8a8a1d085"/><textElement><font fontName="SansSerif" size="8"/></textElement><text><![CDATA[Encounter ID]]></text></staticText>
+            <textField><reportElement x="128" y="437" width="300" height="16" uuid="c0d42f87-dc18-4787-a142-7813c7b67d59"/><textElement><font fontName="SansSerif" size="8"/></textElement><textFieldExpression><![CDATA[$P{encounter_id}]]></textFieldExpression></textField>
+            <staticText><reportElement x="0" y="457" width="120" height="16" uuid="373bbacb-6568-45bb-ac8b-196657a75835"/><textElement><font fontName="SansSerif" size="8"/></textElement><text><![CDATA[Tanggal Cetak]]></text></staticText>
+            <textField><reportElement x="128" y="457" width="300" height="16" uuid="f194aad8-5df1-4545-b681-836d0921768d"/><textElement><font fontName="SansSerif" size="8"/></textElement><textFieldExpression><![CDATA[$P{tanggal_cetak}]]></textFieldExpression></textField>
+
+            <image scaleImage="RetainShape" onErrorType="Blank">
+                <reportElement x="444" y="411" width="92" height="92" uuid="cd7cc1be-f004-41e9-b448-56d899f4611f">
+                    <printWhenExpression><![CDATA[$P{qr_image} != null]]></printWhenExpression>
+                </reportElement>
+                <imageExpression><![CDATA[$P{qr_image}]]></imageExpression>
+            </image>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="74">
+            <line><reportElement x="0" y="0" width="547" height="1" forecolor="#D6E1E8" uuid="4d8eddd8-f1c9-48c4-84d1-d2ee57f89dfa"/></line>
+            <staticText>
+                <reportElement x="0" y="8" width="355" height="30" uuid="683935fd-0351-4c6c-882c-f68b2eb7d0b1"/>
+                <textElement><font fontName="SansSerif" size="8"/></textElement>
+                <text><![CDATA[Dokumen ini dicetak dari SIMRS sebagai bukti administrasi rujukan SATUSEHAT. Nomor Rujukan Nasional merupakan identitas rujukan yang diterbitkan pada proses ServiceRequest.]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="365" y="8" width="182" height="16" uuid="6d7a3342-fbdf-4d23-a875-88cbc3bffed6"/>
+                <textElement textAlignment="Right"><font fontName="SansSerif" size="8"/></textElement>
+                <textFieldExpression><![CDATA["Halaman "+$V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement x="365" y="28" width="182" height="16" uuid="7cf653b1-baaa-45f0-be7d-8cd0e5cadaba"/>
+                <textElement textAlignment="Right"><font fontName="SansSerif" size="8" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{dokter_pengirim}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+</jasperReport>

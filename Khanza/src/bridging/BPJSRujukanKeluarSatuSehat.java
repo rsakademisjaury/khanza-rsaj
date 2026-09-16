@@ -681,10 +681,13 @@ public final class BPJSRujukanKeluarSatuSehat extends javax.swing.JDialog {
     private JPanel copyFieldUi(JTextField field) {
         JPanel wrapper = new JPanel(new BorderLayout(6, 0));
         wrapper.setOpaque(false);
-        javax.swing.JButton copy = new javax.swing.JButton("Salin");
-        styleButtonUi(copy, new Color(255, 251, 235), new Color(146, 64, 14));
-        copy.setPreferredSize(new Dimension(54, 28));
+        javax.swing.JButton copy = new javax.swing.JButton(new javax.swing.ImageIcon(
+                getClass().getResource("/picture/copy.png")));
+        styleButtonUi(copy, new Color(239, 246, 255), UI_BLUE);
+        copy.setPreferredSize(new Dimension(32, 28));
+        copy.setMinimumSize(new Dimension(32, 28));
         copy.setToolTipText("Salin " + (field == NoRujukanBPJS ? "nomor rujukan BPJS" : "nomor rujukan SATUSEHAT"));
+        copy.getAccessibleContext().setAccessibleName(copy.getToolTipText());
         copy.addActionListener(e -> {
             if (field.getText().trim().isEmpty()) return;
             try {

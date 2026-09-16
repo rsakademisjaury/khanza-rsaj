@@ -1214,7 +1214,7 @@ private java.util.ArrayList<String> pecahNilaiTemporaryLab(String data) {
         MneLFG.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
         MneLFG.setForeground(new java.awt.Color(50, 50, 50));
         MneLFG.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/category.png"))); // NOI18N
-        MneLFG.setText("Cetak eLFG + *");
+        MneLFG.setText("Cetak eLFG / SAAG + *");
         MneLFG.setName("MneLFG"); // NOI18N
         MneLFG.setPreferredSize(new java.awt.Dimension(250, 30));
         MneLFG.addActionListener(new java.awt.event.ActionListener() {
@@ -3833,8 +3833,8 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                                 i++;
                                 ps3=koneksi.prepareStatement(
                                     "select template_laboratorium.Pemeriksaan, detail_periksa_lab.nilai,template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan,detail_periksa_lab.biaya_item,"+
-                                    "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw from detail_periksa_lab inner join template_laboratorium on detail_periksa_lab.id_template=template_laboratorium.id_template "+
-                                    "where detail_periksa_lab.no_rawat=? and detail_periksa_lab.kd_jenis_prw=? and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? order by template_laboratorium.urut");
+                                    "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw,detail_periksa_lab.id_template from detail_periksa_lab inner join template_laboratorium on detail_periksa_lab.id_template=template_laboratorium.id_template "+
+                                    "where detail_periksa_lab.no_rawat=? and detail_periksa_lab.kd_jenis_prw=? and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? order by (detail_periksa_lab.id_template='4149') asc,template_laboratorium.urut");
                                 try {
                                     ps3.setString(1,rs.getString("no_rawat"));
                                     ps3.setString(2,rs2.getString("kd_jenis_prw"));
@@ -3842,8 +3842,12 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                                     ps3.setString(4,rs.getString("jam"));
                                     rs3=ps3.executeQuery();
                                     while(rs3.next()){
+                                        String keteranganCetak = rs3.getString("keterangan") == null ? "" : rs3.getString("keterangan").trim();
+                                        if (isPemeriksaanSAAG(rs3.getString("kd_jenis_prw"), rs3.getString("id_template"))) {
+                                            keteranganCetak = gabungkanKeteranganSAAG(keteranganCetak);
+                                        }
                                         simpanTemporaryLabAman("'"+i+"','  "+rs3.getString("Pemeriksaan")+"','"+rs3.getString("nilai")+"','"+rs3.getString("satuan")
-                                                +"','"+rs3.getString("nilai_rujukan")+"','"+rs3.getString("keterangan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User"); 
+                                                +"','"+rs3.getString("nilai_rujukan")+"','"+keteranganCetak+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User"); 
                                         i++;
                                     }
                                 } catch (Exception e) {
@@ -8571,7 +8575,10 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                 ps2.setString(3, rs.getString("jam"));
                 rs2 = ps2.executeQuery();
                 while(rs2.next()){
-                    simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User"); 
+                    boolean headerSaagDitunda = "J000143".equals(rs2.getString("kd_jenis_prw"));
+                    if (!headerSaagDitunda) {
+                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    }
                     ps3 = koneksi.prepareStatement(
                         "select template_laboratorium.Pemeriksaan, detail_periksa_lab.nilai,template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan,detail_periksa_lab.biaya_item,"+
                         "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw,detail_periksa_lab.id_template from detail_periksa_lab inner join template_laboratorium "+
@@ -8597,12 +8604,25 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                                     String keterangan = rs3.getString("keterangan") == null ? "" : rs3.getString("keterangan").trim();
                                     String flag = getStatusHLKritisLab(nilaiStr, rujukan, rs3.getString("kd_jenis_prw"), rs3.getString("id_template"), kategoriUmur);
 
+                                    // SAAG tetap menjadi bagian ANALISA CAIRAN ASITES.
+                                    // Hanya tambahkan keterangan interpretasi; jangan keluarkan dari temporary_lab.
+                                    if (isPemeriksaanSAAG(rs3.getString("kd_jenis_prw"), rs3.getString("id_template"))) {
+                                        keterangan = gabungkanKeteranganSAAG(keterangan);
+                                    }
+                                    if (headerSaagDitunda) {
+                                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                                        headerSaagDitunda = false;
+                                    }
+
                                     simpanTemporaryLabAman(
                                     "'0','         " + pemeriksaan + "','" + nilaiStr + "','" + satuan +
                                     "','" + rujukan + "','" + keterangan + "','" + flag +
                                     "','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");              
                     }
                     
+                    if (headerSaagDitunda && !param.containsKey("saagPemeriksaan")) {
+                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    }
                     rs3.close();
                     ps3.close();
                 }
@@ -11718,7 +11738,10 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                 ps2.setString(3, rs.getString("jam"));
                 rs2 = ps2.executeQuery();
                 while(rs2.next()){
-                    simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User"); 
+                    boolean headerSaagDitunda = "J000143".equals(rs2.getString("kd_jenis_prw"));
+                    if (!headerSaagDitunda) {
+                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    }
                     ps3 = koneksi.prepareStatement(
                         "select template_laboratorium.Pemeriksaan, detail_periksa_lab.nilai,template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan,detail_periksa_lab.biaya_item,"+
                         "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw,detail_periksa_lab.id_template from detail_periksa_lab inner join template_laboratorium "+
@@ -11748,12 +11771,25 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                                             ? ""
                                             : getStatusHLKritisLab(nilaiStr, rujukan, kdJenisPrwUpload, idTemplateUpload, kategoriUmur);
 
+                                    // SAAG tetap menjadi bagian ANALISA CAIRAN ASITES pada PDF upload.
+                                    // Jangan di-skip; tambahkan interpretasi di kolom Keterangan.
+                                    if (isPemeriksaanSAAG(kdJenisPrwUpload, idTemplateUpload)) {
+                                        keterangan = gabungkanKeteranganSAAG(keterangan);
+                                    }
+                                    if (headerSaagDitunda) {
+                                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                                        headerSaagDitunda = false;
+                                    }
+
                                     simpanTemporaryLabAman(
                                     "'0','         " + pemeriksaan + "','" + nilaiStr + "','" + satuan +
                                     "','" + rujukan + "','" + keterangan + "','" + flag +
                                     "','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");              
                     }
                     
+                    if (headerSaagDitunda && !param.containsKey("saagPemeriksaan")) {
+                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    }
                     rs3.close();
                     ps3.close();
                 }
@@ -12101,6 +12137,35 @@ private void HapusJPG() {
     }
 }
 
+
+private static boolean isPemeriksaanSAAG(String kdJenisPrw, String idTemplate) {
+    return "J000143".equals(kdJenisPrw) && "4149".equals(idTemplate);
+}
+
+private static void isiParameterSAAG(Map<String, Object> param, String pemeriksaan,
+        String nilai, String satuan, String rujukan, String flag) {
+    param.put("saagPemeriksaan", pemeriksaan);
+    param.put("saagNilai", nilai);
+    param.put("saagSatuan", satuan);
+    param.put("saagRujukan", rujukan);
+    param.put("saagFlag", flag);
+}
+
+/**
+ * Menambahkan interpretasi khusus SAAG tanpa menghapus keterangan manual yang sudah ada.
+ * SAAG tetap dicetak sebagai item ANALISA CAIRAN ASITES, bukan sebagai pemeriksaan eLFG.
+ */
+private static String gabungkanKeteranganSAAG(String keteranganAwal) {
+    final String interpretasi = ">=1.1 = akibat hipertensi portal\n<1.1 = akibat non hipertensi portal";
+    String awal = keteranganAwal == null ? "" : keteranganAwal.trim();
+    if (awal.equals("")) {
+        return interpretasi;
+    }
+    if (awal.contains(">=1.1 = akibat hipertensi portal") || awal.contains("<1.1 = akibat non hipertensi portal")) {
+        return awal;
+    }
+    return awal + "\n" + interpretasi;
+}
 
 private String normalisasiNilaiLabCetak(String nilaiAsli) {
     if (nilaiAsli == null) return "";

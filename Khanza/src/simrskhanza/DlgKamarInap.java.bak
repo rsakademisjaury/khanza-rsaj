@@ -43,10 +43,6 @@
  // secara lazy langsung dari menu tindakan. DlgBilingRanap beserta dialog
  // Cara Bayar, Pemberian Obat, dan Deposit tidak lagi ikut dibuat hanya untuk
  // membuka tindakan Rawat Inap. Alur, validasi, dan fungsi modul lain tetap.
- // V50 fokus dua keluhan user: cache konfigurasi lokasi stok khusus jalur
- // DlgRawatInap agar query set_lokasi tidak berulang saat double-click, serta
- // daftar kamar sesuai hak wajib dari master aktif kamar.statusdata='1'.
- // Tidak ada perubahan pada fungsi pemindahan/pemulangan/billing lainnya.
  // V38 merombak layout halaman Pemindahan Kamar menjadi dua kolom responsif 50/50.
 // Perubahan V38 hanya pada layout halaman pindah dan akses pilihan 1-4 sesuai permintaan.
 // V17 menambahkan padding internal pada TextBox diagnosis agar huruf pertama
@@ -365,10 +361,6 @@ import rekammedis.RMRiwayatPerawatan;
     private DlgCariReg reg;
     public DlgBilingRanap billing;
     private DlgRawatInap formrawatinap;
-    // V50 - cache lokal khusus jalur pembukaan DlgRawatInap.
-    // Meniru prinsip lokasidepoutama pada source resmi tanpa menambah dependency baru.
-    private boolean cacheLokasiStokRawatInapSiap=false;
-    private String cacheAsalStokRawatInap="",cacheDepoDefaultRawatInap="";
     public DlgDiagnosaPenyakit diagnosa;
     public DlgDiagnosaPenyakitDiare diagnosadiare;
     public SuratKonsul form;
@@ -3475,7 +3467,7 @@ import rekammedis.RMRiwayatPerawatan;
              perintah.setString(1,noRawat);
              try(ResultSet hasil=perintah.executeQuery()){
                  while(hasil.next()){
-                     // V50 - pengaman kedua agar kamar master nonaktif tidak pernah tampil.
+                     // V52 - kamar nonaktif tidak boleh masuk daftar hak kelas.
                      if(hasil.getInt("statusdata")!=1){
                          continue;
                      }
@@ -3548,6 +3540,46 @@ import rekammedis.RMRiwayatPerawatan;
      }
 
 
+     /**
+      * V52 - pagar terakhir sebelum daftar kamar ditampilkan.
+      * Hanya kd_kamar yang masih aktif pada master (statusdata=1) yang diteruskan,
+      * sekaligus mencegah satu kd_kamar muncul lebih dari sekali akibat JOIN tarif.
+      */
+     private java.util.List<KamarHakKelas> filterKamarAktifUnikV52(
+             java.util.List<KamarHakKelas> sumber) {
+         java.util.List<KamarHakKelas> hasilFilter=
+                 new java.util.ArrayList<KamarHakKelas>();
+         if(sumber==null||sumber.isEmpty()){
+             return hasilFilter;
+         }
+         java.util.Set<String> kamarAktif=new java.util.HashSet<String>();
+         java.util.Set<String> sudahMasuk=new java.util.HashSet<String>();
+         try(PreparedStatement perintah=koneksi.prepareStatement(
+                 "select kd_kamar from kamar where statusdata='1'");
+             ResultSet hasil=perintah.executeQuery()){
+             while(hasil.next()){
+                 kamarAktif.add(amanStringPindah(hasil.getString("kd_kamar")));
+             }
+         }catch(Exception e){
+             System.out.println("Filter master kamar aktif V52 : "+e);
+             return hasilFilter;
+         }
+         for(KamarHakKelas kamar:sumber){
+             if(kamar==null){
+                 continue;
+             }
+             String kode=amanStringPindah(kamar.kodeKamar);
+             if(!kode.equals("")&&kamarAktif.contains(kode)&&sudahMasuk.add(kode)){
+                 hasilFilter.add(kamar);
+             }
+         }
+         System.out.println("[FILTER KAMAR HAK V52] kandidat="+sumber.size()+
+                 " | aktif unik="+hasilFilter.size()+
+                 " | total master statusdata=1="+kamarAktif.size());
+         return hasilFilter;
+     }
+
+
      private KamarHakKelas pilihKamarSesuaiHakKelasV24(
              String noRawat,String hakNormal,String konteks) {
          final boolean konteksPemulangan=konteks!=null&&
@@ -3555,8 +3587,8 @@ import rekammedis.RMRiwayatPerawatan;
          java.util.List<KamarHakKelas> daftar=konteksPemulangan?
                  daftarKamarSesuaiHakKelasPemulanganV49(hakNormal):
                  daftarKamarSesuaiHakKelasV24(noRawat,hakNormal);
-         // V51: filter final tepat sebelum validasi kosong dan popup dibuat.
-         daftar=saringKamarAktifMasterV51(daftar);
+         // V52 - validasi ulang tepat sebelum popup agar statusdata=0 tidak mungkin lolos.
+         daftar=filterKamarAktifUnikV52(daftar);
          if(daftar.isEmpty()){
              tampilkanDialogStatusBPJSModernV27(
                      "Kamar Hak Kelas Tidak Tersedia",
@@ -3574,45 +3606,6 @@ import rekammedis.RMRiwayatPerawatan;
              return null;
          }
          return tampilkanDialogPilihKamarHakKelasModernV26(daftar,hakNormal,konteks);
-     }
-
-     /**
-      * V51 - filter final master kamar aktif tepat sebelum popup dibentuk.
-      * Ini menjadi pengaman terakhir untuk seluruh jalur (pemulangan maupun ICU),
-      * sehingga kamar dengan statusdata=0 tidak dapat muncul pada tabel pilihan.
-      */
-     private java.util.List<KamarHakKelas> saringKamarAktifMasterV51(
-             java.util.List<KamarHakKelas> sumber) {
-         java.util.List<KamarHakKelas> hasilAktif=new java.util.ArrayList<KamarHakKelas>();
-         if(sumber==null||sumber.isEmpty()){
-             return hasilAktif;
-         }
-         java.util.Set<String> kodeAktif=new java.util.HashSet<String>();
-         try(PreparedStatement perintah=koneksi.prepareStatement(
-                 "select kd_kamar from kamar where statusdata='1'");
-             ResultSet hasil=perintah.executeQuery()){
-             while(hasil.next()){
-                 String kode=amanStringPindah(hasil.getString("kd_kamar"));
-                 if(!kode.equals("")){
-                     kodeAktif.add(kode);
-                 }
-             }
-         }catch(Exception e){
-             System.out.println("Filter final kamar aktif V51 : "+e);
-             return hasilAktif;
-         }
-         java.util.Set<String> sudahMasuk=new java.util.HashSet<String>();
-         for(KamarHakKelas kamar:sumber){
-             String kode=kamar==null?"":amanStringPindah(kamar.kodeKamar);
-             if(!kode.equals("")&&kodeAktif.contains(kode)&&!sudahMasuk.contains(kode)){
-                 hasilAktif.add(kamar);
-                 sudahMasuk.add(kode);
-             }
-         }
-         System.out.println("[FILTER KAMAR HAK KELAS V51] Kandidat awal="+sumber.size()+
-                 " | aktif unik statusdata=1="+hasilAktif.size()+
-                 " | total master aktif="+kodeAktif.size());
-         return hasilAktif;
      }
 
      /**
@@ -5314,65 +5307,16 @@ import rekammedis.RMRiwayatPerawatan;
      }
 
      /**
-      * V50 - cache set_lokasi khusus pembukaan DlgRawatInap.
-      * Source resmi Khanza memakai lokasidepoutama untuk menghindari query konfigurasi
-      * yang sama berulang kali. Scope helper ini sengaja hanya untuk Rawat Inap.
-      */
-     private void pastikanCacheLokasiStokRawatInap() {
-         if(cacheLokasiStokRawatInapSiap){
-             return;
-         }
-         try(PreparedStatement perintah=koneksi.prepareStatement(
-                 "select asal_stok,kd_bangsal from set_lokasi limit 1");
-             ResultSet hasil=perintah.executeQuery()){
-             if(hasil.next()){
-                 cacheAsalStokRawatInap=hasil.getString("asal_stok")==null?
-                         "":hasil.getString("asal_stok");
-                 cacheDepoDefaultRawatInap=hasil.getString("kd_bangsal")==null?
-                         "":hasil.getString("kd_bangsal");
-             }
-             cacheLokasiStokRawatInapSiap=true;
-         }catch(Exception e){
-             cacheLokasiStokRawatInapSiap=false;
-             cacheAsalStokRawatInap="";
-             cacheDepoDefaultRawatInap="";
-             System.out.println("Cache lokasi stok Rawat Inap V50 : "+e);
-         }
-     }
-
-     /**
-      * V50 - query kd_bangsal kamar satu kali, lalu gunakan cache set_lokasi bila
-      * bangsal tersebut tidak memiliki depo rawat inap khusus.
-      */
-     private void siapkanLokasiStokRawatInap(String kodeKamar) {
-         String kdBangsalKamar=Sequel.cariIsi(
-                 "select kamar.kd_bangsal from kamar where kamar.kd_kamar=?",kodeKamar);
-         bangsal=Sequel.cariIsi(
-                 "select set_depo_ranap.kd_depo from set_depo_ranap where set_depo_ranap.kd_bangsal=?",
-                 kdBangsalKamar);
-         if(bangsal.equals("")){
-             pastikanCacheLokasiStokRawatInap();
-             if(cacheAsalStokRawatInap.equals("Gunakan Stok Bangsal")){
-                 akses.setkdbangsal(kdBangsalKamar);
-             }else{
-                 akses.setkdbangsal(cacheDepoDefaultRawatInap);
-             }
-         }else{
-             akses.setkdbangsal(bangsal);
-         }
-     }
-
-     /**
       * Lifecycle DlgRawatInap mengikuti pola source resmi SIMRS Khanza:
       * dibuat langsung saat diperlukan, dilepas saat ditutup, dan tidak
       * melewati constructor DlgBilingRanap.
       */
      private DlgRawatInap getFormRawatInap() {
          if (formrawatinap == null || !formrawatinap.isDisplayable()) {
-             final long mulaiConstructor=System.nanoTime();
+             final long mulaiConstructorRawatV52=System.nanoTime();
              formrawatinap=new DlgRawatInap(null,false);
-             System.out.println("[PERFORMA RAWAT INAP] Constructor DlgRawatInap: "+
-                     ((System.nanoTime()-mulaiConstructor)/1_000_000L)+" ms");
+             System.out.println("[PERFORMA RAWAT INAP V52] Constructor DlgRawatInap: "+
+                     ((System.nanoTime()-mulaiConstructorRawatV52)/1_000_000L)+" ms");
              formrawatinap.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
              formrawatinap.addWindowListener(new java.awt.event.WindowAdapter() {
                  @Override
@@ -5391,19 +5335,18 @@ import rekammedis.RMRiwayatPerawatan;
 
      /** Menyiapkan pasien terpilih dengan urutan lifecycle source resmi. */
      private void bukaFormRawatInap(String noRawatTerpilih,int barisTabel) {
-         final long mulaiPersiapan=System.nanoTime();
          DlgRawatInap dialog=getFormRawatInap();
          if(dialog==null){
              return;
          }
          if(!dialog.isVisible()){
-             final long mulaiCek=System.nanoTime();
+             final long mulaiPersiapanRawatV52=System.nanoTime();
+             final long mulaiCekRawatV52=System.nanoTime();
              dialog.isCek();
-             System.out.println("[PERFORMA RAWAT INAP] isCek: "+
-                     ((System.nanoTime()-mulaiCek)/1_000_000L)+" ms");
+             System.out.println("[PERFORMA RAWAT INAP V52] isCek: "+
+                     ((System.nanoTime()-mulaiCekRawatV52)/1_000_000L)+" ms");
              dialog.setKamar(tbKamIn.getValueAt(barisTabel,7).toString());
              dialog.setJenisBayar(tbKamIn.getValueAt(barisTabel,6).toString());
-             final long mulaiSetNoRm=System.nanoTime();
              if(R1.isSelected()==true){
                  dialog.setNoRm(noRawatTerpilih,new Date(),new Date());
              }else if(R2.isSelected()==true){
@@ -5411,16 +5354,14 @@ import rekammedis.RMRiwayatPerawatan;
              }else if(R3.isSelected()==true){
                  dialog.setNoRm(noRawatTerpilih,DTPCari3.getDate(),DTPCari4.getDate());
              }
-             System.out.println("[PERFORMA RAWAT INAP] setNoRm: "+
-                     ((System.nanoTime()-mulaiSetNoRm)/1_000_000L)+" ms");
+             System.out.println("[PERFORMA RAWAT INAP V52] Total persiapan sebelum setVisible: "+
+                     ((System.nanoTime()-mulaiPersiapanRawatV52)/1_000_000L)+" ms");
          }
          if(dialog.isVisible()){
              dialog.toFront();
              return;
          }
          dialog.setVisible(true);
-         System.out.println("[PERFORMA RAWAT INAP] Total persiapan sampai tampil: "+
-                 ((System.nanoTime()-mulaiPersiapan)/1_000_000L)+" ms");
      }
 
      /** Membuat pencarian bayi hanya ketika tombol terkait dipakai. */
@@ -13226,7 +13167,16 @@ import rekammedis.RMRiwayatPerawatan;
                                  rs2=psanak.executeQuery();
                                  if(rs2.next()){
                                        akses.setform("DlgKamarInap");
-                                       siapkanLokasiStokRawatInap(kdkamar.getText());
+                                       bangsal=Sequel.cariIsi("select set_depo_ranap.kd_depo from set_depo_ranap where set_depo_ranap.kd_bangsal=?",Sequel.cariIsi("select kamar.kd_bangsal from kamar where kamar.kd_kamar=?",kdkamar.getText()));
+                                         if(bangsal.equals("")){
+                                             if(Sequel.cariIsi("select set_lokasi.asal_stok from set_lokasi").equals("Gunakan Stok Bangsal")){
+                                                 akses.setkdbangsal(Sequel.cariIsi("select kamar.kd_bangsal from kamar where kamar.kd_kamar=?",kdkamar.getText()));
+                                             }else{
+                                                 akses.setkdbangsal(Sequel.cariIsi("select set_lokasi.kd_bangsal from set_lokasi"));
+                                             }
+                                         }else{
+                                             akses.setkdbangsal(bangsal);
+                                         }
                                        bukaFormRawatInap(
                                                rs2.getString("no_rawat2"),
                                                tbKamIn.getSelectedRow()-1);
@@ -13250,7 +13200,16 @@ import rekammedis.RMRiwayatPerawatan;
                    }                
                  }else{
                      akses.setform("DlgKamarInap");
-                     siapkanLokasiStokRawatInap(kdkamar.getText());
+                     bangsal=Sequel.cariIsi("select set_depo_ranap.kd_depo from set_depo_ranap where set_depo_ranap.kd_bangsal=?",Sequel.cariIsi("select kamar.kd_bangsal from kamar where kamar.kd_kamar=?",kdkamar.getText()));
+                     if(bangsal.equals("")){
+                         if(Sequel.cariIsi("select set_lokasi.asal_stok from set_lokasi").equals("Gunakan Stok Bangsal")){
+                             akses.setkdbangsal(Sequel.cariIsi("select kamar.kd_bangsal from kamar where kamar.kd_kamar=?",kdkamar.getText()));
+                         }else{
+                             akses.setkdbangsal(Sequel.cariIsi("select set_lokasi.kd_bangsal from set_lokasi"));
+                         }
+                     }else{
+                         akses.setkdbangsal(bangsal);
+                     }
                      bukaFormRawatInap(norawat.getText(),tbKamIn.getSelectedRow());
                }   
            }

@@ -1219,6 +1219,18 @@ public class frmUtama extends javax.swing.JFrame {
     private static final int TINGGI_FIELD_LOGIN = 41;
     private static final int TINGGI_TOMBOL_LOGIN = 43;
 
+    // UKURAN VISUAL LOGO TANPA MENGUBAH TEMPAT/CONTAINER LOGO:
+    // UKURAN_LOGO_LOGIN tetap 112 px. Yang diubah hanya inset gambar di
+    // dalam lingkaran. Semakin kecil INSET_GAMBAR_LOGO_LOGIN, logo tampak
+    // semakin besar tanpa mengubah ukuran area, posisi, atau layout logo.
+    private static final int INSET_GAMBAR_LOGO_LOGIN = 8;
+
+    // PLACEHOLDER FIELD LOGIN:
+    // Placeholder hanya DIGAMBAR ketika field kosong; bukan isi field sungguhan.
+    // Jadi validasi username/password dan proses login tetap membaca input asli.
+    private static final String PLACEHOLDER_USER_LOGIN = "Masukkan user id";
+    private static final String PLACEHOLDER_PASSWORD_LOGIN = "Masukkan password";
+
     // TRANSPARANSI LATAR FORM LOGIN:
     // Rentang alpha Java = 0 (benar-benar transparan) s/d 255 (solid).
     // Jika ingin LATAR FORM LOGIN LEBIH TRANSPARAN, KECILKAN dua angka ini.
@@ -1450,12 +1462,21 @@ public class frmUtama extends javax.swing.JFrame {
         edAdmin.requestFocus();
         
         cekBox1.setSelected(false);
-        edAdmin.setEchoChar((char) 0);
-        edAdmin.setText("Username");
-        edAdmin.setForeground(Color.GRAY); // Warna teks untuk placeholder
-        edPwd.setEchoChar((char) 0);
-        edPwd.setText("Password");             
-                                
+
+        // ================================================================
+        // PLACEHOLDER LOGIN MODERN
+        // Field harus benar-benar kosong. Teks "Masukkan user id" dan
+        // "Masukkan password" hanya digambar oleh ModernPasswordFieldUI,
+        // sehingga tidak pernah ikut terbaca sebagai username/password.
+        // ================================================================
+        edAdmin.setEchoChar((char) 0); // User ID tampil sebagai teks biasa.
+        edAdmin.setText("");
+        edAdmin.setForeground(new Color(38, 50, 61));
+
+        edPwd.setEchoChar('•'); // Password tetap tersamarkan ketika mata OFF.
+        edPwd.setText("");
+        edPwd.setForeground(new Color(38, 50, 61));
+
 //        jMenu1.setOpaque(false);
         jMenu5.setOpaque(false);
         jMenu6.setOpaque(false);
@@ -1465,31 +1486,24 @@ public class frmUtama extends javax.swing.JFrame {
         perbaikiWarnaMenuMac();
         pasangTemaMenuBarSplash();
         
+        // Placeholder tetap tampak saat field kosong, termasuk ketika fokus.
+        // Listener ini hanya memicu repaint; isi field tidak pernah diubah.
         edAdmin.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent evt) {
-                if (edAdmin.getText().equals("Username")) {
-                    edAdmin.setText("");
-                    edAdmin.setForeground(Color.BLACK); // Warna teks saat aktif
-                }
+                edAdmin.repaint();
             }
 
             @Override
             public void focusLost(FocusEvent evt) {
-                if (edAdmin.getText().isEmpty()) {
-                    edAdmin.setText("Username");
-                    edAdmin.setForeground(Color.GRAY); // Warna teks untuk placeholder
-                }
+                edAdmin.repaint();
             }
         });
 
         edAdmin.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
-                if (edAdmin.getText().equals("Username")) {
-                    edAdmin.setText("");
-                    edAdmin.setForeground(Color.BLACK); // Warna teks
-                }
+                edAdmin.repaint();
             }
         });
         
@@ -2144,9 +2158,12 @@ public class frmUtama extends javax.swing.JFrame {
         // Dengan cara ini, perubahan ukuran berikutnya cukup dilakukan di
         // X_KOMPONEN_LOGIN / LEBAR_KOMPONEN_LOGIN tanpa mengubah event login.
         pasangTemaFieldLogin(edAdmin, 48, 16);
+        edAdmin.putClientProperty("login.placeholder", PLACEHOLDER_USER_LOGIN);
         edAdmin.setBounds(X_KOMPONEN_LOGIN, 184,
                 LEBAR_KOMPONEN_LOGIN, TINGGI_FIELD_LOGIN);
+
         pasangTemaFieldLogin(edPwd, 48, 48);
+        edPwd.putClientProperty("login.placeholder", PLACEHOLDER_PASSWORD_LOGIN);
         edPwd.setBounds(X_KOMPONEN_LOGIN, 240,
                 LEBAR_KOMPONEN_LOGIN, TINGGI_FIELD_LOGIN);
 
@@ -2965,7 +2982,9 @@ public class frmUtama extends javax.swing.JFrame {
                 g2.drawOval(x + 4, y + 4,
                         UKURAN_LOGO_LOGIN - 9, UKURAN_LOGO_LOGIN - 9);
 
-                int insetLogo = 13;
+                // Besarkan gambar logo TANPA mengubah ukuran container 112 px.
+                // Atur INSET_GAMBAR_LOGO_LOGIN di blok PENGATURAN CEPAT.
+                int insetLogo = INSET_GAMBAR_LOGO_LOGIN;
                 g2.drawImage(gambarLogo,
                         x + insetLogo, y + insetLogo,
                         UKURAN_LOGO_LOGIN - (insetLogo * 2),
@@ -3001,7 +3020,40 @@ public class frmUtama extends javax.swing.JFrame {
             } finally {
                 g2.dispose();
             }
+
+            // Paint teks/input asli terlebih dahulu.
             super.paintSafely(graphics);
+
+            // Placeholder murni: hanya tampil ketika document benar-benar kosong.
+            // Tidak dimasukkan ke setText(), sehingga tidak mengganggu validasi,
+            // password masking, Enter-to-login, maupun proses autentikasi.
+            if (field.getDocument() != null
+                    && field.getDocument().getLength() == 0) {
+                Object nilaiPlaceholder =
+                        field.getClientProperty("login.placeholder");
+                if (nilaiPlaceholder instanceof String
+                        && !((String) nilaiPlaceholder).isEmpty()) {
+                    java.awt.Graphics2D gp =
+                            (java.awt.Graphics2D) graphics.create();
+                    try {
+                        gp.setRenderingHint(
+                                java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                                java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                        gp.setFont(field.getFont().deriveFont(
+                                java.awt.Font.PLAIN));
+                        gp.setColor(new Color(132, 141, 149));
+
+                        java.awt.Insets inset = field.getInsets();
+                        java.awt.FontMetrics fm = gp.getFontMetrics();
+                        int posisiY = (field.getHeight() - fm.getHeight()) / 2
+                                + fm.getAscent();
+                        gp.drawString((String) nilaiPlaceholder,
+                                inset.left, posisiY);
+                    } finally {
+                        gp.dispose();
+                    }
+                }
+            }
         }
     }
 
@@ -3016,15 +3068,25 @@ public class frmUtama extends javax.swing.JFrame {
             g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
                     java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
 
+            // Badge kapsul halus selalu terlihat. Hover/pressed hanya
+            // menaikkan sedikit opasitas agar efek tetap ringan dan elegan.
+            int lengkung = Math.max(18, component.getHeight() - 2);
             if (model.isPressed()) {
-                g2.setColor(new Color(255, 255, 255, 42));
-                g2.fillRoundRect(0, 0, component.getWidth() - 1,
-                        component.getHeight() - 1, 16, 16);
+                g2.setColor(new Color(255, 255, 255, 48));
             } else if (model.isRollover()) {
-                g2.setColor(new Color(255, 255, 255, 24));
-                g2.fillRoundRect(0, 0, component.getWidth() - 1,
-                        component.getHeight() - 1, 16, 16);
+                g2.setColor(new Color(255, 255, 255, 32));
+            } else {
+                g2.setColor(new Color(255, 255, 255, 18));
             }
+            g2.fillRoundRect(0, 0, component.getWidth() - 1,
+                    component.getHeight() - 1, lengkung, lengkung);
+
+            g2.setColor(model.isRollover()
+                    ? new Color(255, 255, 255, 82)
+                    : new Color(255, 255, 255, 48));
+            g2.setStroke(new java.awt.BasicStroke(1f));
+            g2.drawRoundRect(0, 0, component.getWidth() - 2,
+                    component.getHeight() - 2, lengkung, lengkung);
             g2.dispose();
 
             super.paint(graphics, component);
@@ -3062,10 +3124,15 @@ public class frmUtama extends javax.swing.JFrame {
             } else if (model.isPressed() && model.isArmed()) {
                 warnaAtas = new Color(8, 139, 199);
                 warnaBawah = new Color(5, 105, 164);
-            } else if (model.isRollover() || model.isSelected()) {
+            } else if (model.isRollover()) {
                 warnaAtas = new Color(47, 193, 239);
                 warnaBawah = new Color(10, 149, 211);
             } else {
+                // WARNA IDLE TOMBOL MASUK = ORANYE.
+                // BtnLogin adalah JCheckBox dan source lama dapat meninggalkan
+                // state selected=true setelah klik. State selected sengaja
+                // diabaikan di sisi visual agar saat mouse tidak menyentuh
+                // tombol, warnanya selalu kembali ke oranye.
                 warnaAtas = new Color(255, 184, 45);
                 warnaBawah = new Color(245, 125, 18);
             }
@@ -16720,10 +16787,13 @@ private void resetLoginFields() {
     btnResepObatDepan.setEnabled(false);
     
     cekBox1.setSelected(false);
-    edAdmin.setText("Username");
-    edAdmin.setForeground(Color.GRAY);
-    edPwd.setEchoChar((char) 0);
-    edPwd.setText("Password");
+    // Placeholder hanya digambar oleh UI; field tetap benar-benar kosong.
+    edAdmin.setEchoChar((char) 0);
+    edAdmin.setText("");
+    edAdmin.setForeground(new Color(38, 50, 61));
+    edPwd.setEchoChar('•');
+    edPwd.setText("");
+    edPwd.setForeground(new Color(38, 50, 61));
 }
 
 // Method untuk mencatat aktivitas login
@@ -16760,16 +16830,12 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
         // Menonaktifkan cekBox1
         cekBox1.setSelected(false);
         
-        // Mengosongkan field Username dan Password
-        edAdmin.setEchoChar((char) 0);  // Menampilkan teks untuk username
-        if (edAdmin.getText().isEmpty()) {  // Hanya reset jika kosong
-            edAdmin.setText("Username");
-        }
-
-        edPwd.setEchoChar((char) 0);  // Menampilkan teks untuk password
-        if (edPwd.getText().isEmpty()) {  // Hanya reset jika kosong
-            edPwd.setText("Password");
-        }
+        // Kembalikan mode tampilan field tanpa menanam teks placeholder
+        // ke dalam document. Placeholder akan digambar otomatis bila kosong.
+        edAdmin.setEchoChar((char) 0);
+        edPwd.setEchoChar('•');
+        edAdmin.repaint();
+        edPwd.repaint();
 
     // Jika tombol Page Up ditekan, fokus ke tombol login
     } else if (evt.getKeyCode() == KeyEvent.VK_PAGE_UP) {
@@ -16797,15 +16863,13 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_cekBox1ActionPerformed
 
     private void cekBox1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_cekBox1FocusGained
-    if(edPwd.getText().equals("Password")){
-            edPwd.setText("");            
-            edPwd.setEchoChar('•');
-            if(cekBox1.isSelected()){
-                edPwd.setEchoChar((char) 0);
-            }else{
-                edPwd.setEchoChar('•');
-            }
-        }
+    // Placeholder bukan isi field; cukup sinkronkan echo password.
+    if(cekBox1.isSelected()){
+        edPwd.setEchoChar((char) 0);
+    }else{
+        edPwd.setEchoChar('•');
+    }
+    edPwd.repaint();
     }//GEN-LAST:event_cekBox1FocusGained
 
     private void cekBox1FocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_cekBox1FocusLost
@@ -16813,49 +16877,31 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_cekBox1FocusLost
 
     private void edAdminFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_edAdminFocusGained
-        // Periksa jika teks saat ini adalah "Username"
-    if (edAdmin.getText().equals("Username")) {
-        edAdmin.setEchoChar('•'); // Set karakter tersembunyi
-        edAdmin.setText(""); // Hapus teks "Username"
-        edAdmin.setForeground(Color.BLACK); // Ubah warna teks
-    }
-        
-        
-        
-//        if (new String(edAdmin.getPassword()).equals("Username")) {
-//                    edAdmin.setEchoChar('•'); // Set character hidden
-//                    edAdmin.setText("");
-//                    edAdmin.setForeground(Color.BLACK);
-//                }
+        // User ID tetap teks biasa; placeholder akan tetap terlihat bila
+        // document masih kosong, termasuk ketika field sedang fokus.
+        edAdmin.setEchoChar((char) 0);
+        edAdmin.setForeground(new Color(38, 50, 61));
+        edAdmin.repaint();
     }//GEN-LAST:event_edAdminFocusGained
 
     private void edAdminFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_edAdminFocusLost
-    if (edAdmin.getText().isEmpty()) {
-        edAdmin.setText("Username"); // Tampilkan kembali placeholder
-        edAdmin.setForeground(Color.GRAY); // Warna teks placeholder
-    } 
-        
-        
-//        if (edAdmin.getText().isEmpty()) {
-//                    edAdmin.setForeground(Color.GRAY);
-//                    edAdmin.setText("Username");
-//                }
+        // Jangan masukkan placeholder sebagai isi field.
+        edAdmin.setForeground(new Color(38, 50, 61));
+        edAdmin.repaint();
     }//GEN-LAST:event_edAdminFocusLost
 
     private void edPwdFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_edPwdFocusGained
-    if (new String(edPwd.getPassword()).equals("Password")) {
-                    edPwd.setEchoChar('•'); // Set character hidden
-                    edPwd.setText("");
-                    edPwd.setForeground(Color.BLACK);
-                }
+        // Password tetap masked kecuali tombol mata sedang aktif.
+        edPwd.setEchoChar(cekBox1.isSelected() ? (char) 0 : '•');
+        edPwd.setForeground(new Color(38, 50, 61));
+        edPwd.repaint();
     }//GEN-LAST:event_edPwdFocusGained
 
     private void edPwdFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_edPwdFocusLost
-    if (new String(edPwd.getPassword()).isEmpty()) {
-                    edPwd.setEchoChar((char) 0); // Set character visible
-                    edPwd.setForeground(Color.GRAY);
-                    edPwd.setText("Password");
-                }
+        // Placeholder digambar otomatis ketika kosong; tidak perlu setText().
+        edPwd.setEchoChar(cekBox1.isSelected() ? (char) 0 : '•');
+        edPwd.setForeground(new Color(38, 50, 61));
+        edPwd.repaint();
     }//GEN-LAST:event_edPwdFocusLost
 
     private void edAdminActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_edAdminActionPerformed

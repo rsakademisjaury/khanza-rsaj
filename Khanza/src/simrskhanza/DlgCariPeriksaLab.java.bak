@@ -8571,7 +8571,7 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                 ps2.setString(3, rs.getString("jam"));
                 rs2 = ps2.executeQuery();
                 while(rs2.next()){
-                    simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User"); 
+                    simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
                     ps3 = koneksi.prepareStatement(
                         "select template_laboratorium.Pemeriksaan, detail_periksa_lab.nilai,template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan,detail_periksa_lab.biaya_item,"+
                         "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw,detail_periksa_lab.id_template from detail_periksa_lab inner join template_laboratorium "+
@@ -9098,7 +9098,7 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                             param.put("jampermintaan",rspermintaan.getString("jam_permintaan"));
                             param.put("tanggalsampel",rspermintaan.getString("tgl_sampel"));
                             param.put("jamsampel",rspermintaan.getString("jam_sampel"));
-                            Valid.MyReportPDF("rptHasilSumsumTulang.jasper","report","::[ Hasil Evaluasi Sum Sum Tulang ]::",param);
+                            Valid.MyReport("rptHasilSumsumTulang.jasper","report","::[ Hasil Evaluasi Sum Sum Tulang ]::",param);
                         }else{
                             param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
                             Valid.MyReportPDF("rptPeriksaLab.jasper","report","::[ Pemeriksaan Laboratorium ]::",param); 
@@ -11718,12 +11718,13 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                 ps2.setString(3, rs.getString("jam"));
                 rs2 = ps2.executeQuery();
                 while(rs2.next()){
-                    simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User"); 
+                    simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
                     ps3 = koneksi.prepareStatement(
                         "select template_laboratorium.Pemeriksaan, detail_periksa_lab.nilai,template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan,detail_periksa_lab.biaya_item,"+
                         "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw,detail_periksa_lab.id_template from detail_periksa_lab inner join template_laboratorium "+
                         "on detail_periksa_lab.id_template=template_laboratorium.id_template "+
-                        "where detail_periksa_lab.no_rawat=? and detail_periksa_lab.kd_jenis_prw=? and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? order by template_laboratorium.urut");
+                        "where detail_periksa_lab.no_rawat=? and detail_periksa_lab.kd_jenis_prw=? and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? " +
+                        "order by case when detail_periksa_lab.kd_jenis_prw='J000143' and detail_periksa_lab.id_template='4149' then 1 else 0 end, template_laboratorium.urut");
                     ps3.setString(1, rs.getString("no_rawat"));
                     ps3.setString(2, rs2.getString("kd_jenis_prw"));
                     ps3.setString(3, Valid.SetTgl(rs.getString("tgl_periksa")));
@@ -11747,6 +11748,12 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                                     String flag = tanpaBintangHLKritisLab(kdJenisPrwUpload, idTemplateUpload)
                                             ? ""
                                             : getStatusHLKritisLab(nilaiStr, rujukan, kdJenisPrwUpload, idTemplateUpload, kategoriUmur);
+
+                                    // SAAG tetap menjadi item milik ANALISA CAIRAN ASITES.
+                                    // Jangan keluarkan dari temporary_lab; cukup tambahkan keterangan klinisnya.
+                                    if (isPemeriksaanSAAG(kdJenisPrwUpload, idTemplateUpload)) {
+                                        keterangan = gabungkanKeteranganSAAG(keterangan);
+                                    }
 
                                     simpanTemporaryLabAman(
                                     "'0','         " + pemeriksaan + "','" + nilaiStr + "','" + satuan +
@@ -12102,6 +12109,22 @@ private void HapusJPG() {
 }
 
 
+private static boolean isPemeriksaanSAAG(String kdJenisPrw, String idTemplate) {
+    return "J000143".equals(kdJenisPrw) && "4149".equals(idTemplate);
+}
+
+private static String gabungkanKeteranganSAAG(String keteranganAsli) {
+    String catatanSAAG = ">=1.1 = akibat hipertensi portal\n<1.1 = akibat non hipertensi portal";
+    String asli = keteranganAsli == null ? "" : keteranganAsli.trim();
+    if (asli.equals("")) {
+        return catatanSAAG;
+    }
+    if (asli.contains(">=1.1 = akibat hipertensi portal") || asli.contains("<1.1 = akibat non hipertensi portal")) {
+        return asli;
+    }
+    return asli + "\n" + catatanSAAG;
+}
+
 private String normalisasiNilaiLabCetak(String nilaiAsli) {
     if (nilaiAsli == null) return "";
     return nilaiAsli.trim();
@@ -12264,11 +12287,11 @@ private String getKategoriKritisLab(String kdJenisPrw, String idTemplate) {
 
     // Penentuan parameter kritis dibuat berdasarkan pasangan kd_jenis_prw + id_template
     // agar tidak salah sasaran ketika nama parameter berbeda-beda.
-    if (kode.equals("J000120|4004") || kode.equals("J000121|4010")) {
+    if (kode.equals("J000120|4004") || kode.equals("J000121|4010") || kode.equals("J000020|3405")) {
         return "HEMOGLOBIN";
     }
 
-    if (kode.equals("J000090|3780") ||
+    if (kode.equals("J000090|3780") || 
         kode.equals("J000090|3792") || kode.equals("J000103|3916") ||
         kode.equals("J000103|3921") || kode.equals("J000104|3936") ||
         kode.equals("J000120|4005") || kode.equals("J000121|4011") ||
