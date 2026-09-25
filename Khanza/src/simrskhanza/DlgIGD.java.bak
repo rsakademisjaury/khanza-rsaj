@@ -193,7 +193,7 @@ import surat.SuratSakit;
 import surat.SuratSakitPihak2;
 import surat.SuratTidakHamil;
 import surat.SuratVisum;
-import bridging.SatuSehatRujukanIGD;
+import bridging.SatuSehatRujukanIGDRanapLauncher;
 
 /**
  *
@@ -12679,34 +12679,11 @@ private void MnLaporanRekapKunjunganBulananPoliActionPerformed(java.awt.event.Ac
     }//GEN-LAST:event_MnCetakSuratKeteranganBerbadanSehatActionPerformed
 
     private void MnSisruteSatuSehatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnSisruteSatuSehatActionPerformed
-        if(tabMode.getRowCount()==0){
-            JOptionPane.showMessageDialog(null,"Maaf, table masih kosong...!!!!");
-            TNoReg.requestFocus();
-        }else if(TPasien.getText().trim().equals("")){
-            JOptionPane.showMessageDialog(null,"Maaf, Silahkan anda pilih dulu dengan menklik data pada table...!!!");
-            tbPetugas.requestFocus();
-        }else{
-            this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-            try{
-                String noRawat = TNoRw.getText().trim();
-                if(noRawat.equals("") && tbPetugas.getSelectedRow()!=-1){
-                    noRawat = nilaiTabel(tbPetugas, tbPetugas.getSelectedRow(), 2);
-                }
-                SatuSehatRujukanIGD dlgki = new SatuSehatRujukanIGD(null,false);
-                if(!noRawat.equals("")){
-                    dlgki.setNoRawatTerpilih(noRawat);
-                }
-                dlgki.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
-                dlgki.setLocationRelativeTo(internalFrame1);
-                dlgki.setVisible(true);
-            }catch(Exception ex){
-                JOptionPane.showMessageDialog(null,"Gagal membuka form Rujukan IGD Satu Sehat:\n" + ex.getMessage());
-                ex.printStackTrace();
-                
-            }finally{
-                this.setCursor(Cursor.getDefaultCursor());
-            }
+        if (!akses.getsisrute_rujukan_keluar()) {
+            JOptionPane.showMessageDialog(this, "Akun ini belum memiliki hak akses rujukan keluar Sisrute.");
+            return;
         }
+        SatuSehatRujukanIGDRanapLauncher.bukaIGD(this, tbPetugas, koneksi, akses.getkode());
     }//GEN-LAST:event_MnSisruteSatuSehatActionPerformed
 
     private void MnRujukSatuSehatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnRujukSatuSehatActionPerformed
@@ -13768,6 +13745,7 @@ private void MnLaporanRekapKunjunganBulananPoliActionPerformed(java.awt.event.Ac
         MnSJP.setEnabled(akses.getinhealth_sjp());  
         MnCetakSuratCovid.setEnabled(akses.getsurat_keterangan_covid());
         MnRujukSisrute.setEnabled(akses.getsisrute_rujukan_keluar());
+        MnSisruteSatuSehat.setEnabled(akses.getsisrute_rujukan_keluar());
         MnTeridentifikasiTB.setEnabled(akses.getkemenkes_sitt());
         MnPermintaanRanap.setEnabled(akses.getpermintaan_ranap());
         ppSuratKontrol.setEnabled(akses.getbpjs_surat_kontrol()); 

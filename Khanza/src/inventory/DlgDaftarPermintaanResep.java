@@ -62,7 +62,7 @@ public class DlgDaftarPermintaanResep extends javax.swing.JDialog {
         
         tabMode=new DefaultTableModel(null,new Object[]{
                 "No.Resep","Tgl.Peresepan","Jam Peresepan","No.Rawat","No.RM","Pasien","Dokter Peresep",
-                "Status","Kode Dokter","Poli/Unit","Kode Poli","Jenis Bayar","Tgl.Validasi","Jam Validasi",
+                "Status","Kode Dokter","Poli/Unit","Kode Poli","Jenis Bayar","Antrian","Tgl.Validasi","Jam Validasi",
                 "Tgl.Penyerahan","Jam Penyerahan"
             }){
               @Override public boolean isCellEditable(int rowIndex, int colIndex){return false;}
@@ -73,7 +73,7 @@ public class DlgDaftarPermintaanResep extends javax.swing.JDialog {
         tbResepRalan.setPreferredScrollableViewportSize(new Dimension(500,500));
         tbResepRalan.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        for (int i = 0; i <16; i++) {
+        for (int i = 0; i <17; i++) {
             TableColumn column = tbResepRalan.getColumnModel().getColumn(i);
             if(i==0){
                 column.setPreferredWidth(75);
@@ -102,16 +102,41 @@ public class DlgDaftarPermintaanResep extends javax.swing.JDialog {
             }else if(i==11){
                 column.setPreferredWidth(120);
             }else if(i==12){
-                column.setPreferredWidth(65);
+                // REV28: kolom Antrian dibuat selebar judul "Antrian" agar kolom lain lebih lega.
+                column.setMinWidth(58);
+                column.setPreferredWidth(58);
+                column.setMaxWidth(62);
             }else if(i==13){
-                column.setPreferredWidth(70);
+                column.setPreferredWidth(65);
             }else if(i==14){
-                column.setPreferredWidth(85);
+                column.setPreferredWidth(70);
             }else if(i==15){
+                column.setPreferredWidth(85);
+            }else if(i==16){
                 column.setPreferredWidth(90);
             }
         }
         tbResepRalan.setDefaultRenderer(Object.class, new WarnaTable());
+
+        // REV28: status tombol "Sudah Terima Obat" selalu mengikuti baris pasien yang sedang dipilih.
+        BtnSudahTerimaObat.setVisible(false);
+        BtnSudahTerimaObat.setEnabled(false);
+        tbResepRalan.getSelectionModel().addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+            @Override
+            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
+                if(!evt.getValueIsAdjusting()){
+                    if(tbResepRalan.getSelectedRow()!=-1){
+                        try {
+                            getData();
+                        } catch (Exception ex) {
+                        }
+                        perbaruiTombolSudahTerimaObat();
+                    }else{
+                        resetTombolSudahTerimaObat();
+                    }
+                }
+            }
+        });
         
         tabMode2=new DefaultTableModel(null,new Object[]{
                 "No.Resep","Tgl.Resep","Poli/Unit","Status","Pasien","Dokter Peresep"
@@ -508,6 +533,7 @@ public class DlgDaftarPermintaanResep extends javax.swing.JDialog {
         BtnCari = new widget.Button();
         BtnAll = new widget.Button();
         BtnPanggilPasien = new widget.Button();
+        BtnSudahTerimaObat = new widget.Button();
         panelisi1 = new widget.panelisi();
         BtnTambah = new widget.Button();
         BtnEdit = new widget.Button();
@@ -699,6 +725,24 @@ public class DlgDaftarPermintaanResep extends javax.swing.JDialog {
         });
         panelisi2.add(BtnPanggilPasien);
 
+        BtnSudahTerimaObat.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/accept.png"))); // NOI18N
+        BtnSudahTerimaObat.setMnemonic('O');
+        BtnSudahTerimaObat.setText("Sudah Terima Obat");
+        BtnSudahTerimaObat.setToolTipText("Alt+O");
+        BtnSudahTerimaObat.setName("BtnSudahTerimaObat"); // NOI18N
+        BtnSudahTerimaObat.setVisible(false);
+        BtnSudahTerimaObat.setPreferredSize(new java.awt.Dimension(190, 23));
+        BtnSudahTerimaObat.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnSudahTerimaObatActionPerformed(evt);
+            }
+        });
+        BtnSudahTerimaObat.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                BtnSudahTerimaObatKeyPressed(evt);
+            }
+        });
+        panelisi2.add(BtnSudahTerimaObat);
 
         jPanel2.add(panelisi2, java.awt.BorderLayout.PAGE_START);
 
@@ -1740,6 +1784,8 @@ public class DlgDaftarPermintaanResep extends javax.swing.JDialog {
             JOptionPane.showMessageDialog(null,
                     "Panggilan pasien "+namaPasienPanggil+" telah dikirim ke Display Farmasi.\n" +
                     "Pasien akan dipanggil ke Loket Penyerahan Obat.");
+            // Setelah panggilan berhasil, tombol Sudah Terima Obat langsung tersedia untuk pasien ini.
+            perbaruiTombolSudahTerimaObat();
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(null,
                     "Panggilan pasien gagal dikirim. Pastikan tabel rsaj_panggilan_farmasi sudah dibuat.\n" +
@@ -1758,9 +1804,184 @@ public class DlgDaftarPermintaanResep extends javax.swing.JDialog {
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
             BtnPanggilPasienActionPerformed(null);
         }else{
-            Valid.pindah(evt,BtnAll,BtnTambah);
+            // Jangan memindahkan fokus ke tombol yang sedang disembunyikan.
+            if(BtnSudahTerimaObat.isVisible()){
+                Valid.pindah(evt,BtnAll,BtnSudahTerimaObat);
+            }else{
+                Valid.pindah(evt,BtnAll,BtnTambah);
+            }
         }
     }//GEN-LAST:event_BtnPanggilPasienKeyPressed
+
+
+    private void BtnSudahTerimaObatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSudahTerimaObatActionPerformed
+        // REV22: "Sudah Terima Obat" adalah status eksplisit display farmasi.
+        // Satu-satunya indikatornya adalah rsaj_antrian_farmasi.waktu_terima_obat,
+        // BUKAN tgl_penyerahan/jam_penyerahan bawaan resep_obat.
+        if(TabPilihRawat.getSelectedIndex()!=0 || TabRawatJalan.getSelectedIndex()!=0){
+            JOptionPane.showMessageDialog(null,"Maaf, status Sudah Terima Obat hanya dapat diproses dari daftar Resep Rawat Jalan...!!!!");
+            tbResepRalan.requestFocus();
+            return;
+        }
+
+        if(akses.getberi_obat()==false){
+            JOptionPane.showMessageDialog(null,"Maaf, Anda tidak punya hak akses untuk memproses penyerahan obat...!!!!");
+            tbResepRalan.requestFocus();
+            return;
+        }
+
+        if(tabMode.getRowCount()==0){
+            JOptionPane.showMessageDialog(null,"Maaf, data resep sudah habis...!!!!");
+            tbResepRalan.requestFocus();
+            return;
+        }
+
+        int baris=tbResepRalan.getSelectedRow();
+        if(baris==-1){
+            JOptionPane.showMessageDialog(null,"Maaf, silahkan pilih dulu pasien/resep yang sudah menerima obat...!!!!");
+            tbResepRalan.requestFocus();
+            return;
+        }
+
+        String noResepTerima=tbResepRalan.getValueAt(baris,0).toString().trim();
+        String noRawatTerima=tbResepRalan.getValueAt(baris,3).toString().trim();
+        String namaPasienTerima=tbResepRalan.getValueAt(baris,5).toString().trim();
+        String noAntrianTerima="";
+        String waktuTerimaLama="";
+        String jamTerimaLama="";
+
+        if(noResepTerima.equals("") || noRawatTerima.equals("")){
+            JOptionPane.showMessageDialog(null,"Maaf, data resep/pasien yang dipilih tidak lengkap...!!!!");
+            tbResepRalan.requestFocus();
+            return;
+        }
+
+        PreparedStatement psCekPanggilanTerima=null;
+        PreparedStatement psCekTerima=null;
+        PreparedStatement psSimpanTerima=null;
+        PreparedStatement psJamTerima=null;
+        ResultSet rsCekPanggilanTerima=null;
+        ResultSet rsCekTerima=null;
+        ResultSet rsJamTerima=null;
+        try {
+            // REV28: jangan izinkan alur Sudah Terima Obat sebelum pasien pernah dipanggil.
+            psCekPanggilanTerima=koneksi.prepareStatement(
+                    "select count(*) as jumlah from rsaj_panggilan_farmasi where no_resep=? and no_rawat=?");
+            psCekPanggilanTerima.setString(1,noResepTerima);
+            psCekPanggilanTerima.setString(2,noRawatTerima);
+            rsCekPanggilanTerima=psCekPanggilanTerima.executeQuery();
+            if(!rsCekPanggilanTerima.next() || rsCekPanggilanTerima.getInt("jumlah")<=0){
+                JOptionPane.showMessageDialog(null,
+                        "Pasien "+namaPasienTerima+" belum dipanggil ke Loket Penyerahan Obat.\n"+
+                        "Silahkan klik Panggil Pasien terlebih dahulu.");
+                resetTombolSudahTerimaObat();
+                tbResepRalan.requestFocus();
+                return;
+            }
+
+            psCekTerima=koneksi.prepareStatement(
+                    "select a.no_antrian,a.status_antrian,"+
+                    "IFNULL(DATE_FORMAT(a.waktu_terima_obat,'%Y-%m-%d %H:%i:%s'),'') as waktu_terima_obat,"+
+                    "IFNULL(DATE_FORMAT(a.waktu_terima_obat,'%H:%i'),'') as jam_terima_obat "+
+                    "from rsaj_antrian_farmasi a "+
+                    "inner join reg_periksa rp on rp.no_rawat=a.no_rawat "+
+                    "where a.no_resep=? and a.no_rawat=? "+
+                    "and UPPER(TRIM(IFNULL(rp.kd_poli,'')))<>'IGDK' "+
+                    "and UPPER(TRIM(IFNULL(rp.status_lanjut,'')))<>'RANAP' limit 1");
+            psCekTerima.setString(1,noResepTerima);
+            psCekTerima.setString(2,noRawatTerima);
+            rsCekTerima=psCekTerima.executeQuery();
+
+            if(!rsCekTerima.next()){
+                JOptionPane.showMessageDialog(null,
+                        "Nomor antrean farmasi untuk pasien "+namaPasienTerima+" tidak ditemukan.\n"+
+                        "Pastikan resep ini adalah Rawat Jalan non-IGD dan sudah mempunyai nomor antrean farmasi.");
+                tbResepRalan.requestFocus();
+                return;
+            }
+
+            noAntrianTerima=String.format("%03d",rsCekTerima.getInt("no_antrian"));
+            waktuTerimaLama=rsCekTerima.getString("waktu_terima_obat")==null?"":rsCekTerima.getString("waktu_terima_obat").trim();
+            jamTerimaLama=rsCekTerima.getString("jam_terima_obat")==null?"":rsCekTerima.getString("jam_terima_obat").trim();
+
+            if(!waktuTerimaLama.equals("")){
+                JOptionPane.showMessageDialog(null,
+                        "No. Antrian Farmasi "+noAntrianTerima+" - "+namaPasienTerima+" sudah tercatat menerima obat"+
+                        (jamTerimaLama.equals("")?"":" pukul "+jamTerimaLama)+".");
+                perbaruiTombolSudahTerimaObat();
+                return;
+            }
+
+            int jawab=JOptionPane.showConfirmDialog(null,
+                    "Tandai No. Antrian Farmasi "+noAntrianTerima+" - "+namaPasienTerima+" sebagai Sudah Terima Obat?",
+                    "Konfirmasi Sudah Terima Obat",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE);
+            if(jawab!=JOptionPane.YES_OPTION){
+                return;
+            }
+
+            /*
+             * Jangan mengubah resep_obat.tgl_penyerahan/jam_penyerahan di sini.
+             * Field tersebut milik alur penyerahan bawaan Khanza dan dapat terisi sebelum
+             * pasien benar-benar menerima obat. Tombol ini hanya menulis indikator eksplisit
+             * pada rsaj_antrian_farmasi.
+             */
+            psSimpanTerima=koneksi.prepareStatement(
+                    "update rsaj_antrian_farmasi a "+
+                    "inner join reg_periksa rp on rp.no_rawat=a.no_rawat "+
+                    "set a.status_antrian='SELESAI',a.waktu_terima_obat=NOW() "+
+                    "where a.no_resep=? and a.no_rawat=? "+
+                    "and UPPER(TRIM(IFNULL(rp.kd_poli,'')))<>'IGDK' "+
+                    "and UPPER(TRIM(IFNULL(rp.status_lanjut,'')))<>'RANAP' "+
+                    "and a.waktu_terima_obat is null");
+            psSimpanTerima.setString(1,noResepTerima);
+            psSimpanTerima.setString(2,noRawatTerima);
+            int berubah=psSimpanTerima.executeUpdate();
+
+            if(berubah>0){
+                String jamTerima="";
+                psJamTerima=koneksi.prepareStatement(
+                        "select IFNULL(DATE_FORMAT(waktu_terima_obat,'%H:%i'),'') as jam_terima "+
+                        "from rsaj_antrian_farmasi where no_resep=? and no_rawat=? limit 1");
+                psJamTerima.setString(1,noResepTerima);
+                psJamTerima.setString(2,noRawatTerima);
+                rsJamTerima=psJamTerima.executeQuery();
+                if(rsJamTerima.next()){
+                    jamTerima=rsJamTerima.getString("jam_terima")==null?"":rsJamTerima.getString("jam_terima").trim();
+                }
+
+                JOptionPane.showMessageDialog(null,
+                        "No. Antrian Farmasi "+noAntrianTerima+" - "+namaPasienTerima+"\n"+
+                        "berhasil ditandai Sudah Terima Obat"+(jamTerima.equals("")?"":" pukul "+jamTerima)+".");
+                // Pertahankan baris terpilih agar jam terima langsung terlihat pada tombol.
+                perbaruiTombolSudahTerimaObat();
+            }else{
+                JOptionPane.showMessageDialog(null,
+                        "Status tidak diubah. Kemungkinan pasien ini sudah diproses dari komputer lain.\n"+
+                        "Silahkan periksa kembali status resep.");
+                perbaruiTombolSudahTerimaObat();
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null,
+                    "Gagal mengubah status menjadi Sudah Terima Obat.\nKeterangan : "+ex.getMessage()+
+                    "\n\nPastikan SQL REV22 untuk kolom waktu_terima_obat sudah dijalankan.");
+        } finally {
+            if(rsJamTerima!=null){try{rsJamTerima.close();}catch(SQLException ex){}}
+            if(psJamTerima!=null){try{psJamTerima.close();}catch(SQLException ex){}}
+            if(rsCekTerima!=null){try{rsCekTerima.close();}catch(SQLException ex){}}
+            if(psCekTerima!=null){try{psCekTerima.close();}catch(SQLException ex){}}
+            if(rsCekPanggilanTerima!=null){try{rsCekPanggilanTerima.close();}catch(SQLException ex){}}
+            if(psCekPanggilanTerima!=null){try{psCekPanggilanTerima.close();}catch(SQLException ex){}}
+            if(psSimpanTerima!=null){try{psSimpanTerima.close();}catch(SQLException ex){}}
+        }
+    }//GEN-LAST:event_BtnSudahTerimaObatActionPerformed
+
+    private void BtnSudahTerimaObatKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnSudahTerimaObatKeyPressed
+        if(evt.getKeyCode()==KeyEvent.VK_SPACE){
+            BtnSudahTerimaObatActionPerformed(null);
+        }else{
+            Valid.pindah(evt,BtnPanggilPasien,BtnTambah);
+        }
+    }//GEN-LAST:event_BtnSudahTerimaObatKeyPressed
 
     private void BtnAllKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnAllKeyPressed
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
@@ -2155,6 +2376,33 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
         ruang.setVisible(true);
     }//GEN-LAST:event_BtnSeek6ActionPerformed
 
+    /**
+     * REV24 - Bersihkan nomor antrean farmasi jika resep Rawat Jalan benar-benar sudah terhapus.
+     * Penghapusan menggunakan pasangan no_resep + no_rawat agar tidak menyentuh antrean pasien lain.
+     * Jika user membatalkan dialog hapus / resep masih ada, antrean tidak dihapus.
+     */
+    private void hapusAntrianFarmasiJikaResepTerhapus(String noResep, String noRawat){
+        if(noResep==null || noRawat==null || noResep.trim().equals("") || noRawat.trim().equals("")){
+            return;
+        }
+        try{
+            if(Sequel.cariInteger("select count(*) from resep_obat where no_resep=? and no_rawat=?",noResep,noRawat)==0){
+                try(PreparedStatement psHapusAntrian=koneksi.prepareStatement(
+                        "delete from rsaj_antrian_farmasi where no_resep=? and no_rawat=?")){
+                    psHapusAntrian.setString(1,noResep);
+                    psHapusAntrian.setString(2,noRawat);
+                    int jumlah=psHapusAntrian.executeUpdate();
+                    if(jumlah>0){
+                        System.out.println("Farmasi REV24: antrean ikut dihapus | no_resep="+noResep+" | no_rawat="+noRawat+" | jumlah="+jumlah);
+                    }
+                }
+            }
+        }catch(SQLException ex){
+            // Penghapusan resep utama tidak boleh gagal hanya karena cleanup tabel antrean custom bermasalah.
+            System.out.println("Farmasi REV24: gagal membersihkan rsaj_antrian_farmasi | no_resep="+noResep+" | no_rawat="+noRawat+" | "+ex.getMessage());
+        }
+    }
+
     private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnHapusActionPerformed
         if(TabPilihRawat.getSelectedIndex()==0){
             if(TabRawatJalan.getSelectedIndex()==0){
@@ -2168,7 +2416,10 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
                         if(Status.equals("Sudah Terlayani")){
                             JOptionPane.showMessageDialog(rootPane,"Resep sudah tervalidasi ..!!");
                         }else {
-                            Sequel.meghapus("resep_obat","no_resep",NoResep);    
+                            String noResepDihapus=NoResep;
+                            String noRawatDihapus=NoRawat;
+                            Sequel.meghapus("resep_obat","no_resep",noResepDihapus);
+                            hapusAntrianFarmasiJikaResepTerhapus(noResepDihapus,noRawatDihapus);
                             TeksKosong();
                             tampil();
                         }                    
@@ -3217,6 +3468,7 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private widget.Button BtnAll;
     private widget.Button BtnPanggilPasien;
+    private widget.Button BtnSudahTerimaObat;
     private widget.Button BtnCari;
     private widget.Button BtnEdit;
     private widget.Button BtnHapus;
@@ -3289,6 +3541,83 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
     private widget.Table tbResepRanap;
     // End of variables declaration//GEN-END:variables
 
+    /**
+     * REV28 - Tombol Sudah Terima Obat mengikuti pasien yang sedang dipilih.
+     * Belum dipanggil  : tombol disembunyikan.
+     * Sudah dipanggil  : tombol tampil dan aktif.
+     * Sudah menerima   : tombol tampil, nonaktif, serta menampilkan jam penerimaan.
+     */
+    private void resetTombolSudahTerimaObat(){
+        BtnSudahTerimaObat.setText("Sudah Terima Obat");
+        BtnSudahTerimaObat.setToolTipText("Panggil pasien terlebih dahulu");
+        BtnSudahTerimaObat.setEnabled(false);
+        BtnSudahTerimaObat.setVisible(false);
+        panelisi2.revalidate();
+        panelisi2.repaint();
+    }
+
+    private void perbaruiTombolSudahTerimaObat(){
+        if(TabPilihRawat.getSelectedIndex()!=0 || TabRawatJalan.getSelectedIndex()!=0){
+            resetTombolSudahTerimaObat();
+            return;
+        }
+
+        int baris=tbResepRalan.getSelectedRow();
+        if(baris<0 || baris>=tbResepRalan.getRowCount()){
+            resetTombolSudahTerimaObat();
+            return;
+        }
+
+        String noResep=tbResepRalan.getValueAt(baris,0)==null?"":tbResepRalan.getValueAt(baris,0).toString().trim();
+        String noRawat=tbResepRalan.getValueAt(baris,3)==null?"":tbResepRalan.getValueAt(baris,3).toString().trim();
+        if(noResep.equals("") || noRawat.equals("")){
+            resetTombolSudahTerimaObat();
+            return;
+        }
+
+        PreparedStatement psStatusTerima=null;
+        ResultSet rsStatusTerima=null;
+        try {
+            psStatusTerima=koneksi.prepareStatement(
+                    "select "+
+                    "exists(select 1 from rsaj_panggilan_farmasi p where p.no_resep=a.no_resep and p.no_rawat=a.no_rawat limit 1) as sudah_dipanggil,"+
+                    "IFNULL(DATE_FORMAT(a.waktu_terima_obat,'%H:%i'),'') as jam_terima "+
+                    "from rsaj_antrian_farmasi a "+
+                    "inner join reg_periksa rp on rp.no_rawat=a.no_rawat "+
+                    "where a.no_resep=? and a.no_rawat=? "+
+                    "and UPPER(TRIM(IFNULL(rp.kd_poli,'')))<>'IGDK' "+
+                    "and UPPER(TRIM(IFNULL(rp.status_lanjut,'')))<>'RANAP' limit 1");
+            psStatusTerima.setString(1,noResep);
+            psStatusTerima.setString(2,noRawat);
+            rsStatusTerima=psStatusTerima.executeQuery();
+
+            if(!rsStatusTerima.next() || !rsStatusTerima.getBoolean("sudah_dipanggil")){
+                resetTombolSudahTerimaObat();
+                return;
+            }
+
+            String jamTerima=rsStatusTerima.getString("jam_terima")==null?"":rsStatusTerima.getString("jam_terima").trim();
+            BtnSudahTerimaObat.setVisible(true);
+            if(jamTerima.equals("")){
+                BtnSudahTerimaObat.setText("Sudah Terima Obat");
+                BtnSudahTerimaObat.setToolTipText("Tandai pasien sudah menerima obat");
+                BtnSudahTerimaObat.setEnabled(akses.getberi_obat()==true);
+            }else{
+                BtnSudahTerimaObat.setText("Sudah Terima Obat "+jamTerima);
+                BtnSudahTerimaObat.setToolTipText("Obat sudah diterima pukul "+jamTerima);
+                BtnSudahTerimaObat.setEnabled(false);
+            }
+            panelisi2.revalidate();
+            panelisi2.repaint();
+        } catch (SQLException ex) {
+            resetTombolSudahTerimaObat();
+            System.out.println("Notifikasi status tombol Sudah Terima Obat : "+ex);
+        } finally {
+            if(rsStatusTerima!=null){try{rsStatusTerima.close();}catch(SQLException ex){}}
+            if(psStatusTerima!=null){try{psStatusTerima.close();}catch(SQLException ex){}}
+        }
+    }
+
     public void tampil() {
         Valid.tabelKosong(tabMode);
         try{  
@@ -3297,39 +3626,55 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
                 ps=koneksi.prepareStatement("select resep_obat.no_resep,resep_obat.tgl_peresepan,resep_obat.jam_peresepan,"+
                         " resep_obat.no_rawat,pasien.no_rkm_medis,pasien.nm_pasien,resep_obat.kd_dokter,dokter.nm_dokter,"+
                         " if(resep_obat.tgl_perawatan='0000-00-00','Belum Terlayani','Sudah Terlayani') as status,rsaj_ruang_resep.ruangan, "+
-                        " reg_periksa.kd_poli,penjab.png_jawab,if(resep_obat.tgl_perawatan='0000-00-00','',resep_obat.tgl_perawatan) as tgl_perawatan,"+
+                        " reg_periksa.kd_poli,penjab.png_jawab,ifnull(lpad(af.no_antrian,3,'0'),'') as no_antrian_obat,"+
+                        " if(resep_obat.tgl_perawatan='0000-00-00','',resep_obat.tgl_perawatan) as tgl_perawatan,"+
                         " if(resep_obat.jam='00:00:00','',resep_obat.jam) as jam,"+
                         " if(resep_obat.tgl_penyerahan='0000-00-00','',resep_obat.tgl_penyerahan) as tgl_penyerahan,"+
                         " if(resep_obat.jam_penyerahan='00:00:00','',resep_obat.jam_penyerahan) as jam_penyerahan from resep_obat "+
                         " inner join reg_periksa on resep_obat.no_rawat=reg_periksa.no_rawat "+
                         " inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
                         " inner join dokter on resep_obat.kd_dokter=dokter.kd_dokter "+
-                        " left join rsaj_ruang_resep on rsaj_ruang_resep.no_resep = resep_obat.no_resep "+                                        
+                        " left join rsaj_ruang_resep on rsaj_ruang_resep.no_resep = resep_obat.no_resep "+
+                        " left join rsaj_antrian_farmasi af on af.no_resep=resep_obat.no_resep and af.no_rawat=resep_obat.no_rawat "+
                         " inner join penjab on reg_periksa.kd_pj=penjab.kd_pj "+
                         " where resep_obat.tgl_peresepan<>'0000-00-00' and resep_obat.status='ralan' and resep_obat.tgl_peresepan between ? and ? "+
                         (semua?"":"and dokter.nm_dokter like ? and rsaj_ruang_resep.ruangan like ? and "+
                         "(resep_obat.no_resep like ? or resep_obat.no_rawat like ? or "+
                         "pasien.no_rkm_medis like ? or pasien.nm_pasien like ? or "+
-                        "dokter.nm_dokter like ? or penjab.png_jawab like ?)")+" order by resep_obat.tgl_peresepan desc,resep_obat.jam_peresepan desc");
+                        "dokter.nm_dokter like ? or penjab.png_jawab like ?)")+
+                        " order by case when "+
+                        "coalesce(resep_obat.tgl_perawatan,'0000-00-00')<>'0000-00-00' and "+
+                        "coalesce(resep_obat.jam,'00:00:00')<>'00:00:00' and "+
+                        "coalesce(resep_obat.tgl_penyerahan,'0000-00-00')<>'0000-00-00' and "+
+                        "coalesce(resep_obat.jam_penyerahan,'00:00:00')<>'00:00:00' then 1 else 0 end asc,"+
+                        " resep_obat.tgl_peresepan desc,resep_obat.jam_peresepan desc");
             }else{
                 ps=koneksi.prepareStatement("select resep_obat.no_resep,resep_obat.tgl_peresepan,resep_obat.jam_peresepan,"+
                         " resep_obat.no_rawat,pasien.no_rkm_medis,pasien.nm_pasien,resep_obat.kd_dokter,dokter.nm_dokter,"+
                         " if(resep_obat.tgl_perawatan='0000-00-00','Belum Terlayani','Sudah Terlayani') as status,rsaj_ruang_resep.ruangan, "+
-                        " reg_periksa.kd_poli,penjab.png_jawab,if(resep_obat.tgl_perawatan='0000-00-00','',resep_obat.tgl_perawatan) as tgl_perawatan,"+
+                        " reg_periksa.kd_poli,penjab.png_jawab,ifnull(lpad(af.no_antrian,3,'0'),'') as no_antrian_obat,"+
+                        " if(resep_obat.tgl_perawatan='0000-00-00','',resep_obat.tgl_perawatan) as tgl_perawatan,"+
                         " if(resep_obat.jam='00:00:00','',resep_obat.jam) as jam,"+
                         " if(resep_obat.tgl_penyerahan='0000-00-00','',resep_obat.tgl_penyerahan) as tgl_penyerahan,"+
                         " if(resep_obat.jam_penyerahan='00:00:00','',resep_obat.jam_penyerahan) as jam_penyerahan from resep_obat "+
                         " inner join reg_periksa on resep_obat.no_rawat=reg_periksa.no_rawat "+
                         " inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
                         " inner join dokter on resep_obat.kd_dokter=dokter.kd_dokter "+
-                        " left join rsaj_ruang_resep on rsaj_ruang_resep.no_resep = resep_obat.no_resep "+                                        
+                        " left join rsaj_ruang_resep on rsaj_ruang_resep.no_resep = resep_obat.no_resep "+
+                        " left join rsaj_antrian_farmasi af on af.no_resep=resep_obat.no_resep and af.no_rawat=resep_obat.no_rawat "+
                         " inner join penjab on reg_periksa.kd_pj=penjab.kd_pj "+
                         " inner join set_depo_ralan on set_depo_ralan.kd_poli=reg_periksa.kd_poli "+
                         " where set_depo_ralan.kd_bangsal='"+DEPOAKTIFOBAT+"' and resep_obat.tgl_peresepan<>'0000-00-00' and resep_obat.status='ralan' and resep_obat.tgl_peresepan between ? and ? "+
                         (semua?"":"and dokter.nm_dokter like ? and rsaj_ruang_resep.ruangan like ? and "+
                         "(resep_obat.no_resep like ? or resep_obat.no_rawat like ? or "+
                         "pasien.no_rkm_medis like ? or pasien.nm_pasien like ? or "+
-                        "dokter.nm_dokter like ? or penjab.png_jawab like ?)")+" order by resep_obat.tgl_peresepan desc,resep_obat.jam_peresepan desc");
+                        "dokter.nm_dokter like ? or penjab.png_jawab like ?)")+
+                        " order by case when "+
+                        "coalesce(resep_obat.tgl_perawatan,'0000-00-00')<>'0000-00-00' and "+
+                        "coalesce(resep_obat.jam,'00:00:00')<>'00:00:00' and "+
+                        "coalesce(resep_obat.tgl_penyerahan,'0000-00-00')<>'0000-00-00' and "+
+                        "coalesce(resep_obat.jam_penyerahan,'00:00:00')<>'00:00:00' then 1 else 0 end asc,"+
+                        " resep_obat.tgl_peresepan desc,resep_obat.jam_peresepan desc");
             }
                 
             try{
@@ -3352,7 +3697,7 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
                             rs.getString("no_resep"),rs.getString("tgl_peresepan"),rs.getString("jam_peresepan"),rs.getString("no_rawat"),
                             rs.getString("no_rkm_medis"),rs.getString("nm_pasien"),rs.getString("nm_dokter"),rs.getString("status"),
                             rs.getString("kd_dokter"),rs.getString("ruangan"),rs.getString("ruangan"),rs.getString("png_jawab"),
-                            rs.getString("tgl_perawatan"),rs.getString("jam"),rs.getString("tgl_penyerahan"),rs.getString("jam_penyerahan")
+                            rs.getString("no_antrian_obat"),rs.getString("tgl_perawatan"),rs.getString("jam"),rs.getString("tgl_penyerahan"),rs.getString("jam_penyerahan")
                         });              
                     }  
                 }else{
@@ -3362,7 +3707,7 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
                                 rs.getString("no_resep"),rs.getString("tgl_peresepan"),rs.getString("jam_peresepan"),rs.getString("no_rawat"),
                                 rs.getString("no_rkm_medis"),rs.getString("nm_pasien"),rs.getString("nm_dokter"),rs.getString("status"),
                                 rs.getString("kd_dokter"),rs.getString("ruangan"),rs.getString("ruangan"),rs.getString("png_jawab"),
-                                rs.getString("tgl_perawatan"),rs.getString("jam"),rs.getString("tgl_penyerahan"),rs.getString("jam_penyerahan")
+                                rs.getString("no_antrian_obat"),rs.getString("tgl_perawatan"),rs.getString("jam"),rs.getString("tgl_penyerahan"),rs.getString("jam_penyerahan")
                             });
                         }                    
                     }  
@@ -3795,6 +4140,7 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
     }
     
     public void pilihTab(){
+        resetTombolSudahTerimaObat();
         if(TabPilihRawat.getSelectedIndex()==0){
             pilihRalan();
         }else if(TabPilihRawat.getSelectedIndex()==1){
@@ -3803,6 +4149,7 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
     }
     
     public void pilihRalan(){
+        resetTombolSudahTerimaObat();
         if(TabRawatJalan.getSelectedIndex()==0){
             tampil();
         }else if(TabRawatJalan.getSelectedIndex()==1){

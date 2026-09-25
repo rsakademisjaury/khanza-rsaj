@@ -43,6 +43,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import kepegawaian.DlgCariDokter;
 import widget.Button;
+import wa.WhatsappGateway;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
@@ -1121,6 +1122,20 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
             int reply = JOptionPane.showConfirmDialog(rootPane,"Eeiiiiiits, udah bener belum data yang mau disimpan..??","Konfirmasi",JOptionPane.YES_NO_OPTION);
             if (reply == JOptionPane.YES_OPTION) {                 
                 ChkJln.setSelected(false);    
+
+                // FIX FARMASI 18-09-2026
+                // Tentukan "resep baru" dari DATABASE sebelum proses simpan, bukan dari flag UI `ubah`.
+                // Ini membuat penerbitan antrean tidak ikut gagal hanya karena state form berubah.
+                final String noRawatFarmasiWA=TNoRw.getText().trim();
+                final String noResepFarmasiWA=NoResep.getText().trim();
+                final boolean resepSudahAdaSebelumSimpan=
+                        resepSudahAdaDiDatabase(noResepFarmasiWA);
+
+                System.out.println("Farmasi POST-COMMIT: mulai simpan resep | no_resep="+
+                    noResepFarmasiWA+" | no_rawat="+noRawatFarmasiWA+
+                    " | sudah_ada_sebelum="+resepSudahAdaSebelumSimpan+
+                    " | status_form="+status+" | ubah="+ubah);
+
                 Sequel.AutoComitFalse();
                 sukses=true;
                 if(ubah==false){
@@ -1219,6 +1234,10 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
                     simpandata();                             
                 }                                                      
                 
+                // FIX FARMASI POST-COMMIT 18-09-2026
+                // Antrean TIDAK lagi diterbitkan di sini. Resep diselesaikan dan COMMIT dulu,
+                // lalu kelayakan antrean dibaca dari data resep yang benar-benar tersimpan.
+
                 if(sukses==true){
                     if(RESEPRAJALKEPLAN.equals("yes")&&status.equals("ralan")&&(ubah==false)){
                         try {
@@ -1326,10 +1345,443 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
                     Sequel.RollBack();
                 }
                 Sequel.AutoComitTrue();
+
+                // FIX FARMASI POST-COMMIT 18-09-2026
+                // Resep sudah COMMIT. Sekarang baca ulang resep + registrasi dari database.
+                // HANYA resep BARU Rawat Jalan, bukan IGDK dan bukan status_lanjut Ranap,
+                // yang diterbitkan nomor antreannya.
+                if(sukses==true){
+                    HasilAntrianFarmasi hasilAntrian=
+                        terbitkanAntrianFarmasiSetelahCommit(noRawatFarmasiWA,noResepFarmasiWA);
+
+                    if(hasilAntrian.berhasil && hasilAntrian.baru && hasilAntrian.nomor>0){
+                        String nomorTampil=String.format("%03d",hasilAntrian.nomor);
+                        JOptionPane.showMessageDialog(null,
+                            "No. Antrian Farmasi "+nomorTampil+", silahkan arahkan pasien menuju farmasi",
+                            "Antrian Farmasi", JOptionPane.INFORMATION_MESSAGE);
+
+                        kirimNotifikasiAntrianFarmasiWA(
+                            hasilAntrian.nomor,
+                            noRawatFarmasiWA,
+                            noResepFarmasiWA
+                        );
+                    }
+                }
+
                 ChkJln.setSelected(true);
             }                
         }
 }//GEN-LAST:event_BtnSimpanActionPerformed
+
+    /**
+     * FIX FARMASI POST-COMMIT 18-09-2026
+     * Penanda sederhana hasil penerbitan antrean.
+     */
+    private static final class HasilAntrianFarmasi {
+        boolean berhasil=false;
+        boolean layak=false;
+        boolean baru=false;
+        int nomor=0;
+        String detail="";
+    }
+
+    /**
+     * Mengecek apakah nomor resep sudah ada SEBELUM tombol Simpan diproses.
+     * Nilai ini hanya untuk diagnostik. Penerbitan antrean tidak lagi bergantung
+     * pada flag UI `ubah`.
+     */
+    private boolean resepSudahAdaDiDatabase(String noResep){
+        PreparedStatement psCek=null;
+        ResultSet rsCek=null;
+        try{
+            psCek=koneksi.prepareStatement(
+                "select 1 from resep_obat where no_resep=? limit 1");
+            psCek.setString(1,noResep==null ? "" : noResep.trim());
+            rsCek=psCek.executeQuery();
+            return rsCek.next();
+        }catch(Exception e){
+            System.out.println("Farmasi POST-COMMIT: gagal cek resep sebelum simpan : "+e);
+            return false;
+        }finally{
+            try{ if(rsCek!=null) rsCek.close(); }catch(Exception e){}
+            try{ if(psCek!=null) psCek.close(); }catch(Exception e){}
+        }
+    }
+
+    /**
+     * Menerbitkan nomor antrean SETELAH resep utama berhasil COMMIT.
+     *
+     * Sumber keputusan adalah data yang benar-benar tersimpan di database:
+     * - resep_obat.status harus RALAN
+     * - reg_periksa.kd_poli tidak boleh IGDK
+     * - reg_periksa.status_lanjut tidak boleh Ranap
+     *
+     * Method idempotent: bila no_resep sudah punya antrean, nomor lama dikembalikan
+     * dan tidak membuat antrean / WA kedua kali.
+     */
+    private HasilAntrianFarmasi terbitkanAntrianFarmasiSetelahCommit(
+            String noRawat, String noResep){
+
+        HasilAntrianFarmasi hasil=new HasilAntrianFarmasi();
+        PreparedStatement psData=null, psCek=null, psJenis=null,
+                psCounter=null, psNomor=null, psInsert=null;
+        ResultSet rsData=null, rsCek=null, rsJenis=null, rsNomor=null;
+        boolean autoCommitAwal=true;
+        boolean transaksiAntrian=false;
+
+        try{
+            String nr=noRawat==null ? "" : noRawat.trim();
+            String resep=noResep==null ? "" : noResep.trim();
+
+            if(nr.equals("") || resep.equals("")){
+                hasil.detail="no_rawat / no_resep kosong";
+                System.out.println("Farmasi POST-COMMIT: "+hasil.detail);
+                return hasil;
+            }
+
+            // 1) Baca ulang resep yang SUDAH COMMIT + registrasinya.
+            psData=koneksi.prepareStatement(
+                "select ro.tgl_peresepan,ro.status,rp.kd_poli,rp.status_lanjut " +
+                "from resep_obat ro inner join reg_periksa rp on rp.no_rawat=ro.no_rawat " +
+                "where ro.no_resep=? and ro.no_rawat=? limit 1");
+            psData.setString(1,resep);
+            psData.setString(2,nr);
+            rsData=psData.executeQuery();
+
+            if(!rsData.next()){
+                hasil.detail="Resep yang sudah disimpan tidak ditemukan saat verifikasi post-commit";
+                System.out.println("Farmasi POST-COMMIT: "+hasil.detail+
+                    " | no_resep="+resep+" | no_rawat="+nr);
+                JOptionPane.showMessageDialog(null,
+                    "Resep berhasil disimpan, tetapi verifikasi antrean farmasi gagal.\n"+
+                    "No.Resep : "+resep+"\nNo.Rawat : "+nr+"\n\n"+
+                    "Detail : "+hasil.detail,
+                    "Antrian Farmasi",JOptionPane.WARNING_MESSAGE);
+                return hasil;
+            }
+
+            String tanggalFarmasi=rsData.getString("tgl_peresepan");
+            String statusResep=rsData.getString("status");
+            String kdPoli=rsData.getString("kd_poli");
+            String statusLanjut=rsData.getString("status_lanjut");
+            statusResep=statusResep==null ? "" : statusResep.trim();
+            kdPoli=kdPoli==null ? "" : kdPoli.trim();
+            statusLanjut=statusLanjut==null ? "" : statusLanjut.trim();
+
+            hasil.layak=statusResep.equalsIgnoreCase("ralan") &&
+                    !kdPoli.equalsIgnoreCase("IGDK") &&
+                    !statusLanjut.equalsIgnoreCase("Ranap");
+
+            System.out.println("Farmasi POST-COMMIT: verifikasi | no_resep="+resep+
+                " | no_rawat="+nr+
+                " | tgl="+tanggalFarmasi+
+                " | status_resep="+statusResep+
+                " | kd_poli="+kdPoli+
+                " | status_lanjut="+statusLanjut+
+                " | layak="+hasil.layak);
+
+            // Bukan pasien rawat jalan biasa -> resep tetap sah, antrean tidak dibuat.
+            if(!hasil.layak){
+                hasil.berhasil=true;
+                hasil.detail="Tidak termasuk antrean farmasi rawat jalan";
+                return hasil;
+            }
+
+            // 2) Idempotent: jangan buat nomor kedua untuk no_resep yang sama.
+            psCek=koneksi.prepareStatement(
+                "select no_antrian from rsaj_antrian_farmasi where no_resep=? limit 1");
+            psCek.setString(1,resep);
+            rsCek=psCek.executeQuery();
+            if(rsCek.next()){
+                hasil.berhasil=true;
+                hasil.baru=false;
+                hasil.nomor=rsCek.getInt("no_antrian");
+                hasil.detail="Antrean sudah pernah diterbitkan";
+                System.out.println("Farmasi POST-COMMIT: antrean sudah ada : "+
+                    String.format("%03d",hasil.nomor)+" | no_resep="+resep);
+                return hasil;
+            }
+            try{ rsCek.close(); }catch(Exception e){}
+            rsCek=null;
+            try{ psCek.close(); }catch(Exception e){}
+            psCek=null;
+
+            // 3) Tentukan jenis resep.
+            String jenisResep="NON_RACIKAN";
+            psJenis=koneksi.prepareStatement(
+                "select " +
+                "exists(select 1 from resep_dokter where no_resep=? limit 1) as ada_nonracik," +
+                "exists(select 1 from resep_dokter_racikan where no_resep=? limit 1) as ada_racik");
+            psJenis.setString(1,resep);
+            psJenis.setString(2,resep);
+            rsJenis=psJenis.executeQuery();
+            if(rsJenis.next()){
+                boolean adaNonRacik=rsJenis.getInt("ada_nonracik")>0;
+                boolean adaRacik=rsJenis.getInt("ada_racik")>0;
+                if(adaNonRacik && adaRacik){
+                    jenisResep="CAMPURAN";
+                }else if(adaRacik){
+                    jenisResep="RACIKAN";
+                }
+            }
+
+            // 4) Transaksi kecil khusus antrean. Resep utama sudah aman karena sudah COMMIT.
+            autoCommitAwal=koneksi.getAutoCommit();
+            koneksi.setAutoCommit(false);
+            transaksiAntrian=true;
+
+            // Re-check di dalam transaksi untuk pengaman retry / double-click.
+            psCek=koneksi.prepareStatement(
+                "select no_antrian from rsaj_antrian_farmasi where no_resep=? for update");
+            psCek.setString(1,resep);
+            rsCek=psCek.executeQuery();
+            if(rsCek.next()){
+                hasil.berhasil=true;
+                hasil.baru=false;
+                hasil.nomor=rsCek.getInt("no_antrian");
+                koneksi.commit();
+                transaksiAntrian=false;
+                return hasil;
+            }
+
+            // 5) Counter atomik per tanggal menggunakan LAST_INSERT_ID(expr).
+            // Nilai LAST_INSERT_ID bersifat connection-local, sehingga aman dari race
+            // ketika dokter lain menerbitkan antrean pada saat bersamaan.
+            psCounter=koneksi.prepareStatement(
+                "insert into rsaj_antrian_farmasi_counter(tanggal,nomor_terakhir) " +
+                "values(?,LAST_INSERT_ID(1)) " +
+                "on duplicate key update nomor_terakhir=LAST_INSERT_ID(nomor_terakhir+1)");
+            psCounter.setString(1,tanggalFarmasi);
+            psCounter.executeUpdate();
+
+            psNomor=koneksi.prepareStatement("select LAST_INSERT_ID() as nomor");
+            rsNomor=psNomor.executeQuery();
+            if(!rsNomor.next()){
+                throw new SQLException("LAST_INSERT_ID() tidak menghasilkan nomor antrean");
+            }
+            int nomorAntrian=rsNomor.getInt("nomor");
+            if(nomorAntrian<=0){
+                throw new SQLException("Nomor antrean yang dihasilkan tidak valid: "+nomorAntrian);
+            }
+
+            // 6) Simpan tiket antrean permanen.
+            psInsert=koneksi.prepareStatement(
+                "insert into rsaj_antrian_farmasi " +
+                "(tanggal,no_antrian,no_resep,no_rawat,jenis_resep,status_antrian,waktu_dibuat) " +
+                "values(?,?,?,?,?,'MENUNGGU',now())");
+            psInsert.setString(1,tanggalFarmasi);
+            psInsert.setInt(2,nomorAntrian);
+            psInsert.setString(3,resep);
+            psInsert.setString(4,nr);
+            psInsert.setString(5,jenisResep);
+            int inserted=psInsert.executeUpdate();
+            if(inserted!=1){
+                throw new SQLException("Insert rsaj_antrian_farmasi tidak menghasilkan 1 baris (hasil="+inserted+")");
+            }
+
+            koneksi.commit();
+            transaksiAntrian=false;
+
+            hasil.berhasil=true;
+            hasil.baru=true;
+            hasil.nomor=nomorAntrian;
+            hasil.detail="Nomor antrean berhasil diterbitkan";
+
+            System.out.println("Farmasi POST-COMMIT: NOMOR BERHASIL : "+
+                String.format("%03d",nomorAntrian)+
+                " | no_resep="+resep+" | no_rawat="+nr+
+                " | jenis="+jenisResep);
+            return hasil;
+
+        }catch(SQLException e){
+            if(transaksiAntrian){
+                try{ koneksi.rollback(); }catch(Exception ex){}
+            }
+            hasil.berhasil=false;
+            hasil.detail=e.getMessage()==null ? e.toString() : e.getMessage();
+            System.out.println("Farmasi POST-COMMIT: GAGAL menerbitkan antrean : "+e);
+            JOptionPane.showMessageDialog(null,
+                "Resep sudah berhasil disimpan, tetapi No. Antrian Farmasi gagal diterbitkan.\n\n"+
+                "Detail : "+hasil.detail+"\n\n"+
+                "Silahkan hubungi Tim IT.",
+                "Antrian Farmasi",JOptionPane.WARNING_MESSAGE);
+            return hasil;
+        }finally{
+            try{ if(rsData!=null) rsData.close(); }catch(Exception e){}
+            try{ if(rsCek!=null) rsCek.close(); }catch(Exception e){}
+            try{ if(rsJenis!=null) rsJenis.close(); }catch(Exception e){}
+            try{ if(rsNomor!=null) rsNomor.close(); }catch(Exception e){}
+            try{ if(psData!=null) psData.close(); }catch(Exception e){}
+            try{ if(psCek!=null) psCek.close(); }catch(Exception e){}
+            try{ if(psJenis!=null) psJenis.close(); }catch(Exception e){}
+            try{ if(psCounter!=null) psCounter.close(); }catch(Exception e){}
+            try{ if(psNomor!=null) psNomor.close(); }catch(Exception e){}
+            try{ if(psInsert!=null) psInsert.close(); }catch(Exception e){}
+            try{
+                if(koneksi.getAutoCommit()!=autoCommitAwal){
+                    koneksi.setAutoCommit(autoCommitAwal);
+                }
+            }catch(Exception e){}
+        }
+    }
+
+    /**
+     * REVISI FARMASI BPJS + WA 18-09-2026
+     * Mengirim notifikasi nomor antrean ke nomor HP pasien melalui WhatsappGateway
+     * yang sudah digunakan SIMRS RSAJJP (GoWA).
+     *
+     * Pengiriman dilakukan di SwingWorker agar form dokter tidak menunggu request
+     * HTTP GoWA. Kegagalan WA TIDAK menggagalkan transaksi resep karena resep dan
+     * nomor antrean sudah COMMIT terlebih dahulu.
+     */
+    private void kirimNotifikasiAntrianFarmasiWA(final int nomorAntrian,
+            final String noRawat, final String noResep){
+
+        String noHp="";
+        String noRm="";
+        String namaPasien="";
+        try{
+            noHp=Sequel.cariIsi(
+                "select pasien.no_tlp from reg_periksa inner join pasien "+
+                "on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
+                "where reg_periksa.no_rawat=? limit 1",noRawat);
+            noRm=Sequel.cariIsi(
+                "select reg_periksa.no_rkm_medis from reg_periksa "+
+                "where reg_periksa.no_rawat=? limit 1",noRawat);
+            namaPasien=Sequel.cariIsi(
+                "select pasien.nm_pasien from reg_periksa inner join pasien "+
+                "on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
+                "where reg_periksa.no_rawat=? limit 1",noRawat);
+        }catch(Exception e){
+            System.out.println("WA antrean farmasi: gagal mengambil data pasien : "+e);
+        }
+
+        final String tujuan=(noHp==null ? "" : noHp.trim());
+        final String rm=(noRm==null ? "" : noRm.trim());
+        final String nama=(namaPasien==null ? "" : namaPasien.trim());
+        final String nomorTampil=String.format("%03d",nomorAntrian);
+        final String pesanWA=
+            (nama.equals("") ? "" : "Yth. Bapak/Ibu "+nama+",\n\n")+
+            "Nomor antrian pengambilan obat Anda No. *"+nomorTampil+"*.\n"+
+            "Silahkan menuju Apotek untuk pengambilan obat.\n"+
+            "Terima kasih sudah menunggu.";
+
+        if(tujuan.equals("")){
+            catatStatusWAFarmasi(noResep,"TIDAK_DIKIRIM","","",
+                "Nomor HP pasien kosong");
+            System.out.println("WA antrean farmasi "+nomorTampil+
+                " tidak dikirim: nomor HP pasien kosong. No.Resep="+noResep);
+            return;
+        }
+
+        // Tandai terlebih dahulu bahwa proses WA sudah dijadwalkan.
+        catatStatusWAFarmasi(noResep,"PENDING","","",
+            "Menunggu pengiriman melalui WhatsappGateway");
+
+        new javax.swing.SwingWorker<WhatsappGateway.Hasil,Void>(){
+            @Override
+            protected WhatsappGateway.Hasil doInBackground() throws Exception {
+                // WhatsappGateway akan memakai konfigurasi existing RSAJJP.
+                // Jika setting wa.provider=GOWA, pengiriman langsung melalui GoWA:
+                // POST /send/message + Basic Auth + X-Device-Id.
+                return WhatsappGateway.kirimPesan(tujuan,pesanWA);
+            }
+
+            @Override
+            protected void done(){
+                try{
+                    WhatsappGateway.Hasil hasil=get();
+                    if(hasil!=null && hasil.berhasil()){
+                        catatStatusWAFarmasi(
+                            noResep,
+                            "TERKIRIM",
+                            hasil.getMessageId(),
+                            hasil.getProviderLabel(),
+                            hasil.getPesan()
+                        );
+
+                        // Pertahankan audit WA SIMRS yang sudah digunakan source RSAJJP.
+                        try{
+                            String pesanReport=pesanWA
+                                .replace("*","")
+                                .replace("_","");
+                            String dateNow=LocalDateTime.now().format(
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                            Sequel.queryu2(
+                                "insert into wa_report values(?,?,?,?,?,?,?,?,?,?,?,?)",
+                                12,
+                                new String[]{
+                                    hasil.getMessageId(),
+                                    rm,
+                                    tujuan,
+                                    akses.getkode(),
+                                    "SIMRS Khanza",
+                                    hasil.getTarget(),
+                                    pesanReport,
+                                    "",
+                                    "true",
+                                    "",
+                                    dateNow,
+                                    dateNow
+                                }
+                            );
+                        }catch(Exception e){
+                            System.out.println("WA antrean farmasi: gagal menulis wa_report : "+e);
+                        }
+
+                        System.out.println("WA antrean farmasi "+nomorTampil+
+                            " terkirim ke "+tujuan+" via "+hasil.getProviderLabel());
+                    }else{
+                        String provider=(hasil==null ? "" : hasil.getProviderLabel());
+                        String detail=(hasil==null ? "Respons gateway kosong" : hasil.getPesan());
+                        String status=(hasil!=null && hasil.statusTidakPasti())
+                            ? "TIDAK_PASTI" : "GAGAL";
+                        catatStatusWAFarmasi(noResep,status,
+                            hasil==null ? "" : hasil.getMessageId(),
+                            provider,detail);
+                        System.out.println("WA antrean farmasi "+nomorTampil+
+                            " gagal/tidak pasti: "+detail);
+                    }
+                }catch(Exception e){
+                    catatStatusWAFarmasi(noResep,"GAGAL","","",
+                        "Exception: "+e.getMessage());
+                    System.out.println("WA antrean farmasi "+nomorTampil+
+                        " gagal: "+e);
+                }
+            }
+        }.execute();
+    }
+
+    /**
+     * Menyimpan audit status WA pada tabel custom antrean farmasi.
+     * Tidak ada perubahan pada tabel inti Khanza.
+     */
+    private void catatStatusWAFarmasi(String noResep, String statusWA,
+            String messageId, String provider, String keterangan){
+        PreparedStatement psWA=null;
+        try{
+            psWA=koneksi.prepareStatement(
+                "update rsaj_antrian_farmasi set "+
+                "wa_status=?,wa_message_id=?,wa_provider=?,wa_keterangan=?,wa_waktu=now() "+
+                "where no_resep=?");
+            String mid=messageId==null ? "" : messageId;
+            String prv=provider==null ? "" : provider;
+            String ket=keterangan==null ? "" : keterangan;
+            if(mid.length()>120) mid=mid.substring(0,120);
+            if(prv.length()>40) prv=prv.substring(0,40);
+            if(ket.length()>255) ket=ket.substring(0,255);
+            psWA.setString(1,statusWA==null ? "" : statusWA);
+            psWA.setString(2,mid);
+            psWA.setString(3,prv);
+            psWA.setString(4,ket);
+            psWA.setString(5,noResep==null ? "" : noResep);
+            psWA.executeUpdate();
+        }catch(Exception e){
+            System.out.println("WA antrean farmasi: gagal mencatat status : "+e);
+        }finally{
+            try{ if(psWA!=null) psWA.close(); }catch(Exception e){}
+        }
+    }
 
 private void BtnSeek5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSeek5ActionPerformed
     DlgCariKonversi carikonversi=new DlgCariKonversi(null,true);

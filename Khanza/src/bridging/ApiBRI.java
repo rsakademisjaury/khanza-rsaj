@@ -64,38 +64,38 @@ public class ApiBRI {
     private boolean status=true;
     private validasi Valid=new validasi();
     
-    public ApiBRI(){
-        try {
-            ps=koneksi.prepareStatement(
-                   "select set_akun_bankbri.kd_rek,rekening.nm_rek,aes_decrypt(set_akun_bankbri.consumer_key,'nur') as consumer_key,"+
-                   "aes_decrypt(set_akun_bankbri.consumer_secret,'windi') as consumer_secret,aes_decrypt(set_akun_bankbri.institution_code,'nur') as institution_code,"+
-                   "aes_decrypt(set_akun_bankbri.briva_no,'windi') as briva_no,aes_decrypt(set_akun_bankbri.urlapi,'dewi') as urlapi "+
-                   "from set_akun_bankbri inner join rekening on set_akun_bankbri.kd_rek=rekening.kd_rek");
-            try {
-               rs=ps.executeQuery();
-               if(rs.next()){
-                   kd_rek=rs.getString("kd_rek");
-                   nm_rek=rs.getString("nm_rek");
-                   consumer_key=rs.getString("consumer_key");
-                   consumer_secret=rs.getString("consumer_secret");
-                   institution_code=rs.getString("institution_code");
-                   briva_no=rs.getString("briva_no");
-                   urlapi=rs.getString("urlapi");
-               }
-            } catch (Exception e) {
-                System.out.println("Notif : "+e);
-            } finally{
-                if(rs!=null){
-                    rs.close();
-                }
-                if(ps!=null){
-                    ps.close();
-                }
-            }
-        } catch (Exception ex) {
-            System.out.println("Notifikasi : "+ex);
-        }
-    }
+//    public ApiBRI(){
+//        try {
+//            ps=koneksi.prepareStatement(
+//                   "select set_akun_bankbri.kd_rek,rekening.nm_rek,aes_decrypt(set_akun_bankbri.consumer_key,'nur') as consumer_key,"+
+//                   "aes_decrypt(set_akun_bankbri.consumer_secret,'windi') as consumer_secret,aes_decrypt(set_akun_bankbri.institution_code,'nur') as institution_code,"+
+//                   "aes_decrypt(set_akun_bankbri.briva_no,'windi') as briva_no,aes_decrypt(set_akun_bankbri.urlapi,'dewi') as urlapi "+
+//                   "from set_akun_bankbri inner join rekening on set_akun_bankbri.kd_rek=rekening.kd_rek");
+//            try {
+//               rs=ps.executeQuery();
+//               if(rs.next()){
+//                   kd_rek=rs.getString("kd_rek");
+//                   nm_rek=rs.getString("nm_rek");
+//                   consumer_key=rs.getString("consumer_key");
+//                   consumer_secret=rs.getString("consumer_secret");
+//                   institution_code=rs.getString("institution_code");
+//                   briva_no=rs.getString("briva_no");
+//                   urlapi=rs.getString("urlapi");
+//               }
+//            } catch (Exception e) {
+//                System.out.println("Notif : "+e);
+//            } finally{
+//                if(rs!=null){
+//                    rs.close();
+//                }
+//                if(ps!=null){
+//                    ps.close();
+//                }
+//            }
+//        } catch (Exception ex) {
+//            System.out.println("Notifikasi : "+ex);
+//        }
+//    }
 
     public String generateHmacSHA256Signature(String data, String key)throws GeneralSecurityException {
         hmacData = null;

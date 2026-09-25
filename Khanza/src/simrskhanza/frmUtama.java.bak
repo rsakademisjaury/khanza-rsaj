@@ -1330,6 +1330,15 @@ public class frmUtama extends javax.swing.JFrame {
     private double progressFadeWallpaperLogin = 1.0;
     private int indeksWallpaper;
     private ImageIcon gambarPanelJudul;
+
+    // PATCH RSAJ 2026-09-15 - wallpaper submenu utama.
+    // Blur hanya diterapkan pada gambar PanelWall, bukan pada GlassPane JFrame,
+    // sehingga tidak bentrok dengan backdrop login yang sudah memakai glass pane.
+    private boolean wallpaperBlurAktif = false;
+    private ImageIcon wallpaperFallbackPanel;
+    private final java.util.Map<ImageIcon, ImageIcon> cacheWallpaperBlur =
+            new java.util.IdentityHashMap<>();
+
     private LoginBackdropPanel backdropLogin;
     private Component glassPaneSebelumLogin;
     private boolean glassPaneSebelumnyaTerlihat;
@@ -1372,6 +1381,9 @@ public class frmUtama extends javax.swing.JFrame {
     // Polling HTTP berjalan pada daemon background thread di class helper.
     private ITServiceChatOverlay itServiceChatOverlay;
 
+    // Inbox SATUSEHAT IGD/ranap terpisah dari notifikasi lain.
+    private bridging.SatuSehatRujukanMasukNotifier rujukanMasukNotifier;
+
 //    private javax.swing.Icon ICON_REPLY_GREEN; // /picture/reply_green.png
     private static final long TOAST_THROTTLE_MS_JAWABAN = 3000;
     
@@ -1403,6 +1415,145 @@ public class frmUtama extends javax.swing.JFrame {
 
     
     
+    /**
+     * PanelWall runtime tanpa efek glass/gradient bawaan PanelGlass.
+     * Class tetap mewarisi PanelGlass supaya tipe field dan source hasil
+     * NetBeans tidak perlu dirombak, tetapi proses paint milik PanelGlass
+     * sengaja dilewati seluruhnya.
+     */
+    private static final class FlatWallpaperPanel extends usu.widget.glass.PanelGlass {
+        private ImageIcon wallpaper;
+
+        @Override
+        public void setBackgroundImage(javax.swing.Icon icon) {
+            if (icon instanceof ImageIcon) {
+                wallpaper = (ImageIcon) icon;
+            } else if (icon != null) {
+                java.awt.image.BufferedImage buffer = new java.awt.image.BufferedImage(
+                        Math.max(1, icon.getIconWidth()), Math.max(1, icon.getIconHeight()),
+                        java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2 = buffer.createGraphics();
+                try {
+                    icon.paintIcon(this, g2, 0, 0);
+                } finally {
+                    g2.dispose();
+                }
+                wallpaper = new ImageIcon(buffer);
+            } else {
+                wallpaper = null;
+            }
+            repaint();
+        }
+
+        @Override
+        public void paint(java.awt.Graphics g) {
+            // Jangan panggil super.paint(g): di situlah efek glass PanelGlass
+            // dapat ikut digambar. Background, border, dan children kita gambar
+            // sendiri agar PanelWall benar-benar flat.
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.setColor(getBackground() == null ? Color.WHITE : getBackground());
+                g2.fillRect(0, 0, getWidth(), getHeight());
+
+                if (wallpaper != null && wallpaper.getImage() != null
+                        && getWidth() > 0 && getHeight() > 0) {
+                    g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                            RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                    g2.setRenderingHint(RenderingHints.KEY_RENDERING,
+                            RenderingHints.VALUE_RENDER_QUALITY);
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                            RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.drawImage(wallpaper.getImage(), 0, 0,
+                            getWidth(), getHeight(), this);
+                }
+            } finally {
+                g2.dispose();
+            }
+
+            paintBorder(g);
+            paintChildren(g);
+        }
+    }
+
+    /**
+     * Container submenu tanpa background glass. Wallpaper yang sudah diblur
+     * tetap terlihat langsung di belakang tombol-tombol submenu.
+     */
+    private static final class FlatSubMenuPanel extends usu.widget.glass.PanelGlass {
+        @Override
+        public void paint(java.awt.Graphics g) {
+            // Transparan penuh: jangan panggil paint PanelGlass.
+            paintBorder(g);
+            paintChildren(g);
+        }
+    }
+
+    /**
+     * Mengganti instance PanelWall hasil GUI Builder dengan subclass flat pada
+     * runtime. frmUtama.form tidak perlu diubah sehingga aman saat desain form
+     * dibuka kembali di NetBeans.
+     */
+    private void pasangPanelWallTanpaGlass() {
+        if (PanelWall instanceof FlatWallpaperPanel
+                && FlayMenu instanceof FlatSubMenuPanel) {
+            return;
+        }
+
+        usu.widget.glass.PanelGlass panelLama = PanelWall;
+        usu.widget.glass.PanelGlass menuLama = FlayMenu;
+
+        // Submenu transparan: child lama dipindahkan, tetapi background/glass
+        // PanelGlass tidak ikut dipakai lagi.
+        FlatSubMenuPanel menuBaru = new FlatSubMenuPanel();
+        menuBaru.setName(menuLama.getName());
+        menuBaru.setBorder(menuLama.getBorder());
+        menuBaru.setPreferredSize(menuLama.getPreferredSize());
+        menuBaru.setMinimumSize(menuLama.getMinimumSize());
+        menuBaru.setMaximumSize(menuLama.getMaximumSize());
+        menuBaru.setOpaque(false);
+        menuBaru.setVisible(menuLama.isVisible());
+        menuBaru.setLayout(new java.awt.GridLayout(1, 1, 4, 5));
+        java.awt.Component[] childMenu = menuLama.getComponents();
+        for (java.awt.Component child : childMenu) {
+            menuLama.remove(child);
+            menuBaru.add(child);
+        }
+        FlayMenu = menuBaru;
+
+        FlatWallpaperPanel panelBaru = new FlatWallpaperPanel();
+        panelBaru.setName(panelLama.getName());
+        panelBaru.setBackground(Color.WHITE);
+        panelBaru.setBorder(panelLama.getBorder());
+        panelBaru.setPreferredSize(panelLama.getPreferredSize());
+        panelBaru.setMinimumSize(panelLama.getMinimumSize());
+        panelBaru.setMaximumSize(panelLama.getMaximumSize());
+        panelBaru.setLayout(new java.awt.BorderLayout());
+        panelBaru.setOpaque(true);
+
+        // Pindahkan child utama dengan constraint yang sama.
+        panelLama.remove(panelJudul);
+        panelLama.remove(menuLama);
+        panelBaru.add(panelJudul, java.awt.BorderLayout.PAGE_END);
+        panelBaru.add(FlayMenu, java.awt.BorderLayout.PAGE_START);
+
+        panelBaru.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(java.awt.event.MouseEvent evt) {
+                PanelWallMouseMoved(evt);
+            }
+        });
+
+        java.net.URL defaultWall = getClass().getResource("/picture/Wallpaper rs.png");
+        if (defaultWall != null) {
+            panelBaru.setBackgroundImage(new ImageIcon(defaultWall));
+        }
+
+        PanelWall = panelBaru;
+        scrollPane1.setViewportView(PanelWall);
+        scrollPane1.revalidate();
+        scrollPane1.repaint();
+    }
+
     frmUtama() {
         this(null);
     }
@@ -1435,6 +1586,16 @@ public class frmUtama extends javax.swing.JFrame {
         mulaiTahap = System.nanoTime();
         laporStartup(31, "Membangun antarmuka utama...");
         initComponents();
+        pasangRujukanMasukSatuSehat();
+        // PATCH RSAJ V3: sebelum autentikasi berhasil, seluruh tombol utama
+        // dan tombol notifikasi disembunyikan. Hanya tombol Log In yang tetap
+        // tersedia. Tombol baru dimunculkan setelah hak akses login terbaca.
+        aturToolbarBelumLogin();
+        // PanelWall runtime diganti dengan renderer flat agar efek glass asli
+        // PanelGlass benar-benar tidak ikut tergambar.
+        pasangPanelWallTanpaGlass();
+        // Simpan wallpaper bawaan sebagai fallback bila wallpaper1-3 gagal dimuat.
+        wallpaperFallbackPanel = muatWallpaperDariJar("Wallpaper rs.png");
         siapkanGambarPanelJudul();
         pasangPemilikDialogLogin();
         pasangTemaLoginModern();
@@ -1683,6 +1844,7 @@ public class frmUtama extends javax.swing.JFrame {
                     java.util.List<ImageIcon> hasil = get();
                     if (!hasil.isEmpty()) {
                         daftarWallpaper.clear();
+                        cacheWallpaperBlur.clear();
                         daftarWallpaper.addAll(hasil);
                         indeksWallpaper = 0;
                         indeksWallpaperSebelumnya = -1;
@@ -1740,10 +1902,12 @@ public class frmUtama extends javax.swing.JFrame {
             return;
         }
 
-        // PanelWall tetap diberi wallpaper normal sebagai fallback.
-        // Saat login aktif, LoginBackdropPanel menggambar ulang gambar cache
-        // dengan zoom anchor-kiri + fade ringan tanpa membuat bitmap baru.
-        PanelWall.setBackgroundImage(daftarWallpaper.get(indeksWallpaper));
+        // PanelWall memakai wallpaper normal pada kondisi biasa. Saat salah satu
+        // submenu utama dibuka, yang diganti hanya bitmap wallpaper-nya dengan
+        // versi blur dari cache; komponen tombol tetap digambar tajam di atasnya.
+        ImageIcon wallpaperNormal = daftarWallpaper.get(indeksWallpaper);
+        PanelWall.setBackgroundImage(wallpaperBlurAktif
+                ? dapatkanWallpaperBlur(wallpaperNormal) : wallpaperNormal);
         PanelWall.repaint();
 
         if (modeLoginSedangAktif()) {
@@ -1751,6 +1915,182 @@ public class frmUtama extends javax.swing.JFrame {
         } else if (backdropLogin != null) {
             backdropLogin.repaint();
         }
+    }
+
+    /**
+     * Mengaktifkan/nonaktifkan blur halus khusus wallpaper PanelWall.
+     * Tidak menggunakan GlassPane agar mekanisme login tetap independen.
+     */
+    private void setWallpaperBlurAktif(boolean aktif) {
+        // PATCH RSAJ 2026-09-16:
+        // Saat submenu utama terbuka, wallpaper diblur dan gambar identitas
+        // /picture/nama dan logo rs.png pada panelJudul disembunyikan.
+        // Ketika submenu ditutup, gambar identitas kembali hanya jika user
+        // memang sudah login. Saat belum login gambar tetap tersembunyi.
+        boolean sudahLogin = BtnLog != null
+                && "Log Out".equals(BtnLog.getText().trim());
+        aturGambarPanelJudul(!aktif && sudahLogin);
+
+        if (wallpaperBlurAktif == aktif) {
+            return;
+        }
+        wallpaperBlurAktif = aktif;
+
+        if (!daftarWallpaper.isEmpty()) {
+            tampilkanWallpaperAktif();
+        } else if (wallpaperFallbackPanel != null) {
+            PanelWall.setBackgroundImage(aktif
+                    ? dapatkanWallpaperBlur(wallpaperFallbackPanel)
+                    : wallpaperFallbackPanel);
+            PanelWall.repaint();
+        }
+    }
+
+    /**
+     * Membuat soft blur 100% pada resolusi asli tanpa downscale/pixelation.
+     * Hasil disimpan per ImageIcon sehingga hanya dibuat sekali untuk setiap
+     * wallpaper dan tidak menambah beban pada repaint/rotasi berikutnya.
+     */
+    private ImageIcon dapatkanWallpaperBlur(ImageIcon sumber) {
+        if (sumber == null || sumber.getIconWidth() <= 0 || sumber.getIconHeight() <= 0) {
+            return sumber;
+        }
+
+        ImageIcon cache = cacheWallpaperBlur.get(sumber);
+        if (cache != null) {
+            return cache;
+        }
+
+        final int lebar = sumber.getIconWidth();
+        final int tinggi = sumber.getIconHeight();
+
+        // Tetap bekerja pada resolusi ASLI. Versi sebelumnya mengecilkan gambar
+        // sampai 1/8 lalu membesarkannya kembali; itulah penyebab wallpaper
+        // terlihat kotak/pixelated. Blur baru tidak melakukan downscale sama sekali.
+        java.awt.image.BufferedImage asli = new java.awt.image.BufferedImage(
+                lebar, tinggi, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gAsli = asli.createGraphics();
+        try {
+            gAsli.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            gAsli.setRenderingHint(RenderingHints.KEY_RENDERING,
+                    RenderingHints.VALUE_RENDER_QUALITY);
+            gAsli.drawImage(sumber.getImage(), 0, 0, lebar, tinggi, null);
+        } finally {
+            gAsli.dispose();
+        }
+
+        // Dua pass separable box blur pada resolusi penuh memberi hasil sangat
+        // halus (mendekati Gaussian) tetapi tetap cukup ringan karena hasilnya
+        // hanya dibuat SEKALI per wallpaper dan selanjutnya diambil dari cache.
+        java.awt.image.BufferedImage blur = asli;
+        final int radius = 18;
+        for (int pass = 0; pass < 2; pass++) {
+            blur = blurHorizontal(blur, radius);
+            blur = blurVertikal(blur, radius);
+        }
+
+        // "Blur 100%": tampilkan hasil blur penuh TANPA mencampurkan kembali
+        // detail wallpaper asli. Karena blur tetap dikerjakan pada resolusi asli,
+        // hasilnya halus dan tidak berubah menjadi pixelated/kotak-kotak.
+        ImageIcon hasil = new ImageIcon(blur);
+        cacheWallpaperBlur.put(sumber, hasil);
+        return hasil;
+    }
+
+    /**
+     * Box blur horizontal O(width*height) dengan sliding window. Jauh lebih
+     * ringan daripada kernel convolution besar, sehingga blur pertama tidak
+     * membuat UI terasa membeku.
+     */
+    private java.awt.image.BufferedImage blurHorizontal(
+            java.awt.image.BufferedImage sumber, int radius) {
+        int w = sumber.getWidth();
+        int h = sumber.getHeight();
+        int[] masuk = sumber.getRGB(0, 0, w, h, null, 0, w);
+        int[] keluar = new int[masuk.length];
+        int ukuran = (radius * 2) + 1;
+
+        for (int y = 0; y < h; y++) {
+            int base = y * w;
+            long sa = 0, sr = 0, sg = 0, sb = 0;
+
+            for (int i = -radius; i <= radius; i++) {
+                int x = Math.max(0, Math.min(w - 1, i));
+                int argb = masuk[base + x];
+                sa += (argb >>> 24) & 0xff;
+                sr += (argb >>> 16) & 0xff;
+                sg += (argb >>> 8) & 0xff;
+                sb += argb & 0xff;
+            }
+
+            for (int x = 0; x < w; x++) {
+                int a = (int) (sa / ukuran);
+                int r = (int) (sr / ukuran);
+                int g = (int) (sg / ukuran);
+                int b = (int) (sb / ukuran);
+                keluar[base + x] = (a << 24) | (r << 16) | (g << 8) | b;
+
+                int xKeluar = Math.max(0, x - radius);
+                int xMasuk = Math.min(w - 1, x + radius + 1);
+                int cKeluar = masuk[base + xKeluar];
+                int cMasuk = masuk[base + xMasuk];
+                sa += ((cMasuk >>> 24) & 0xff) - ((cKeluar >>> 24) & 0xff);
+                sr += ((cMasuk >>> 16) & 0xff) - ((cKeluar >>> 16) & 0xff);
+                sg += ((cMasuk >>> 8) & 0xff) - ((cKeluar >>> 8) & 0xff);
+                sb += (cMasuk & 0xff) - (cKeluar & 0xff);
+            }
+        }
+
+        java.awt.image.BufferedImage hasil = new java.awt.image.BufferedImage(
+                w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        hasil.setRGB(0, 0, w, h, keluar, 0, w);
+        return hasil;
+    }
+
+    /** Box blur vertikal pasangan blurHorizontal(), juga O(width*height). */
+    private java.awt.image.BufferedImage blurVertikal(
+            java.awt.image.BufferedImage sumber, int radius) {
+        int w = sumber.getWidth();
+        int h = sumber.getHeight();
+        int[] masuk = sumber.getRGB(0, 0, w, h, null, 0, w);
+        int[] keluar = new int[masuk.length];
+        int ukuran = (radius * 2) + 1;
+
+        for (int x = 0; x < w; x++) {
+            long sa = 0, sr = 0, sg = 0, sb = 0;
+
+            for (int i = -radius; i <= radius; i++) {
+                int y = Math.max(0, Math.min(h - 1, i));
+                int argb = masuk[(y * w) + x];
+                sa += (argb >>> 24) & 0xff;
+                sr += (argb >>> 16) & 0xff;
+                sg += (argb >>> 8) & 0xff;
+                sb += argb & 0xff;
+            }
+
+            for (int y = 0; y < h; y++) {
+                int a = (int) (sa / ukuran);
+                int r = (int) (sr / ukuran);
+                int g = (int) (sg / ukuran);
+                int b = (int) (sb / ukuran);
+                keluar[(y * w) + x] = (a << 24) | (r << 16) | (g << 8) | b;
+
+                int yKeluar = Math.max(0, y - radius);
+                int yMasuk = Math.min(h - 1, y + radius + 1);
+                int cKeluar = masuk[(yKeluar * w) + x];
+                int cMasuk = masuk[(yMasuk * w) + x];
+                sa += ((cMasuk >>> 24) & 0xff) - ((cKeluar >>> 24) & 0xff);
+                sr += ((cMasuk >>> 16) & 0xff) - ((cKeluar >>> 16) & 0xff);
+                sg += ((cMasuk >>> 8) & 0xff) - ((cKeluar >>> 8) & 0xff);
+                sb += (cMasuk & 0xff) - (cKeluar & 0xff);
+            }
+        }
+
+        java.awt.image.BufferedImage hasil = new java.awt.image.BufferedImage(
+                w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        hasil.setRGB(0, 0, w, h, keluar, 0, w);
+        return hasil;
     }
 
     /**
@@ -2007,6 +2347,8 @@ public class frmUtama extends javax.swing.JFrame {
             workerWallpaper = null;
         }
         daftarWallpaper.clear();
+        cacheWallpaperBlur.clear();
+        wallpaperBlurAktif = false;
         indeksWallpaperSebelumnya = -1;
         progressFadeWallpaperLogin = 1.0;
     }
@@ -2327,14 +2669,16 @@ public class frmUtama extends javax.swing.JFrame {
      * field login dipertahankan agar pengguna dapat langsung melanjutkan input.
      */
     private void jadwalkanPemulihanFokusLogin() {
-        if (!DlgLogin.isVisible() || pemulihanFokusLoginTerjadwal) {
+        if (!DlgLogin.isVisible() || pemulihanFokusLoginTerjadwal
+                || (getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
             return;
         }
 
         pemulihanFokusLoginTerjadwal = true;
         java.awt.EventQueue.invokeLater(() -> {
             pemulihanFokusLoginTerjadwal = false;
-            if (!DlgLogin.isVisible() || !isShowing()) {
+            if (!DlgLogin.isVisible() || !isShowing()
+                    || (getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
                 return;
             }
 
@@ -2349,7 +2693,8 @@ public class frmUtama extends javax.swing.JFrame {
      * login tidak ikut berada di atas browser/WhatsApp saat user pindah aplikasi.
      */
     private void angkatDialogLogin(Component fokusTerakhir) {
-        if (!DlgLogin.isVisible() || !isShowing()) {
+        if (!DlgLogin.isVisible() || !isShowing()
+                || (getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
             return;
         }
 
@@ -2382,7 +2727,8 @@ public class frmUtama extends javax.swing.JFrame {
                 // Tidak fatal; dialog tetap dimiliki frmUtama dan masih bisa toFront.
             }
 
-            if (DlgLogin.isVisible() && isShowing()) {
+            if (DlgLogin.isVisible() && isShowing()
+                    && (getExtendedState() & java.awt.Frame.ICONIFIED) == 0) {
                 posisikanLoginDiSisiKanan();
                 DlgLogin.toFront();
                 pulihkanFokusKomponenLogin(fokusTerakhir);
@@ -2403,14 +2749,16 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     private void jadwalkanSinkronisasiLogin() {
-        if (!DlgLogin.isVisible() || sinkronisasiLoginTerjadwal) {
+        if (!DlgLogin.isVisible() || sinkronisasiLoginTerjadwal
+                || (getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
             return;
         }
 
         sinkronisasiLoginTerjadwal = true;
         java.awt.EventQueue.invokeLater(() -> {
             sinkronisasiLoginTerjadwal = false;
-            if (DlgLogin.isVisible()) {
+            if (DlgLogin.isVisible() && isShowing()
+                    && (getExtendedState() & java.awt.Frame.ICONIFIED) == 0) {
                 posisikanLoginDiSisiKanan();
                 perbaruiBackdropLogin();
                 DlgLogin.toFront();
@@ -5072,7 +5420,7 @@ public class frmUtama extends javax.swing.JFrame {
             }
         });
 
-        btnRujukMasuk.setIcon(new javax.swing.ImageIcon(getClass().getResource("/48x48/if_vector_65_13_473800.png"))); // NOI18N
+        btnRujukMasuk.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/inbox.png"))); // NOI18N
         btnRujukMasuk.setText("Rujukan Masuk");
         btnRujukMasuk.setIconTextGap(0);
         btnRujukMasuk.setName("btnRujukMasuk"); // NOI18N
@@ -9838,6 +10186,7 @@ public class frmUtama extends javax.swing.JFrame {
         PanelWall.setBackground(new java.awt.Color(255, 255, 255));
         PanelWall.setBackgroundImage(new javax.swing.ImageIcon(getClass().getResource("/picture/Wallpaper rs.png"))); // NOI18N
         PanelWall.setBackgroundImageType(usu.widget.constan.BackgroundConstan.BACKGROUND_IMAGE_STRECT);
+        PanelWall.setOpaqueGradient(false);
         PanelWall.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 0, 0, 0));
         PanelWall.setPreferredSize(new java.awt.Dimension(200, 200));
         PanelWall.setRound(false);
@@ -10619,6 +10968,7 @@ public class frmUtama extends javax.swing.JFrame {
 
     private void formWindowClosed(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosed
         stopITServiceChat();
+        hentikanRujukanMasukSatuSehat();
         hentikanRotasiWallpaper();
         DlgHome.dispose();
         System.exit(0);
@@ -10629,6 +10979,7 @@ private void BtnLogActionPerformed(java.awt.event.ActionEvent evt) {
 
     switch (BtnLog.getText().trim()) {
         case "Log Out":
+            hentikanRujukanMasukSatuSehat();
             // --- MATIKAN POLLING + RESET TOMBOL NOTIF ---
             try {
                 if (timerKonsul != null) { timerKonsul.stop(); timerKonsul = null; }
@@ -10694,6 +11045,7 @@ private void BtnLogActionPerformed(java.awt.event.ActionEvent evt) {
             BtnMenu.setEnabled(false);
             akses.setLogOut();
             isTutup();
+            aturToolbarBelumLogin();
 
             tampilkanDialogLogin();
             resetLoginFields();
@@ -10739,8 +11091,13 @@ private void jMenu4MenuSelected(javax.swing.event.MenuEvent evt) {//GEN-FIRST:ev
 }//GEN-LAST:event_jMenu4MenuSelected
 
 private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowStateChanged
-    if(this.getState()==1){
-        isTutup();
+    if ((evt.getNewState() & java.awt.Frame.ICONIFIED) != 0) {
+        // Minimize hanya menyembunyikan login bersama owner, bukan dispose.
+        // Dialog lain tetap ditutup seperti perilaku sebelumnya.
+        isTutup(true);
+    } else {
+        jadwalkanSinkronisasiLogin();
+        jadwalkanPemulihanFokusLogin();
     }
 }//GEN-LAST:event_formWindowStateChanged
 
@@ -16677,6 +17034,9 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
 // Method untuk mengatur akses Admin Utama
 private void setAdminAccess() {
     BtnMenu.setEnabled(true);
+    aturToolbarSetelahLogin();
+    setWallpaperBlurAktif(false);
+    aturVisibilitasToolbarUtama(true, true, true, true, true, true, true, true, true);
     BtnToolReg.setEnabled(true);
     BtnToolKamnap.setEnabled(true);
     BtnToolKasir.setEnabled(true);
@@ -16699,11 +17059,13 @@ private void setAdminAccess() {
 
     updateLoginStatus("Admin : ", "Admin Utama", "/picture/user.png");
     logTracker("Admin Utama");
+    mulaiRujukanMasukSatuSehat();
 }
 
 // Method untuk mengatur akses Pengguna
 private void setUserAccess() {
     BtnMenu.setEnabled(true);
+    aturToolbarSetelahLogin();
     sembunyikanBackdropLogin();
     DlgLogin.dispose();
     aturGambarPanelJudul(true);
@@ -16722,7 +17084,231 @@ private void setUserAccess() {
     // Pengaturan akses berdasarkan kondisi
     setConditionalAccess();
 
+    // PATCH RSAJ: visibility tombol utama mengikuti departemen pegawai.
+    // Hak akses detail masing-masing modul tetap menggunakan class akses
+    // Khanza seperti sebelumnya.
+    muatAksesToolbarUtama();
+
     logTracker(edAdmin.getText());
+    mulaiRujukanMasukSatuSehat();
+}
+
+/**
+ * Membaca hak tampil tombol internalFrame1 berdasarkan DEPARTEMEN pegawai.
+ * Relasi yang dipakai:
+ *   akses.getkode() -> pegawai.nik -> pegawai.departemen
+ *   pegawai.departemen -> akses_internalframe1_departemen.dep_id
+ *
+ * Untuk user biasa digunakan model fail-closed: bila departemen/mapping tidak
+ * ditemukan, tombol Registrasi s.d. Keuangan disembunyikan. Admin Utama tetap
+ * bypass dan melihat semua tombol melalui setAdminAccess().
+ */
+private void muatAksesToolbarUtama() {
+    // Default user biasa = SEMUA tombol departemen disembunyikan. Ini sengaja
+    // fail-closed: jika mapping tidak ditemukan, jangan malah menampilkan semua
+    // tombol seperti versi sebelumnya.
+    boolean registrasi = false;
+    boolean igd = false;
+    boolean laboratorium = false;
+    boolean radiologi = false;
+    boolean farmasi = false;
+    boolean rawatInap = false;
+    boolean rawatJalan = false;
+    boolean operasi = false;
+    boolean keuangan = false;
+
+    String nikLogin = akses.getkode() == null ? "" : akses.getkode().trim();
+    String departemenPegawai = "";
+    String depId = "";
+
+    // LANGKAH 1: ambil departemen langsung dari pegawai yang login.
+    try (PreparedStatement pstDep = koneksi.prepareStatement(
+            "select departemen from pegawai where nik=? limit 1")) {
+        pstDep.setString(1, nikLogin);
+        try (ResultSet rsDep = pstDep.executeQuery()) {
+            if (rsDep.next()) {
+                departemenPegawai = rsDep.getString("departemen") == null
+                        ? "" : rsDep.getString("departemen").trim();
+            }
+        }
+    } catch (Exception e) {
+        System.out.println("[Akses Toolbar Departemen] Gagal membaca departemen pegawai "
+                + nikLogin + ": " + e.getMessage());
+    }
+
+    // LANGKAH 2: normalisasi ke departemen.dep_id. Ini membuat patch tetap
+    // bekerja baik bila pegawai.departemen berisi KODE (RAD) maupun NAMA
+    // departemen. Bila tabel departemen tidak menemukan padanan, nilai mentah
+    // pegawai.departemen tetap dipakai sebagai dep_id.
+    if (!departemenPegawai.isEmpty()) {
+        depId = departemenPegawai;
+        try (PreparedStatement pstMasterDep = koneksi.prepareStatement(
+                "select dep_id from departemen "
+                + "where upper(trim(dep_id))=upper(trim(?)) "
+                + "or upper(trim(nama))=upper(trim(?)) limit 1")) {
+            pstMasterDep.setString(1, departemenPegawai);
+            pstMasterDep.setString(2, departemenPegawai);
+            try (ResultSet rsMasterDep = pstMasterDep.executeQuery()) {
+                if (rsMasterDep.next()) {
+                    String hasil = rsMasterDep.getString("dep_id");
+                    if (hasil != null && !hasil.trim().isEmpty()) {
+                        depId = hasil.trim();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("[Akses Toolbar Departemen] Normalisasi dep_id gagal untuk "
+                    + departemenPegawai + ": " + e.getMessage());
+        }
+    }
+
+    // LANGKAH 3: baca mapping SATU baris departemen. TRIM + UPPER dipakai agar
+    // spasi/case di database lama tidak menyebabkan mapping gagal terbaca.
+    boolean mappingDitemukan = false;
+    if (!depId.isEmpty()) {
+        String sqlToolbar = "select registrasi,igd,laboratorium,radiologi," +
+                "farmasi,rawat_inap,rawat_jalan,operasi,keuangan " +
+                "from akses_internalframe1_departemen " +
+                "where upper(trim(dep_id))=upper(trim(?)) limit 1";
+
+        try (PreparedStatement pstToolbar = koneksi.prepareStatement(sqlToolbar)) {
+            pstToolbar.setString(1, depId);
+            try (ResultSet rsToolbar = pstToolbar.executeQuery()) {
+                if (rsToolbar.next()) {
+                    mappingDitemukan = true;
+                    registrasi = nilaiAksesToolbarYa(rsToolbar.getString("registrasi"));
+                    igd = nilaiAksesToolbarYa(rsToolbar.getString("igd"));
+                    laboratorium = nilaiAksesToolbarYa(rsToolbar.getString("laboratorium"));
+                    radiologi = nilaiAksesToolbarYa(rsToolbar.getString("radiologi"));
+                    farmasi = nilaiAksesToolbarYa(rsToolbar.getString("farmasi"));
+                    rawatInap = nilaiAksesToolbarYa(rsToolbar.getString("rawat_inap"));
+                    rawatJalan = nilaiAksesToolbarYa(rsToolbar.getString("rawat_jalan"));
+                    operasi = nilaiAksesToolbarYa(rsToolbar.getString("operasi"));
+                    keuangan = nilaiAksesToolbarYa(rsToolbar.getString("keuangan"));
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("[Akses Toolbar Departemen] Gagal membaca mapping dep_id="
+                    + depId + ": " + e.getMessage());
+        }
+    }
+
+    if (!mappingDitemukan) {
+        System.out.println("[Akses Toolbar Departemen] Mapping tidak ditemukan. nik="
+                + nikLogin + ", pegawai.departemen=" + departemenPegawai
+                + ", dep_id=" + depId + ". Tombol departemen disembunyikan.");
+    } else {
+        System.out.println("[Akses Toolbar Departemen] Mapping aktif. nik="
+                + nikLogin + ", dep_id=" + depId);
+    }
+
+    aturVisibilitasToolbarUtama(registrasi, igd, laboratorium, radiologi,
+            farmasi, rawatInap, rawatJalan, operasi, keuangan);
+}
+
+private boolean nilaiAksesToolbarYa(String nilai) {
+    if (nilai == null) {
+        return false;
+    }
+    String v = nilai.trim();
+    return v.equalsIgnoreCase("Ya") || v.equalsIgnoreCase("Y")
+            || v.equalsIgnoreCase("true") || v.equals("1");
+}
+
+private void aturVisibilitasToolbarUtama(boolean registrasi, boolean igd,
+        boolean laboratorium, boolean radiologi, boolean farmasi,
+        boolean rawatInap, boolean rawatJalan, boolean operasi,
+        boolean keuangan) {
+
+    BtnToolReg.setVisible(registrasi);
+    btnToolIGD.setVisible(igd);
+    btnToolLab.setVisible(laboratorium);
+    btnToolRad.setVisible(radiologi);
+    BtnToolJualObat.setVisible(farmasi);
+    BtnToolKamnap.setVisible(rawatInap);
+    BtnToolKasir.setVisible(rawatJalan);
+    BtnOperasi.setVisible(operasi);
+    BtnKeuangan.setVisible(keuangan);
+
+    // Separator mengikuti tombol yang masih terlihat agar tidak ada garis
+    // ganda/yatim ketika beberapa tombol disembunyikan.
+    boolean adaSetelahMenu = registrasi || igd || laboratorium || radiologi
+            || farmasi || rawatInap || rawatJalan || operasi || keuangan;
+    boolean adaSetelahReg = igd || laboratorium || radiologi || farmasi
+            || rawatInap || rawatJalan || operasi || keuangan;
+    boolean adaSetelahIGD = laboratorium || radiologi || farmasi
+            || rawatInap || rawatJalan || operasi || keuangan;
+    boolean adaSetelahLab = radiologi || farmasi || rawatInap
+            || rawatJalan || operasi || keuangan;
+    boolean adaSetelahRad = farmasi || rawatInap || rawatJalan
+            || operasi || keuangan;
+    boolean adaSetelahFarmasi = rawatInap || rawatJalan || operasi || keuangan;
+    boolean adaSetelahRanap = rawatJalan || operasi || keuangan;
+    boolean adaSetelahRalan = operasi || keuangan;
+
+    jSeparator4.setVisible(adaSetelahMenu);
+    jSeparator17.setVisible(registrasi && adaSetelahReg);
+    jSeparator5.setVisible(igd && adaSetelahIGD);
+    jSeparator18.setVisible(laboratorium && adaSetelahLab);
+    jSeparator19.setVisible(radiologi && adaSetelahRad);
+    jSeparator9.setVisible(farmasi && adaSetelahFarmasi);
+    jSeparator20.setVisible(rawatInap && adaSetelahRanap);
+    jSeparator11.setVisible(rawatJalan && adaSetelahRalan);
+    jSeparator23.setVisible(operasi && keuangan);
+    jSeparator7.setVisible(keuangan);
+
+    panelKiri.revalidate();
+    panelKiri.repaint();
+    internalFrame1.revalidate();
+    internalFrame1.repaint();
+    setToolbar();
+}
+
+/**
+ * Kondisi toolbar ketika BELUM LOGIN / sesudah LOG OUT.
+ * Seluruh tombol modul utama + notifikasi disembunyikan; tombol Log In tetap
+ * terlihat agar alur autentikasi tidak berubah.
+ */
+private void aturToolbarBelumLogin() {
+    setWallpaperBlurAktif(false);
+
+    // Tombol modul yang dikendalikan mapping departemen.
+    aturVisibilitasToolbarUtama(false, false, false, false, false,
+            false, false, false, false);
+
+    // Komponen umum internalFrame1 juga tidak perlu tampil sebelum login.
+    BtnMenu.setVisible(false);
+    BtnNotif.setVisible(false);
+    BtnJawaban.setVisible(false);
+
+    // Tombol autentikasi harus tetap tersedia.
+    BtnLog.setVisible(true);
+
+    panelKiri.revalidate();
+    panelKiri.repaint();
+    panelKanan.revalidate();
+    panelKanan.repaint();
+    internalFrame1.revalidate();
+    internalFrame1.repaint();
+}
+
+/**
+ * Komponen umum toolbar yang boleh muncul sesudah autentikasi berhasil.
+ * Tombol modul Reg s.d. Keuangan tetap diatur terpisah oleh mapping departemen
+ * (atau semua tampil untuk Admin Utama).
+ */
+private void aturToolbarSetelahLogin() {
+    BtnMenu.setVisible(true);
+    BtnNotif.setVisible(true);
+    BtnJawaban.setVisible(true);
+    BtnLog.setVisible(true);
+
+    panelKiri.revalidate();
+    panelKiri.repaint();
+    panelKanan.revalidate();
+    panelKanan.repaint();
+    internalFrame1.revalidate();
+    internalFrame1.repaint();
 }
 
 // Method untuk mengatur akses berdasarkan kondisi
@@ -16752,6 +17338,7 @@ private javax.swing.ImageIcon getUserIcon(String nik) {
 
 // Method untuk menangani kegagalan login
 private void handleLoginFailure() {
+	hentikanRujukanMasukSatuSehat();
 //    JOptionPane.showMessageDialog(this, "Username atau Password salah!", "Login Gagal", JOptionPane.ERROR_MESSAGE);
     Notifications.getInstance().show(
                 Notifications.Type.ERROR,                Notifications.Location.TOP_CENTER,
@@ -16759,6 +17346,7 @@ private void handleLoginFailure() {
     edAdmin.requestFocus();
     BtnMenu.setEnabled(false);
     BtnLog.setText("Log In");
+    aturToolbarBelumLogin();
 //    MnLogin.setText("Log In");
     lblStts.setText("Status Admin : ");
     lblUser.setText("Log Out");
@@ -17121,6 +17709,7 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
         //        setLayout();
 
         isTutup();
+        setWallpaperBlurAktif(true);
 
         // Bersihkan dan tambahkan semua tombol ke FlayMenu
         FlayMenu.removeAll();
@@ -17180,6 +17769,7 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
 
     private void BtnOperasiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnOperasiActionPerformed
         isTutup();
+        setWallpaperBlurAktif(true);
         FlayMenu.removeAll();
         FlayMenu.add(btnJadwalOperasi);
         FlayMenu.add(btnTagihanOperasi);
@@ -17282,6 +17872,7 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
 
     private void BtnToolJualObatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnToolJualObatActionPerformed
         isTutup();
+        setWallpaperBlurAktif(true);
         FlayMenu.removeAll();
         FlayMenu.add(btnInputPenjualan);
         FlayMenu.add(btnDataPenjualan);
@@ -17308,6 +17899,7 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
 
     private void btnToolRadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnToolRadActionPerformed
         isTutup();
+        setWallpaperBlurAktif(true);
         FlayMenu.removeAll();
         FlayMenu.add(btnPermintaanRadiologi);
         FlayMenu.add(btnPeriksaRadiologi);
@@ -17362,6 +17954,7 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
 
     private void btnToolLabActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnToolLabActionPerformed
         isTutup();
+        setWallpaperBlurAktif(true);
         FlayMenu.removeAll();
         FlayMenu.add(btnPermintaanLab);
         FlayMenu.add(btnPermintaanLabPA);
@@ -26260,7 +26853,11 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
                     if("Yes".equals(rs.getString("aktifkan"))
                             && daftarWallpaper.isEmpty()){
                         Blob blob = rs.getBlob("wallpaper");
-                        PanelWall.setBackgroundImage(new javax.swing.ImageIcon(blob.getBytes(1, (int) (blob.length()))));
+                        wallpaperFallbackPanel = new javax.swing.ImageIcon(
+                                blob.getBytes(1, (int) (blob.length())));
+                        PanelWall.setBackgroundImage(wallpaperBlurAktif
+                                ? dapatkanWallpaperBlur(wallpaperFallbackPanel)
+                                : wallpaperFallbackPanel);
                         repaint();
                     }
                 }  
@@ -26280,22 +26877,33 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }
 
     private void isTutup() {
+        isTutup(false);
+    }
+
+    // Pengecualian login hanya digunakan saat frmUtama diminimalkan.
+    // Seluruh pemanggil isTutup() yang lama tetap menutup dialog seperti semula.
+    private void isTutup(boolean pertahankanDialogLogin) {
         FlayMenu.setVisible(false);
+        setWallpaperBlurAktif(false);
         akses.setform("frmUtama");
         Window[] wins = Window.getWindows();
         for (Window win : wins) {
-            if (win instanceof JDialog) {
+            if (win instanceof JDialog
+                    && (!pertahankanDialogLogin || win != DlgLogin)) {
                 win.dispose();
             }
         }
     }
     
     private void setToolbar(){
-        if(internalFrame1.getWidth()<(BtnMenu.getWidth()+BtnToolReg.getWidth()+btnToolIGD.getWidth()+
-                btnToolLab.getWidth()+btnToolRad.getWidth()+BtnToolJualObat.getWidth()+BtnToolKamnap.getWidth()+
-                BtnToolKasir.getWidth()+BtnLog.getWidth()
-//                +BtnClose.getWidth()
-                +8)){
+        // Lebar dihitung dari komponen yang benar-benar terlihat. Ini penting
+        // setelah toolbar utama memakai hak akses visibility per departemen.
+        int lebarKiri = panelKiri.getPreferredSize().width;
+        int lebarKanan = panelKanan.getPreferredSize().width;
+        int lebarTersedia = Math.max(internalFrame1.getWidth(), PanelUtama.getWidth());
+        int lebarDibutuhkan = lebarKiri + lebarKanan + 16;
+
+        if(lebarTersedia > 0 && lebarTersedia < lebarDibutuhkan){
             internalFrame1.setSize(new Dimension(PanelUtama.getWidth(),90));
         }else{
             internalFrame1.setSize(new Dimension(PanelUtama.getWidth(),44));
@@ -51676,4 +52284,42 @@ private void stopITServiceChat() {
     }
 }
 
+    // Komponen ditambahkan setelah initComponents agar .form NetBeans tetap kompatibel.
+    private void pasangRujukanMasukSatuSehat() {
+        if (rujukanMasukNotifier != null) return;
+        rujukanMasukNotifier = new bridging.SatuSehatRujukanMasukNotifier(this, this,
+            () -> "Log Out".equals(BtnLog.getText().trim()) &&
+                (akses.getjml1() >= 1 || akses.getigd() || akses.getkamar_inap() || akses.getregistrasi()),
+            (pesan, buka) -> BaseToast.showInfoNoIcon(this, pesan, 7000, buka, "file:suara/notifikasi.wav"));
+
+        // PATCH RSAJ 2026-09-16:
+        // Ikon Rujukan Masuk pada toolbar harus memakai resource inbox RS.
+        URL iconInboxRujukan = getClass().getResource("/picture/inbox.png");
+        if (iconInboxRujukan != null) {
+            rujukanMasukNotifier.button().setIcon(new ImageIcon(iconInboxRujukan));
+        }
+
+        // Ikuti toolbar versi terbaru: notifikasi baru tampil setelah login.
+        rujukanMasukNotifier.button().setVisible(false);
+        panelKanan.add(rujukanMasukNotifier.button(), 0);
+        panelKanan.revalidate(); panelKanan.repaint();
+    }
+    private void mulaiRujukanMasukSatuSehat() {
+        if (rujukanMasukNotifier != null) {
+            String operator = akses.getkode();
+            if (operator == null || operator.trim().isEmpty()) operator = "Admin Utama";
+            rujukanMasukNotifier.start(operator);
+            rujukanMasukNotifier.button().setVisible(rujukanMasukNotifier.button().isEnabled());
+            panelKanan.revalidate(); panelKanan.repaint();
+            setToolbar();
+        }
+    }
+    private void hentikanRujukanMasukSatuSehat() {
+        if (rujukanMasukNotifier != null) {
+            rujukanMasukNotifier.stop();
+            rujukanMasukNotifier.button().setVisible(false);
+            panelKanan.revalidate(); panelKanan.repaint();
+            setToolbar();
+        }
+    }
 }

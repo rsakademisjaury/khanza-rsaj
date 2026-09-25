@@ -1214,7 +1214,7 @@ private java.util.ArrayList<String> pecahNilaiTemporaryLab(String data) {
         MneLFG.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
         MneLFG.setForeground(new java.awt.Color(50, 50, 50));
         MneLFG.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/category.png"))); // NOI18N
-        MneLFG.setText("Cetak eLFG + *");
+        MneLFG.setText("Cetak eLFG / SAAG + *");
         MneLFG.setName("MneLFG"); // NOI18N
         MneLFG.setPreferredSize(new java.awt.Dimension(250, 30));
         MneLFG.addActionListener(new java.awt.event.ActionListener() {
@@ -8571,7 +8571,10 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                 ps2.setString(3, rs.getString("jam"));
                 rs2 = ps2.executeQuery();
                 while(rs2.next()){
-                    simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    boolean headerSaagDitunda = "J000143".equals(rs2.getString("kd_jenis_prw"));
+                    if (!headerSaagDitunda) {
+                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    }
                     ps3 = koneksi.prepareStatement(
                         "select template_laboratorium.Pemeriksaan, detail_periksa_lab.nilai,template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan,detail_periksa_lab.biaya_item,"+
                         "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw,detail_periksa_lab.id_template from detail_periksa_lab inner join template_laboratorium "+
@@ -8597,12 +8600,25 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                                     String keterangan = rs3.getString("keterangan") == null ? "" : rs3.getString("keterangan").trim();
                                     String flag = getStatusHLKritisLab(nilaiStr, rujukan, rs3.getString("kd_jenis_prw"), rs3.getString("id_template"), kategoriUmur);
 
+                                    // SAAG dicetak sekali di baris terakhir, setelah eLFG bila ada.
+                                    if (isPemeriksaanSAAG(rs3.getString("kd_jenis_prw"), rs3.getString("id_template"))) {
+                                        isiParameterSAAG(param, pemeriksaan, nilaiStr, satuan, rujukan, flag);
+                                        continue;
+                                    }
+                                    if (headerSaagDitunda) {
+                                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                                        headerSaagDitunda = false;
+                                    }
+
                                     simpanTemporaryLabAman(
                                     "'0','         " + pemeriksaan + "','" + nilaiStr + "','" + satuan +
                                     "','" + rujukan + "','" + keterangan + "','" + flag +
                                     "','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");              
                     }
                     
+                    if (headerSaagDitunda && !param.containsKey("saagPemeriksaan")) {
+                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    }
                     rs3.close();
                     ps3.close();
                 }
@@ -8637,7 +8653,11 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                 pspermintaan.close();
 
                 // PILIH TEMPLATE CETAK YANG TEPAT
-                if(bolehCetakGFR){
+                if(param.containsKey("saagPemeriksaan")){
+                    param.put("tampilkanGFR", bolehCetakGFR);
+                    param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
+                    Valid.MyReport("rptPeriksaLabSAAG.jasper","report","::[ Pemeriksaan Laboratorium SAAG ]::",param);
+                } else if(bolehCetakGFR){
                     param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
                     Valid.MyReport("rptPeriksaLabGFR.jasper","report","::[ Pemeriksaan Laboratorium GFR ]::",param);   
                 } else if(adaPermintaan){
@@ -11718,13 +11738,15 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                 ps2.setString(3, rs.getString("jam"));
                 rs2 = ps2.executeQuery();
                 while(rs2.next()){
-                    simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    boolean headerSaagDitunda = "J000143".equals(rs2.getString("kd_jenis_prw"));
+                    if (!headerSaagDitunda) {
+                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    }
                     ps3 = koneksi.prepareStatement(
                         "select template_laboratorium.Pemeriksaan, detail_periksa_lab.nilai,template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan,detail_periksa_lab.biaya_item,"+
                         "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw,detail_periksa_lab.id_template from detail_periksa_lab inner join template_laboratorium "+
                         "on detail_periksa_lab.id_template=template_laboratorium.id_template "+
-                        "where detail_periksa_lab.no_rawat=? and detail_periksa_lab.kd_jenis_prw=? and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? " +
-                        "order by case when detail_periksa_lab.kd_jenis_prw='J000143' and detail_periksa_lab.id_template='4149' then 1 else 0 end, template_laboratorium.urut");
+                        "where detail_periksa_lab.no_rawat=? and detail_periksa_lab.kd_jenis_prw=? and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? order by template_laboratorium.urut");
                     ps3.setString(1, rs.getString("no_rawat"));
                     ps3.setString(2, rs2.getString("kd_jenis_prw"));
                     ps3.setString(3, Valid.SetTgl(rs.getString("tgl_periksa")));
@@ -11749,10 +11771,14 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                                             ? ""
                                             : getStatusHLKritisLab(nilaiStr, rujukan, kdJenisPrwUpload, idTemplateUpload, kategoriUmur);
 
-                                    // SAAG tetap menjadi item milik ANALISA CAIRAN ASITES.
-                                    // Jangan keluarkan dari temporary_lab; cukup tambahkan keterangan klinisnya.
-                                    if (isPemeriksaanSAAG(kdJenisPrwUpload, idTemplateUpload)) {
-                                        keterangan = gabungkanKeteranganSAAG(keterangan);
+                                    // SAAG dicetak sekali di baris terakhir, setelah eLFG bila ada.
+                                    if (isPemeriksaanSAAG(rs3.getString("kd_jenis_prw"), rs3.getString("id_template"))) {
+                                        isiParameterSAAG(param, pemeriksaan, nilaiStr, satuan, rujukan, flag);
+                                        continue;
+                                    }
+                                    if (headerSaagDitunda) {
+                                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                                        headerSaagDitunda = false;
                                     }
 
                                     simpanTemporaryLabAman(
@@ -11761,6 +11787,9 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                                     "','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");              
                     }
                     
+                    if (headerSaagDitunda && !param.containsKey("saagPemeriksaan")) {
+                        simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
+                    }
                     rs3.close();
                     ps3.close();
                 }
@@ -11798,6 +11827,10 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                 String queryCetakUpload = "select no, temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10, temp11, temp12, temp13, temp14, temp15, temp16 from temporary_lab order by no asc";
                 if(hanyaJ000021){
                     Valid.MyReportPDFqryUpload("rptPeriksaLab3Permintaan.jasper","report","::[ Pemeriksaan Laboratorium ]::",queryCetakUpload,FileName,param);
+                } else if(param.containsKey("saagPemeriksaan")){
+                    param.put("tampilkanGFR", adaKreatinin && umurAngka > 18);
+                    param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
+                    Valid.MyReportPDF3("rptPeriksaLabSAAG.jasper","report","::[ Pemeriksaan Laboratorium SAAG ]::",FileName,param);
                 } else if(adaKreatinin && umurAngka > 18){
                     param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
                     Valid.MyReportPDFqryUpload("rptPeriksaLabGFR.jasper","report","::[ Pemeriksaan Laboratorium GFR ]::",queryCetakUpload,FileName,param);
@@ -11951,6 +11984,7 @@ private void UploadPDF(String FileName, String docpath) {
     }
     
 private void ConvertPDFtoJPG(String FileName) {
+    PDDocument document = null;
     try {
         // Pastikan file PDF ada
         File pdfFile = new File("tmpPDF/" + FileName + ".pdf");
@@ -11959,39 +11993,112 @@ private void ConvertPDFtoJPG(String FileName) {
             return;
         }
 
-        // Load PDF
-        PDDocument document = PDDocument.load(pdfFile);
+        document = PDDocument.load(pdfFile);
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         int totalPages = document.getNumberOfPages();
+        if (totalPages <= 0) {
+            System.err.println("PDF hasil laboratorium tidak memiliki halaman.");
+            return;
+        }
 
         // Pastikan folder tmpJPG ada
         File jpgDir = new File("tmpJPG");
         if (!jpgDir.exists() && !jpgDir.mkdir()) {
             System.err.println("Gagal membuat folder tmpJPG.");
-            document.close();
             return;
         }
 
-        // Iterasi untuk setiap halaman PDF dan konversi ke JPG
-        for (int page = 0; page < totalPages; page++) {
-            BufferedImage image = pdfRenderer.renderImageWithDPI(page, 300);
+        File jpgFile = new File(jpgDir, FileName + ".jpg");
 
-            // Tentukan nama file
-            String fileName = totalPages == 1 ? FileName + ".jpg" : FileName + "_page_" + (page + 1) + ".jpg";
-            File jpgFile = new File(jpgDir, fileName);
-
-            // Simpan tiap halaman sebagai JPG
-            ImageIO.write(image, "jpg", jpgFile);
-
+        // Satu halaman tetap memakai alur lama agar tidak mengubah hasil upload yang sudah berjalan.
+        if (totalPages == 1) {
+            BufferedImage image = pdfRenderer.renderImageWithDPI(0, 300);
+            try {
+                ImageIO.write(image, "jpg", jpgFile);
+            } finally {
+                image.flush();
+            }
             System.out.println("Konversi berhasil: " + jpgFile.getAbsolutePath());
+            return;
         }
 
+        /*
+         * Berkas Digital Perawatan menyimpan hasil lab sebagai gambar. Sebelumnya
+         * PDF multipage dipecah menjadi _page_1.jpg, _page_2.jpg, dst. Akibatnya
+         * bagian summary report (eLFG/SAAG) yang jatuh ke halaman terakhir dapat
+         * tampil sebagai berkas terpisah dan terlihat seolah tidak ikut terupload.
+         *
+         * Gabungkan seluruh halaman secara vertikal menjadi SATU JPG agar hasil
+         * laboratorium tetap satu berkas utuh, termasuk baris SAAG paling bawah.
+         */
+        final float dpi = 300f;
+        int[] lebarHalaman = new int[totalPages];
+        int[] tinggiHalaman = new int[totalPages];
+        int lebarGabungan = 0;
+        long tinggiGabunganLong = 0;
 
-        // Tutup dokumen PDF
-        document.close();
+        for (int page = 0; page < totalPages; page++) {
+            org.apache.pdfbox.pdmodel.PDPage halaman = document.getPage(page);
+            org.apache.pdfbox.pdmodel.common.PDRectangle kotak = halaman.getCropBox();
+            int rotasi = halaman.getRotation();
+            float lebarPoint = kotak.getWidth();
+            float tinggiPoint = kotak.getHeight();
+            if (rotasi == 90 || rotasi == 270) {
+                float sementara = lebarPoint;
+                lebarPoint = tinggiPoint;
+                tinggiPoint = sementara;
+            }
+
+            lebarHalaman[page] = Math.max(1, (int) Math.ceil((lebarPoint / 72f) * dpi));
+            tinggiHalaman[page] = Math.max(1, (int) Math.ceil((tinggiPoint / 72f) * dpi));
+            lebarGabungan = Math.max(lebarGabungan, lebarHalaman[page]);
+            tinggiGabunganLong += tinggiHalaman[page];
+        }
+
+        if (tinggiGabunganLong > Integer.MAX_VALUE) {
+            throw new IOException("Ukuran JPG gabungan terlalu tinggi: " + tinggiGabunganLong + " px");
+        }
+
+        int tinggiGabungan = (int) tinggiGabunganLong;
+        BufferedImage imageGabungan = new BufferedImage(lebarGabungan, tinggiGabungan, BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D grafis = imageGabungan.createGraphics();
+        try {
+            grafis.setColor(java.awt.Color.WHITE);
+            grafis.fillRect(0, 0, lebarGabungan, tinggiGabungan);
+
+            int posisiY = 0;
+            for (int page = 0; page < totalPages; page++) {
+                BufferedImage imageHalaman = pdfRenderer.renderImageWithDPI(page, dpi);
+                try {
+                    int posisiX = Math.max(0, (lebarGabungan - imageHalaman.getWidth()) / 2);
+                    grafis.drawImage(imageHalaman, posisiX, posisiY, null);
+                    posisiY += imageHalaman.getHeight();
+                } finally {
+                    imageHalaman.flush();
+                }
+            }
+        } finally {
+            grafis.dispose();
+        }
+
+        try {
+            ImageIO.write(imageGabungan, "jpg", jpgFile);
+        } finally {
+            imageGabungan.flush();
+        }
+
+        System.out.println("Konversi PDF multipage berhasil digabung menjadi satu JPG: " + jpgFile.getAbsolutePath());
 
     } catch (IOException e) {
         e.printStackTrace();
+    } finally {
+        if (document != null) {
+            try {
+                document.close();
+            } catch (IOException e) {
+                System.out.println("Gagal menutup PDF hasil laboratorium: " + e);
+            }
+        }
     }
 }    
 
@@ -12003,10 +12110,17 @@ private void UploadJPG(String FileName, String docpath) {
             return;
         }
 
-        // Cari semua file JPG untuk FileName
-        File[] jpgFiles = jpgDir.listFiles((dir, name) -> 
-            (name.equals(FileName + ".jpg") || (name.startsWith(FileName + "_page_") && name.endsWith(".jpg")))
-        );
+        // Hasil konversi terbaru selalu diutamakan sebagai satu JPG utuh.
+        // Fallback _page_N.jpg dipertahankan agar kompatibel dengan file lama.
+        File jpgUtuh = new File(jpgDir, FileName + ".jpg");
+        File[] jpgFiles;
+        if (jpgUtuh.exists()) {
+            jpgFiles = new File[]{jpgUtuh};
+        } else {
+            jpgFiles = jpgDir.listFiles((dir, name) ->
+                name.startsWith(FileName + "_page_") && name.endsWith(".jpg")
+            );
+        }
         
         if (jpgFiles == null || jpgFiles.length == 0) {
             System.err.println("Tidak ada file JPG ditemukan untuk di-upload.");
@@ -12113,16 +12227,13 @@ private static boolean isPemeriksaanSAAG(String kdJenisPrw, String idTemplate) {
     return "J000143".equals(kdJenisPrw) && "4149".equals(idTemplate);
 }
 
-private static String gabungkanKeteranganSAAG(String keteranganAsli) {
-    String catatanSAAG = ">=1.1 = akibat hipertensi portal\n<1.1 = akibat non hipertensi portal";
-    String asli = keteranganAsli == null ? "" : keteranganAsli.trim();
-    if (asli.equals("")) {
-        return catatanSAAG;
-    }
-    if (asli.contains(">=1.1 = akibat hipertensi portal") || asli.contains("<1.1 = akibat non hipertensi portal")) {
-        return asli;
-    }
-    return asli + "\n" + catatanSAAG;
+private static void isiParameterSAAG(Map<String, Object> param, String pemeriksaan,
+        String nilai, String satuan, String rujukan, String flag) {
+    param.put("saagPemeriksaan", pemeriksaan);
+    param.put("saagNilai", nilai);
+    param.put("saagSatuan", satuan);
+    param.put("saagRujukan", rujukan);
+    param.put("saagFlag", flag);
 }
 
 private String normalisasiNilaiLabCetak(String nilaiAsli) {

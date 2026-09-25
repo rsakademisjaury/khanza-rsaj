@@ -3833,8 +3833,8 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                                 i++;
                                 ps3=koneksi.prepareStatement(
                                     "select template_laboratorium.Pemeriksaan, detail_periksa_lab.nilai,template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan,detail_periksa_lab.biaya_item,"+
-                                    "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw,detail_periksa_lab.id_template from detail_periksa_lab inner join template_laboratorium on detail_periksa_lab.id_template=template_laboratorium.id_template "+
-                                    "where detail_periksa_lab.no_rawat=? and detail_periksa_lab.kd_jenis_prw=? and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? order by (detail_periksa_lab.id_template='4149') asc,template_laboratorium.urut");
+                                    "detail_periksa_lab.keterangan,detail_periksa_lab.kd_jenis_prw from detail_periksa_lab inner join template_laboratorium on detail_periksa_lab.id_template=template_laboratorium.id_template "+
+                                    "where detail_periksa_lab.no_rawat=? and detail_periksa_lab.kd_jenis_prw=? and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? order by template_laboratorium.urut");
                                 try {
                                     ps3.setString(1,rs.getString("no_rawat"));
                                     ps3.setString(2,rs2.getString("kd_jenis_prw"));
@@ -3842,12 +3842,8 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                                     ps3.setString(4,rs.getString("jam"));
                                     rs3=ps3.executeQuery();
                                     while(rs3.next()){
-                                        String keteranganCetak = rs3.getString("keterangan") == null ? "" : rs3.getString("keterangan").trim();
-                                        if (isPemeriksaanSAAG(rs3.getString("kd_jenis_prw"), rs3.getString("id_template"))) {
-                                            keteranganCetak = gabungkanKeteranganSAAG(keteranganCetak);
-                                        }
                                         simpanTemporaryLabAman("'"+i+"','  "+rs3.getString("Pemeriksaan")+"','"+rs3.getString("nilai")+"','"+rs3.getString("satuan")
-                                                +"','"+rs3.getString("nilai_rujukan")+"','"+keteranganCetak+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User"); 
+                                                +"','"+rs3.getString("nilai_rujukan")+"','"+rs3.getString("keterangan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User"); 
                                         i++;
                                     }
                                 } catch (Exception e) {
@@ -8079,7 +8075,7 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
 
     private void BtnUploadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnUploadActionPerformed
 
-        SimpleDateFormat sdf = new SimpleDateFormat("ddMMyyyy_HHmmss");
+        SimpleDateFormat sdf = new SimpleDateFormat("ddMMyyyy_HHmmss_SSS");
         String timestamp = sdf.format(new Date());
         String noRawatUpload = ambilNilaiTableBarisKunci(tbDokter, 0, 0);
         String tglUpload = ambilNilaiTableBarisKunci(tbDokter, 0, 3);
@@ -8087,12 +8083,39 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
 
         String headerUpload = ambilHeaderPemeriksaanUploadLabWA(noRawatUpload, tglUpload, jamUpload);
 
-        FileName = buatKunciUploadLabWA(noRawatUpload, tglUpload, jamUpload) + "_" + headerUpload + "_HasilLab";
+        // Timestamp WAJIB dipakai. Sebelumnya variabel timestamp dibuat tetapi tidak
+        // dimasukkan ke nama file sehingga upload ulang memakai URL/path yang sama
+        // dan dapat menampilkan berkas lama dari server/cache.
+        FileName = buatKunciUploadLabWA(noRawatUpload, tglUpload, jamUpload)
+                + "_" + headerUpload + "_HasilLab_" + timestamp;
 
+        // Bersihkan hanya artefak dengan nama upload ini. Jangan pernah melanjutkan
+        // konversi/upload bila PDF terbaru gagal dibuat.
+        hapusArtefakUploadLab(FileName);
         CreatePDF(FileName);
+
+        File pdfHasil = new File("tmpPDF" + File.separator + FileName + ".pdf");
+        if (!pdfHasil.isFile() || pdfHasil.length() <= 0) {
+            JOptionPane.showMessageDialog(null,
+                    "PDF hasil laboratorium terbaru gagal dibuat. Upload dibatalkan agar berkas lama tidak terupload kembali.",
+                    "Upload Hasil Lab", JOptionPane.WARNING_MESSAGE);
+            this.setCursor(Cursor.getDefaultCursor());
+            return;
+        }
+
         ConvertPDFtoJPG(FileName);
+
+        File jpgHasil = new File("tmpJPG" + File.separator + FileName + ".jpg");
+        if (!jpgHasil.isFile() || jpgHasil.length() <= 0) {
+            JOptionPane.showMessageDialog(null,
+                    "Konversi PDF ke JPG gagal. Upload dibatalkan.",
+                    "Upload Hasil Lab", JOptionPane.WARNING_MESSAGE);
+            this.setCursor(Cursor.getDefaultCursor());
+            return;
+        }
+
         UploadJPG(FileName, "berkasrawat/pages/upload/");
-        HapusJPG();
+        hapusArtefakUploadLab(FileName);
 
         ppBerkasDigitalBtnPrintActionPerformed(evt);
     }//GEN-LAST:event_BtnUploadActionPerformed
@@ -8604,10 +8627,10 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                                     String keterangan = rs3.getString("keterangan") == null ? "" : rs3.getString("keterangan").trim();
                                     String flag = getStatusHLKritisLab(nilaiStr, rujukan, rs3.getString("kd_jenis_prw"), rs3.getString("id_template"), kategoriUmur);
 
-                                    // SAAG tetap menjadi bagian ANALISA CAIRAN ASITES.
-                                    // Hanya tambahkan keterangan interpretasi; jangan keluarkan dari temporary_lab.
+                                    // SAAG dicetak sekali di baris terakhir, setelah eLFG bila ada.
                                     if (isPemeriksaanSAAG(rs3.getString("kd_jenis_prw"), rs3.getString("id_template"))) {
-                                        keterangan = gabungkanKeteranganSAAG(keterangan);
+                                        isiParameterSAAG(param, pemeriksaan, nilaiStr, satuan, rujukan, flag);
+                                        continue;
                                     }
                                     if (headerSaagDitunda) {
                                         simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
@@ -8657,7 +8680,11 @@ private String getStatusHLKritis2(String nilaiStr, String rujukanStr, String pem
                 pspermintaan.close();
 
                 // PILIH TEMPLATE CETAK YANG TEPAT
-                if(bolehCetakGFR){
+                if(param.containsKey("saagPemeriksaan")){
+                    param.put("tampilkanGFR", bolehCetakGFR);
+                    param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
+                    Valid.MyReport("rptPeriksaLabSAAG.jasper","report","::[ Pemeriksaan Laboratorium SAAG ]::",param);
+                } else if(bolehCetakGFR){
                     param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
                     Valid.MyReport("rptPeriksaLabGFR.jasper","report","::[ Pemeriksaan Laboratorium GFR ]::",param);   
                 } else if(adaPermintaan){
@@ -11771,10 +11798,10 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
                                             ? ""
                                             : getStatusHLKritisLab(nilaiStr, rujukan, kdJenisPrwUpload, idTemplateUpload, kategoriUmur);
 
-                                    // SAAG tetap menjadi bagian ANALISA CAIRAN ASITES pada PDF upload.
-                                    // Jangan di-skip; tambahkan interpretasi di kolom Keterangan.
-                                    if (isPemeriksaanSAAG(kdJenisPrwUpload, idTemplateUpload)) {
-                                        keterangan = gabungkanKeteranganSAAG(keterangan);
+                                    // SAAG dicetak sekali di baris terakhir, setelah eLFG bila ada.
+                                    if (isPemeriksaanSAAG(rs3.getString("kd_jenis_prw"), rs3.getString("id_template"))) {
+                                        isiParameterSAAG(param, pemeriksaan, nilaiStr, satuan, rujukan, flag);
+                                        continue;
                                     }
                                     if (headerSaagDitunda) {
                                         simpanTemporaryLabAman("'0','"+rs2.getString("nm_perawatan")+"','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','',''","Data User");
@@ -11825,8 +11852,24 @@ private double tampilDetailLab(String noRawat, String tglPeriksa, String jam) th
 
                 // PILIH TEMPLATE PDF UPLOAD YANG TEPAT
                 String queryCetakUpload = "select no, temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10, temp11, temp12, temp13, temp14, temp15, temp16 from temporary_lab order by no asc";
+
+                // Jangan hanya bergantung pada param.containsKey(). Untuk tombol Upload,
+                // verifikasi SAAG langsung dari detail_periksa_lab agar report SAAG pasti
+                // dipilih bila pemeriksaan J000143 / template 4149 memang ada.
+                boolean adaSAAGUpload = pastikanParameterSAAGUpload(
+                        param, rs.getString("no_rawat"), rs.getString("tgl_periksa"),
+                        rs.getString("jam"), getKategoriUmur(rs.getString("no_rawat")));
+
                 if(hanyaJ000021){
                     Valid.MyReportPDFqryUpload("rptPeriksaLab3Permintaan.jasper","report","::[ Pemeriksaan Laboratorium ]::",queryCetakUpload,FileName,param);
+                } else if(adaSAAGUpload){
+                    param.put("tampilkanGFR", adaKreatinin && umurAngka > 18);
+                    param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
+
+                    // Khusus SAAG: isi Jasper report yang SAMA dengan report biasa
+                    // menggunakan koneksi yang sama, lalu langsung ekspor ke tmpPDF.
+                    // Dengan demikian PDF upload harus identik dengan report yang tampil.
+                    buatPDFUploadSAAGDariReport(FileName, param);
                 } else if(adaKreatinin && umurAngka > 18){
                     param.put("catatan", ambilCatatanLab(rs.getString("no_rawat"), rs.getString("tgl_periksa"), rs.getString("jam")));
                     Valid.MyReportPDFqryUpload("rptPeriksaLabGFR.jasper","report","::[ Pemeriksaan Laboratorium GFR ]::",queryCetakUpload,FileName,param);
@@ -11980,6 +12023,7 @@ private void UploadPDF(String FileName, String docpath) {
     }
     
 private void ConvertPDFtoJPG(String FileName) {
+    PDDocument document = null;
     try {
         // Pastikan file PDF ada
         File pdfFile = new File("tmpPDF/" + FileName + ".pdf");
@@ -11988,39 +12032,112 @@ private void ConvertPDFtoJPG(String FileName) {
             return;
         }
 
-        // Load PDF
-        PDDocument document = PDDocument.load(pdfFile);
+        document = PDDocument.load(pdfFile);
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         int totalPages = document.getNumberOfPages();
+        if (totalPages <= 0) {
+            System.err.println("PDF hasil laboratorium tidak memiliki halaman.");
+            return;
+        }
 
         // Pastikan folder tmpJPG ada
         File jpgDir = new File("tmpJPG");
         if (!jpgDir.exists() && !jpgDir.mkdir()) {
             System.err.println("Gagal membuat folder tmpJPG.");
-            document.close();
             return;
         }
 
-        // Iterasi untuk setiap halaman PDF dan konversi ke JPG
-        for (int page = 0; page < totalPages; page++) {
-            BufferedImage image = pdfRenderer.renderImageWithDPI(page, 300);
+        File jpgFile = new File(jpgDir, FileName + ".jpg");
 
-            // Tentukan nama file
-            String fileName = totalPages == 1 ? FileName + ".jpg" : FileName + "_page_" + (page + 1) + ".jpg";
-            File jpgFile = new File(jpgDir, fileName);
-
-            // Simpan tiap halaman sebagai JPG
-            ImageIO.write(image, "jpg", jpgFile);
-
+        // Satu halaman tetap memakai alur lama agar tidak mengubah hasil upload yang sudah berjalan.
+        if (totalPages == 1) {
+            BufferedImage image = pdfRenderer.renderImageWithDPI(0, 300);
+            try {
+                ImageIO.write(image, "jpg", jpgFile);
+            } finally {
+                image.flush();
+            }
             System.out.println("Konversi berhasil: " + jpgFile.getAbsolutePath());
+            return;
         }
 
+        /*
+         * Berkas Digital Perawatan menyimpan hasil lab sebagai gambar. Sebelumnya
+         * PDF multipage dipecah menjadi _page_1.jpg, _page_2.jpg, dst. Akibatnya
+         * bagian summary report (eLFG/SAAG) yang jatuh ke halaman terakhir dapat
+         * tampil sebagai berkas terpisah dan terlihat seolah tidak ikut terupload.
+         *
+         * Gabungkan seluruh halaman secara vertikal menjadi SATU JPG agar hasil
+         * laboratorium tetap satu berkas utuh, termasuk baris SAAG paling bawah.
+         */
+        final float dpi = 300f;
+        int[] lebarHalaman = new int[totalPages];
+        int[] tinggiHalaman = new int[totalPages];
+        int lebarGabungan = 0;
+        long tinggiGabunganLong = 0;
 
-        // Tutup dokumen PDF
-        document.close();
+        for (int page = 0; page < totalPages; page++) {
+            org.apache.pdfbox.pdmodel.PDPage halaman = document.getPage(page);
+            org.apache.pdfbox.pdmodel.common.PDRectangle kotak = halaman.getCropBox();
+            int rotasi = halaman.getRotation();
+            float lebarPoint = kotak.getWidth();
+            float tinggiPoint = kotak.getHeight();
+            if (rotasi == 90 || rotasi == 270) {
+                float sementara = lebarPoint;
+                lebarPoint = tinggiPoint;
+                tinggiPoint = sementara;
+            }
+
+            lebarHalaman[page] = Math.max(1, (int) Math.ceil((lebarPoint / 72f) * dpi));
+            tinggiHalaman[page] = Math.max(1, (int) Math.ceil((tinggiPoint / 72f) * dpi));
+            lebarGabungan = Math.max(lebarGabungan, lebarHalaman[page]);
+            tinggiGabunganLong += tinggiHalaman[page];
+        }
+
+        if (tinggiGabunganLong > Integer.MAX_VALUE) {
+            throw new IOException("Ukuran JPG gabungan terlalu tinggi: " + tinggiGabunganLong + " px");
+        }
+
+        int tinggiGabungan = (int) tinggiGabunganLong;
+        BufferedImage imageGabungan = new BufferedImage(lebarGabungan, tinggiGabungan, BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D grafis = imageGabungan.createGraphics();
+        try {
+            grafis.setColor(java.awt.Color.WHITE);
+            grafis.fillRect(0, 0, lebarGabungan, tinggiGabungan);
+
+            int posisiY = 0;
+            for (int page = 0; page < totalPages; page++) {
+                BufferedImage imageHalaman = pdfRenderer.renderImageWithDPI(page, dpi);
+                try {
+                    int posisiX = Math.max(0, (lebarGabungan - imageHalaman.getWidth()) / 2);
+                    grafis.drawImage(imageHalaman, posisiX, posisiY, null);
+                    posisiY += imageHalaman.getHeight();
+                } finally {
+                    imageHalaman.flush();
+                }
+            }
+        } finally {
+            grafis.dispose();
+        }
+
+        try {
+            ImageIO.write(imageGabungan, "jpg", jpgFile);
+        } finally {
+            imageGabungan.flush();
+        }
+
+        System.out.println("Konversi PDF multipage berhasil digabung menjadi satu JPG: " + jpgFile.getAbsolutePath());
 
     } catch (IOException e) {
         e.printStackTrace();
+    } finally {
+        if (document != null) {
+            try {
+                document.close();
+            } catch (IOException e) {
+                System.out.println("Gagal menutup PDF hasil laboratorium: " + e);
+            }
+        }
     }
 }    
 
@@ -12032,10 +12149,17 @@ private void UploadJPG(String FileName, String docpath) {
             return;
         }
 
-        // Cari semua file JPG untuk FileName
-        File[] jpgFiles = jpgDir.listFiles((dir, name) -> 
-            (name.equals(FileName + ".jpg") || (name.startsWith(FileName + "_page_") && name.endsWith(".jpg")))
-        );
+        // Hasil konversi terbaru selalu diutamakan sebagai satu JPG utuh.
+        // Fallback _page_N.jpg dipertahankan agar kompatibel dengan file lama.
+        File jpgUtuh = new File(jpgDir, FileName + ".jpg");
+        File[] jpgFiles;
+        if (jpgUtuh.exists()) {
+            jpgFiles = new File[]{jpgUtuh};
+        } else {
+            jpgFiles = jpgDir.listFiles((dir, name) ->
+                name.startsWith(FileName + "_page_") && name.endsWith(".jpg")
+            );
+        }
         
         if (jpgFiles == null || jpgFiles.length == 0) {
             System.err.println("Tidak ada file JPG ditemukan untuk di-upload.");
@@ -12125,6 +12249,120 @@ private void UploadJPG(String FileName, String docpath) {
 //    }
 }
 
+/**
+ * Memastikan parameter SAAG tersedia khusus untuk proses Upload. Report biasa
+ * tidak disentuh. Jika parameter belum terisi dari loop temporary_lab, ambil
+ * langsung dari detail_periksa_lab berdasarkan pemeriksaan SAAG yang resmi.
+ */
+private boolean pastikanParameterSAAGUpload(Map<String, Object> param, String noRawat,
+        String tglPeriksa, String jamPeriksa, String kategoriUmur) {
+    if (param != null && param.containsKey("saagPemeriksaan")) return true;
+
+    PreparedStatement psSaagUpload = null;
+    ResultSet rsSaagUpload = null;
+    try {
+        psSaagUpload = koneksi.prepareStatement(
+                "select template_laboratorium.Pemeriksaan,detail_periksa_lab.nilai," +
+                "template_laboratorium.satuan,detail_periksa_lab.nilai_rujukan " +
+                "from detail_periksa_lab inner join template_laboratorium " +
+                "on detail_periksa_lab.id_template=template_laboratorium.id_template " +
+                "where detail_periksa_lab.no_rawat=? " +
+                "and detail_periksa_lab.kd_jenis_prw='J000143' " +
+                "and detail_periksa_lab.id_template='4149' " +
+                "and detail_periksa_lab.tgl_periksa=? and detail_periksa_lab.jam=? limit 1");
+        psSaagUpload.setString(1, noRawat);
+        psSaagUpload.setString(2, Valid.SetTgl(tglPeriksa));
+        psSaagUpload.setString(3, jamPeriksa);
+        rsSaagUpload = psSaagUpload.executeQuery();
+
+        if (rsSaagUpload.next()) {
+            String pemeriksaan = rsSaagUpload.getString("Pemeriksaan") == null
+                    ? "SAAG" : rsSaagUpload.getString("Pemeriksaan").trim();
+            String nilai = normalisasiNilaiLabCetak(rsSaagUpload.getString("nilai"));
+            String satuan = rsSaagUpload.getString("satuan") == null
+                    ? "" : rsSaagUpload.getString("satuan").trim();
+            String rujukan = rsSaagUpload.getString("nilai_rujukan") == null
+                    ? "" : rsSaagUpload.getString("nilai_rujukan").trim();
+            String flag = getStatusHLKritisLab(nilai, rujukan, "J000143", "4149", kategoriUmur);
+            isiParameterSAAG(param, pemeriksaan, nilai, satuan, rujukan, flag);
+            System.out.println("UPLOAD LAB: SAAG terdeteksi langsung dari detail_periksa_lab, nilai=" + nilai);
+            return true;
+        }
+    } catch (Exception e) {
+        System.out.println("Notif verifikasi SAAG upload: " + e);
+    } finally {
+        try { if (rsSaagUpload != null) rsSaagUpload.close(); } catch (Exception e) {}
+        try { if (psSaagUpload != null) psSaagUpload.close(); } catch (Exception e) {}
+    }
+    return false;
+}
+
+/**
+ * Membuat PDF upload SAAG langsung dari rptPeriksaLabSAAG.jasper yang sama
+ * dengan report biasa. Tidak memakai data-source/report lain.
+ */
+private void buatPDFUploadSAAGDariReport(String namaFile, Map<String, Object> param) {
+    try {
+        File dirPdf = new File("tmpPDF");
+        if (!dirPdf.exists() && !dirPdf.mkdirs()) {
+            throw new IOException("Folder tmpPDF tidak dapat dibuat");
+        }
+
+        File reportSaag = new File("report" + File.separator + "rptPeriksaLabSAAG.jasper");
+        if (!reportSaag.isFile()) {
+            throw new IOException("Report SAAG tidak ditemukan: " + reportSaag.getAbsolutePath());
+        }
+
+        File pdfHasil = new File(dirPdf, namaFile + ".pdf");
+        net.sf.jasperreports.engine.JasperPrint cetak =
+                net.sf.jasperreports.engine.JasperFillManager.fillReport(
+                        reportSaag.getPath(), param, koneksi);
+        net.sf.jasperreports.engine.JasperExportManager.exportReportToPdfFile(
+                cetak, pdfHasil.getAbsolutePath());
+
+        System.out.println("UPLOAD LAB SAAG: PDF dibuat dari report yang sama -> "
+                + pdfHasil.getAbsolutePath() + " (" + pdfHasil.length() + " bytes)");
+    } catch (Exception e) {
+        System.out.println("Gagal membuat PDF upload SAAG dari report yang sama: " + e);
+        JOptionPane.showMessageDialog(null,
+                "Gagal membuat PDF SAAG untuk upload.\n\nDetail: " + e.getMessage(),
+                "Upload Hasil Lab", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+/**
+ * Menghapus HANYA file sementara milik satu proses upload Lab.
+ * Tujuannya mencegah PDF/JPG lama dengan nama sama dipakai ulang bila proses
+ * pembuatan report terbaru gagal. Tidak menyentuh berkas pemeriksaan lain.
+ */
+private void hapusArtefakUploadLab(String namaFile) {
+    if (namaFile == null || namaFile.trim().equals("")) return;
+    try {
+        File pdf = new File("tmpPDF" + File.separator + namaFile + ".pdf");
+        if (pdf.exists() && !pdf.delete()) {
+            System.out.println("Tidak dapat menghapus PDF sementara: " + pdf.getAbsolutePath());
+        }
+
+        File dirJpg = new File("tmpJPG");
+        File jpg = new File(dirJpg, namaFile + ".jpg");
+        if (jpg.exists() && !jpg.delete()) {
+            System.out.println("Tidak dapat menghapus JPG sementara: " + jpg.getAbsolutePath());
+        }
+
+        File[] halaman = dirJpg.listFiles((dir, name) ->
+                name.startsWith(namaFile + "_page_") && name.toLowerCase().endsWith(".jpg"));
+        if (halaman != null) {
+            for (File f : halaman) {
+                if (f.exists() && !f.delete()) {
+                    System.out.println("Tidak dapat menghapus JPG halaman sementara: " + f.getAbsolutePath());
+                }
+            }
+        }
+    } catch (Exception e) {
+        System.out.println("Notif bersihkan artefak upload lab: " + e);
+    }
+}
+
 private void HapusJPG() {
     File file = new File("tmpJPG");
     String[] myFiles;
@@ -12149,22 +12387,6 @@ private static void isiParameterSAAG(Map<String, Object> param, String pemeriksa
     param.put("saagSatuan", satuan);
     param.put("saagRujukan", rujukan);
     param.put("saagFlag", flag);
-}
-
-/**
- * Menambahkan interpretasi khusus SAAG tanpa menghapus keterangan manual yang sudah ada.
- * SAAG tetap dicetak sebagai item ANALISA CAIRAN ASITES, bukan sebagai pemeriksaan eLFG.
- */
-private static String gabungkanKeteranganSAAG(String keteranganAwal) {
-    final String interpretasi = ">=1.1 = akibat hipertensi portal\n<1.1 = akibat non hipertensi portal";
-    String awal = keteranganAwal == null ? "" : keteranganAwal.trim();
-    if (awal.equals("")) {
-        return interpretasi;
-    }
-    if (awal.contains(">=1.1 = akibat hipertensi portal") || awal.contains("<1.1 = akibat non hipertensi portal")) {
-        return awal;
-    }
-    return awal + "\n" + interpretasi;
 }
 
 private String normalisasiNilaiLabCetak(String nilaiAsli) {

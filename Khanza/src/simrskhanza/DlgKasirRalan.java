@@ -289,12 +289,22 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
     private widget.Button BtnHasilLabKasir;
     private widget.Button BtnHasilRadKasir;
 
+
+    // RSAJ HEADER V7 - layout identitas dibangun ulang di luar generated code NetBeans.
+    // No. Reg dan No. Kartu tetap dipertahankan sebagai komponen internal karena masih
+    // dipakai fungsi lain, tetapi tidak lagi ditampilkan pada header.
+    private javax.swing.JPanel panelHeaderInfoRSAJ;
+    private javax.swing.plaf.LabelUI uiSepNormalRSAJ;
+    private boolean sedangAturHeaderRSAJ=false;
+    private static final String HEADER_BELUM_ADA_DATA_RSAJ="Belum ada data";
+
     /** Creates new form DlgReg
      * @param parent
      * @param modal */
     public DlgKasirRalan(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+        initHeaderKasirRalanRSAJ();
         initKasirRalan();
         initMenuKFR();
         initMenuRujukanSatuSehatRalan();
@@ -925,6 +935,586 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
      * Tombol dibuat di luar NetBeans GUI Builder. Dengan cara ini initComponents()
      * tetap memakai ukuran asli dan tidak memicu error "code too large".
      */
+    /**
+     * RSAJ 20-09-2026 - Header identitas pasien DlgKasirRalan V8.
+     *
+     * Revisi V9:
+     * - font data No. Rawat s.d. Expire dibuat normal/plain;
+     * - hanya data No. Antrian Obat yang tetap bold;
+     * - perbaikan khusus No. SEP: nilai NULL dari JTable tidak lagi memutus getDatakasir();
+     * - badge merah selalu muncul bila SEP kosong/NULL dan icon copy SEP pasti disembunyikan;
+     * - sizing label dihitung langsung dari FontMetrics (tanpa menunggu invokeLater),
+     *   sehingga lebar selalu mengikuti data pada klik pertama;
+     * - kondisi belum memilih pasien menampilkan "Belum ada data";
+     * - tombol copy disembunyikan ketika belum ada pasien dipilih;
+     * - SEP yang belum terbit ditampilkan sebagai badge kapsul merah;
+     * - separator vertikal 15 px ditambahkan antar blok identitas;
+     * - fungsi transaksi/handler lama tidak diubah.
+     */
+    private void initHeaderKasirRalanRSAJ() {
+        try {
+            final java.awt.Font fontJudul = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 10);
+            final java.awt.Font fontNilai = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12);
+            final java.awt.Font fontNilaiAntrian = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12);
+            final java.awt.Color warnaJudul = new java.awt.Color(100, 100, 100);
+            final java.awt.Color warnaNilai = new java.awt.Color(45, 45, 45);
+
+            jLabel4.setText("No. Rawat");
+            jLabel8.setText("Nama Pasien");
+            jLabel7.setText("No. RM");
+            NoSEP.setText("No. SEP");
+            NoSEP1.setText("Rujukan Terbaru");
+            NoSEP2.setText("Expire");
+            LblAntrianFarmasi.setText("No. Antrian Obat");
+
+            widget.Label[] judul = {
+                jLabel4, jLabel8, jLabel7, NoSEP,
+                NoSEP1, NoSEP2, LblAntrianFarmasi
+            };
+            for (widget.Label label : judul) {
+                label.setFont(fontJudul);
+                label.setForeground(warnaJudul);
+                label.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                label.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+                label.setBorder(javax.swing.BorderFactory.createEmptyBorder(0,0,0,0));
+            }
+
+            widget.Label[] nilai = {
+                TNoRwCari, TPasienCari, TNoRMCari, TSEPCari,
+                RujukanTerbaru, RujukanExpire, TAntrianFarmasi
+            };
+            for (widget.Label label : nilai) {
+                label.setFont(fontNilai);
+                label.setForeground(warnaNilai);
+                label.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+                label.setOpaque(false);
+                label.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                label.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+                label.setFocusable(true);
+            }
+
+            // Hanya nomor antrian obat yang dibuat tebal.
+            TAntrianFarmasi.setFont(fontNilaiAntrian);
+
+            // Ikon blok identitas: ukuran visual tepat 24x24 px.
+            setIconHeaderRSAJ(LblIconNoRawat, "/picture/no_rawat.png");
+            setIconHeaderRSAJ(LblIconNamaPasien, "/picture/nama_pasien.png");
+            setIconHeaderRSAJ(LblIconNoRM, "/picture/no_rm.png");
+            setIconHeaderRSAJ(LblIconSEP, "/picture/no_sep.png");
+            setIconHeaderRSAJ(LblIconRujukanTerbaru, "/picture/rujukan_terbaru.png");
+            setIconHeaderRSAJ(LblIconRujukanExpire, "/picture/expire.png");
+            setIconHeaderRSAJ(LblIconAntrianFarmasi, "/picture/antrian_obat.png");
+
+            widget.Label[] semuaIcon = {
+                LblIconNoRawat, LblIconNamaPasien, LblIconNoRM,
+                LblIconSEP, LblIconRujukanTerbaru, LblIconRujukanExpire,
+                LblIconAntrianFarmasi
+            };
+            for (widget.Label icon : semuaIcon) {
+                icon.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                icon.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+                icon.setPreferredSize(new java.awt.Dimension(26, 36));
+                icon.setMinimumSize(new java.awt.Dimension(26, 36));
+                icon.setMaximumSize(new java.awt.Dimension(26, 36));
+            }
+
+            // Tombol copy lama tetap dipakai sehingga action/listener existing aman.
+            konfigurasiTombolCopyRSAJ(BtnCopirawat, "Salin No. Rawat");
+            konfigurasiTombolCopyRSAJ(BtnCopiRM1, "Salin Nama Pasien");
+            konfigurasiTombolCopyRSAJ(BtnCopiRM, "Salin No. RM");
+            konfigurasiTombolCopyRSAJ(BtnCopiSEP, "Salin No. SEP");
+
+            bangunUlangLayoutHeaderKasirRalanRSAJ();
+            pasangListenerLebarDinamisHeaderRSAJ();
+            refreshHeaderKasirRalanRSAJ();
+        } catch (Exception ex) {
+            System.out.println("Notifikasi init header Kasir Ralan RSAJ V9 : " + ex);
+        }
+    }
+
+    private javax.swing.ImageIcon iconHeaderRSAJ(String resource, int lebar, int tinggi) {
+        try {
+            java.net.URL url = getClass().getResource(resource);
+            if (url == null) {
+                System.out.println("Resource ikon header tidak ditemukan : " + resource);
+                return new javax.swing.ImageIcon();
+            }
+            javax.swing.ImageIcon asli = new javax.swing.ImageIcon(url);
+            java.awt.Image img = asli.getImage().getScaledInstance(
+                    lebar, tinggi, java.awt.Image.SCALE_SMOOTH);
+            return new javax.swing.ImageIcon(img);
+        } catch (Exception ex) {
+            System.out.println("Notifikasi muat ikon header " + resource + " : " + ex);
+            return new javax.swing.ImageIcon();
+        }
+    }
+
+    private void setIconHeaderRSAJ(widget.Label label, String resource) {
+        label.setIcon(iconHeaderRSAJ(resource, 24, 24));
+    }
+
+    private void konfigurasiTombolCopyRSAJ(widget.Button btn, String tooltip) {
+        if (btn == null) return;
+        btn.setIcon(iconHeaderRSAJ("/picture/copy_hitam.png", 16, 16));
+        btn.setPressedIcon(null);
+        btn.setToolTipText(tooltip);
+        btn.setPreferredSize(new java.awt.Dimension(18, 18));
+        btn.setMinimumSize(new java.awt.Dimension(18, 18));
+        btn.setMaximumSize(new java.awt.Dimension(18, 18));
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setOpaque(false);
+        btn.setIconTextGap(0);
+        btn.setMargin(new java.awt.Insets(0,0,0,0));
+        btn.setVisible(false);
+    }
+
+    /** Holder nilai. Untuk No. SEP holder ini juga menggambar badge kapsul merah. */
+    private javax.swing.JPanel buatHolderNilaiHeaderRSAJ(final widget.Label nilai) {
+        javax.swing.JPanel holder = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,0,0)) {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                if (nilai == TSEPCari &&
+                        Boolean.TRUE.equals(nilai.getClientProperty("rsaj.sep.badge"))) {
+                    java.awt.Graphics2D g2=(java.awt.Graphics2D)g.create();
+                    try {
+                        g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                                java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(new java.awt.Color(211, 47, 47));
+                        int h=Math.max(1,getHeight()-1);
+                        int arc=Math.max(12,h);
+                        g2.fillRoundRect(0,0,Math.max(1,getWidth()-1),h,arc,arc);
+                    } finally {
+                        g2.dispose();
+                    }
+                }
+            }
+        };
+        holder.setOpaque(false);
+        holder.add(nilai);
+        nilai.putClientProperty("rsaj.header.valueholder", holder);
+        return holder;
+    }
+
+    private javax.swing.JPanel buatBlokHeaderRSAJ(
+            widget.Label icon, widget.Label judul, widget.Label nilai, widget.Button copy) {
+
+        javax.swing.JPanel holderNilai=buatHolderNilaiHeaderRSAJ(nilai);
+
+        // FlowLayout tanpa ruang fleksibel: icon copy selalu tepat sesudah nilai.
+        javax.swing.JPanel barisNilai = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        barisNilai.setOpaque(false);
+        barisNilai.add(holderNilai);
+        if (copy != null) {
+            barisNilai.add(javax.swing.Box.createHorizontalStrut(2));
+            barisNilai.add(copy);
+        }
+
+        // Judul dan nilai dibuat rapat, tanpa weightY / vertical stretch.
+        javax.swing.JPanel isi = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        isi.setOpaque(false);
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.gridx=0;
+        gbc.gridy=0;
+        gbc.weightx=0;
+        gbc.weighty=0;
+        gbc.anchor=java.awt.GridBagConstraints.WEST;
+        gbc.fill=java.awt.GridBagConstraints.NONE;
+        gbc.insets=new java.awt.Insets(0,0,0,0);
+        isi.add(judul,gbc);
+
+        gbc.gridy=1;
+        gbc.insets=new java.awt.Insets(-2,0,0,0);
+        isi.add(barisNilai,gbc);
+
+        javax.swing.JPanel blok = new javax.swing.JPanel();
+        blok.setOpaque(false);
+        blok.setLayout(new javax.swing.BoxLayout(blok, javax.swing.BoxLayout.X_AXIS));
+        icon.setAlignmentY(java.awt.Component.CENTER_ALIGNMENT);
+        isi.setAlignmentY(java.awt.Component.CENTER_ALIGNMENT);
+        blok.add(icon);
+        blok.add(javax.swing.Box.createHorizontalStrut(3));
+        blok.add(isi);
+        blok.setAlignmentY(java.awt.Component.CENTER_ALIGNMENT);
+
+        // Relasi dipakai oleh sizing sinkron V7.
+        nilai.putClientProperty("rsaj.header.row", barisNilai);
+        nilai.putClientProperty("rsaj.header.content", isi);
+        nilai.putClientProperty("rsaj.header.block", blok);
+        nilai.putClientProperty("rsaj.header.icon", icon);
+        nilai.putClientProperty("rsaj.header.title", judul);
+        nilai.putClientProperty("rsaj.header.copy", copy);
+        return blok;
+    }
+
+    private void tambahSeparatorHeaderRSAJ(javax.swing.JPanel panel) {
+        panel.add(javax.swing.Box.createHorizontalStrut(8));
+        javax.swing.JSeparator separator=new javax.swing.JSeparator(javax.swing.SwingConstants.VERTICAL);
+        separator.setForeground(new java.awt.Color(205, 210, 216));
+        separator.setPreferredSize(new java.awt.Dimension(1,15));
+        separator.setMinimumSize(new java.awt.Dimension(1,15));
+        separator.setMaximumSize(new java.awt.Dimension(1,15));
+        separator.setAlignmentY(java.awt.Component.CENTER_ALIGNMENT);
+        panel.add(separator);
+        panel.add(javax.swing.Box.createHorizontalStrut(8));
+    }
+
+    private void bangunUlangLayoutHeaderKasirRalanRSAJ() {
+        // Komponen lama tidak dibuat ulang; hanya dipindahkan ke layout baru.
+        panelGlass9.removeAll();
+        panelGlass9.setLayout(new java.awt.BorderLayout(0, 0));
+
+        panelHeaderInfoRSAJ = new javax.swing.JPanel();
+        panelHeaderInfoRSAJ.setOpaque(false);
+        panelHeaderInfoRSAJ.setLayout(new javax.swing.BoxLayout(panelHeaderInfoRSAJ, javax.swing.BoxLayout.X_AXIS));
+        panelHeaderInfoRSAJ.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 8, 0, 8));
+
+        tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconNoRawat, jLabel4, TNoRwCari, BtnCopirawat);
+        tambahSeparatorHeaderRSAJ(panelHeaderInfoRSAJ);
+        tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconNamaPasien, jLabel8, TPasienCari, BtnCopiRM1);
+        tambahSeparatorHeaderRSAJ(panelHeaderInfoRSAJ);
+        tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconNoRM, jLabel7, TNoRMCari, BtnCopiRM);
+        tambahSeparatorHeaderRSAJ(panelHeaderInfoRSAJ);
+        tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconSEP, NoSEP, TSEPCari, BtnCopiSEP);
+        tambahSeparatorHeaderRSAJ(panelHeaderInfoRSAJ);
+        tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconRujukanTerbaru, NoSEP1, RujukanTerbaru, null);
+        tambahSeparatorHeaderRSAJ(panelHeaderInfoRSAJ);
+        tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconRujukanExpire, NoSEP2, RujukanExpire, null);
+        tambahSeparatorHeaderRSAJ(panelHeaderInfoRSAJ);
+        tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconAntrianFarmasi, LblAntrianFarmasi, TAntrianFarmasi, null);
+        panelHeaderInfoRSAJ.add(javax.swing.Box.createHorizontalGlue());
+
+        javax.swing.JScrollPane scrollInfo = new javax.swing.JScrollPane(
+                panelHeaderInfoRSAJ,
+                javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,
+                javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollInfo.setBorder(null);
+        scrollInfo.setOpaque(false);
+        scrollInfo.getViewport().setOpaque(false);
+        scrollInfo.getHorizontalScrollBar().setUnitIncrement(24);
+        scrollInfo.setPreferredSize(new java.awt.Dimension(100, 51));
+
+        // Tombol fungsi lama tetap komponen dan listener yang sama.
+        javax.swing.JPanel panelAksi = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 3));
+        panelAksi.setOpaque(false);
+        panelAksi.add(BtnResumeRJ);
+        panelAksi.add(BtnBilling);
+        panelAksi.add(BtnHasilUroflowmetri);
+        panelAksi.add(BtnPanggilPasien);
+        panelAksi.add(BtnPanggilUlang);
+        panelAksi.add(BtnHasilUroflowmetri2);
+        panelAksi.add(BtnRencanaKontrol);
+        panelAksi.add(BtnRencanaKontrolAntarPoli);
+        panelAksi.add(BtnRiwayatSKDP);
+        panelAksi.add(BtnRiwayatSKDPVCLAIM);
+        panelAksi.add(BtnRiwayatPasien);
+
+        panelGlass9.add(scrollInfo, java.awt.BorderLayout.CENTER);
+        panelGlass9.add(panelAksi, java.awt.BorderLayout.SOUTH);
+        panelGlass9.setMinimumSize(new java.awt.Dimension(100, 92));
+        panelGlass9.setPreferredSize(new java.awt.Dimension(100, 92));
+        panelGlass9.revalidate();
+        panelGlass9.repaint();
+    }
+
+    private void tambahBlokHeaderRSAJ(javax.swing.JPanel panel, widget.Label icon,
+            widget.Label judul, widget.Label nilai, widget.Button copy) {
+        panel.add(buatBlokHeaderRSAJ(icon, judul, nilai, copy));
+    }
+
+    /**
+     * Listener V7 sengaja tidak memakai invokeLater ketika sudah berada di EDT.
+     * Ini menghilangkan efek ukuran tertinggal satu/dua klik dari data sebelumnya.
+     */
+    private void pasangListenerLebarDinamisHeaderRSAJ() {
+        java.beans.PropertyChangeListener listener = new java.beans.PropertyChangeListener() {
+            @Override
+            public void propertyChange(java.beans.PropertyChangeEvent evt) {
+                if (!"text".equals(evt.getPropertyName()) || sedangAturHeaderRSAJ) return;
+                Runnable r=new Runnable() {
+                    @Override public void run() {
+                        sesuaikanSemuaLebarHeaderRSAJ();
+                    }
+                };
+                if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+                    r.run();
+                } else {
+                    javax.swing.SwingUtilities.invokeLater(r);
+                }
+            }
+        };
+        widget.Label[] nilai = {
+            TNoRwCari, TPasienCari, TNoRMCari, TSEPCari,
+            RujukanTerbaru, RujukanExpire, TAntrianFarmasi
+        };
+        for (widget.Label label : nilai) {
+            label.addPropertyChangeListener(listener);
+        }
+    }
+
+    private java.awt.Dimension ukuranTeksHeaderRSAJ(widget.Label label, int tinggiMinimum) {
+        String teks=label.getText();
+        if (teks==null) teks="";
+        java.awt.Font font=label.getFont();
+        java.awt.FontMetrics fm=label.getFontMetrics(font);
+        java.awt.Insets in=label.getInsets();
+        int w=fm.stringWidth(teks)+in.left+in.right+2;
+        int h=fm.getHeight()+in.top+in.bottom;
+        return new java.awt.Dimension(Math.max(4,w),Math.max(tinggiMinimum,h));
+    }
+
+    private void setUkuranTetapHeaderRSAJ(javax.swing.JComponent c, int w, int h) {
+        java.awt.Dimension d=new java.awt.Dimension(Math.max(1,w),Math.max(1,h));
+        c.setPreferredSize(d);
+        c.setMinimumSize(d);
+        c.setMaximumSize(d);
+    }
+
+    /**
+     * Mengukur langsung dari FontMetrics sehingga tidak bergantung pada preferred
+     * size lama yang masih tersimpan oleh layout Swing.
+     */
+    private void sesuaikanLebarNilaiHeaderRSAJ(widget.Label nilai, widget.Label judul) {
+        if (nilai == null || judul == null) return;
+        sedangAturHeaderRSAJ=true;
+        try {
+            java.awt.Dimension dNilai=ukuranTeksHeaderRSAJ(nilai,17);
+            java.awt.Dimension dJudul=ukuranTeksHeaderRSAJ(judul,13);
+            setUkuranTetapHeaderRSAJ(nilai,dNilai.width,dNilai.height);
+            setUkuranTetapHeaderRSAJ(judul,dJudul.width,dJudul.height);
+
+            Object holderObj=nilai.getClientProperty("rsaj.header.valueholder");
+            Object rowObj=nilai.getClientProperty("rsaj.header.row");
+            Object contentObj=nilai.getClientProperty("rsaj.header.content");
+            Object blockObj=nilai.getClientProperty("rsaj.header.block");
+            Object iconObj=nilai.getClientProperty("rsaj.header.icon");
+            Object copyObj=nilai.getClientProperty("rsaj.header.copy");
+
+            int holderW=dNilai.width;
+            int holderH=dNilai.height;
+            if (holderObj instanceof javax.swing.JComponent) {
+                setUkuranTetapHeaderRSAJ((javax.swing.JComponent)holderObj,holderW,holderH);
+            }
+
+            int copyW=0;
+            int copyH=0;
+            if (copyObj instanceof widget.Button && ((widget.Button)copyObj).isVisible()) {
+                java.awt.Dimension dc=((widget.Button)copyObj).getPreferredSize();
+                copyW=2+(dc==null?18:dc.width);
+                copyH=(dc==null?18:dc.height);
+            }
+
+            int rowW=holderW+copyW;
+            int rowH=Math.max(holderH,copyH);
+            if (rowObj instanceof javax.swing.JComponent) {
+                setUkuranTetapHeaderRSAJ((javax.swing.JComponent)rowObj,rowW,rowH);
+            }
+
+            // Insets GridBag: nilai overlap -2 px terhadap jarak normal judul.
+            int contentW=Math.max(dJudul.width,rowW);
+            int contentH=Math.max(1,dJudul.height+rowH-2);
+            if (contentObj instanceof javax.swing.JComponent) {
+                setUkuranTetapHeaderRSAJ((javax.swing.JComponent)contentObj,contentW,contentH);
+            }
+
+            int iconW=26;
+            if (iconObj instanceof javax.swing.JComponent) {
+                java.awt.Dimension di=((javax.swing.JComponent)iconObj).getPreferredSize();
+                if (di!=null) iconW=di.width;
+            }
+            int blockW=iconW+3+contentW;
+            if (blockObj instanceof javax.swing.JComponent) {
+                setUkuranTetapHeaderRSAJ((javax.swing.JComponent)blockObj,blockW,36);
+            }
+        } finally {
+            sedangAturHeaderRSAJ=false;
+        }
+    }
+
+    private void sesuaikanSemuaLebarHeaderRSAJ() {
+        if (sedangAturHeaderRSAJ) return;
+        sesuaikanLebarNilaiHeaderRSAJ(TNoRwCari, jLabel4);
+        sesuaikanLebarNilaiHeaderRSAJ(TPasienCari, jLabel8);
+        sesuaikanLebarNilaiHeaderRSAJ(TNoRMCari, jLabel7);
+        sesuaikanLebarNilaiHeaderRSAJ(TSEPCari, NoSEP);
+        sesuaikanLebarNilaiHeaderRSAJ(RujukanTerbaru, NoSEP1);
+        sesuaikanLebarNilaiHeaderRSAJ(RujukanExpire, NoSEP2);
+        sesuaikanLebarNilaiHeaderRSAJ(TAntrianFarmasi, LblAntrianFarmasi);
+        if (panelHeaderInfoRSAJ != null) {
+            panelHeaderInfoRSAJ.invalidate();
+            panelHeaderInfoRSAJ.revalidate();
+            panelHeaderInfoRSAJ.doLayout();
+            panelHeaderInfoRSAJ.repaint();
+        }
+        if (panelGlass9 != null) {
+            panelGlass9.revalidate();
+            panelGlass9.repaint();
+        }
+    }
+
+    private boolean belumAdaPilihanHeaderRSAJ(String noRawat) {
+        return noRawat==null || noRawat.trim().equals("") ||
+               noRawat.trim().equals("-") ||
+               noRawat.trim().equalsIgnoreCase(HEADER_BELUM_ADA_DATA_RSAJ);
+    }
+
+    private void setNilaiKosongHeaderRSAJ() {
+        TNoRwCari.setText(HEADER_BELUM_ADA_DATA_RSAJ);
+        TPasienCari.setText(HEADER_BELUM_ADA_DATA_RSAJ);
+        TNoRMCari.setText(HEADER_BELUM_ADA_DATA_RSAJ);
+        TSEPCari.setText(HEADER_BELUM_ADA_DATA_RSAJ);
+        RujukanTerbaru.setText(HEADER_BELUM_ADA_DATA_RSAJ);
+        RujukanExpire.setText(HEADER_BELUM_ADA_DATA_RSAJ);
+        TAntrianFarmasi.setText(HEADER_BELUM_ADA_DATA_RSAJ);
+    }
+
+    private void normalisasiLabelKosongRSAJ(widget.Label label, String pengganti) {
+        if (label != null && (label.getText() == null || label.getText().trim().equals(""))) {
+            label.setText(pengganti);
+        }
+    }
+
+    private String formatNoAntrianFarmasiRSAJ(String nilai) {
+        if (nilai == null) return "";
+        String v = nilai.trim();
+        if (v.equals("")) return "";
+        try {
+            int angka = Integer.parseInt(v);
+            if (angka >= 0 && angka <= 999) {
+                return String.format("%03d", angka);
+            }
+        } catch (NumberFormatException ex) {
+            // Bila format nomor antrian bukan numerik, tampilkan apa adanya.
+        }
+        return v;
+    }
+
+    /** Mengambil nilai JTable dengan aman. NULL database tidak boleh menghentikan refresh header. */
+    private String nilaiTabelHeaderRSAJ(javax.swing.JTable tabel, int baris, int kolom) {
+        try {
+            if (tabel == null || baris < 0 || kolom < 0 || kolom >= tabel.getColumnCount()) {
+                return "";
+            }
+            Object nilai = tabel.getValueAt(baris, kolom);
+            if (nilai == null) {
+                return "";
+            }
+            String teks = nilai.toString().trim();
+            return teks.equalsIgnoreCase("null") ? "" : teks;
+        } catch (Exception ex) {
+            System.out.println("Notifikasi baca nilai header tabel : " + ex);
+            return "";
+        }
+    }
+
+    /**
+     * Menentukan apakah SEP benar-benar ada. Placeholder/kosong/NULL tidak dianggap SEP.
+     * Ini menjadi satu-satunya acuan badge dan visibilitas tombol copy SEP.
+     */
+    private boolean sepTerbitHeaderRSAJ(String noSep) {
+        if (noSep == null) return false;
+        String nilai = noSep.trim();
+        if (nilai.equals("")) return false;
+        if (nilai.equals("-")) return false;
+        if (nilai.equalsIgnoreCase("null")) return false;
+        if (nilai.equalsIgnoreCase(HEADER_BELUM_ADA_DATA_RSAJ)) return false;
+        if (nilai.equalsIgnoreCase("Belum ada")) return false;
+        if (nilai.equalsIgnoreCase("Belum Ada Data")) return false;
+        if (nilai.equalsIgnoreCase("SEP belum diterbitkan")) return false;
+        if (nilai.equalsIgnoreCase("SEP Belum Terbit")) return false;
+        return true;
+    }
+
+    private void aturCopyHeaderRSAJ(boolean adaPilihan, boolean sepAda) {
+        BtnCopirawat.setVisible(adaPilihan);
+        BtnCopiRM1.setVisible(adaPilihan);
+        BtnCopiRM.setVisible(adaPilihan);
+        // Untuk SEP, copy hanya ditampilkan bila nomor SEP benar-benar tersedia.
+        BtnCopiSEP.setVisible(adaPilihan && sepAda);
+    }
+
+    /**
+     * Badge SEP dibuat oleh holder label, bukan oleh background JLabel biasa,
+     * sehingga bentuk kapsul tetap rounded pada semua Look & Feel.
+     */
+    private void tampilkanBadgeSepRSAJ(boolean tampilBadge) {
+        TSEPCari.putClientProperty("rsaj.sep.badge", Boolean.valueOf(tampilBadge));
+        Object holderObj=TSEPCari.getClientProperty("rsaj.header.valueholder");
+        if (tampilBadge) {
+            // Fail-safe: status belum punya SEP tidak pernah boleh menampilkan tombol copy.
+            BtnCopiSEP.setVisible(false);
+            TSEPCari.setText("SEP Belum Terbit");
+            TSEPCari.setForeground(java.awt.Color.WHITE);
+            TSEPCari.setBorder(javax.swing.BorderFactory.createEmptyBorder(2,8,2,8));
+            TSEPCari.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        } else {
+            TSEPCari.setForeground(new java.awt.Color(45,45,45));
+            TSEPCari.setBorder(javax.swing.BorderFactory.createEmptyBorder(0,0,0,0));
+            TSEPCari.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        }
+        if (holderObj instanceof javax.swing.JComponent) {
+            ((javax.swing.JComponent)holderObj).revalidate();
+            ((javax.swing.JComponent)holderObj).repaint();
+        }
+    }
+
+    /**
+     * Menampilkan status SEP dan nomor antrean farmasi untuk pasien yang dipilih.
+     * No. antrean dibaca dari rsaj_antrian_farmasi.no_antrian berdasarkan no_rawat.
+     */
+    private void refreshHeaderKasirRalanRSAJ() {
+        try {
+            String noRawat = TNoRwCari.getText() == null ? "" : TNoRwCari.getText().trim();
+            boolean belumPilih = belumAdaPilihanHeaderRSAJ(noRawat);
+
+            if (belumPilih) {
+                setNilaiKosongHeaderRSAJ();
+                tampilkanBadgeSepRSAJ(false);
+                aturCopyHeaderRSAJ(false,false);
+                sesuaikanSemuaLebarHeaderRSAJ();
+                return;
+            }
+
+            // Pasien sudah dipilih. Nilai kosong per-item ditulis "Belum ada".
+            normalisasiLabelKosongRSAJ(TPasienCari,"Belum ada");
+            normalisasiLabelKosongRSAJ(TNoRMCari,"Belum ada");
+            normalisasiLabelKosongRSAJ(RujukanTerbaru,"Belum ada");
+            normalisasiLabelKosongRSAJ(RujukanExpire,"Belum ada");
+
+            String noSep = TSEPCari.getText() == null ? "" : TSEPCari.getText().trim();
+            boolean sepTerbit = sepTerbitHeaderRSAJ(noSep);
+            tampilkanBadgeSepRSAJ(!sepTerbit);
+            // Icon copy SEP hanya boleh tampil saat nomor SEP benar-benar ada.
+            aturCopyHeaderRSAJ(true,sepTerbit);
+
+            String noAntrian = "";
+            try {
+                noAntrian = Sequel.cariIsi(
+                        "select rsaj_antrian_farmasi.no_antrian from rsaj_antrian_farmasi " +
+                        "where rsaj_antrian_farmasi.no_rawat=? limit 1",
+                        noRawat);
+            } catch (Exception ex) {
+                System.out.println("Notifikasi ambil No. Antrian Obat : " + ex);
+            }
+
+            if (noAntrian == null || noAntrian.trim().equals("")) {
+                TAntrianFarmasi.setText("Belum ada");
+                TAntrianFarmasi.setForeground(new java.awt.Color(120, 120, 120));
+            } else {
+                TAntrianFarmasi.setText(formatNoAntrianFarmasiRSAJ(noAntrian));
+                TAntrianFarmasi.setForeground(new java.awt.Color(45, 45, 45));
+            }
+
+            // Ukur sinkron setelah semua teks + visibility copy final terpasang.
+            sesuaikanSemuaLebarHeaderRSAJ();
+        } catch (Exception ex) {
+            System.out.println("Notifikasi refresh header Kasir Ralan RSAJ V8 : " + ex);
+        }
+    }
+
     private void initTombolHasilLabRadKasir() {
         try {
             BtnHasilLabKasir = new widget.Button();
@@ -1406,17 +1996,17 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         tbKasirRalan3 = new widget.Table();
         panelGlass9 = new widget.panelisi();
         jLabel4 = new widget.Label();
-        TNoRwCari = new widget.TextBox();
+        TNoRwCari = new widget.Label();
         BtnCopirawat = new widget.Button();
         jLabel5 = new widget.Label();
-        TNoReg = new widget.TextBox();
+        TNoReg = new widget.Label();
         jLabel7 = new widget.Label();
-        TNoRMCari = new widget.TextBox();
+        TNoRMCari = new widget.Label();
         BtnCopiRM = new widget.Button();
         jLabel8 = new widget.Label();
-        TPasienCari = new widget.TextBox();
+        TPasienCari = new widget.Label();
         NoSEP = new widget.Label();
-        TSEPCari = new widget.TextBox();
+        TSEPCari = new widget.Label();
         BtnCopiSEP = new widget.Button();
         BtnResumeRJ = new widget.Button();
         BtnBilling = new widget.Button();
@@ -1425,17 +2015,28 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         BtnPanggilPasien = new widget.Button();
         BtnHasilUroflowmetri2 = new widget.Button();
         BtnRencanaKontrolAntarPoli = new widget.Button();
-        RujukanTerbaru = new widget.TextBox();
+        RujukanTerbaru = new widget.Label();
         NoSEP1 = new widget.Label();
         NoSEP2 = new widget.Label();
-        RujukanExpire = new widget.TextBox();
+        RujukanExpire = new widget.Label();
         BtnRiwayatSKDP = new widget.Button();
-        NoKartu = new widget.TextBox();
+        NoKartu = new widget.Label();
         NoSEP3 = new widget.Label();
         BtnRiwayatSKDPVCLAIM = new widget.Button();
         BtnRiwayatPasien = new widget.Button();
         BtnCopiRM1 = new widget.Button();
         BtnPanggilUlang = new widget.Button();
+        LblIconNoRawat = new widget.Label();
+        LblIconNamaPasien = new widget.Label();
+        LblIconNoRM = new widget.Label();
+        LblIconSEP = new widget.Label();
+        LblIconAntrianFarmasi = new widget.Label();
+        LblIconNoReg = new widget.Label();
+        LblIconRujukanTerbaru = new widget.Label();
+        LblIconRujukanExpire = new widget.Label();
+        LblIconNoKartu = new widget.Label();
+        LblAntrianFarmasi = new widget.Label();
+        TAntrianFarmasi = new widget.Label();
 
         jPopupMenu1.setForeground(new java.awt.Color(50, 50, 50));
         jPopupMenu1.setName("jPopupMenu1"); // NOI18N
@@ -6854,15 +7455,13 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         internalFrame1.add(TabRawat, java.awt.BorderLayout.CENTER);
         TabRawat.getAccessibleContext().setAccessibleName("   Registrasi Awal   ");
 
-        panelGlass9.setMinimumSize(new java.awt.Dimension(1221, 80));
+        panelGlass9.setMinimumSize(new java.awt.Dimension(1280, 96));
         panelGlass9.setName("panelGlass9"); // NOI18N
-        panelGlass9.setPreferredSize(new java.awt.Dimension(44, 80));
+        panelGlass9.setPreferredSize(new java.awt.Dimension(44, 96));
 
         jLabel4.setText("No. Rawat :");
         jLabel4.setName("jLabel4"); // NOI18N
         jLabel4.setPreferredSize(new java.awt.Dimension(70, 23));
-
-        TNoRwCari.setHighlighter(null);
         TNoRwCari.setName("TNoRwCari"); // NOI18N
         TNoRwCari.setPreferredSize(new java.awt.Dimension(120, 23));
         TNoRwCari.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -6871,7 +7470,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             }
         });
 
-        BtnCopirawat.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy.png"))); // NOI18N
+        BtnCopirawat.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy_hitam.png"))); // NOI18N
         BtnCopirawat.setMnemonic('6');
         BtnCopirawat.setToolTipText("Salin No. Rawat");
         BtnCopirawat.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -6893,9 +7492,6 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         jLabel5.setText("No. Reg. :");
         jLabel5.setName("jLabel5"); // NOI18N
         jLabel5.setPreferredSize(new java.awt.Dimension(70, 23));
-
-        TNoReg.setEditable(false);
-        TNoReg.setHighlighter(null);
         TNoReg.setName("TNoReg"); // NOI18N
         TNoReg.setPreferredSize(new java.awt.Dimension(50, 23));
         TNoReg.addKeyListener(new java.awt.event.KeyAdapter() {
@@ -6907,13 +7503,10 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         jLabel7.setText("No.R.M. :");
         jLabel7.setName("jLabel7"); // NOI18N
         jLabel7.setPreferredSize(new java.awt.Dimension(65, 23));
-
-        TNoRMCari.setEditable(false);
-        TNoRMCari.setHighlighter(null);
         TNoRMCari.setName("TNoRMCari"); // NOI18N
         TNoRMCari.setPreferredSize(new java.awt.Dimension(60, 23));
 
-        BtnCopiRM.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy.png"))); // NOI18N
+        BtnCopiRM.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy_hitam.png"))); // NOI18N
         BtnCopiRM.setMnemonic('6');
         BtnCopiRM.setToolTipText("Salin No. RM");
         BtnCopiRM.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -6935,22 +7528,16 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         jLabel8.setText("Nama Pasien :");
         jLabel8.setName("jLabel8"); // NOI18N
         jLabel8.setPreferredSize(new java.awt.Dimension(85, 23));
-
-        TPasienCari.setEditable(false);
-        TPasienCari.setHighlighter(null);
         TPasienCari.setName("TPasienCari"); // NOI18N
         TPasienCari.setPreferredSize(new java.awt.Dimension(250, 23));
 
         NoSEP.setText("No. SEP :");
         NoSEP.setName("NoSEP"); // NOI18N
         NoSEP.setPreferredSize(new java.awt.Dimension(50, 23));
-
-        TSEPCari.setEditable(false);
-        TSEPCari.setHighlighter(null);
         TSEPCari.setName("TSEPCari"); // NOI18N
         TSEPCari.setPreferredSize(new java.awt.Dimension(140, 23));
 
-        BtnCopiSEP.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy.png"))); // NOI18N
+        BtnCopiSEP.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy_hitam.png"))); // NOI18N
         BtnCopiSEP.setMnemonic('6');
         BtnCopiSEP.setToolTipText("Salin  No. SEP");
         BtnCopiSEP.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -7100,9 +7687,6 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
                 BtnRencanaKontrolAntarPoliKeyPressed(evt);
             }
         });
-
-        RujukanTerbaru.setEditable(false);
-        RujukanTerbaru.setHighlighter(null);
         RujukanTerbaru.setName("RujukanTerbaru"); // NOI18N
         RujukanTerbaru.setPreferredSize(new java.awt.Dimension(140, 23));
 
@@ -7113,9 +7697,6 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         NoSEP2.setText("Expire :");
         NoSEP2.setName("NoSEP2"); // NOI18N
         NoSEP2.setPreferredSize(new java.awt.Dimension(50, 23));
-
-        RujukanExpire.setEditable(false);
-        RujukanExpire.setHighlighter(null);
         RujukanExpire.setName("RujukanExpire"); // NOI18N
         RujukanExpire.setPreferredSize(new java.awt.Dimension(140, 23));
 
@@ -7137,9 +7718,6 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
                 BtnRiwayatSKDPKeyPressed(evt);
             }
         });
-
-        NoKartu.setEditable(false);
-        NoKartu.setHighlighter(null);
         NoKartu.setName("NoKartu"); // NOI18N
         NoKartu.setPreferredSize(new java.awt.Dimension(140, 23));
 
@@ -7185,9 +7763,9 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             }
         });
 
-        BtnCopiRM1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy.png"))); // NOI18N
+        BtnCopiRM1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy_hitam.png"))); // NOI18N
         BtnCopiRM1.setMnemonic('6');
-        BtnCopiRM1.setToolTipText("Salin No. RM");
+        BtnCopiRM1.setToolTipText("Salin Nama Pasien");
         BtnCopiRM1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         BtnCopiRM1.setIconTextGap(0);
         BtnCopiRM1.setName("BtnCopiRM1"); // NOI18N
@@ -7223,121 +7801,227 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             }
         });
 
+        // === RSAJ HEADER IDENTITAS PASIEN V5 - ICON 24PX + HEADER RAPI ===
+        LblIconNoRawat.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconNoRawat.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/no_rawat.png"))); // NOI18N
+        LblIconNoRawat.setName("LblIconNoRawat"); // NOI18N
+        LblIconNoRawat.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblIconNoReg.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconNoReg.setIcon(IKON_CATEGORY_KASIR); // NOI18N
+        LblIconNoReg.setName("LblIconNoReg"); // NOI18N
+        LblIconNoReg.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblIconNamaPasien.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconNamaPasien.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/nama_pasien.png"))); // NOI18N
+        LblIconNamaPasien.setName("LblIconNamaPasien"); // NOI18N
+        LblIconNamaPasien.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblIconNoRM.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconNoRM.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/no_rm.png"))); // NOI18N
+        LblIconNoRM.setName("LblIconNoRM"); // NOI18N
+        LblIconNoRM.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblIconSEP.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconSEP.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/no_sep.png"))); // NOI18N
+        LblIconSEP.setName("LblIconSEP"); // NOI18N
+        LblIconSEP.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblIconRujukanTerbaru.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconRujukanTerbaru.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/rujukan_terbaru.png"))); // NOI18N
+        LblIconRujukanTerbaru.setName("LblIconRujukanTerbaru"); // NOI18N
+        LblIconRujukanTerbaru.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblIconRujukanExpire.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconRujukanExpire.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/expire.png"))); // NOI18N
+        LblIconRujukanExpire.setName("LblIconRujukanExpire"); // NOI18N
+        LblIconRujukanExpire.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblIconNoKartu.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconNoKartu.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/invoice (2).png"))); // NOI18N
+        LblIconNoKartu.setName("LblIconNoKartu"); // NOI18N
+        LblIconNoKartu.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblIconAntrianFarmasi.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        LblIconAntrianFarmasi.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/antrian_obat.png"))); // NOI18N
+        LblIconAntrianFarmasi.setName("LblIconAntrianFarmasi"); // NOI18N
+        LblIconAntrianFarmasi.setPreferredSize(new java.awt.Dimension(26, 44));
+
+        LblAntrianFarmasi.setText("No. Antrian Obat");
+        LblAntrianFarmasi.setName("LblAntrianFarmasi"); // NOI18N
+
+        TAntrianFarmasi.setName("TAntrianFarmasi"); // NOI18N
+        TAntrianFarmasi.setPreferredSize(new java.awt.Dimension(90, 23));
+
         javax.swing.GroupLayout panelGlass9Layout = new javax.swing.GroupLayout(panelGlass9);
         panelGlass9.setLayout(panelGlass9Layout);
         panelGlass9Layout.setHorizontalGroup(
-            panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+            panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panelGlass9Layout.createSequentialGroup()
-                .addGap(5, 5, 5)
-                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGap(8, 8, 8)
+                .addComponent(LblIconNoRawat, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, 122, Short.MAX_VALUE)
                     .addGroup(panelGlass9Layout.createSequentialGroup()
-                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(TNoRwCari, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(BtnCopirawat, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(TNoReg, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(TNoRMCari, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(BtnCopiRM, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(TPasienCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(NoSEP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(TSEPCari, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(BtnCopiRM1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(NoSEP1, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(RujukanTerbaru, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(NoSEP2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(RujukanExpire, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(TNoRwCari, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(4, 4, 4)
+                        .addComponent(BtnCopirawat, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(7, 7, 7)
+                .addComponent(LblIconNoReg, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, 52, Short.MAX_VALUE)
+                    .addComponent(TNoReg, javax.swing.GroupLayout.DEFAULT_SIZE, 52, Short.MAX_VALUE))
+                .addGap(7, 7, 7)
+                .addComponent(LblIconNamaPasien, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, 182, Short.MAX_VALUE)
                     .addGroup(panelGlass9Layout.createSequentialGroup()
-                        .addComponent(BtnResumeRJ, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(BtnBilling, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnHasilUroflowmetri, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnPanggilPasien, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnPanggilUlang, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnHasilUroflowmetri2, javax.swing.GroupLayout.PREFERRED_SIZE, 116, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnRencanaKontrol, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnRencanaKontrolAntarPoli, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnRiwayatSKDP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnRiwayatSKDPVCLAIM, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(BtnRiwayatPasien, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(436, 436, 436)
-                .addComponent(NoSEP3, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(TPasienCari, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(4, 4, 4)
+                        .addComponent(BtnCopiRM1, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(7, 7, 7)
+                .addComponent(LblIconNoRM, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, 76, Short.MAX_VALUE)
+                    .addGroup(panelGlass9Layout.createSequentialGroup()
+                        .addComponent(TNoRMCari, javax.swing.GroupLayout.PREFERRED_SIZE, 54, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(4, 4, 4)
+                        .addComponent(BtnCopiRM, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(7, 7, 7)
+                .addComponent(LblIconSEP, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(NoSEP, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                    .addGroup(panelGlass9Layout.createSequentialGroup()
+                        .addComponent(TSEPCari, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(4, 4, 4)
+                        .addComponent(BtnCopiSEP, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(7, 7, 7)
+                .addComponent(LblIconRujukanTerbaru, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(NoSEP1, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE)
+                    .addComponent(RujukanTerbaru, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE))
+                .addGap(7, 7, 7)
+                .addComponent(LblIconRujukanExpire, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(NoSEP2, javax.swing.GroupLayout.DEFAULT_SIZE, 104, Short.MAX_VALUE)
+                    .addComponent(RujukanExpire, javax.swing.GroupLayout.DEFAULT_SIZE, 104, Short.MAX_VALUE))
+                .addGap(7, 7, 7)
+                .addComponent(LblIconNoKartu, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(NoSEP3, javax.swing.GroupLayout.DEFAULT_SIZE, 112, Short.MAX_VALUE)
+                    .addComponent(NoKartu, javax.swing.GroupLayout.DEFAULT_SIZE, 112, Short.MAX_VALUE))
+                .addGap(7, 7, 7)
+                .addComponent(LblIconAntrianFarmasi, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(LblAntrianFarmasi, javax.swing.GroupLayout.DEFAULT_SIZE, 96, Short.MAX_VALUE)
+                    .addComponent(TAntrianFarmasi, javax.swing.GroupLayout.DEFAULT_SIZE, 96, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(panelGlass9Layout.createSequentialGroup()
+                .addGap(8, 8, 8)
+                .addComponent(BtnResumeRJ, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(NoKartu, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(52, 52, 52)
-                .addComponent(BtnCopiSEP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(BtnBilling, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnHasilUroflowmetri, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnPanggilPasien, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnPanggilUlang, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnHasilUroflowmetri2, javax.swing.GroupLayout.PREFERRED_SIZE, 116, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnRencanaKontrol, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnRencanaKontrolAntarPoli, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnRiwayatSKDP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnRiwayatSKDPVCLAIM, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnRiwayatPasien, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         panelGlass9Layout.setVerticalGroup(
             panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panelGlass9Layout.createSequentialGroup()
-                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGap(4, 4, 4)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(LblIconNoRawat, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(panelGlass9Layout.createSequentialGroup()
-                        .addGap(6, 6, 6)
+                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
                         .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                            .addComponent(TSEPCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(NoSEP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(TPasienCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnCopiRM, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(TNoRMCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(TNoReg, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnCopirawat, javax.swing.GroupLayout.PREFERRED_SIZE, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(TNoRwCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(RujukanTerbaru, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(NoSEP1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(NoKartu, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(NoSEP3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(RujukanExpire, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(NoSEP2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnCopiRM1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(10, 10, 10)
+                            .addComponent(TNoRwCari, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(BtnCopirawat, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addComponent(LblIconNoReg, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(panelGlass9Layout.createSequentialGroup()
+                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
+                        .addComponent(TNoReg, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(LblIconNamaPasien, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(panelGlass9Layout.createSequentialGroup()
+                        .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
                         .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                            .addComponent(BtnPanggilPasien, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnResumeRJ, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnBilling, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnRencanaKontrol, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnHasilUroflowmetri, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnHasilUroflowmetri2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnRencanaKontrolAntarPoli, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnRiwayatSKDP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnRiwayatSKDPVCLAIM, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnRiwayatPasien, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(BtnPanggilUlang, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(TPasienCari, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(BtnCopiRM1, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addComponent(LblIconNoRM, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(panelGlass9Layout.createSequentialGroup()
-                        .addGap(6, 6, 6)
-                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
+                        .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                            .addComponent(TNoRMCari, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(BtnCopiRM, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addComponent(LblIconSEP, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(panelGlass9Layout.createSequentialGroup()
-                        .addGap(10, 10, 10)
-                        .addComponent(BtnCopiSEP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(11, Short.MAX_VALUE))
+                        .addComponent(NoSEP, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
+                        .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                            .addComponent(TSEPCari, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(BtnCopiSEP, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addComponent(LblIconRujukanTerbaru, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(panelGlass9Layout.createSequentialGroup()
+                        .addComponent(NoSEP1, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
+                        .addComponent(RujukanTerbaru, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(LblIconRujukanExpire, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(panelGlass9Layout.createSequentialGroup()
+                        .addComponent(NoSEP2, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
+                        .addComponent(RujukanExpire, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(LblIconNoKartu, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(panelGlass9Layout.createSequentialGroup()
+                        .addComponent(NoSEP3, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
+                        .addComponent(NoKartu, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(LblIconAntrianFarmasi, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(panelGlass9Layout.createSequentialGroup()
+                        .addComponent(LblAntrianFarmasi, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(2, 2, 2)
+                        .addComponent(TAntrianFarmasi, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(5, 5, 5)
+                .addGroup(panelGlass9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(BtnResumeRJ, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnBilling, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnHasilUroflowmetri, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnPanggilPasien, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnPanggilUlang, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnHasilUroflowmetri2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnRencanaKontrol, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnRencanaKontrolAntarPoli, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnRiwayatSKDP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnRiwayatSKDPVCLAIM, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnRiwayatPasien, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(5, Short.MAX_VALUE))
         );
 
         internalFrame1.add(panelGlass9, java.awt.BorderLayout.PAGE_START);
@@ -16279,8 +16963,8 @@ if(tabModekasir.getRowCount()==0){
     }//GEN-LAST:event_MnPermintaanEchoActionPerformed
 
     private void BtnCopiRM1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnCopiRM1ActionPerformed
-    String a=TSEPCari.getText();
-         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+        String a=TPasienCari.getText();
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
                         new StringSelection(a), null);
     }//GEN-LAST:event_BtnCopiRM1ActionPerformed
 
@@ -16827,26 +17511,26 @@ private void MnFormulirKFRActionPerformed(java.awt.event.ActionEvent evt) {//GEN
     private javax.swing.JMenuItem MnUrutStatusDesc2;
     private javax.swing.JMenuItem MnUrutTanggalAsc2;
     private javax.swing.JMenuItem MnUrutTanggalDesc2;
-    private widget.TextBox NoKartu;
+    private widget.Label NoKartu;
     private widget.Label NoSEP;
     private widget.Label NoSEP1;
     private widget.Label NoSEP2;
     private widget.Label NoSEP3;
     private widget.TextBox NomorSurat;
-    private widget.TextBox RujukanExpire;
-    private widget.TextBox RujukanTerbaru;
+    private widget.Label RujukanExpire;
+    private widget.Label RujukanTerbaru;
     private widget.ScrollPane Scroll1;
     private widget.ScrollPane Scroll2;
     private widget.ScrollPane Scroll3;
     private widget.TextBox TCari;
     private widget.TextBox TDokter;
     private widget.TextBox TKdPny;
-    private widget.TextBox TNoRMCari;
-    private widget.TextBox TNoReg;
+    private widget.Label TNoRMCari;
+    private widget.Label TNoReg;
     private widget.TextBox TNoRw;
-    private widget.TextBox TNoRwCari;
-    private widget.TextBox TPasienCari;
-    private widget.TextBox TSEPCari;
+    private widget.Label TNoRwCari;
+    private widget.Label TPasienCari;
+    private widget.Label TSEPCari;
     private javax.swing.JTabbedPane TabRawat;
     private widget.TextBox Tanggal;
     private widget.Tanggal TglSakit1;
@@ -16910,6 +17594,17 @@ private void MnFormulirKFRActionPerformed(java.awt.event.ActionEvent evt) {//GEN
     private widget.panelisi panelGlass6;
     private widget.panelisi panelGlass7;
     private widget.panelisi panelGlass8;
+    private widget.Label LblAntrianFarmasi;
+    private widget.Label LblIconAntrianFarmasi;
+    private widget.Label LblIconNoReg;
+    private widget.Label LblIconRujukanTerbaru;
+    private widget.Label LblIconRujukanExpire;
+    private widget.Label LblIconNoKartu;
+    private widget.Label LblIconNamaPasien;
+    private widget.Label LblIconNoRM;
+    private widget.Label LblIconNoRawat;
+    private widget.Label LblIconSEP;
+    private widget.Label TAntrianFarmasi;
     private widget.panelisi panelGlass9;
     private javax.swing.JMenuItem ppAsuhanGizi;
     private javax.swing.JMenuItem ppBerkasDigital;
@@ -17510,23 +18205,30 @@ private void tampilkasir() {
     }
 
     private void getDatakasir() {
+        // Reset lebih dulu agar status/copy dari pasien sebelumnya tidak terbawa.
         TSEPCari.setText("");
         RujukanTerbaru.setText("");
         RujukanExpire.setText("");
         NoKartu.setText("");
-        if(tbKasirRalan.getSelectedRow()!= -1){
-            TNoRw.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString());
-            Tanggal.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),12).toString());
-            Jam.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),13).toString());
-            TNoRwCari.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString());
-            TNoReg.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),14).toString());
-            TNoRMCari.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString());
-            TPasienCari.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),3).toString());
-            TSEPCari.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),20).toString());         
-            RujukanTerbaru.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),26).toString());
-            RujukanExpire.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),27).toString());
-            NoKartu.setText(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),28).toString());
+        BtnCopiSEP.setVisible(false);
+
+        int baris = tbKasirRalan.getSelectedRow();
+        if(baris != -1){
+            TNoRw.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,11));
+            Tanggal.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,12));
+            Jam.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,13));
+            TNoRwCari.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,11));
+            TNoReg.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,14));
+            TNoRMCari.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,2));
+            TPasienCari.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,3));
+            // Kolom 20 dapat benar-benar NULL ketika bridging_sep belum ada.
+            // Jangan pernah memanggil toString() langsung pada nilai ini.
+            TSEPCari.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,20));
+            RujukanTerbaru.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,26));
+            RujukanExpire.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,27));
+            NoKartu.setText(nilaiTabelHeaderRSAJ(tbKasirRalan,baris,28));
         }
+        refreshHeaderKasirRalanRSAJ();
     }
 
     public JTextField getTextField(){
@@ -18245,21 +18947,31 @@ private void tampilkasir() {
     }
     
     private void getDatakasir2() {
+        TSEPCari.setText("");
+        RujukanTerbaru.setText("-");
+        RujukanExpire.setText("-");
+        NoKartu.setText("-");
         if(tbKasirRalan2.getSelectedRow()!= -1){
             TNoRwCari.setText(tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),11).toString());
             TNoReg.setText("-");
             TNoRMCari.setText(tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),2).toString());
             TPasienCari.setText(tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),3).toString());
         }
+        refreshHeaderKasirRalanRSAJ();
     }
     
     private void getDatakasir3() {
+        TSEPCari.setText("");
+        RujukanTerbaru.setText("-");
+        RujukanExpire.setText("-");
+        NoKartu.setText("-");
         if(tbKasirRalan3.getSelectedRow()!= -1){
             TNoRwCari.setText(tbKasirRalan3.getValueAt(tbKasirRalan3.getSelectedRow(),11).toString());
             TNoReg.setText("-");
             TNoRMCari.setText(tbKasirRalan3.getValueAt(tbKasirRalan3.getSelectedRow(),2).toString());
             TPasienCari.setText(tbKasirRalan3.getValueAt(tbKasirRalan3.getSelectedRow(),3).toString());
         }
+        refreshHeaderKasirRalanRSAJ();
     }
      
     public void setCariKosong() {

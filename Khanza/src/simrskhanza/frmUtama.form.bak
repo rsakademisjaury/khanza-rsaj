@@ -10603,6 +10603,7 @@
                   <Image iconType="3" name="/picture/Wallpaper rs.png"/>
                 </Property>
                 <Property name="backgroundImageType" type="int" value="9"/>
+                <Property name="opaqueGradient" type="boolean" value="false"/>
                 <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
                   <Border info="org.netbeans.modules.form.compat2.border.EmptyBorderInfo">
                     <EmptyBorder bottom="0" left="0" right="0" top="20"/>

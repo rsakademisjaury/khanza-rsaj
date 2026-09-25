@@ -797,35 +797,35 @@ public final class SatuSehatRujukanIGD extends javax.swing.JDialog {
     }
 
     private void bukaFormRujukanMasuk() {
-        try {
-            java.awt.Window w = javax.swing.SwingUtilities.getWindowAncestor(this);
-            java.awt.Frame parent = (w instanceof java.awt.Frame) ? (java.awt.Frame) w : null;
-            SatuSehatRujukanMasuk dlg = new SatuSehatRujukanMasuk(parent, false);
-
-            java.awt.Rectangle area;
-            try {
-                java.awt.GraphicsConfiguration gc = getGraphicsConfiguration();
-                area = gc != null ? gc.getBounds() : java.awt.GraphicsEnvironment
-                        .getLocalGraphicsEnvironment().getMaximumWindowBounds();
-                java.awt.Insets insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(gc);
-                area = new java.awt.Rectangle(
-                        area.x + insets.left,
-                        area.y + insets.top,
-                        area.width - insets.left - insets.right,
-                        area.height - insets.top - insets.bottom);
-            } catch (Exception e) {
-                area = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-            }
-            dlg.setBounds(area);
-            dlg.setSize(frameMain.getWidth()-20,frameMain.getHeight()-20);
-            dlg.setLocationRelativeTo(frameMain);
-            dlg.setVisible(true);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                    "Gagal membuka Form Rujukan Masuk SATUSEHAT:\n" + ex.getMessage(),
-                    "Rujukan Masuk", JOptionPane.ERROR_MESSAGE);
-        }
+//        try {
+//            java.awt.Window w = javax.swing.SwingUtilities.getWindowAncestor(this);
+//            java.awt.Frame parent = (w instanceof java.awt.Frame) ? (java.awt.Frame) w : null;
+////            SatuSehatRujukanMasuk dlg = new SatuSehatRujukanMasuk(parent, false);
+//
+//            java.awt.Rectangle area;
+//            try {
+//                java.awt.GraphicsConfiguration gc = getGraphicsConfiguration();
+//                area = gc != null ? gc.getBounds() : java.awt.GraphicsEnvironment
+//                        .getLocalGraphicsEnvironment().getMaximumWindowBounds();
+//                java.awt.Insets insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(gc);
+//                area = new java.awt.Rectangle(
+//                        area.x + insets.left,
+//                        area.y + insets.top,
+//                        area.width - insets.left - insets.right,
+//                        area.height - insets.top - insets.bottom);
+//            } catch (Exception e) {
+//                area = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+//            }
+//            dlg.setBounds(area);
+//            dlg.setSize(frameMain.getWidth()-20,frameMain.getHeight()-20);
+//            dlg.setLocationRelativeTo(frameMain);
+//            dlg.setVisible(true);
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//            JOptionPane.showMessageDialog(this,
+//                    "Gagal membuka Form Rujukan Masuk SATUSEHAT:\n" + ex.getMessage(),
+//                    "Rujukan Masuk", JOptionPane.ERROR_MESSAGE);
+//        }
     }
 
     private void setupComboDefaultIGD() {

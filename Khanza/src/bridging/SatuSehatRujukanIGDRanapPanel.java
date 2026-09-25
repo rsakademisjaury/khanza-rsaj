@@ -56,7 +56,6 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
     private final Map<String,String> criteriaGroupId = new LinkedHashMap<String,String>();
     private final Map<String,String> criteriaGroupText = new LinkedHashMap<String,String>();
     private final JButton[] stages = new JButton[4];
-    private final JToggleButton[] navigation = new JToggleButton[3];
     private final List<JButton> copies = new ArrayList<JButton>();
     private final JLabel name = label("Pilih kunjungan pasien",STRONG,INK);
     private final JLabel rm = label("No. RM  -",BODY,MUTED), rawat = label("No. Rawat  -",BODY,MUTED);
@@ -91,7 +90,6 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
     private final JPanel pages = new JPanel(new CardLayout());
     private final JPanel stageStrip = new JPanel(new GridLayout(1,4,8,0));
     private final JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT,6,0));
-    private final DefaultTableModel history = model(new String[]{"Jenis","Versi","Penyimpanan terakhir","Operator"});
     private final DefaultTableModel criteriaModel = new DefaultTableModel(new String[]{"linkId","Pertanyaan kriteria","Tipe","Jawaban"},0){
         @Override public boolean isCellEditable(int r,int c){return c==3;}
     };
@@ -103,11 +101,7 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
         @Override public boolean isCellEditable(int r,int c){return c==0 && "accepted".equalsIgnoreCase(String.valueOf(getValueAt(r,5)));}
         @Override public Class<?> getColumnClass(int c){return c==0?Boolean.class:String.class;}
     };
-    private final DefaultTableModel incomingModel = model(new String[]{"Task ID","Pasien","Fasyankes perujuk","Status","Keputusan"});
-    private final PlaceholderTextField incomingSearchField = new PlaceholderTextField("Cari nama rs disini");
-    private javax.swing.table.TableRowSorter<DefaultTableModel> incomingSorter;
-    private boolean incomingColumnFitPending;
-    private JTable criteriaTable, candidateTable, approvalTable, incomingTable;
+    private JTable criteriaTable, candidateTable, approvalTable;
     private JPanel criteriaCard, candidateCard;
     private JScrollPane criteriaScrollPane, candidateScrollPane;
     private final JLabel finalStatusLabel = label("Belum difinalisasi.", SMALL, MUTED);
@@ -144,7 +138,6 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
         this.repository = repository; this.preview = preview;
         this.apiClient = preview ? null : new SatuSehatRujukanIGDRanapApi();
         setLayout(new BorderLayout()); setBackground(BG); setFont(BODY);
-        add(topNavigation(),BorderLayout.NORTH);
         JPanel main = new JPanel(new BorderLayout(0,12)); main.setBackground(BG);
         main.setBorder(BorderFactory.createEmptyBorder(16,22,14,22));
         JPanel overview = new JPanel(new BorderLayout(0,10)); overview.setOpaque(false);
@@ -154,7 +147,6 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
         buildStages(); center.add(stageStrip,BorderLayout.NORTH); pages.setOpaque(false);
         pages.add(scroll(clinical()),"stage0"); pages.add(scroll(candidates()),"stage1");
         pages.add(scroll(approvals()),"stage2"); pages.add(scroll(finalPage()),"stage3");
-        pages.add(scroll(incoming()),"incoming"); pages.add(scroll(historyPage()),"history");
         center.add(pages,BorderLayout.CENTER); main.add(center,BorderLayout.CENTER); main.add(footer(),BorderLayout.SOUTH);
         add(main,BorderLayout.CENTER);
         DocumentListener changes = listener(() -> { if (!restoring && !busy && draft != null && !preview) { dirty = true; refreshStatus(); } });
@@ -180,22 +172,6 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
         toastPanel.setBackground(new Color(236,248,242)); toastPanel.setBorder(BorderFactory.createEmptyBorder(7,12,7,8));
         toastPanel.add(toastText,BorderLayout.CENTER); toastTimer.setRepeats(false);
         toastPanel.setVisible(false);
-    }
-    private JPanel topNavigation() {
-        JPanel top = new JPanel(new BorderLayout()); top.setBackground(Color.WHITE); top.setName("navigasi_atas");
-        top.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,LINE),BorderFactory.createEmptyBorder(0,22,0,22)));
-        JPanel tabs = flow(); ButtonGroup group = new ButtonGroup();
-        String[] names = {"Rujukan Keluar","Rujukan Masuk","Riwayat Draf"}, icons = {"send","inbox","history"};
-        for (int i=0;i<3;i++) {
-            final int n=i; JToggleButton b=new JToggleButton(names[i]); styleToggle(b,true);
-            b.setIcon(new LineIcon(icons[i],BLUE,19)); b.setIconTextGap(9);
-            b.setBorder(BorderFactory.createEmptyBorder(16,18,16,18));
-            b.addActionListener(e -> showPage(n)); group.add(b); navigation[i]=b; tabs.add(b);
-        }
-        top.add(tabs,BorderLayout.WEST);
-        JPanel status=new JPanel(new FlowLayout(FlowLayout.RIGHT,0,11)); status.setOpaque(false);
-        status.add(pill(preview?"PRATINJAU / DATA FIKTIF":"TAHAP II / API RUJUKAN",new Color(236,248,242),GREEN));
-        top.add(status,BorderLayout.EAST); return top;
     }
     private JPanel identity() {
         JPanel area=new JPanel(new BorderLayout(14,0)); area.setOpaque(false); area.setName("baris_judul_pasien");
@@ -688,65 +664,6 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
         return p;
     }
 
-    private JPanel incoming() {
-        Vertical p=new Vertical(); JPanel c=card(null,null);
-        JPanel header=new JPanel(new BorderLayout(12,0));header.setOpaque(false);header.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
-        header.add(label("Rujukan Masuk",STRONG,INK),BorderLayout.WEST);
-        styleInput(incomingSearchField);incomingSearchField.setName("cari_rs_rujukan_masuk");
-        incomingSearchField.setToolTipText("Ketik nama RS pada kolom Fasyankes perujuk untuk memfilter langsung.");
-        incomingSearchField.getAccessibleContext().setAccessibleName("Cari nama RS perujuk");
-        InputFrame searchFrame=new InputFrame(incomingSearchField);searchFrame.add(incomingSearchField,BorderLayout.CENTER);
-        searchFrame.setPreferredSize(new Dimension(320,34));searchFrame.setMinimumSize(new Dimension(240,34));
-        header.add(searchFrame,BorderLayout.EAST);c.add(header);c.add(Box.createVerticalStrut(7));
-        JTextArea sub=readOnly(2);sub.setText("Daftar Task referral-approval-request untuk RS ini. Pilih baris lalu Lihat Detail untuk membaca CarePlan, data pasien/Encounter/Condition, RS dan dokter perujuk, serta ServiceRequest final bila sudah dikirim.");c.add(sub);c.add(Box.createVerticalStrut(7));
-        incomingTable=workflowTable(incomingModel);incomingTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);incomingTable.setName("tabel_rujukan_Masuk");
-        incomingSorter=new javax.swing.table.TableRowSorter<DefaultTableModel>(incomingModel);incomingTable.setRowSorter(incomingSorter);
-        incomingSearchField.getDocument().addDocumentListener(listener(() -> applyIncomingFilter()));
-        incomingModel.addTableModelListener(e -> scheduleIncomingColumnFit());
-        incomingSorter.addRowSorterListener(e -> scheduleIncomingColumnFit());
-        incomingTable.addMouseListener(new java.awt.event.MouseAdapter(){@Override public void mouseClicked(java.awt.event.MouseEvent e){if(e.getClickCount()==2&&incomingTable.getSelectedRow()>=0)doIncomingDetail();}});
-        JScrollPane sp=scroll(incomingTable);sp.setPreferredSize(new Dimension(900,280));c.add(sp);c.add(Box.createVerticalStrut(12));
-        JPanel actions=flow();JButton detail=button("Lihat Detail Rujukan",Color.WHITE,BLUE);JButton accept=button("Terima",BLUE,Color.WHITE);JButton reject=button("Tolak",Color.WHITE,AMBER);
-        detail.setIcon(new LineIcon("eye",BLUE,15));detail.addActionListener(e -> doIncomingDetail());
-        accept.addActionListener(e -> doIncomingResponse(true));reject.addActionListener(e -> doIncomingResponse(false));actions.add(detail);actions.add(Box.createHorizontalStrut(8));actions.add(accept);actions.add(Box.createHorizontalStrut(8));actions.add(reject);c.add(actions);
-        c.add(Box.createVerticalStrut(10));c.add(note("Detail mengikuti referensi FHIR resmi dari Task.basedOn (CarePlan), Patient, Encounter, Condition, Practitioner/Organization dan ServiceRequest. Bila ServiceRequest belum ditemukan setelah Task diterima, muat ulang setelah RS perujuk melakukan finalisasi.",LIGHT,BLUE));
-        scheduleIncomingColumnFit();
-        p.add(c); return p;
-    }
-    private void applyIncomingFilter(){
-        if(incomingSorter==null)return;
-        final String needle=incomingSearchField.getText().trim().toLowerCase(java.util.Locale.ENGLISH);
-        if(needle.isEmpty())incomingSorter.setRowFilter(null);
-        else incomingSorter.setRowFilter(new javax.swing.RowFilter<DefaultTableModel,Integer>(){
-            @Override public boolean include(javax.swing.RowFilter.Entry<? extends DefaultTableModel,? extends Integer> entry){
-                // Pencarian teks biasa pada fasyankes perujuk; karakter seperti ( atau [ bukan regex.
-                return str(entry.getValue(2)).toLowerCase(java.util.Locale.ENGLISH).contains(needle);
-            }
-        });
-        scheduleIncomingColumnFit();
-    }
-    private void scheduleIncomingColumnFit(){
-        if(incomingTable==null||incomingColumnFitPending)return;
-        // Gabungkan event pengisian Bundle agar pengukuran dilakukan setelah sorter selesai diperbarui.
-        incomingColumnFitPending=true;
-        SwingUtilities.invokeLater(new Runnable(){@Override public void run(){
-            incomingColumnFitPending=false;
-            fitTableColumns(incomingTable,18,0);
-            for(int i=0;i<incomingTable.getColumnCount();i++){
-                javax.swing.table.TableColumn column=incomingTable.getColumnModel().getColumn(i);
-                column.setWidth(column.getPreferredWidth());
-            }
-            incomingTable.revalidate();incomingTable.repaint();
-        }});
-    }
-    private JPanel historyPage() {
-        Vertical p=new Vertical(); JPanel c=card("Riwayat draf kunjungan ini","Versi terakhir yang tersimpan untuk setiap jenis rujukan.");
-        JTable t=new JTable(history); t.setFont(BODY); t.setRowHeight(36); t.setGridColor(LINE); t.setShowVerticalLines(false);
-        t.setFillsViewportHeight(true); t.setSelectionBackground(LIGHT); t.getTableHeader().setFont(SMALL); t.setAutoCreateRowSorter(true);
-        JScrollPane s=scroll(t); s.setPreferredSize(new Dimension(600,180)); c.add(s); c.add(Box.createVerticalStrut(14));
-        c.add(note("Riwayat ini hanya draf lokal, belum merupakan audit pengiriman atau respons API.",LIGHT,BLUE)); p.add(c); return p;
-    }
     private JPanel footer() {
         JPanel p=new JPanel(new BorderLayout(12,0));p.setName("tombol_bawah");p.setOpaque(false);
         p.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1,0,0,0,LINE),BorderFactory.createEmptyBorder(10,0,0,0)));
@@ -768,7 +685,6 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
     private void refresh() {
         SatuSehatRujukanIGDRanapDraft.Jenis shownKind=visit==null&&requestedJenis!=null?requestedJenis:jenis;
         badge.setText(shownKind.label);badge.setVisible(visit!=null||requestedJenis!=null);
-        for(int i=0;i<3;i++){navigation[i].setSelected(i==selectedPage);navigation[i].setBackground(i==selectedPage?LIGHT:Color.WHITE);}
         for(int i=0;i<4;i++){stages[i].setForeground(i==selectedStage?BLUE:MUTED);stages[i].setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,3,0,i==selectedStage?BLUE:LINE),BorderFactory.createEmptyBorder(8,4,12,4)));}
         boolean igd=jenis==SatuSehatRujukanIGDRanapDraft.Jenis.IGD;doctorLabel.setText(igd?"Dokter pengirim":"DPJP pengirim (verifikasi)");
         clinicalTitle.setText(igd?"Konfirmasi kegawatdaruratan":"Kebutuhan rawat inap");clinicalHelp.setText(igd?"Penilaian kegawatdaruratan ditetapkan dokter.":"Tinjau jenis perawatan dan kemampuan RS tujuan.");emergency.setVisible(igd);
@@ -786,16 +702,11 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
             });
             leftActions.add(footerAction(action));
         }
-        else if(selectedPage==1){
-            JButton b=button("Perbarui rujukan Masuk",BLUE,Color.WHITE);b.setEnabled(!busy&&!preview);b.addActionListener(e -> doLoadIncoming());leftActions.add(footerAction(b));
-        }
-        else{JButton b=button("Muat riwayat",BLUE,Color.WHITE);b.setEnabled(visit!=null&&!busy&&!preview);b.addActionListener(e -> loadHistory());leftActions.add(footerAction(b));}
         leftActions.add(exit);
         refreshStatus();revalidate();repaint();
     }
     private void setEditing(boolean enabled) {
         for(JTextComponent f:fields.values())f.setEnabled(enabled);emergency.setEnabled(enabled);transportCombo.setEnabled(enabled);
-        incomingSearchField.setEnabled(!busy);
         if(criteriaTable!=null)criteriaTable.setEnabled(enabled);if(candidateTable!=null)candidateTable.setEnabled(enabled);if(approvalTable!=null)approvalTable.setEnabled(enabled);
         clinicalDetails.setEnabled(visit!=null&&!busy);chooseDiagnosis.setEnabled(visit!=null&&!busy&&!preview);openEncounter.setEnabled(visit!=null&&!busy&&!preview);createCondition.setEnabled(visit!=null&&!busy&&!preview);findCandidate.setEnabled(visit!=null&&!busy&&!preview&&candidateModel.getRowCount()>0);candidateSearchField.setEnabled(visit!=null&&!busy&&candidateModel.getRowCount()>0);
         for(JButton b:copies)b.setEnabled(visit!=null&&!busy);refreshStatus();
@@ -845,7 +756,7 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
             String note="Sumber IHS: cache lokal, dengan fallback lookup SATUSEHAT via NIK bila cache kosong. Sumber Encounter: cache bridging lokal. Sumber nilai klinis: draf yang dimuat; prosedur awal berasal dari prosedur_pasien sesuai jenis kunjungan.\nNilai kosong berarti belum tersedia pada sumber yang dimuat, bukan hasil pemeriksaan normal atau tidak ada alergi.\nKelompok Layanan dan Clinical Speciality dicoba dipetakan dari diagnosis. Status IGD/kegawatdaruratan tetap mengikuti konteks pelayanan dan Questionnaire Q100, bukan Kelompok Layanan. Kode terminologi yang belum tervalidasi tidak dibuat-buat dan harus dipilih manual.\nTahap II mengirim workflow rujukan (Task/Bundle/ServiceRequest). Condition diagnosis dapat dicari/dibuat secara eksplisit melalui tombol; Observation/Procedure pendukung tidak dibuat otomatis.";
             if(!loaded.warnings.isEmpty())note+="\n\n"+String.join("\n",loaded.warnings);
             if(draft.version>0)note+="\n\nDraf v"+draft.version+" / "+draft.updatedAt+" / "+draft.updatedBy;
-            sources.setText(note);sources.setCaretPosition(0);dirty=false;history.setRowCount(0);
+            sources.setText(note);sources.setCaretPosition(0);dirty=false;
             // Saat form IGD dibuka, selalu mulai dari Tahap 1 (Klinis & kriteria).
             // State Task/draf lama tetap dimuat dan tidak dihapus; user masih dapat membuka tahap berikutnya lewat strip tahap.
             selectedStage=jenis==SatuSehatRujukanIGDRanapDraft.Jenis.IGD?0:
@@ -882,7 +793,7 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
     }
 
     private void restoreWorkflowState(){
-        criteriaModel.setRowCount(0);candidateModel.setRowCount(0);approvalModel.setRowCount(0);incomingModel.setRowCount(0);criteriaGroupId.clear();criteriaGroupText.clear();
+        criteriaModel.setRowCount(0);candidateModel.setRowCount(0);approvalModel.setRowCount(0);criteriaGroupId.clear();criteriaGroupText.clear();
         lastApiAction=draft.get("last_api_action");lastApiRequest=draft.get("last_api_request");lastApiResponse=draft.get("last_api_response");
         if(apiClient==null)return;
         try{populateCriteria(apiClient.parseQuestionsJson(draft.get("criteria_state_json")));}catch(Exception ex){/* state lama/kosong diabaikan */}
@@ -1537,172 +1448,8 @@ public final class SatuSehatRujukanIGDRanapPanel extends JPanel {
             }catch(Exception ex){rememberApi("Finalisasi / ServiceRequest",true);setBusy(false,"Finalisasi gagal.");failure("Finalisasi Rujukan",ex);}}
         }.execute();
     }
-    private void doLoadIncoming(){
-        if(preview||apiClient==null||busy)return;setBusy(true,"Memuat rujukan Masuk...");
-        new SwingWorker<JsonNode,Void>(){
-            @Override protected JsonNode doInBackground()throws Exception{return apiClient.cariRujukanMasuk();}
-            @Override protected void done(){try{
-                JsonNode bundle=get();rememberApi("Rujukan Masuk / Task search");boolean before=restoring;restoring=true;try{incomingModel.setRowCount(0);
-                    JsonNode entries=bundle.path("entry");if(entries.isArray())for(JsonNode e:entries){JsonNode t=e.path("resource");if(!"Task".equals(t.path("resourceType").asText()))continue;
-                        incomingModel.addRow(new Object[]{t.path("id").asText(),referenceText(t.path("for")),referenceText(t.path("requester")),t.path("status").asText(),apiClient.parseDecision(t)});}
-                }finally{restoring=before;}setBusy(false,"Rujukan Masuk: "+incomingModel.getRowCount()+" Task.");toast(incomingModel.getRowCount()+" Task rujukan Masuk dimuat.",false);
-            }catch(Exception ex){rememberApi("Rujukan Masuk / Task search",true);setBusy(false,"Rujukan Masuk gagal dimuat.");failure("Rujukan Masuk",ex);}}
-        }.execute();
-    }
-    private void doIncomingDetail(){
-        if(preview||apiClient==null||busy||incomingTable==null)return;int row=incomingTable.getSelectedRow();if(row<0){toast("Pilih satu rujukan masuk terlebih dahulu.",true);return;}
-        final int modelRow=incomingTable.convertRowIndexToModel(row);final String taskId=str(incomingModel.getValueAt(modelRow,0));if(taskId.isEmpty()){toast("Task ID tidak valid.",true);return;}
-        setBusy(true,"Memuat detail rujukan dan resource terkait...");
-        new SwingWorker<SatuSehatRujukanIGDRanapApi.IncomingReferralDetail,Void>(){
-            @Override protected SatuSehatRujukanIGDRanapApi.IncomingReferralDetail doInBackground()throws Exception{return apiClient.detailRujukanMasuk(taskId);}
-            @Override protected void done(){try{SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d=get();rememberApi("Detail Rujukan Masuk / follow references");setBusy(false,"Detail rujukan masuk dimuat.");showIncomingDetail(d);}
-                catch(Exception ex){rememberApi("Detail Rujukan Masuk / follow references",true);setBusy(false,"Detail rujukan gagal dimuat.");failure("Detail Rujukan Masuk",ex);}}
-        }.execute();
-    }
-    private void showIncomingDetail(final SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        if(d==null)return;final JDialog dialog=new JDialog(SwingUtilities.getWindowAncestor(this),"Detail Rujukan Masuk",Dialog.ModalityType.APPLICATION_MODAL);
-        JPanel root=new JPanel(new BorderLayout(0,12));root.setBackground(BG);root.setBorder(BorderFactory.createEmptyBorder(14,16,14,16));
-        JPanel head=new JPanel(new BorderLayout(12,0));head.setOpaque(false);JPanel titles=vertical();titles.add(label("Detail Rujukan Masuk",new Font("Segoe UI Semibold",Font.BOLD,21),INK));
-        String decision=apiClient==null?"":apiClient.parseDecision(d.task);String state=jsonText(d.task==null?null:d.task.path("status"),"—");
-        titles.add(Box.createVerticalStrut(3));titles.add(label("Task "+or(d.taskId,"—")+" • status "+state+(decision.isEmpty()?"":" • "+decision),SMALL,MUTED));head.add(titles,BorderLayout.WEST);
-        JLabel statusPill=pill(!d.nationalReferralNumber.isEmpty()?"RUJUKAN FINAL":!decision.isEmpty()?decision.toUpperCase():state.toUpperCase(),!d.nationalReferralNumber.isEmpty()?new Color(236,248,242):LIGHT,!d.nationalReferralNumber.isEmpty()?GREEN:BLUE);head.add(statusPill,BorderLayout.EAST);root.add(head,BorderLayout.NORTH);
-        JTabbedPane tabs=new JTabbedPane();tabs.setFont(BODY);tabs.addTab("Ringkasan",scroll(incomingSummaryPanel(d)));tabs.addTab("Data Klinis",scroll(incomingClinicalPanel(d)));tabs.addTab("CarePlan",scroll(incomingCarePlanPanel(d)));tabs.addTab("Resource FHIR",incomingResourcePanel(d));tabs.addTab("JSON",incomingJsonPanel(d));root.add(tabs,BorderLayout.CENTER);
-        JPanel bottom=new JPanel(new BorderLayout(8,0));bottom.setOpaque(false);JLabel warning=label(d.warnings.isEmpty()?"Referensi utama berhasil ditelusuri.":d.warnings.size()+" referensi memiliki catatan. Lihat tab Resource FHIR.",SMALL,d.warnings.isEmpty()?GREEN:AMBER);bottom.add(warning,BorderLayout.CENTER);
-        JPanel ba=flow();JButton reload=button("Muat Ulang",Color.WHITE,BLUE),close=button("Tutup",BLUE,Color.WHITE);reload.setIcon(new LineIcon("reload",BLUE,14));reload.addActionListener(e->{dialog.dispose();SwingUtilities.invokeLater(() -> doIncomingDetail());});close.addActionListener(e->dialog.dispose());ba.add(reload);ba.add(Box.createHorizontalStrut(6));ba.add(close);bottom.add(ba,BorderLayout.EAST);root.add(bottom,BorderLayout.SOUTH);
-        dialog.setContentPane(root);dialog.setSize(1120,760);dialog.setMinimumSize(new Dimension(900,650));dialog.setLocationRelativeTo(this);dialog.setVisible(true);
-    }
-    private JPanel incomingSummaryPanel(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        Vertical p=new Vertical();String referrer=incomingResourceName(d.referrerOrganization,referenceText(d.task==null?null:d.task.path("requester")));String patient=incomingResourceName(d.patient,referenceText(d.task==null?null:d.task.path("for")));
-        String nik=incomingIdentifier(d.patient,"nik"),gender=jsonText(d.patient==null?null:d.patient.path("gender"),"—"),birth=jsonText(d.patient==null?null:d.patient.path("birthDate"),"—");
-        JPanel r=detailCard("Identitas rujukan",new String[][]{{"Fasyankes perujuk",referrer},{"Task ID",or(d.taskId,"—")},{"Status / keputusan",jsonText(d.task==null?null:d.task.path("status"),"—")+(apiClient.parseDecision(d.task).isEmpty()?"":" / "+apiClient.parseDecision(d.task))},{"CarePlan ID",or(d.carePlanId,"—")},{"ServiceRequest ID",or(d.serviceRequestId,"Belum dikirim / belum ditemukan")},{"Nomor Rujukan Nasional",or(d.nationalReferralNumber,"Belum terbit / belum ditemukan")},{"Waktu tugas",incomingTaskTime(d.task)},{"Jenis rujukan",incomingReferralType(d)}});p.add(r);p.add(Box.createVerticalStrut(12));
-        JPanel pt=detailCard("Pasien & kunjungan asal",new String[][]{{"Nama pasien",patient},{"IHS pasien",incomingId(d.patient,"Patient")},{"NIK",or(nik,"—")},{"Jenis kelamin / tanggal lahir",gender+" / "+birth},{"Encounter",incomingId(d.encounter,"Encounter")},{"Status / kelas Encounter",incomingEncounterStatus(d.encounter)},{"Periode Encounter",incomingEncounterPeriod(d.encounter)},{"Lokasi / unit",incomingEncounterLocations(d.encounter)}});p.add(pt);return p;
-    }
-    private JPanel incomingClinicalPanel(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        Vertical p=new Vertical();StringBuilder dx=new StringBuilder();for(JsonNode c:d.conditions){String x=incomingCondition(c);if(!x.isEmpty()){if(dx.length()>0)dx.append("\n");dx.append("• ").append(x);}}if(dx.length()==0)dx.append("—");
-        String reason=incomingCarePlanReason(d.carePlan);String specialty=incomingCarePlanSpeciality(d.carePlan);String author=incomingResourceName(d.authorPractitioner,referenceDisplayText(d.carePlan==null?null:d.carePlan.path("author")));
-        String priority=jsonText(d.serviceRequest==null?null:d.serviceRequest.path("priority"),"—"),occ=jsonText(d.serviceRequest==null?null:d.serviceRequest.path("occurrenceDateTime"),"—"),instruction=jsonText(d.serviceRequest==null?null:d.serviceRequest.path("patientInstruction"),"—"),performerType=incomingCoding(d.serviceRequest==null?null:d.serviceRequest.path("performerType"));
-        p.add(detailCard("Data klinis rujukan",new String[][]{{"Diagnosis / Condition",dx.toString()},{"Alasan / kebutuhan rujukan",or(reason,"—")},{"Clinical Speciality",or(specialty,"—")},{"Dokter / author CarePlan",author},{"Jenis tenaga pelaksana",or(performerType,"—")},{"Prioritas ServiceRequest",priority},{"Waktu pelayanan / rujukan",occ},{"Instruksi pasien",instruction}}));
-        if(!d.warnings.isEmpty()){p.add(Box.createVerticalStrut(12));p.add(detailCard("Catatan penelusuran",new String[][]{{"Catatan",joinLines(d.warnings)}}));}return p;
-    }
-
-    /**
-     * Tampilan CarePlan dibuat eksplisit + fallback seluruh path FHIR. Tujuannya agar
-     * data yang sudah ada pada JSON tidak lagi hilang hanya karena dikirim pada elemen
-     * CarePlan yang berbeda oleh RME/fasyankes lain.
-     */
-    private JPanel incomingCarePlanPanel(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        Vertical p=new Vertical();final JsonNode cp=d==null?null:d.carePlan;
-        if(cp==null||cp.isMissingNode()||cp.isNull()){
-            p.add(detailCard("CarePlan",new String[][]{{"Status","CarePlan belum dapat dimuat dari Task.basedOn maupun ServiceRequest.basedOn."}}));return p;
-        }
-        String categories=incomingCodingList(cp.path("category"));
-        String period=incomingPeriod(cp.path("period"));
-        String contributor=incomingReferenceList(cp.path("contributor"));
-        String addresses=incomingReferenceList(cp.path("addresses"));
-        String supporting=incomingReferenceList(cp.path("supportingInfo"));
-        String goals=incomingReferenceList(cp.path("goal"));
-        String notes=incomingAnnotationList(cp.path("note"));
-        p.add(detailCard("Ringkasan CarePlan",new String[][]{
-            {"CarePlan ID",incomingId(cp,"CarePlan")},{"Status",jsonText(cp.path("status"),"—")},{"Intent",jsonText(cp.path("intent"),"—")},
-            {"Judul",jsonText(cp.path("title"),"—")},{"Kategori",or(categories,"—")},{"Deskripsi",jsonText(cp.path("description"),"—")},
-            {"Subject",referenceDisplayText(cp.path("subject"))},{"Encounter",referenceDisplayText(cp.path("encounter"))},{"Periode",or(period,"—")},
-            {"Dibuat",jsonText(cp.path("created"),"—")},{"Author",referenceDisplayText(cp.path("author"))},{"Contributor / Fasyankes perujuk",or(contributor,"—")},
-            {"Addresses / diagnosis",or(addresses,"—")},{"Supporting info",or(supporting,"—")},{"Goal",or(goals,"—")},{"Catatan",or(notes,"—")}
-        }));
-
-        JsonNode activities=cp.path("activity");
-        if(activities.isArray()&&activities.size()>0){
-            p.add(Box.createVerticalStrut(12));
-            DefaultTableModel am=model(new String[]{"No","Jenis / Kode","Status","Deskripsi","Alasan","Pelaksana / Lokasi","Jadwal / Referensi"});
-            int n=1;for(JsonNode a:activities){JsonNode detail=a.path("detail");
-                String kind=jsonText(detail.path("kind"),"");String code=incomingCoding(detail.path("code"));String kindCode=joinNonEmpty(" • ",kind,code);
-                String status=jsonText(detail.path("status"),"");String desc=jsonText(detail.path("description"),"");
-                String reasons=joinNonEmpty("\n",incomingCodingList(detail.path("reasonCode")),incomingReferenceList(detail.path("reasonReference")));
-                String performer=joinNonEmpty("\n",incomingReferenceList(detail.path("performer")),referenceDisplayText(detail.path("location")));
-                String schedule=incomingActivitySchedule(detail);String ref=referenceDisplayText(a.path("reference"));String schedRef=joinNonEmpty("\n",schedule,ref);
-                String progress=incomingAnnotationList(a.path("progress"));if(!progress.isEmpty())desc=joinNonEmpty("\n",desc,"Progress: "+progress);
-                String outcome=joinNonEmpty("\n",incomingCodingList(a.path("outcomeCodeableConcept")),incomingReferenceList(a.path("outcomeReference")));if(!outcome.isEmpty())desc=joinNonEmpty("\n",desc,"Outcome: "+outcome);
-                am.addRow(new Object[]{String.valueOf(n++),or(kindCode,"—"),or(status,"—"),or(desc,"—"),or(reasons,"—"),or(performer,"—"),or(schedRef,"—")});
-            }
-            JTable at=workflowTable(am);at.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);fitTableColumns(at,18,0);JScrollPane asp=scroll(at);asp.setPreferredSize(new Dimension(980,Math.min(260,60+activities.size()*28)));JPanel ac=card("Aktivitas CarePlan","Seluruh CarePlan.activity dibaca, bukan hanya activity[0].detail.code.");ac.add(asp);p.add(ac);
-        }
-
-        p.add(Box.createVerticalStrut(12));
-        final List<String[]> flat=new ArrayList<String[]>();flattenFhirForDisplay(cp,"CarePlan",flat,0);
-        DefaultTableModel fm=model(new String[]{"Path FHIR","Nilai"});for(String[] row:flat)fm.addRow(new Object[]{row[0],row[1]});
-        JTable ft=workflowTable(fm);ft.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);if(ft.getColumnModel().getColumnCount()>0)ft.getColumnModel().getColumn(0).setPreferredWidth(420);JScrollPane fsp=scroll(ft);fsp.setPreferredSize(new Dimension(980,320));
-        JPanel all=card("Semua elemen CarePlan","Fallback lengkap: setiap nilai non-kosong yang ada di JSON CarePlan ditampilkan di tabel ini. Jadi bila data ada di JSON, data tersebut tidak boleh lagi berubah menjadi tanda — pada tab CarePlan.");all.add(fsp);p.add(all);return p;
-    }
-    private JPanel incomingResourcePanel(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        DefaultTableModel m=model(new String[]{"Peran","Resource / Referensi","Keterangan","Status"});for(SatuSehatRujukanIGDRanapApi.IncomingReferencedResource x:d.references)m.addRow(new Object[]{x.role,x.reference,or(x.display,"—"),x.error==null||x.error.isEmpty()?"Tersedia":"Gagal: "+x.error});
-        JTable t=workflowTable(m);t.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);fitTableColumns(t,18,0);JPanel p=new JPanel(new BorderLayout());p.setBackground(Color.WHITE);p.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));p.add(scroll(t),BorderLayout.CENTER);return p;
-    }
-    private JPanel incomingJsonPanel(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        final String text=incomingRawJson(d);JPanel p=new JPanel(new BorderLayout(0,8));p.setBackground(Color.WHITE);JButton copy=button("Salin Semua JSON",Color.WHITE,BLUE);copy.setIcon(new LineIcon("copy",BLUE,14));copy.addActionListener(e->{try{Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text),null);toast("JSON detail rujukan berhasil disalin.",false);}catch(RuntimeException ex){toast("Clipboard sedang tidak tersedia.",true);}});JPanel top=flow();top.add(copy);p.add(top,BorderLayout.NORTH);
-        JTextArea a=new JTextArea(text);a.setEditable(false);a.setFont(new Font("Consolas",Font.PLAIN,12));a.setForeground(INK);a.setBackground(Color.WHITE);a.setCaretPosition(0);p.add(scroll(a),BorderLayout.CENTER);return p;
-    }
-    private JPanel detailCard(String titleText,String[][] rows){JPanel c=card(titleText,null);JPanel g=new JPanel(new GridBagLayout());g.setOpaque(false);g.setAlignmentX(Component.LEFT_ALIGNMENT);int y=0;for(String[] row:rows){JLabel k=label(row[0],SMALL,MUTED);GridBagConstraints a=new GridBagConstraints();a.gridx=0;a.gridy=y;a.weightx=0;a.anchor=GridBagConstraints.NORTHWEST;a.insets=new Insets(5,0,5,18);g.add(k,a);JTextArea v=readOnly(Math.max(1,countLines(row[1])));v.setText(or(row[1],"—"));v.setForeground(INK);v.setFont(BODY);GridBagConstraints b=new GridBagConstraints();b.gridx=1;b.gridy=y;b.weightx=1;b.fill=GridBagConstraints.HORIZONTAL;b.anchor=GridBagConstraints.NORTHWEST;b.insets=new Insets(5,0,5,0);g.add(v,b);y++;}c.add(g);return c;}
-    private static int countLines(String s){if(s==null||s.isEmpty())return 1;int n=1;for(int i=0;i<s.length();i++)if(s.charAt(i)=='\n')n++;return Math.min(5,n);}
-    private static String joinLines(List<String> rows){StringBuilder b=new StringBuilder();if(rows!=null)for(String s:rows)if(s!=null&&!s.trim().isEmpty()){if(b.length()>0)b.append('\n');b.append("• ").append(s);}return b.toString();}
-    private static String incomingId(JsonNode r,String type){if(r==null)return "—";String id=jsonText(r.path("id"),"");return id.isEmpty()?"—":(type==null||type.isEmpty()?id:type+"/"+id);}
-    private static String incomingResourceName(JsonNode r,String fallback){if(r==null)return or(fallback,"—");String rt=jsonText(r.path("resourceType"),"");if("Organization".equals(rt)){String n=jsonText(r.path("name"),"");return n.isEmpty()?or(fallback,"—"):n+" (Organization/"+jsonText(r.path("id"),"—")+")";}JsonNode names=r.path("name");if(names.isArray()&&names.size()>0){JsonNode n=names.get(0);String text=jsonText(n.path("text"),"");if(!text.isEmpty())return text;StringBuilder b=new StringBuilder();JsonNode given=n.path("given");if(given.isArray())for(JsonNode x:given){String q=jsonText(x,"");if(!q.isEmpty()){if(b.length()>0)b.append(' ');b.append(q);}}String family=jsonText(n.path("family"),"");if(!family.isEmpty()){if(b.length()>0)b.append(' ');b.append(family);}if(b.length()>0)return b.toString();}return or(fallback,"—");}
-    private static String incomingIdentifier(JsonNode r,String hint){if(r==null)return "";JsonNode ids=r.path("identifier");if(!ids.isArray())return "";String fallback="";for(JsonNode id:ids){String sys=jsonText(id.path("system"),"").toLowerCase(java.util.Locale.ENGLISH),v=jsonText(id.path("value"),"");if(v.isEmpty())continue;if(fallback.isEmpty())fallback=v;if(hint!=null&&!hint.isEmpty()&&sys.contains(hint.toLowerCase(java.util.Locale.ENGLISH)))return v;if("nik".equalsIgnoreCase(hint)&&v.matches("\\d{16}"))return v;}return "nik".equalsIgnoreCase(hint)?"":fallback;}
-    private static String incomingTaskTime(JsonNode t){if(t==null)return "—";String a=jsonText(t.path("authoredOn"),""),e=jsonText(t.path("executionPeriod").path("start"),"");return or(a,or(e,"—"));}
-    private static String incomingReferralType(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){String x=incomingCoding(d.serviceRequest==null?null:d.serviceRequest.path("code"));if(!x.isEmpty())return x;JsonNode cats=d.carePlan==null?null:d.carePlan.path("category");if(cats!=null&&cats.isArray())for(JsonNode c:cats){String s=incomingCoding(c);if(!s.isEmpty()&&!s.toLowerCase(java.util.Locale.ENGLISH).contains("patient referral"))return s;}return "—";}
-    private static String incomingEncounterStatus(JsonNode e){if(e==null)return "—";String status=jsonText(e.path("status"),"—"),code=jsonText(e.path("class").path("code"),""),display=jsonText(e.path("class").path("display"),"");return status+(code.isEmpty()?"":" / "+code+(display.isEmpty()?"":" - "+display));}
-    private static String incomingEncounterPeriod(JsonNode e){if(e==null)return "—";String a=jsonText(e.path("period").path("start"),""),b=jsonText(e.path("period").path("end"),"");return a.isEmpty()&&b.isEmpty()?"—":or(a,"?")+" s/d "+or(b,"masih berlangsung");}
-    private static String incomingEncounterLocations(JsonNode e){if(e==null)return "—";StringBuilder b=new StringBuilder();JsonNode a=e.path("location");if(a.isArray())for(JsonNode x:a){String d=jsonText(x.path("location").path("display"),referenceText(x.path("location")));if(!d.isEmpty()){if(b.length()>0)b.append(", ");b.append(d);}}String sp=jsonText(e.path("serviceProvider").path("display"),"");if(!sp.isEmpty()){if(b.length()>0)b.append(" • ");b.append(sp);}return b.length()==0?"—":b.toString();}
-    private static String incomingCondition(JsonNode c){if(c==null)return "";String code=incomingCoding(c.path("code"));return code.isEmpty()?incomingId(c,"Condition"):code;}
-    private static String incomingCarePlanReason(JsonNode cp){
-        if(cp==null)return "";StringBuilder b=new StringBuilder();appendUniqueLine(b,jsonText(cp.path("description"),""));appendUniqueLine(b,incomingAnnotationList(cp.path("note")));
-        JsonNode a=cp.path("activity");if(a.isArray())for(JsonNode x:a){JsonNode d=x.path("detail");appendUniqueLine(b,jsonText(d.path("description"),""));appendUniqueLine(b,incomingCodingList(d.path("reasonCode")));appendUniqueLine(b,incomingReferenceList(d.path("reasonReference")));}
-        return b.toString();
-    }
-    private static String incomingCarePlanSpeciality(JsonNode cp){
-        if(cp==null)return "";String fallback="";JsonNode a=cp.path("activity");if(a.isArray())for(JsonNode x:a){JsonNode cc=x.path("detail").path("code");JsonNode codings=cc.path("coding");if(codings.isArray())for(JsonNode c:codings){String system=jsonText(c.path("system"),"").toLowerCase(java.util.Locale.ENGLISH);String value=incomingCodingSingle(c);if(fallback.isEmpty()&&!value.isEmpty())fallback=value;if(system.contains("clinical-speciality")&&!value.isEmpty())return value;}String s=incomingCoding(cc);if(fallback.isEmpty()&&!s.isEmpty())fallback=s;}return fallback;
-    }
-    private static String incomingCodingSingle(JsonNode c){if(c==null)return "";String code=jsonText(c.path("code"),""),display=jsonText(c.path("display"),"");if(!code.isEmpty()&&!display.isEmpty())return code+" - "+display;if(!display.isEmpty())return display;return code;}
-    private static String incomingCoding(JsonNode cc){if(cc==null||cc.isMissingNode()||cc.isNull())return "";if(cc.has("code")&&!cc.has("coding"))return incomingCodingSingle(cc);String text=jsonText(cc.path("text"),"");JsonNode a=cc.path("coding");if(a.isArray()&&a.size()>0){StringBuilder b=new StringBuilder();for(JsonNode c:a){String v=incomingCodingSingle(c);if(!v.isEmpty()){if(b.length()>0)b.append("; ");b.append(v);}}if(b.length()>0)return b.toString();}return text;}
-    private static String incomingCodingList(JsonNode values){if(values==null||values.isMissingNode()||values.isNull())return "";StringBuilder b=new StringBuilder();if(values.isArray()){for(JsonNode v:values)appendUniqueLine(b,incomingCoding(v));}else appendUniqueLine(b,incomingCoding(values));return b.toString();}
-    private static String referenceDisplayText(JsonNode ref){if(ref==null||ref.isMissingNode()||ref.isNull())return "—";String display=jsonText(ref.path("display"),""),reference=jsonText(ref.path("reference"),"");if(!display.isEmpty()&&!reference.isEmpty())return display+" ("+reference+")";if(!display.isEmpty())return display;if(!reference.isEmpty())return reference;return "—";}
-    private static String incomingReferenceList(JsonNode refs){if(refs==null||refs.isMissingNode()||refs.isNull())return "";StringBuilder b=new StringBuilder();if(refs.isArray()){for(JsonNode r:refs){String v=referenceDisplayText(r);if(!"—".equals(v))appendUniqueLine(b,v);}}else{String v=referenceDisplayText(refs);if(!"—".equals(v))appendUniqueLine(b,v);}return b.toString();}
-    private static String incomingAnnotationList(JsonNode notes){if(notes==null||notes.isMissingNode()||notes.isNull())return "";StringBuilder b=new StringBuilder();if(notes.isArray()){for(JsonNode n:notes){String t=jsonText(n.path("text"),n.isValueNode()?n.asText():"");appendUniqueLine(b,t);}}else appendUniqueLine(b,jsonText(notes.path("text"),notes.isValueNode()?notes.asText():""));return b.toString();}
-    private static String incomingPeriod(JsonNode p){if(p==null||p.isMissingNode()||p.isNull())return "";String a=jsonText(p.path("start"),""),z=jsonText(p.path("end"),"");if(a.isEmpty()&&z.isEmpty())return "";return or(a,"?")+" s/d "+or(z,"masih berlangsung");}
-    private static String incomingActivitySchedule(JsonNode d){if(d==null)return "";String s=jsonText(d.path("scheduledString"),"");if(!s.isEmpty())return s;String period=incomingPeriod(d.path("scheduledPeriod"));if(!period.isEmpty())return period;JsonNode timing=d.path("scheduledTiming");if(!timing.isMissingNode()&&!timing.isNull()){StringBuilder b=new StringBuilder();JsonNode event=timing.path("event");if(event.isArray())for(JsonNode e:event)appendUniqueLine(b,e.asText());String code=incomingCoding(timing.path("code"));appendUniqueLine(b,code);if(b.length()>0)return b.toString();return timing.toString();}return "";}
-    private static String joinNonEmpty(String sep,String... values){StringBuilder b=new StringBuilder();if(values!=null)for(String v:values)if(v!=null&&!v.trim().isEmpty()&&!"—".equals(v.trim())){if(b.length()>0)b.append(sep);b.append(v.trim());}return b.toString();}
-    private static void appendUniqueLine(StringBuilder b,String value){if(b==null||value==null)return;String v=value.trim();if(v.isEmpty()||"—".equals(v))return;String current=b.toString();for(String line:v.split("\n")){String q=line.trim();if(q.isEmpty())continue;boolean exists=false;for(String old:current.split("\n"))if(old.trim().equals(q)){exists=true;break;}if(!exists){if(b.length()>0)b.append('\n');b.append(q);current=b.toString();}}}
-    private static void flattenFhirForDisplay(JsonNode node,String path,List<String[]> out,int depth){
-        if(node==null||out==null||node.isMissingNode()||node.isNull()||depth>24)return;
-        if(node.isValueNode()){String v=node.asText();if(v!=null&&!v.trim().isEmpty())out.add(new String[]{path,v});return;}
-        if(node.isArray()){int i=0;for(JsonNode x:node)flattenFhirForDisplay(x,path+"["+(i++)+"]",out,depth+1);return;}
-        java.util.Iterator<Map.Entry<String,JsonNode>> it=node.fields();while(it.hasNext()){Map.Entry<String,JsonNode> e=it.next();flattenFhirForDisplay(e.getValue(),path+"."+e.getKey(),out,depth+1);}
-    }
-    private static String incomingRawJson(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){StringBuilder b=new StringBuilder();appendJsonSection(b,"TASK",d.task);appendJsonSection(b,"CAREPLAN",d.carePlan);appendJsonSection(b,"SERVICE REQUEST",d.serviceRequest);appendJsonSection(b,"PATIENT",d.patient);appendJsonSection(b,"ENCOUNTER",d.encounter);appendJsonSection(b,"ORGANIZATION PERUJUK",d.referrerOrganization);appendJsonSection(b,"PRACTITIONER / AUTHOR",d.authorPractitioner);int i=1;for(JsonNode c:d.conditions)appendJsonSection(b,"CONDITION "+(i++),c);for(SatuSehatRujukanIGDRanapApi.IncomingReferencedResource x:d.references)if(x.resource!=null&&!containsJsonResource(d,x.resource))appendJsonSection(b,x.role.toUpperCase(java.util.Locale.ENGLISH),x.resource);return b.toString();}
-    private static boolean containsJsonResource(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d,JsonNode r){if(r==null)return true;if(r==d.task||r==d.carePlan||r==d.serviceRequest||r==d.patient||r==d.encounter||r==d.referrerOrganization||r==d.authorPractitioner)return true;for(JsonNode c:d.conditions)if(c==r)return true;return false;}
-    private static void appendJsonSection(StringBuilder b,String title,JsonNode n){if(n==null)return;if(b.length()>0)b.append("\n\n");b.append("===== ").append(title).append(" =====\n");b.append(prettyJson(n.toString()));}
-    private void doIncomingResponse(final boolean accepted){
-        if(preview||apiClient==null||busy||incomingTable==null)return;int row=incomingTable.getSelectedRow();if(row<0){toast("Pilih satu Task rujukan Masuk.",true);return;}
-        final int modelRow=incomingTable.convertRowIndexToModel(row);final String taskId=str(incomingModel.getValueAt(modelRow,0));if(taskId.isEmpty()){toast("Task ID tidak valid.",true);return;}
-        int confirm=JOptionPane.showConfirmDialog(this,(accepted?"Terima":"Tolak")+" rujukan Masuk Task "+taskId+"?","Konfirmasi respons",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE);if(confirm!=JOptionPane.YES_OPTION)return;
-        setBusy(true,(accepted?"Menerima":"Menolak")+" rujukan Masuk...");
-        new SwingWorker<JsonNode,Void>(){
-            @Override protected JsonNode doInBackground()throws Exception{return apiClient.responRujukanMasuk(taskId,accepted);}
-            @Override protected void done(){try{JsonNode r=get();rememberApi((accepted?"Terima":"Tolak")+" Rujukan Masuk");incomingModel.setValueAt(jsonText(r.path("status"),"completed"),modelRow,3);incomingModel.setValueAt(accepted?"accepted":"rejected",modelRow,4);setBusy(false,"Respons Task tersimpan.");toast("Rujukan Masuk berhasil "+(accepted?"diterima.":"ditolak."),false);}
-                catch(Exception ex){rememberApi((accepted?"Terima":"Tolak")+" Rujukan Masuk",true);setBusy(false,"Respons rujukan Masuk gagal.");failure("Respons Rujukan Masuk",ex);}}
-        }.execute();
-    }
-    private static String referenceText(JsonNode ref){
-        if(ref==null)return "";String display=ref.path("display").asText(),reference=ref.path("reference").asText();return display.isEmpty()?reference:display+" ("+reference+")";
-    }
-    private void loadHistory(){
-        if(busy||preview||visit==null)return;final String id=visit.noRawat;setBusy(true,"Memuat riwayat draf...");
-        new SwingWorker<List<SatuSehatRujukanIGDRanapRepository.HistoryItem>,Void>(){
-            @Override protected List<SatuSehatRujukanIGDRanapRepository.HistoryItem> doInBackground()throws Exception{return repository.history(id);}
-            @Override protected void done(){try{List<SatuSehatRujukanIGDRanapRepository.HistoryItem> list=get();history.setRowCount(0);for(SatuSehatRujukanIGDRanapRepository.HistoryItem h:list)history.addRow(new Object[]{h.jenis,h.version,h.updatedAt,h.updatedBy});setBusy(false,"Riwayat draf kunjungan dimuat.");}
-                catch(Exception ex){setBusy(false,"Riwayat belum berhasil dimuat.");failure("Memuat riwayat",ex);}}
-        }.execute();
-    }
-    private void showPage(int page){selectedPage=page;((CardLayout)pages.getLayout()).show(pages,page==0?"stage"+selectedStage:page==1?"incoming":"history");title.setText(page==0?"Rujukan Keluar":page==1?"Rujukan Masuk":"Riwayat draf");refresh();if(page==2&&!busy)loadHistory();if(page==0&&selectedStage==0)focusClinicalSummary();}
+    // Form ini khusus rujukan KELUAR; halaman masuk dipindahkan ke SatuSehatRujukanMasukPanel.
+    private void showPage(int page){selectedPage=0;((CardLayout)pages.getLayout()).show(pages,"stage"+selectedStage);title.setText("Rujukan Keluar");refresh();if(selectedStage==0)focusClinicalSummary();}
     private void focusClinicalSummary(){
         SwingUtilities.invokeLater(new Runnable(){@Override public void run(){
             JTextComponent dx=fields.get("diagnosis_code");if(dx!=null&&dx.isEnabled())dx.requestFocusInWindow();

@@ -4684,6 +4684,7 @@ private void tbPasienKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
 }//GEN-LAST:event_tbPasienKeyPressed
 
 private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpanActionPerformed
+        if (!validasiPasienRujukanMasuk(false)) return;
         if(TNo.getText().trim().equals("")){
             Valid.textKosong(TNo,"No.Rekam Medis");
         }else if(TNm.getText().trim().equals("")){
@@ -4842,6 +4843,7 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
                     Sequel.queryu2("delete from set_no_rkm_medis");
                     Sequel.queryu2("insert into set_no_rkm_medis values(?)",1,new String[]{TNo.getText()});            
                 }                
+                if (selesaiPasienRujukanMasuk()) return;
                 emptTeks(); 
             }else{
                 autoNomor();
@@ -4873,7 +4875,8 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
                         Sequel.queryu2("delete from set_no_rkm_medis");
                         Sequel.queryu2("insert into set_no_rkm_medis values(?)",1,new String[]{TNo.getText()});            
                     }                
-                    emptTeks(); 
+                    if (selesaiPasienRujukanMasuk()) return;
+                emptTeks(); 
                 }else{
                     autoNomor();
                     if(Sequel.menyimpantf2("pasien","?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?","No.Rekam Medis Pasien",36,new String[]{
@@ -4904,7 +4907,8 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
                             Sequel.queryu2("delete from set_no_rkm_medis");
                             Sequel.queryu2("insert into set_no_rkm_medis values(?)",1,new String[]{TNo.getText()});            
                         }                
-                        emptTeks(); 
+                        if (selesaiPasienRujukanMasuk()) return;
+                emptTeks(); 
                     }else{
                         autoNomor();
                         if(Sequel.menyimpantf2("pasien","?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?","No.Rekam Medis Pasien",36,new String[]{
@@ -4935,7 +4939,8 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
                                 Sequel.queryu2("delete from set_no_rkm_medis");
                                 Sequel.queryu2("insert into set_no_rkm_medis values(?)",1,new String[]{TNo.getText()});            
                             }                
-                            emptTeks(); 
+                            if (selesaiPasienRujukanMasuk()) return;
+                emptTeks(); 
                         }else{
                             autoNomor();
                             if(Sequel.menyimpantf("pasien","?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?","No.Rekam Medis Pasien",36,new String[]{
@@ -4966,7 +4971,8 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
                                     Sequel.queryu2("delete from set_no_rkm_medis");
                                     Sequel.queryu2("insert into set_no_rkm_medis values(?)",1,new String[]{TNo.getText()});            
                                 }                
-                                emptTeks(); 
+                                if (selesaiPasienRujukanMasuk()) return;
+                emptTeks(); 
                             }else{                                
                                 TNm.requestFocus();                                
                                 autoNomor();
@@ -5052,6 +5058,7 @@ private void BtnHapusKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
 }//GEN-LAST:event_BtnHapusKeyPressed
 
 private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnEditActionPerformed
+        if (!validasiPasienRujukanMasuk(true)) return;
         if(TNo.getText().trim().equals("")){
             Valid.textKosong(TNo,"No.Rekam Medis");
         }else if(TNm.getText().trim().equals("")){
@@ -5240,6 +5247,7 @@ private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST
                     tbPasien.setValueAt(PropinsiPj.getText(),tbPasien.getSelectedRow(), 44);
                 }
                     
+                if (selesaiPasienRujukanMasuk()) return;
                 emptTeks();
                 TabRawat.setSelectedIndex(1);
             }      
@@ -5869,7 +5877,15 @@ private void MnKartuStatusActionPerformed(java.awt.event.ActionEvent evt) {//GEN
 }//GEN-LAST:event_MnKartuStatusActionPerformed
 
 private void DTPLahirItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_DTPLahirItemStateChanged
-    lahir = DTPLahir.getDate();    
+    if (DTPLahir.getSelectedItem() == null || DTPLahir.getSelectedItem().toString().trim().isEmpty()) {
+        TUmurTh.setText(""); TUmurBl.setText(""); TUmurHr.setText("");
+        return;
+    }
+    lahir = DTPLahir.getDate();
+    if (lahir == null) {
+        TUmurTh.setText(""); TUmurBl.setText(""); TUmurHr.setText("");
+        return;
+    }
     birthday = lahir.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     p = Period.between(birthday,today);
     TUmurTh.setText(String.valueOf(p.getYears()));
@@ -9710,6 +9726,12 @@ private void KabupatenMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:eve
     }
 
     public void emptTeks() {
+        if (dataPasienRujukanMasuk != null) {
+            dataPasienRujukanMasuk = null;
+            isCek();
+            setTitle(judulSebelumPasienRujukanMasuk);
+        }
+        if (infoPasienRujukanMasuk != null) infoPasienRujukanMasuk.setVisible(false);
         TNo.setText("");
         Kd2.setText("");
         TNm.setText("");
@@ -10190,6 +10212,158 @@ private void KabupatenMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:eve
         }
     }
     
+    // BEGIN RUJUKAN MASUK - pengisian master pasien, terpisah dari kunjungan IGD.
+    private java.util.Map<String,String> dataPasienRujukanMasuk;
+    private javax.swing.JTextArea infoPasienRujukanMasuk;
+    private String judulSebelumPasienRujukanMasuk="", rmPasienRujukanMasuk="";
+    private boolean isianRujukanDipotong;
+
+    /** Kontrak menggunakan tipe JDK agar tidak bergantung pada Context milik DlgIGD. */
+    public void isiPasienRujukanMasuk(java.util.Map<String,String> data,String noRm) throws java.sql.SQLException {
+        if (!javax.swing.SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Buka Data Pasien pada EDT.");
+        if (!bridging.SatuSehatRujukanMasukPasien.allowed()) throw new java.sql.SQLException("Hak akses Data Pasien/registrasi IGD tidak tersedia.");
+        if (data == null) throw new IllegalArgumentException("Data pasien rujukan wajib tersedia.");
+        judulSebelumPasienRujukanMasuk=getTitle();
+        isCek();
+        TabRawat.setSelectedIndex(0);
+        ChkRM.setSelected(true);
+        emptTeks();
+        dataPasienRujukanMasuk=new java.util.LinkedHashMap<String,String>(data);
+        rmPasienRujukanMasuk=noRm==null?"":noRm.trim();
+        isianRujukanDipotong=false;
+        setTitle("Data Pasien - Rujukan Masuk SATUSEHAT");
+        if (!rmPasienRujukanMasuk.isEmpty()) {
+            // Gunakan pemuat data lokal yang sama dengan pemilihan pasien pada tabel.
+            Carialamat.setText("");
+            TCari.setText(rmPasienRujukanMasuk);
+            cmbHlm.setSelectedItem("Semua");
+            tampil();
+            boolean found=false;
+            for (int row=0;row<tbPasien.getRowCount();row++) {
+                if (rmPasienRujukanMasuk.equals(String.valueOf(tbPasien.getValueAt(row,1)))) {
+                    tbPasien.setRowSelectionInterval(row,row);
+                    getData();found=true;break;
+                }
+            }
+            if (!found || !rmPasienRujukanMasuk.equals(Kd2.getText())) throw new java.sql.SQLException("Data RM yang cocok belum dapat dimuat. Periksa kelengkapan master pasien.");
+            BtnSimpan.setEnabled(false);
+            BtnEdit.setEnabled(true);
+            tampilkanInfoPasienRujukanMasuk("Pasien sudah memiliki No. RM "+rmPasienRujukanMasuk+". Data lokal ditampilkan untuk diperiksa. Gunakan Ganti jika ada koreksi.");
+        } else {
+            isiTeksPasienRujukan(TNm,"nm_pasien",40);
+            isiTeksPasienRujukan(TKtp,"no_ktp",20);
+            isiTeksPasienRujukan(TTmp,"tmp_lahir",15);
+            isiTeksPasienRujukan(TTlp,"no_tlp",40);
+            isiTeksPasienRujukan(EMail,"email",50);
+            isiTeksPasienRujukan(TNoPeserta,"no_peserta",25);
+            isiTeksPasienRujukan(NmIbu,"nm_ibu",40);
+            isiTeksPasienRujukan(Alamat,"alamat",200);
+            isiTeksPasienRujukan(Kelurahan,"kelurahan",60);
+            isiTeksPasienRujukan(Kecamatan,"kecamatan",60);
+            isiTeksPasienRujukan(Kabupaten,"kabupaten",60);
+            isiTeksPasienRujukan(Propinsi,"propinsi",30);
+            isiTeksPasienRujukan(Saudara,"namakeluarga",50);
+            isiTeksPasienRujukan(AlamatPj,"alamatpj",100);
+            isiTeksPasienRujukan(KelurahanPj,"kelurahanpj",60);
+            isiTeksPasienRujukan(KecamatanPj,"kecamatanpj",60);
+            isiTeksPasienRujukan(KabupatenPj,"kabupatenpj",60);
+            isiTeksPasienRujukan(PropinsiPj,"propinsipj",30);
+            pilihIsianPasienRujukan(CmbJk,nilaiPasienRujukan("jk"),"");
+            pilihIsianPasienRujukan(CmbStts,nilaiPasienRujukan("stts_nikah"),"");
+            pilihIsianPasienRujukan(cmbAgama,nilaiPasienRujukan("agama"),"-");
+            pilihIsianPasienRujukan(CmbKeluarga,nilaiPasienRujukan("keluarga"),"-");
+            CMbPnd.setSelectedItem("-");
+            String birth=nilaiPasienRujukan("tgl_lahir");
+            if (bridging.SatuSehatRujukanMasukPasien.validBirth(birth)) Valid.SetTgl(DTPLahir,birth);
+            else {DTPLahir.setSelectedIndex(-1);TUmurTh.setText("");TUmurBl.setText("");TUmurHr.setText("");}
+            isiBahasaPasienRujukan();
+            BtnSimpan.setEnabled(true);
+            BtnEdit.setEnabled(false);
+            String note="Data rujukan sudah diisikan. Periksa identitas, pilih penjamin dan lengkapi isian wajib, lalu Simpan untuk membuat nomor RM.";
+            if (!nilaiPasienRujukan("catatan").isEmpty()) note+=" "+nilaiPasienRujukan("catatan");
+            if (isianRujukanDipotong) note+=" Ada isian panjang yang disesuaikan batas kolom; arahkan mouse ke isian untuk melihat nilai lengkap.";
+            tampilkanInfoPasienRujukanMasuk(note);
+        }
+        BtnHapus.setEnabled(false);
+        TabRawat.setSelectedIndex(0);
+        TNm.requestFocusInWindow();
+    }
+    private String nilaiPasienRujukan(String key) {
+        return bridging.SatuSehatRujukanMasukPasien.value(dataPasienRujukanMasuk,key);
+    }
+    private void isiTeksPasienRujukan(javax.swing.JTextField field,String key,int max) {
+        String value=nilaiPasienRujukan(key);
+        if (value.isEmpty()) return;
+        field.setToolTipText(value);
+        if (value.length()>max) {value=value.substring(0,max);isianRujukanDipotong=true;}
+        field.setText(value);
+    }
+    private void pilihIsianPasienRujukan(javax.swing.JComboBox field,String value,String fallback) {
+        for (int i=0;i<field.getItemCount();i++) if (value.equalsIgnoreCase(String.valueOf(field.getItemAt(i)))) {field.setSelectedIndex(i);return;}
+        if (!fallback.isEmpty()) field.setSelectedItem(fallback);else field.setSelectedIndex(-1);
+    }
+    private void isiBahasaPasienRujukan() throws java.sql.SQLException {
+        String language=nilaiPasienRujukan("bahasa");
+        if (language.isEmpty()) return;
+        try (java.sql.PreparedStatement query=koneksi.prepareStatement("SELECT id,nama_bahasa FROM bahasa_pasien WHERE LOWER(nama_bahasa)=LOWER(?) LIMIT 2")) {
+            query.setString(1,language);
+            try (java.sql.ResultSet result=query.executeQuery()) {
+                if (result.next()) {
+                    String id=result.getString(1),name=result.getString(2);
+                    if (!result.next()) {kdbahasa.setText(id);nmbahasa.setText(name);return;}
+                }
+            }
+        }
+        dataPasienRujukanMasuk.put("catatan",nilaiPasienRujukan("catatan")+" Bahasa dari rujukan: "+language+"; pilih padanannya pada master Bahasa.");
+    }
+    private void tampilkanInfoPasienRujukanMasuk(String message) {
+        if (infoPasienRujukanMasuk==null) {
+            infoPasienRujukanMasuk=new javax.swing.JTextArea(3,60);
+            infoPasienRujukanMasuk.setEditable(false);
+            infoPasienRujukanMasuk.setLineWrap(true);infoPasienRujukanMasuk.setWrapStyleWord(true);
+            infoPasienRujukanMasuk.setFont(new java.awt.Font("Segoe UI",java.awt.Font.PLAIN,12));
+            infoPasienRujukanMasuk.setForeground(new java.awt.Color(24,70,105));
+            infoPasienRujukanMasuk.setBackground(new java.awt.Color(235,245,253));
+            infoPasienRujukanMasuk.setBorder(javax.swing.BorderFactory.createEmptyBorder(8,12,8,12));
+            internalFrame1.add(infoPasienRujukanMasuk,java.awt.BorderLayout.NORTH);
+        }
+        infoPasienRujukanMasuk.setText(message);infoPasienRujukanMasuk.setCaretPosition(0);
+        infoPasienRujukanMasuk.setVisible(true);internalFrame1.revalidate();
+    }
+    private boolean validasiPasienRujukanMasuk(boolean editing) {
+        if (dataPasienRujukanMasuk==null) return true;
+        try {
+            if (CmbJk.getSelectedIndex()<0) throw new java.sql.SQLException("Pilih jenis kelamin pasien terlebih dahulu.");
+            if (DTPLahir.getSelectedItem()==null || DTPLahir.getDate()==null) throw new java.sql.SQLException("Lengkapi tanggal lahir pasien terlebih dahulu.");
+            String birth=new java.text.SimpleDateFormat("yyyy-MM-dd").format(DTPLahir.getDate());
+            if (!bridging.SatuSehatRujukanMasukPasien.validBirth(birth)) throw new java.sql.SQLException("Tanggal lahir pasien tidak valid.");
+            if (CmbStts.getSelectedIndex()<0) throw new java.sql.SQLException("Pilih status pernikahan pasien terlebih dahulu.");
+            if (editing && (Kd2.getText().isEmpty() || !Kd2.getText().equals(TNo.getText()))) throw new java.sql.SQLException("Pilih pasien lama yang benar; nomor RM tidak diubah melalui pengisian rujukan.");
+            if (!editing && !rmPasienRujukanMasuk.isEmpty()) throw new java.sql.SQLException("Pasien rujukan sudah memiliki nomor RM. Gunakan Ganti untuk memperbarui data.");
+            bridging.SatuSehatRujukanMasukPasien.validateSave(dataPasienRujukanMasuk,TNo.getText(),TKtp.getText(),TNoPeserta.getText(),editing);
+            return true;
+        } catch (java.sql.SQLException ex) {
+            javax.swing.JOptionPane.showMessageDialog(this,ex.getMessage(),"Data pasien rujukan",javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            return false;
+        }
+    }
+    /** Dipanggil setelah handler asli menyatakan INSERT/UPDATE pasien berhasil. */
+    private boolean selesaiPasienRujukanMasuk() {
+        if (dataPasienRujukanMasuk==null) return false;
+        BtnSimpan.setEnabled(false);BtnEdit.setEnabled(false);
+        tampilkanInfoPasienRujukanMasuk("Data pasien berhasil disimpan. No. RM "+TNo.getText()+".");
+        javax.swing.SwingUtilities.invokeLater(() -> tutupPasienRujukanMasuk());
+        return true;
+    }
+    public void tutupPasienRujukanMasuk() {
+        try {BtnKeluarActionPerformed(null);}
+        finally {
+            prop.dispose();propinsiref.dispose();kabupatenref.dispose();kecamatanref.dispose();kelurahanref.dispose();
+            WindowGabungRM.dispose();dispose();
+        }
+    }
+    // END RUJUKAN MASUK
+
     public void setPasien(String NamaPasien,String Kontak,String Alamat,
             String TempatLahir,String TglLahir,String JK,String NoKartuJKN,String NIK){
         this.TNm.setText(NamaPasien);

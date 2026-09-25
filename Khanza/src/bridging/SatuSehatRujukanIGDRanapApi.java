@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import fungsi.koneksiDB;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -524,10 +525,10 @@ public final class SatuSehatRujukanIGDRanapApi {
     }
 
     /** return accepted/rejected/"" */
-    public String parseDecision(JsonNode task) {
+    public static String parseDecision(JsonNode task) {
         JsonNode out = task == null ? null : task.path("output"); if (out == null || !out.isArray()) return "";
         for (JsonNode o: out) {
-            if ("response-referral-task".equals(codingCode(o.path("type")))) {
+            if (hasCodingCode(o.path("type").path("coding"), "response-referral-task")) {
                 String code=o.path("valueCoding").path("code").asText();
                 if ("accepted".equalsIgnoreCase(code) || "rejected".equalsIgnoreCase(code)) return code.toLowerCase();
             }
@@ -602,8 +603,58 @@ public final class SatuSehatRujukanIGDRanapApi {
     public JsonNode cariRujukanMasuk() throws Exception {
         // Playbook Rujukan Pasien v6.1: Task approval ditujukan ke Task.owner (Org ID RS rujukan)
         // dan Task.basedOn mereferensikan CarePlan. _include membuat CarePlan ikut tersedia pada Bundle.
-        String path="/Task?owner="+enc(orgId())+"&code="+enc("referral-approval-request")+"&_include=Task:based-on";
-        return get(path);
+        String path="/Task?owner="+enc(orgId())+"&code="+enc("referral-approval-request")+"&_include=Task:based-on&_count=100";
+        ObjectNode result=mapper.createObjectNode();result.put("resourceType","Bundle");result.put("type","searchset");
+        ArrayNode entries=result.putArray("entry");
+        java.util.Set<String> visited=new java.util.HashSet<String>(),resources=new java.util.HashSet<String>();
+        while(notEmpty(path)){
+            if(Thread.currentThread().isInterrupted())throw new InterruptedException("Pemuatan rujukan dihentikan.");
+            if(visited.size()>=200||!visited.add(path))throw new IOException("Halaman rujukan belum lengkap: pagination berulang atau melewati batas 200 halaman.");
+            JsonNode page=get(path);
+            if(!"Bundle".equals(page.path("resourceType").asText()))throw new IOException("Respons pencarian rujukan bukan Bundle; jumlah rujukan belum dapat dipastikan.");
+            JsonNode rows=page.path("entry");
+            if(rows.isArray())for(JsonNode entry:rows){
+                JsonNode r=entry.path("resource");
+                if("OperationOutcome".equals(r.path("resourceType").asText())){
+                    for(JsonNode issue:r.path("issue"))if("error".equals(issue.path("severity").asText())||"fatal".equals(issue.path("severity").asText()))
+                        throw new IOException("SATUSEHAT mengembalikan catatan kegagalan pencarian rujukan.");
+                }
+                String key=r.path("resourceType").asText()+"/"+r.path("id").asText();
+                if(resources.add(key))entries.add(entry);
+            }
+            String next="";for(JsonNode link:page.path("link"))if("next".equals(link.path("relation").asText()))next=link.path("url").asText();
+            path=notEmpty(next)?incomingPagePath(baseUrl(),path,next):"";
+        }
+        return result;
+    }
+
+    /** Pagination hanya ke basis FHIR yang sama; jangan teruskan token ke URL lain. */
+    static String incomingPagePath(String base,String current,String next)throws Exception{
+        java.net.URI root=new java.net.URI(base),from=new java.net.URI(base+current);
+        java.net.URI target=next.startsWith("?")?new java.net.URI(base+current.split("\\?",2)[0]+next):from.resolve(next).normalize();
+        String prefix=root.getPath();if(prefix==null)prefix="";
+        if(!root.getScheme().equalsIgnoreCase(target.getScheme())||!root.getAuthority().equals(target.getAuthority())
+                ||target.getUserInfo()!=null||target.getFragment()!=null||target.getPath()==null||!target.getPath().startsWith(prefix+"/"))
+            throw new IOException("Tautan halaman rujukan berada di luar basis FHIR yang dikonfigurasi.");
+        return target.getRawPath().substring(root.getRawPath().length())+(target.getRawQuery()==null?"":"?"+target.getRawQuery());
+    }
+
+    String organizationId()throws Exception{return orgId();}
+    JsonNode incomingReference(String reference)throws Exception{
+        String[] parts=referenceParts(reference);
+        if(parts==null||!("CarePlan".equals(parts[0])||"Organization".equals(parts[0])||"Patient".equals(parts[0])||"Encounter".equals(parts[0])))return null;
+        return get("/"+parts[0]+"/"+enc(parts[1]));
+    }
+    public void validateIncomingTask(JsonNode task)throws Exception{
+        if(task==null||!"Task".equals(task.path("resourceType").asText())
+                ||!hasCodingCode(task.path("code").path("coding"),"referral-approval-request")
+                ||!orgId().equals(referenceId(referenceText(task.path("owner")),"Organization")))
+            throw new IOException("Task bukan rujukan persetujuan untuk RS ini.");
+    }
+    public static boolean incomingPending(JsonNode task){
+        if(task==null||!parseDecision(task).isEmpty())return false;
+        String status=task.path("status").asText();
+        return "requested".equals(status)||"received".equals(status)||"ready".equals(status)||"in-progress".equals(status)||"on-hold".equals(status);
     }
 
     /**
@@ -616,6 +667,7 @@ public final class SatuSehatRujukanIGDRanapApi {
         require(taskId,"Task ID rujukan masuk");
         IncomingReferralDetail d=new IncomingReferralDetail();d.taskId=taskId.trim();
         d.task=get("/Task/"+enc(d.taskId));
+        validateIncomingTask(d.task);
         addLoadedReference(d,"Task persetujuan","Task/"+d.taskId,"",d.task);
 
         // Jalur pertama: beberapa implementasi SATUSEHAT masih menyertakan Task.basedOn -> CarePlan.
@@ -817,12 +869,25 @@ public final class SatuSehatRujukanIGDRanapApi {
     private static String referenceDisplay(JsonNode resource){if(resource==null)return "";String rt=resource.path("resourceType").asText();if("Organization".equals(rt)||"Location".equals(rt))return resource.path("name").asText();JsonNode names=resource.path("name");if(names.isArray()&&names.size()>0){JsonNode n=names.get(0);if(notEmpty(n.path("text").asText()))return n.path("text").asText();StringBuilder b=new StringBuilder();JsonNode given=n.path("given");if(given.isArray())for(JsonNode g:given)if(notEmpty(g.asText())){if(b.length()>0)b.append(' ');b.append(g.asText());}if(notEmpty(n.path("family").asText())){if(b.length()>0)b.append(' ');b.append(n.path("family").asText());}if(b.length()>0)return b.toString();}String title=resource.path("title").asText();if(notEmpty(title))return title;JsonNode coding=resource.path("code").path("coding");if(coding.isArray()&&coding.size()>0){String display=coding.get(0).path("display").asText(),code=coding.get(0).path("code").asText();if(notEmpty(display))return display;if(notEmpty(code))return code;}String description=resource.path("description").asText();if(notEmpty(description))return description;return resource.path("status").asText();}
 
     public JsonNode responRujukanMasuk(String taskId, boolean accepted) throws Exception {
-        require(taskId,"Task ID"); ArrayNode patch=mapper.createArrayNode();
+        require(taskId,"Task ID");JsonNode current=cekTask(taskId);validateIncomingTask(current);
+        String decision=parseDecision(current),wanted=accepted?"accepted":"rejected";
+        if(wanted.equals(decision))return current;
+        if(!incomingPending(current))throw new IOException("Rujukan sudah diputuskan atau tidak lagi menunggu respons. Perbarui daftar rujukan.");
+        ArrayNode patch=mapper.createArrayNode();
+        // RFC 6902 test melindungi keputusan operator lain yang masuk bersamaan.
+        ObjectNode test=patch.addObject();test.put("op","test");test.put("path","/status");test.put("value",current.path("status").asText());
+        if(notEmpty(current.path("meta").path("versionId").asText())){
+            ObjectNode version=patch.addObject();version.put("op","test");version.put("path","/meta/versionId");version.put("value",current.path("meta").path("versionId").asText());
+        }
         ObjectNode p1=patch.addObject();p1.put("op","replace");p1.put("path","/status");p1.put("value","completed");
         ObjectNode p2=patch.addObject();p2.put("op","add");p2.put("path","/output");ArrayNode outputs=p2.putArray("value");
+        if(current.path("output").isArray())for(JsonNode old:current.path("output"))outputs.add(old);
         ObjectNode o=outputs.addObject();o.set("type",codeable(SYS_KEMKES,"response-referral-task","Response referral task"));
         ObjectNode vc=o.putObject("valueCoding");vc.put("system",SYS_TASK_STATUS);vc.put("code",accepted?"accepted":"rejected");vc.put("display",accepted?"Accepted":"Rejected");
-        return patch("/Task/"+enc(taskId),patch);
+        patch("/Task/"+enc(taskId),patch);
+        JsonNode confirmed=cekTask(taskId);validateIncomingTask(confirmed);
+        if(!wanted.equals(parseDecision(confirmed)))throw new IOException("Respons terkirim tetapi keputusan terbaru belum dapat dikonfirmasi. Perbarui daftar sebelum mencoba kembali.");
+        return confirmed;
     }
 
     public String compactCandidates(List<Candidate> rows) throws Exception {

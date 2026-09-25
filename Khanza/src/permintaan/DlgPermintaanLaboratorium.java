@@ -78,7 +78,8 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         tabMode=new DefaultTableModel(null,row){
              @Override public boolean isCellEditable(int rowIndex, int colIndex){
                     boolean a = false;
-                    if (colIndex==0) {
+                    if (colIndex==0 && getValueAt(rowIndex,4)!=null
+                            && !getValueAt(rowIndex,4).toString().trim().isEmpty()) {
                         a=true;
                     }
                     return a;
@@ -187,7 +188,8 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         tabModeDetailMB=new DefaultTableModel(null,new Object[]{"P","Pemeriksaan","Satuan","Nilai Rujukan","id_template"}){
              @Override public boolean isCellEditable(int rowIndex, int colIndex){
                     boolean a = false;
-                    if (colIndex==0) {
+                    if (colIndex==0 && getValueAt(rowIndex,4)!=null
+                            && !getValueAt(rowIndex,4).toString().trim().isEmpty()) {
                         a=true;
                     }
                     return a;
@@ -423,6 +425,8 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         jLabel25 = new widget.Label();
         TabRawat = new javax.swing.JTabbedPane();
         PanelCariUtama = new javax.swing.JPanel();
+        panelDetailPK = new javax.swing.JPanel();
+        panelCariDetailPK = new javax.swing.JPanel();
         Scroll = new widget.ScrollPane();
         tbDetailPK = new widget.Table();
         panelGlass11 = new widget.panelisi();
@@ -785,6 +789,12 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         PanelCariUtama.setPreferredSize(new java.awt.Dimension(100, 143));
         PanelCariUtama.setLayout(new java.awt.BorderLayout());
 
+        panelDetailPK.setOpaque(false);
+        panelDetailPK.setLayout(new java.awt.BorderLayout());
+        panelCariDetailPK.setOpaque(false);
+        panelCariDetailPK.setPreferredSize(new java.awt.Dimension(100, 40));
+        panelCariDetailPK.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 10));
+
         Scroll.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255)));
         Scroll.setComponentPopupMenu(Popup);
         Scroll.setName("Scroll"); // NOI18N
@@ -794,7 +804,7 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         tbDetailPK.setName("tbDetailPK"); // NOI18N
         Scroll.setViewportView(tbDetailPK);
 
-        PanelCariUtama.add(Scroll, java.awt.BorderLayout.CENTER);
+        panelDetailPK.add(Scroll, java.awt.BorderLayout.CENTER);
 
         panelGlass11.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255)));
         panelGlass11.setName("panelGlass11"); // NOI18N
@@ -804,18 +814,16 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         jLabel6.setText("Detail Pemeriksaan :");
         jLabel6.setName("jLabel6"); // NOI18N
         jLabel6.setPreferredSize(new java.awt.Dimension(110, 23));
-        panelGlass11.add(jLabel6);
-        jLabel6.setBounds(10, 400, 110, 23);
+        panelCariDetailPK.add(jLabel6);
 
         TCari.setName("TCari"); // NOI18N
-        TCari.setPreferredSize(new java.awt.Dimension(625, 23));
+        TCari.setPreferredSize(new java.awt.Dimension(320, 23));
         TCari.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 TCariKeyPressed(evt);
             }
         });
-        panelGlass11.add(TCari);
-        TCari.setBounds(133, 400, 510, 23);
+        panelCariDetailPK.add(TCari);
 
         BtnCari2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/accept.png"))); // NOI18N
         BtnCari2.setMnemonic('4');
@@ -832,8 +840,10 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
                 BtnCari2KeyPressed(evt);
             }
         });
-        panelGlass11.add(BtnCari2);
-        BtnCari2.setBounds(650, 400, 28, 23);
+        panelCariDetailPK.add(BtnCari2);
+
+        panelDetailPK.add(panelCariDetailPK, java.awt.BorderLayout.PAGE_START);
+        PanelCariUtama.add(panelDetailPK, java.awt.BorderLayout.CENTER);
 
         jLabel11.setText("Pemeriksaan :");
         jLabel11.setName("jLabel11"); // NOI18N
@@ -1711,7 +1721,9 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
 
     private void ppSemuaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ppSemuaActionPerformed
         for(i=0;i<tbDetailPK.getRowCount();i++){
-            tbDetailPK.setValueAt(true,i,0);
+            if(detailPemeriksaanValid(tbDetailPK,i)){
+                tbDetailPK.setValueAt(true,i,0);
+            }
         }
     }//GEN-LAST:event_ppSemuaActionPerformed
 
@@ -1920,7 +1932,9 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
 
     private void ppSemua1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ppSemua1ActionPerformed
         for(i=0;i<tbDetailMB.getRowCount();i++){
-            tbDetailMB.setValueAt(true,i,0);
+            if(detailPemeriksaanValid(tbDetailMB,i)){
+                tbDetailMB.setValueAt(true,i,0);
+            }
         }
     }//GEN-LAST:event_ppSemua1ActionPerformed
 
@@ -1971,6 +1985,8 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private widget.TextBox NmPerujuk;
     private widget.TextBox NomorPA;
     private javax.swing.JPanel PanelCariUtama;
+    private javax.swing.JPanel panelCariDetailPK;
+    private javax.swing.JPanel panelDetailPK;
     private javax.swing.JPanel PanelCariUtama1;
     private javax.swing.JPanel PanelCariUtama2;
     private widget.PanelBiasa PanelInput;
@@ -2040,11 +2056,18 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private widget.Table tbTarifPK;
     // End of variables declaration//GEN-END:variables
 
+    private boolean detailPemeriksaanValid(javax.swing.JTable table, int row) {
+        Object nama = table.getValueAt(row, 1);
+        Object id = table.getValueAt(row, 4);
+        return nama != null && !nama.toString().trim().isEmpty()
+                && id != null && !id.toString().trim().isEmpty();
+    }
+
     private void tampil() { 
         try {
             jml2=0;
             for(i2=0;i2<tbDetailPK.getRowCount();i2++){
-                if(tbDetailPK.getValueAt(i2,0).toString().equals("true")){
+                if(tbDetailPK.getValueAt(i2,0).toString().equals("true") && detailPemeriksaanValid(tbDetailPK,i2)){
                     jml2++;
                 }
             }
@@ -2062,7 +2085,7 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             
             index2=0; 
             for(i2=0;i2<tbDetailPK.getRowCount();i2++){
-                if(tbDetailPK.getValueAt(i2,0).toString().equals("true")){
+                if(tbDetailPK.getValueAt(i2,0).toString().equals("true") && detailPemeriksaanValid(tbDetailPK,i2)){
                     pilih2[index2]=true;
                     pemeriksaan2[index2]=tbDetailPK.getValueAt(i2,1).toString();
                     satuan2[index2]=tbDetailPK.getValueAt(i2,2).toString();
@@ -2088,6 +2111,9 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
                         pstampil.setString(2,"%"+TCari.getText().trim()+"%");
                         rstampil=pstampil.executeQuery();
                         while(rstampil.next()){
+                            if(rstampil.getString("Pemeriksaan")==null || rstampil.getString("Pemeriksaan").trim().isEmpty()){
+                                continue;
+                            }
                             la="";ld="";pa="";pd="";
                             if(!rstampil.getString("nilai_rujukan_ld").equals("")){
                                 ld="LD : "+rstampil.getString("nilai_rujukan_ld");
@@ -2140,7 +2166,7 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         try {
             jml3=0;
             for(i2=0;i2<tbDetailMB.getRowCount();i2++){
-                if(tbDetailMB.getValueAt(i2,0).toString().equals("true")){
+                if(tbDetailMB.getValueAt(i2,0).toString().equals("true") && detailPemeriksaanValid(tbDetailMB,i2)){
                     jml3++;
                 }
             }
@@ -2158,7 +2184,7 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             
             index2=0; 
             for(i2=0;i2<tbDetailMB.getRowCount();i2++){
-                if(tbDetailMB.getValueAt(i2,0).toString().equals("true")){
+                if(tbDetailMB.getValueAt(i2,0).toString().equals("true") && detailPemeriksaanValid(tbDetailMB,i2)){
                     pilih2[index2]=true;
                     pemeriksaan2[index2]=tbDetailMB.getValueAt(i2,1).toString();
                     satuan2[index2]=tbDetailMB.getValueAt(i2,2).toString();
@@ -2185,6 +2211,9 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
                         pstampil.setString(2,"%"+TCariMB.getText().trim()+"%");
                         rstampil=pstampil.executeQuery();
                         while(rstampil.next()){
+                            if(rstampil.getString("Pemeriksaan")==null || rstampil.getString("Pemeriksaan").trim().isEmpty()){
+                                continue;
+                            }
                             la="";ld="";pa="";pd="";
                             if(!rstampil.getString("nilai_rujukan_ld").equals("")){
                                 ld="LD : "+rstampil.getString("nilai_rujukan_ld");
