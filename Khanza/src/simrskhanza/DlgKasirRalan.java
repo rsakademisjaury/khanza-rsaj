@@ -1209,6 +1209,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         panelAksi.add(BtnRencanaKontrol);
         panelAksi.add(BtnRencanaKontrolAntarPoli);
         panelAksi.add(BtnRiwayatSKDP);
+        panelAksi.add(BtnLihatTindakan);
         panelAksi.add(BtnRiwayatSKDPVCLAIM);
         panelAksi.add(BtnRiwayatPasien);
 
@@ -2020,6 +2021,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         NoSEP2 = new widget.Label();
         RujukanExpire = new widget.Label();
         BtnRiwayatSKDP = new widget.Button();
+        BtnLihatTindakan = new widget.Button();
         NoKartu = new widget.Label();
         NoSEP3 = new widget.Label();
         BtnRiwayatSKDPVCLAIM = new widget.Button();
@@ -7725,6 +7727,19 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         NoSEP3.setName("NoSEP3"); // NOI18N
         NoSEP3.setPreferredSize(new java.awt.Dimension(50, 23));
 
+        BtnLihatTindakan.setBackground(new java.awt.Color(249, 249, 249));
+        BtnLihatTindakan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/liattindakan.png"))); // NOI18N
+        BtnLihatTindakan.setText("Lihat Tindakan");
+        BtnLihatTindakan.setToolTipText("Lihat Tindakan");
+        BtnLihatTindakan.setFont(new java.awt.Font("SansSerif", 0, 11)); // NOI18N
+        BtnLihatTindakan.setName("BtnLihatTindakan"); // NOI18N
+        BtnLihatTindakan.setPreferredSize(new java.awt.Dimension(111, 30));
+        BtnLihatTindakan.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnLihatTindakanActionPerformed(evt);
+            }
+        });
+
         BtnRiwayatSKDPVCLAIM.setBackground(new java.awt.Color(249, 249, 249));
         BtnRiwayatSKDPVCLAIM.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/copy.png"))); // NOI18N
         BtnRiwayatSKDPVCLAIM.setMnemonic('K');
@@ -7945,6 +7960,8 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(BtnRiwayatSKDP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(BtnLihatTindakan, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(BtnRiwayatSKDPVCLAIM, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(BtnRiwayatPasien, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -8019,6 +8036,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
                     .addComponent(BtnRencanaKontrol, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(BtnRencanaKontrolAntarPoli, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(BtnRiwayatSKDP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnLihatTindakan, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(BtnRiwayatSKDPVCLAIM, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(BtnRiwayatPasien, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(5, Short.MAX_VALUE))
@@ -16653,6 +16671,27 @@ if(tabModekasir.getRowCount()==0){
         }
     }//GEN-LAST:event_BtnRiwayatSKDPActionPerformed
 
+    private void BtnLihatTindakanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnLihatTindakanActionPerformed
+        if(tabModekasir.getRowCount()==0){
+            JOptionPane.showMessageDialog(null,"Maaf, table masih kosong...!!!!");
+            TCari.requestFocus();
+        }else if(tbKasirRalan.getSelectedRow()<0 || TNoRwCari.getText().trim().equals("")){
+            JOptionPane.showMessageDialog(null,"Maaf, Silahkan anda pilih dulu pasien pada table...!!!");
+            tbKasirRalan.requestFocus();
+        }else{
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            try {
+                DlgKeteranganPenunjang form=new DlgKeteranganPenunjang(null,false);
+                form.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
+                form.setLocationRelativeTo(internalFrame1);
+                form.setNoRm(TNoRwCari.getText());
+                form.setVisible(true);
+            } finally {
+                this.setCursor(Cursor.getDefaultCursor());
+            }
+        }
+    }//GEN-LAST:event_BtnLihatTindakanActionPerformed
+
     private void BtnRiwayatSKDPKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnRiwayatSKDPKeyPressed
         // TODO add your handling code here:
     }//GEN-LAST:event_BtnRiwayatSKDPKeyPressed
@@ -17229,6 +17268,7 @@ private void MnFormulirKFRActionPerformed(java.awt.event.ActionEvent evt) {//GEN
     private widget.Button BtnResumeRJ;
     private widget.Button BtnRiwayatPasien;
     private widget.Button BtnRiwayatSKDP;
+    private widget.Button BtnLihatTindakan;
     private widget.Button BtnRiwayatSKDPVCLAIM;
     private widget.Button BtnSeek3;
     private widget.Button BtnSeek4;
