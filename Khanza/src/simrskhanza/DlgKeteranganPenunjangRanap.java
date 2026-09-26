@@ -13,16 +13,17 @@
 package simrskhanza;
 
 // ============================================================================
-// VERSI REVISI UI CLINICAL v4 - 15 AGUSTUS 2026
+// VERSI REVISI UI CLINICAL v5 - 25 SEPTEMBER 2026
 // Ciri versi ini:
 // 1. Header bagian atas sudah dihilangkan.
 // 2. Kotak/kartu rekap sudah dihilangkan.
 // 3. Tab Riwayat Pelayanan langsung berada setelah data pasien.
 // 4. Tombol Tutup berada di bagian paling bawah.
-// 5. Identitas pasien compact sesuai referensi (No. Rawat, No. RM, Nama Pasien,
-//    Tanggal Masuk dan Tarif/hari).
-// 6. Setiap tab memiliki icon sesuai kategori.
-// 7. Status pelayanan menggunakan badge kapsul dan icon status.
+// 5. Identitas pasien compact model label (No. Rawat, Nama Pasien, No. RM,
+//    dan Tanggal Masuk) tanpa Tarif/hari.
+// 6. Navigasi kategori menonjolkan tab aktif; tab nonaktif netral hitam/abu.
+// 7. Rincian Lab/Resep memakai bullet bulat renderer tanpa karakter Unicode.
+// 8. Status pelayanan menggunakan badge kapsul dan icon status.
 // ============================================================================
 
 import fungsi.WarnaTable;
@@ -39,6 +40,7 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Image;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
@@ -46,18 +48,23 @@ import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.sql.Connection;
 import java.text.DateFormat;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -72,6 +79,9 @@ import inventory.DlgCariObat;
 import inventory.DlgCariObat2;
 import inventory.DlgCariObat3;
 import java.awt.Dimension;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.swing.JTable;
@@ -80,6 +90,7 @@ import javax.swing.border.Border;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableModel;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 
 /**
@@ -97,6 +108,8 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
     private static final Color CLINICAL_BORDER = new Color(218, 226, 236);
     private static final Color CLINICAL_BACKGROUND = new Color(246, 249, 252);
     private static final Color CLINICAL_ROW_ALT = new Color(248, 250, 253);
+    private static final String DETAIL_PREFIX_CLINICAL="__DETAIL_CLINICAL__";
+    private static final Color CLINICAL_TAB_INACTIVE_TEXT=new Color(45,55,70);
 
     private Connection koneksi=koneksiDB.condb();
     private sekuel Sequel=new sekuel();
@@ -138,8 +151,10 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
     private JPanel panelTabClinical;
     private JPanel panelRiwayatClinical;
     private JTextField TCariClinical;
-    private JTextField TTanggalMasukClinical;
-    private JTextField TTarifHariClinical;
+    private JLabel LNoRwClinical;
+    private JLabel LNoRMClinical;
+    private JLabel LPasienClinical;
+    private JLabel LTanggalMasukClinical;
     private JLabel lblJumlahDataClinical;
     private JTable[] tabelClinical;
     private JButton[] tombolTabClinical;
@@ -155,6 +170,23 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
         new Color(31,103,210),new Color(22,150,145),new Color(82,92,180),
         new Color(31,132,190),new Color(111,79,178),new Color(43,151,82)
     };
+
+    private static final String IKON_NO_RAWAT_CLINICAL="/picture/no_rawat.png";
+    private static final String IKON_NAMA_PASIEN_CLINICAL="/picture/nama_pasien.png";
+    private static final String IKON_NO_RM_CLINICAL="/picture/no_rm.png";
+    private static final String IKON_TANGGAL_MASUK_CLINICAL="/picture/tanggal_masuk.png";
+    private static final String[] IKON_TAB_CLINICAL={
+        "/picture/tab_tindakan_dokter.png",
+        "/picture/tab_tindakan_petugas.png",
+        "/picture/tab_dokter_petugas.png",
+        "/picture/tab_laboratorium.png",
+        "/picture/tab_radiologi.png",
+        "/picture/tab_resep.png"
+    };
+    private final List<ClinicalMasterDetailRow> dataLabClinical=new ArrayList<>();
+    private final List<ClinicalMasterDetailRow> dataApotekClinical=new ArrayList<>();
+    private final List<ClinicalDisplayRowMeta> tampilanLabClinical=new ArrayList<>();
+    private final List<ClinicalDisplayRowMeta> tampilanApotekClinical=new ArrayList<>();
 
     /** Creates new form DlgPemberianObat
      * @param parent
@@ -386,7 +418,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
             }
         });
 
-        internalFrame1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(218, 226, 236))); // NOI18N
+        internalFrame1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(218, 226, 236)));
         internalFrame1.setName("internalFrame1"); // NOI18N
         internalFrame1.setPreferredSize(new java.awt.Dimension(1380, 740));
         internalFrame1.setLayout(new java.awt.BorderLayout(1, 1));
@@ -601,7 +633,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
         panelGlass8.setPreferredSize(new java.awt.Dimension(100, 56));
         panelGlass8.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 9));
 
-        BtnKeluar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/cross.png"))); // NOI18N
+        BtnKeluar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/101.png"))); // NOI18N
         BtnKeluar.setMnemonic('T');
         BtnKeluar.setText("Tutup");
         BtnKeluar.setToolTipText("Alt+T");
@@ -693,11 +725,11 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
 
         kartuPasien.setAlignmentX(Component.LEFT_ALIGNMENT);
         riwayat.setAlignmentX(Component.LEFT_ALIGNMENT);
-        kartuPasien.setMaximumSize(new Dimension(Integer.MAX_VALUE,76));
+        kartuPasien.setMaximumSize(new Dimension(Integer.MAX_VALUE,48));
         riwayat.setMaximumSize(new Dimension(Integer.MAX_VALUE,Integer.MAX_VALUE));
 
         panelIsi.add(kartuPasien);
-        panelIsi.add(Box.createVerticalStrut(8));
+        panelIsi.add(Box.createVerticalStrut(5));
         panelIsi.add(riwayat);
 
         FormInput.add(panelIsi,BorderLayout.CENTER);
@@ -736,89 +768,135 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
     }
 
     private JPanel buatKartuPasienClinical(){
-        JPanel kartu=new JPanel(new BorderLayout(12,0));
-        kartu.setBackground(Color.WHITE);
-        kartu.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(166,203,249)),
-            BorderFactory.createEmptyBorder(7,14,7,10)
-        ));
-        kartu.setPreferredSize(new Dimension(100,70));
+        JPanel kartu=new JPanel(new BorderLayout());
+        kartu.setOpaque(false);
+        kartu.setBorder(BorderFactory.createEmptyBorder(0,2,0,2));
+        kartu.setPreferredSize(new Dimension(100,48));
 
-        JPanel identitas=new JPanel(new FlowLayout(FlowLayout.LEFT,8,17));
-        identitas.setOpaque(false);
-        identitas.setPreferredSize(new Dimension(215,56));
-        JLabel ikonPasien=new JLabel(new PatientIdentityIcon());
-        ikonPasien.setPreferredSize(new Dimension(22,22));
-        JLabel judulIdentitas=new JLabel("IDENTITAS PASIEN");
-        judulIdentitas.setFont(new Font("Segoe UI Semibold",Font.PLAIN,12));
-        judulIdentitas.setForeground(new Color(23,79,164));
-        identitas.add(ikonPasien);
-        identitas.add(judulIdentitas);
+        LNoRwClinical=buatLabelNilaiIdentitasClinical(TNoRw.getText());
+        LPasienClinical=buatLabelNilaiIdentitasClinical(TPasien.getText());
+        LNoRMClinical=buatLabelNilaiIdentitasClinical(TNoRM.getText());
+        LTanggalMasukClinical=buatLabelNilaiIdentitasClinical("-");
 
-        aturFieldPasienClinical(TNoRw,12,Font.BOLD);
-        aturFieldPasienClinical(TNoRM,12,Font.BOLD);
-        aturFieldPasienClinical(TPasien,12,Font.BOLD);
-        TTanggalMasukClinical=new JTextField("-");
-        TTarifHariClinical=new JTextField("-");
-        aturFieldPasienClinical(TTanggalMasukClinical,12,Font.BOLD);
-        aturFieldPasienClinical(TTarifHariClinical,12,Font.BOLD);
-
-        JPanel detail=new JPanel(new GridBagLayout());
+        JPanel detail=new JPanel();
         detail.setOpaque(false);
-        tambahGrupIdentitasClinical(detail,buatGrupIdentitasClinical("No. Rawat",TNoRw),0,1.10);
-        tambahGrupIdentitasClinical(detail,buatGrupIdentitasClinical("No. RM",TNoRM),1,0.65);
-        tambahGrupIdentitasClinical(detail,buatGrupIdentitasClinical("Nama Pasien",TPasien),2,1.70);
-        tambahGrupIdentitasClinical(detail,buatGrupIdentitasClinical("Tanggal Masuk",TTanggalMasukClinical),3,1.25);
-        tambahGrupIdentitasClinical(detail,buatGrupIdentitasClinical("Tarif / hari",TTarifHariClinical),4,0.95);
+        detail.setLayout(new FlowLayout(FlowLayout.LEFT,0,0));
+        detail.add(buatGrupIdentitasClinical("No. Rawat",LNoRwClinical,
+                IKON_NO_RAWAT_CLINICAL,new ClinicalIdentityItemIcon(0,new Color(33,112,214))));
+        detail.add(buatSeparatorIdentitasClinical());
+        detail.add(buatGrupIdentitasClinical("Nama Pasien",LPasienClinical,
+                IKON_NAMA_PASIEN_CLINICAL,new ClinicalIdentityItemIcon(1,new Color(33,112,214))));
+        detail.add(buatSeparatorIdentitasClinical());
+        detail.add(buatGrupIdentitasClinical("No. RM",LNoRMClinical,
+                IKON_NO_RM_CLINICAL,new ClinicalIdentityItemIcon(2,new Color(33,112,214))));
+        detail.add(buatSeparatorIdentitasClinical());
+        detail.add(buatGrupIdentitasClinical("Tanggal Masuk",LTanggalMasukClinical,
+                IKON_TANGGAL_MASUK_CLINICAL,new ClinicalIdentityItemIcon(3,new Color(33,112,214))));
 
-        kartu.add(identitas,BorderLayout.LINE_START);
         kartu.add(detail,BorderLayout.CENTER);
+        sinkronkanIdentitasClinical();
         return kartu;
     }
 
-    private void aturFieldPasienClinical(javax.swing.JTextField field,int ukuran,int gaya){
-        field.setEditable(false);
-        field.setOpaque(false);
-        field.setBorder(BorderFactory.createEmptyBorder(0,0,0,0));
-        field.setFont(new Font("Segoe UI",gaya,ukuran));
-        field.setForeground(CLINICAL_TEXT);
+    private JLabel buatLabelNilaiIdentitasClinical(String nilai){
+        JLabel label=new JLabel(nilai==null || nilai.trim().isEmpty()?"-":nilai);
+        label.setFont(new Font("Segoe UI Semibold",Font.PLAIN,12));
+        label.setForeground(CLINICAL_TEXT);
+        label.setVerticalAlignment(SwingConstants.CENTER);
+        return label;
     }
 
-    private JPanel buatGrupIdentitasClinical(String judul,Component nilai){
-        JPanel panel=new JPanel(new BorderLayout(0,2));
+    private JPanel buatGrupIdentitasClinical(String judul,JLabel nilai,String pathIkon,Icon fallback){
+        JPanel panel=new JPanel(new BorderLayout(7,0));
         panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0,1,0,0,CLINICAL_BORDER),
-            BorderFactory.createEmptyBorder(2,10,2,10)
-        ));
-        JLabel label=new JLabel(judul);
-        label.setFont(new Font("Segoe UI",Font.PLAIN,11));
-        label.setForeground(CLINICAL_MUTED);
-        panel.add(label,BorderLayout.PAGE_START);
-        panel.add(nilai,BorderLayout.CENTER);
+        panel.setBorder(BorderFactory.createEmptyBorder(2,0,2,0));
+
+        JLabel ikon=new JLabel(muatIkonResourceClinical(pathIkon,20,20,fallback));
+        ikon.setHorizontalAlignment(SwingConstants.CENTER);
+        ikon.setVerticalAlignment(SwingConstants.CENTER);
+        ikon.setPreferredSize(new Dimension(20,20));
+
+        JPanel teks=new JPanel();
+        teks.setOpaque(false);
+        teks.setLayout(new BoxLayout(teks,BoxLayout.Y_AXIS));
+
+        JLabel labelJudul=new JLabel(judul);
+        labelJudul.setFont(new Font("Segoe UI",Font.PLAIN,10));
+        labelJudul.setForeground(CLINICAL_MUTED);
+        labelJudul.setAlignmentX(Component.LEFT_ALIGNMENT);
+        nilai.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        teks.add(labelJudul);
+        teks.add(Box.createVerticalStrut(1));
+        teks.add(nilai);
+
+        panel.add(ikon,BorderLayout.LINE_START);
+        panel.add(teks,BorderLayout.CENTER);
         return panel;
     }
 
-    private void tambahGrupIdentitasClinical(JPanel induk,JPanel grup,int kolom,double bobot){
-        GridBagConstraints batas=new GridBagConstraints();
-        batas.gridx=kolom;
-        batas.gridy=0;
-        batas.weightx=bobot;
-        batas.weighty=1.0;
-        batas.fill=GridBagConstraints.BOTH;
-        induk.add(grup,batas);
+    private Component buatSeparatorIdentitasClinical(){
+        JPanel wadah=new JPanel(new GridBagLayout());
+        wadah.setOpaque(false);
+        wadah.setBorder(BorderFactory.createEmptyBorder(0,10,0,10));
+        JPanel garis=new JPanel();
+        garis.setBackground(CLINICAL_BORDER);
+        garis.setPreferredSize(new Dimension(1,15));
+        garis.setMinimumSize(new Dimension(1,15));
+        garis.setMaximumSize(new Dimension(1,15));
+        wadah.add(garis);
+        return wadah;
+    }
+
+    private Icon muatIkonResourceClinical(String pathIkon,int lebar,int tinggi,Icon fallback){
+        try{
+            java.net.URL lokasi=DlgKeteranganPenunjangRanap.class.getResource(pathIkon);
+            if(lokasi!=null){
+                ImageIcon ikonAsli=new ImageIcon(lokasi);
+                Image gambar=ikonAsli.getImage().getScaledInstance(lebar,tinggi,Image.SCALE_SMOOTH);
+                return new ImageIcon(gambar);
+            }
+        }catch(Exception e){
+            System.out.println("Notif Muat Icon Clinical : "+e);
+        }
+        return fallback;
+    }
+
+    private void aturUkuranKomponenPreferred(JComponent komponen){
+        Dimension ukuran=komponen.getPreferredSize();
+        komponen.setMinimumSize(ukuran);
+        komponen.setMaximumSize(ukuran);
+    }
+
+    private void sinkronkanIdentitasClinical(){
+        if(LNoRwClinical!=null){
+            LNoRwClinical.setText(nilaiIdentitasClinical(TNoRw.getText()));
+        }
+        if(LNoRMClinical!=null){
+            LNoRMClinical.setText(nilaiIdentitasClinical(TNoRM.getText()));
+        }
+        if(LPasienClinical!=null){
+            LPasienClinical.setText(nilaiIdentitasClinical(TPasien.getText()));
+        }
+        if(panelGlass8!=null){
+            panelGlass8.revalidate();
+            panelGlass8.repaint();
+        }
+    }
+
+    private String nilaiIdentitasClinical(String nilai){
+        return nilai==null || nilai.trim().isEmpty()?"-":nilai.trim();
     }
 
     private JPanel buatPanelRiwayatClinical(){
-        panelRiwayatClinical=new JPanel(new BorderLayout());
-        panelRiwayatClinical.setBackground(Color.WHITE);
-        panelRiwayatClinical.setBorder(BorderFactory.createLineBorder(CLINICAL_BORDER));
+        panelRiwayatClinical=new ClinicalRoundedPanel(new BorderLayout(),16);
+        panelRiwayatClinical.setOpaque(false);
         panelRiwayatClinical.setPreferredSize(new Dimension(100,390));
 
         JPanel panelAtas=new JPanel();
-        panelAtas.setBackground(Color.WHITE);
+        panelAtas.setOpaque(false);
         panelAtas.setLayout(new BoxLayout(panelAtas,BoxLayout.Y_AXIS));
-        panelAtas.setBorder(BorderFactory.createEmptyBorder(12,16,0,16));
+        panelAtas.setBorder(BorderFactory.createEmptyBorder(12,16,10,16));
 
         JPanel barisJudul=new JPanel(new BorderLayout(16,0));
         barisJudul.setOpaque(false);
@@ -831,14 +909,10 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
         JLabel labelCari=new JLabel("Cari");
         labelCari.setFont(new Font("Segoe UI",Font.PLAIN,12));
         labelCari.setForeground(CLINICAL_MUTED);
-        TCariClinical=new JTextField();
+        TCariClinical=new ClinicalRoundedTextField(18);
         TCariClinical.setFont(new Font("Segoe UI",Font.PLAIN,12));
         TCariClinical.setForeground(CLINICAL_TEXT);
         TCariClinical.setToolTipText("Cari pemeriksaan, dokter, petugas, nomor permintaan atau status");
-        TCariClinical.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(CLINICAL_BORDER),
-            BorderFactory.createEmptyBorder(5,10,5,10)
-        ));
         TCariClinical.setPreferredSize(new Dimension(285,34));
         panelCari.add(labelCari,BorderLayout.LINE_START);
         panelCari.add(TCariClinical,BorderLayout.CENTER);
@@ -846,7 +920,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
         barisJudul.add(judul,BorderLayout.LINE_START);
         barisJudul.add(panelCari,BorderLayout.LINE_END);
 
-        panelTabClinical=new JPanel(new FlowLayout(FlowLayout.LEFT,4,0));
+        panelTabClinical=new JPanel(new FlowLayout(FlowLayout.LEFT,8,0));
         panelTabClinical.setBackground(Color.WHITE);
         tombolTabClinical=new JButton[namaKategoriClinical.length];
         for(int indeks=0;indeks<namaKategoriClinical.length;indeks++){
@@ -871,7 +945,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
         panelPermintaan.add(scrollPane7,kunciKategoriClinical[5]);
 
         JPanel panelBawah=new JPanel(new BorderLayout());
-        panelBawah.setBackground(Color.WHITE);
+        panelBawah.setOpaque(false);
         panelBawah.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(1,0,0,0,CLINICAL_BORDER),
             BorderFactory.createEmptyBorder(8,16,8,16)
@@ -888,20 +962,67 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
     }
 
     private JButton buatTombolTabClinical(final int indeks){
-        JButton tombol=new JButton(namaKategoriClinical[indeks]);
-        tombol.setIcon(new ClinicalTabIcon(indeks,warnaTabClinical[indeks]));
-        tombol.setIconTextGap(7);
-        tombol.setFont(new Font("Segoe UI Semibold",Font.PLAIN,12));
-        tombol.setForeground(CLINICAL_MUTED);
-        tombol.setBackground(Color.WHITE);
-        tombol.setFocusPainted(false);
-        tombol.setContentAreaFilled(true);
-        tombol.setOpaque(true);
-        tombol.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        Icon ikonTab=muatIkonTabClinical(indeks);
+        ClinicalTabButton tombol=new ClinicalTabButton(
+            namaKategoriClinical[indeks],indeks,warnaTabClinical[indeks],ikonTab
+        );
         tombol.addActionListener((java.awt.event.ActionEvent evt) -> {
             tampilkanKategoriClinical(indeks);
         });
         return tombol;
+    }
+
+    /**
+     * Memuat icon tab langsung dari folder /picture/. Cara pertama sengaja sama
+     * dengan icon bawaan Khanza (contoh /picture/cross.png). Dua fallback lain
+     * disiapkan agar icon tetap terbaca saat dijalankan dari NetBeans/project.
+     */
+    private Icon muatIkonTabClinical(int indeks){
+        if(indeks<0 || indeks>=IKON_TAB_CLINICAL.length){
+            return null;
+        }
+        String path=IKON_TAB_CLINICAL[indeks];
+        try{
+            java.net.URL lokasi=getClass().getResource(path);
+            if(lokasi==null){
+                ClassLoader loader=Thread.currentThread().getContextClassLoader();
+                if(loader!=null){
+                    lokasi=loader.getResource(path.startsWith("/")?path.substring(1):path);
+                }
+            }
+            if(lokasi!=null){
+                return ukuranIkonTabClinical(new ImageIcon(lokasi));
+            }
+
+            // Fallback saat resource belum tersalin ke build/classes oleh NetBeans.
+            String relatif=path.startsWith("/")?path.substring(1):path;
+            File[] kandidat={
+                new File("src",relatif),
+                new File(relatif),
+                new File(".",relatif)
+            };
+            for(File file:kandidat){
+                if(file.isFile()){
+                    return ukuranIkonTabClinical(new ImageIcon(file.getAbsolutePath()));
+                }
+            }
+            System.out.println("Icon tab tidak ditemukan : "+path+
+                    " | pastikan file berada di src/picture dan ikut masuk build/classes/picture");
+        }catch(Exception e){
+            System.out.println("Notif Muat Icon Tab Clinical : "+e);
+        }
+        return null;
+    }
+
+    private Icon ukuranIkonTabClinical(ImageIcon ikonAsli){
+        if(ikonAsli==null || ikonAsli.getIconWidth()<=0 || ikonAsli.getIconHeight()<=0){
+            return null;
+        }
+        if(ikonAsli.getIconWidth()==16 && ikonAsli.getIconHeight()==16){
+            return ikonAsli;
+        }
+        Image gambar=ikonAsli.getImage().getScaledInstance(16,16,Image.SCALE_SMOOTH);
+        return new ImageIcon(gambar);
     }
 
     private void aturTabelClinical(){
@@ -921,7 +1042,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
             tabel.setGridColor(new Color(231,236,243));
             tabel.setIntercellSpacing(new Dimension(0,1));
             tabel.setFillsViewportHeight(true);
-            tabel.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+            tabel.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
             tabel.setDefaultRenderer(Object.class,new ClinicalCellRenderer());
             tabel.getTableHeader().setReorderingAllowed(false);
             tabel.getTableHeader().setResizingAllowed(true);
@@ -936,13 +1057,6 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
             scrollClinical[indeks].getViewport().setBackground(Color.WHITE);
         }
 
-        aturLebarKolomClinical(tbDokter,new int[]{105,75,330,110,110,330});
-        aturLebarKolomClinical(tbPetugas,new int[]{105,75,560,410});
-        aturLebarKolomClinical(tbDokterPetugas,new int[]{105,75,390,330,330});
-        aturLebarKolomClinical(tbLab,new int[]{155,105,80,390,350,160});
-        aturLebarKolomClinical(tbRadiologi,new int[]{155,105,80,390,350,160});
-        aturLebarKolomClinical(tbApotek,new int[]{155,105,80,500,180});
-
         tbLab.getColumnModel().getColumn(5).setCellRenderer(new ClinicalStatusRenderer());
         tbRadiologi.getColumnModel().getColumn(5).setCellRenderer(new ClinicalStatusRenderer());
         tbApotek.getColumnModel().getColumn(4).setCellRenderer(new ClinicalStatusRenderer());
@@ -951,12 +1065,281 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
         angka.setHorizontalAlignment(SwingConstants.RIGHT);
         tbDokter.getColumnModel().getColumn(3).setCellRenderer(angka);
         tbDokter.getColumnModel().getColumn(4).setCellRenderer(angka);
+
+        siapkanInteraksiDetailClinical();
+        tbLab.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        tbApotek.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        aturLebarSemuaKolomClinical();
     }
 
-    private void aturLebarKolomClinical(JTable tabel,int[] lebar){
-        for(int kolom=0;kolom<lebar.length && kolom<tabel.getColumnModel().getColumnCount();kolom++){
-            tabel.getColumnModel().getColumn(kolom).setPreferredWidth(lebar[kolom]);
+    private void siapkanInteraksiDetailClinical(){
+        tbLab.addMouseListener(new MouseAdapter(){
+            @Override
+            public void mouseClicked(MouseEvent e){
+                toggleRincianLabClinical(tbLab.rowAtPoint(e.getPoint()));
+            }
+        });
+        tbApotek.addMouseListener(new MouseAdapter(){
+            @Override
+            public void mouseClicked(MouseEvent e){
+                toggleRincianApotekClinical(tbApotek.rowAtPoint(e.getPoint()));
+            }
+        });
+    }
+
+    private void toggleRincianLabClinical(int rowView){
+        if(rowView<0 || tampilanLabClinical.isEmpty()){
+            return;
         }
+        int rowModel=tbLab.convertRowIndexToModel(rowView);
+        if(rowModel<0 || rowModel>=tampilanLabClinical.size()){
+            return;
+        }
+        ClinicalDisplayRowMeta meta=tampilanLabClinical.get(rowModel);
+        if(meta.detailRow || meta.parentIndex<0 || meta.parentIndex>=dataLabClinical.size()){
+            return;
+        }
+        ClinicalMasterDetailRow baris=dataLabClinical.get(meta.parentIndex);
+        if(baris.details.isEmpty()){
+            return;
+        }
+        baris.expanded=!baris.expanded;
+        renderLabRowsClinical();
+        if(rowView<tbLab.getRowCount()){
+            tbLab.setRowSelectionInterval(rowView,rowView);
+        }
+    }
+
+    private void toggleRincianApotekClinical(int rowView){
+        if(rowView<0 || tampilanApotekClinical.isEmpty()){
+            return;
+        }
+        int rowModel=tbApotek.convertRowIndexToModel(rowView);
+        if(rowModel<0 || rowModel>=tampilanApotekClinical.size()){
+            return;
+        }
+        ClinicalDisplayRowMeta meta=tampilanApotekClinical.get(rowModel);
+        if(meta.detailRow || meta.parentIndex<0 || meta.parentIndex>=dataApotekClinical.size()){
+            return;
+        }
+        ClinicalMasterDetailRow baris=dataApotekClinical.get(meta.parentIndex);
+        if(baris.details.isEmpty()){
+            return;
+        }
+        baris.expanded=!baris.expanded;
+        renderApotekRowsClinical();
+    }
+
+    private void bangunDataLabClinicalDariModel(){
+        dataLabClinical.clear();
+        for(int row=0;row<tabModeLab.getRowCount();row++){
+            String[] parent=ambilDataBarisModel(tabModeLab,row,6);
+            normalisasiBarisLabClinical(parent);
+            List<String> details=ambilRincianLabClinical(parent[0],parent[3]);
+            dataLabClinical.add(new ClinicalMasterDetailRow(parent,details));
+        }
+    }
+
+    private void bangunDataApotekClinicalDariModel(){
+        dataApotekClinical.clear();
+        for(int row=0;row<tabModeApotek.getRowCount();row++){
+            String[] parent=ambilDataBarisModel(tabModeApotek,row,5);
+            List<String> details=ambilRincianApotekClinical(parent[0]);
+            dataApotekClinical.add(new ClinicalMasterDetailRow(parent,details));
+        }
+    }
+
+    private String[] ambilDataBarisModel(DefaultTableModel model,int row,int jumlahKolom){
+        String[] data=new String[jumlahKolom];
+        for(int kolom=0;kolom<jumlahKolom;kolom++){
+            Object nilai=model.getValueAt(row,kolom);
+            data[kolom]=nilai==null?"":nilai.toString();
+        }
+        return data;
+    }
+
+    private void normalisasiBarisLabClinical(String[] parent){
+        if(parent.length<6){
+            return;
+        }
+        if((parent[5]==null || parent[5].trim().isEmpty()) &&
+                ("Sudah Terlayani".equalsIgnoreCase(parent[4]) || "Belum Terlayani".equalsIgnoreCase(parent[4]))){
+            parent[5]=parent[4];
+            parent[4]=parent[3];
+            parent[3]="Pemeriksaan Laboratorium";
+        }
+        for(int i=0;i<parent.length;i++){
+            if(parent[i]==null){
+                parent[i]="";
+            }
+        }
+    }
+
+    private List<String> ambilRincianLabClinical(String noOrder,String namaDefault){
+        LinkedHashSet<String> hasil=new LinkedHashSet<>();
+
+        // Sub rincian yang benar dibaca dari HASIL pemeriksaan (detail_periksa_lab),
+        // bukan dari tabel permintaan. noorder dipetakan ke tgl_hasil/jam_hasil
+        // pada permintaan_lab lalu dicocokkan dengan tgl_periksa/jam pada detail_periksa_lab.
+        String sqlDetail="select trim(template_laboratorium.Pemeriksaan) as pemeriksaan "
+                +"from permintaan_lab "
+                +"inner join detail_periksa_lab on detail_periksa_lab.no_rawat=permintaan_lab.no_rawat "
+                +"and detail_periksa_lab.tgl_periksa=permintaan_lab.tgl_hasil "
+                +"and detail_periksa_lab.jam=permintaan_lab.jam_hasil "
+                +"inner join template_laboratorium on template_laboratorium.id_template=detail_periksa_lab.id_template "
+                +"where permintaan_lab.noorder=? "
+                +"order by detail_periksa_lab.kd_jenis_prw,template_laboratorium.urut";
+        try(PreparedStatement psDetail=koneksi.prepareStatement(sqlDetail)){
+            psDetail.setString(1,noOrder);
+            try(ResultSet rsDetail=psDetail.executeQuery()){
+                while(rsDetail.next()){
+                    String rincian=rsDetail.getString("pemeriksaan");
+                    if(rincian!=null && !rincian.trim().isEmpty()){
+                        hasil.add(rincian.trim());
+                    }
+                }
+            }
+        }catch(Exception e){
+            System.out.println("Notif Rincian Lab : "+e);
+        }
+        return new ArrayList<>(hasil);
+    }
+
+    private List<String> ambilRincianApotekClinical(String noResep){
+        LinkedHashSet<String> hasil=new LinkedHashSet<>();
+        String[] calonSql={
+            "select concat(databarang.nama_brng,'  x',resep_dokter.jml,'  ' ,ifnull(resep_dokter.aturan_pakai,'')) as rincian "+
+            "from resep_dokter inner join databarang on resep_dokter.kode_brng=databarang.kode_brng where resep_dokter.no_resep=? order by databarang.nama_brng",
+            "select concat(databarang.nama_brng,'  x',detail_pemberian_obat.jml,'  ' ,ifnull(detail_pemberian_obat.aturan_pakai,'')) as rincian "+
+            "from detail_pemberian_obat inner join databarang on detail_pemberian_obat.kode_brng=databarang.kode_brng where detail_pemberian_obat.no_resep=? order by databarang.nama_brng"
+        };
+        for(String sqlDetail:calonSql){
+            try(PreparedStatement psDetail=koneksi.prepareStatement(sqlDetail)){
+                psDetail.setString(1,noResep);
+                try(ResultSet rsDetail=psDetail.executeQuery()){
+                    while(rsDetail.next()){
+                        String rincian=rsDetail.getString(1);
+                        if(rincian!=null && !rincian.trim().isEmpty()){
+                            hasil.add(rincian.trim());
+                        }
+                    }
+                }
+                if(!hasil.isEmpty()){
+                    break;
+                }
+            }catch(Exception e){
+                System.out.println("Notif Rincian Resep : "+e);
+            }
+        }
+        return new ArrayList<>(hasil);
+    }
+
+    private void renderLabRowsClinical(){
+        tampilanLabClinical.clear();
+        Valid.tabelKosong(tabModeLab);
+        for(int indeks=0;indeks<dataLabClinical.size();indeks++){
+            ClinicalMasterDetailRow master=dataLabClinical.get(indeks);
+            String[] parent=master.parentData.clone();
+            // Nomor permintaan ditampilkan apa adanya tanpa simbol expand Unicode.
+            // Expand/collapse tetap dilakukan dengan klik pada baris induk.
+            parent[0]=bersihkanNomorClinical(parent[0]);
+            tabModeLab.addRow(parent);
+            tampilanLabClinical.add(new ClinicalDisplayRowMeta(indeks,false));
+            if(master.expanded){
+                for(String detail:master.details){
+                    // Prefix internal ASCII tidak ditampilkan. Renderer menggantinya
+                    // dengan bullet bulat yang digambar langsung sehingga aman dari
+                    // masalah encoding/font pada komputer user.
+                    tabModeLab.addRow(new String[]{"","","",DETAIL_PREFIX_CLINICAL+detail,"",""});
+                    tampilanLabClinical.add(new ClinicalDisplayRowMeta(indeks,true));
+                }
+            }
+        }
+        aturLebarKolomOtomatisClinical(tbLab);
+        terapkanPencarianClinical();
+    }
+
+    private void renderApotekRowsClinical(){
+        tampilanApotekClinical.clear();
+        Valid.tabelKosong(tabModeApotek);
+        for(int indeks=0;indeks<dataApotekClinical.size();indeks++){
+            ClinicalMasterDetailRow master=dataApotekClinical.get(indeks);
+            String[] parent=master.parentData.clone();
+            parent[0]=bersihkanNomorClinical(parent[0]);
+            tabModeApotek.addRow(parent);
+            tampilanApotekClinical.add(new ClinicalDisplayRowMeta(indeks,false));
+            if(master.expanded){
+                for(String detail:master.details){
+                    tabModeApotek.addRow(new String[]{"","","",DETAIL_PREFIX_CLINICAL+detail,""});
+                    tampilanApotekClinical.add(new ClinicalDisplayRowMeta(indeks,true));
+                }
+            }
+        }
+        aturLebarKolomOtomatisClinical(tbApotek);
+        terapkanPencarianClinical();
+    }
+
+    private String bersihkanNomorClinical(String nomor){
+        String hasil=nomor==null?"":nomor.trim();
+        // Membersihkan sisa marker dari versi UI sebelumnya jika model lama
+        // sempat dirender dengan karakter expand yang tidak didukung encoding.
+        while(!hasil.isEmpty() && !Character.isLetterOrDigit(hasil.charAt(0))){
+            hasil=hasil.substring(1).trim();
+        }
+        return hasil;
+    }
+
+    private void aturLebarSemuaKolomClinical(){
+        if(tabelClinical==null){
+            return;
+        }
+        for(JTable tabel:tabelClinical){
+            aturLebarKolomOtomatisClinical(tabel);
+        }
+    }
+
+    private void aturLebarKolomOtomatisClinical(JTable tabel){
+        // AUTO_RESIZE_OFF + min/preferred/actual width yang sama memastikan
+        // Swing tidak mengecilkan lagi kolom hingga teks terpotong. Bila total
+        // lebar melebihi viewport, scroll horizontal yang akan bekerja.
+        tabel.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        TableColumnModel kolomModel=tabel.getColumnModel();
+
+        for(int kolom=0;kolom<tabel.getColumnCount();kolom++){
+            int lebar=55;
+
+            // Ukur header berdasarkan renderer yang benar-benar dipakai Swing.
+            TableCellRenderer rendererHeader=tabel.getTableHeader().getDefaultRenderer();
+            Component komponenHeader=rendererHeader.getTableCellRendererComponent(
+                    tabel,tabel.getColumnName(kolom),false,false,-1,kolom);
+            lebar=Math.max(lebar,komponenHeader.getPreferredSize().width+20);
+
+            // Ukur seluruh data berdasarkan renderer, bukan perkiraan FontMetrics.
+            // Dengan cara ini nama pemeriksaan/dokter panjang tidak lagi terpotong.
+            for(int row=0;row<tabel.getRowCount();row++){
+                TableCellRenderer renderer=tabel.getCellRenderer(row,kolom);
+                Component komponen=tabel.prepareRenderer(renderer,row,kolom);
+                lebar=Math.max(lebar,komponen.getPreferredSize().width+18);
+            }
+
+            if((tabel==tbLab || tabel==tbRadiologi) && kolom==5){
+                lebar=Math.max(lebar,150);
+            }else if(tabel==tbApotek && kolom==4){
+                lebar=Math.max(lebar,150);
+            }
+
+            TableColumn kolomTabel=kolomModel.getColumn(kolom);
+            kolomTabel.setMinWidth(lebar);
+            kolomTabel.setPreferredWidth(lebar);
+            kolomTabel.setWidth(lebar);
+        }
+
+        tabel.setPreferredScrollableViewportSize(new Dimension(
+                Math.max(tabel.getPreferredSize().width,tabel.getColumnModel().getTotalColumnWidth()),
+                tabel.getPreferredScrollableViewportSize().height
+        ));
+        tabel.revalidate();
+        tabel.repaint();
     }
 
     private void pasangPencarianClinical(){
@@ -1007,15 +1390,13 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
         if(tombolTabClinical!=null){
             for(int indeks=0;indeks<tombolTabClinical.length;indeks++){
                 boolean aktif=indeks==kategoriAktifClinical;
-                tombolTabClinical[indeks].setForeground(aktif?CLINICAL_BLUE:CLINICAL_MUTED);
-                tombolTabClinical[indeks].setBackground(aktif?CLINICAL_BLUE_SOFT:Color.WHITE);
-                tombolTabClinical[indeks].setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0,0,3,0,aktif?CLINICAL_BLUE:Color.WHITE),
-                    BorderFactory.createEmptyBorder(6,10,6,10)
-                ));
+                if(tombolTabClinical[indeks] instanceof ClinicalTabButton){
+                    ((ClinicalTabButton)tombolTabClinical[indeks]).setAktif(aktif);
+                }else{
+                    tombolTabClinical[indeks].setForeground(aktif?CLINICAL_BLUE:CLINICAL_MUTED);
+                }
             }
         }
-
     }
 
     private void perbaruiJumlahDataClinical(){
@@ -1029,6 +1410,280 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
             lblJumlahDataClinical.setText("Menampilkan "+tampil+" dari "+seluruh+" data");
         }else{
             lblJumlahDataClinical.setText("Menampilkan "+seluruh+" data");
+        }
+    }
+
+    private static class ClinicalRoundedTextField extends JTextField{
+        private final int arc;
+
+        ClinicalRoundedTextField(int arc){
+            this.arc=arc;
+            setOpaque(false);
+            setBorder(BorderFactory.createEmptyBorder(6,12,6,12));
+        }
+
+        @Override
+        protected void paintComponent(Graphics grafik){
+            Graphics2D g2=(Graphics2D)grafik.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Color.WHITE);
+            g2.fillRoundRect(0,0,getWidth()-1,getHeight()-1,arc,arc);
+            g2.dispose();
+            super.paintComponent(grafik);
+        }
+
+        @Override
+        protected void paintBorder(Graphics grafik){
+            Graphics2D g2=(Graphics2D)grafik.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(hasFocus()?new Color(135,181,241):CLINICAL_BORDER);
+            g2.setStroke(new BasicStroke(hasFocus()?1.2f:1f));
+            g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,arc,arc);
+            g2.dispose();
+        }
+    }
+
+    private static class ClinicalRoundedPanel extends JPanel{
+        private final int arc;
+
+        ClinicalRoundedPanel(java.awt.LayoutManager layout,int arc){
+            super(layout);
+            this.arc=arc;
+            setOpaque(false);
+            setBorder(BorderFactory.createEmptyBorder(1,1,1,1));
+        }
+
+        @Override
+        protected void paintComponent(Graphics grafik){
+            Graphics2D g2=(Graphics2D)grafik.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Color.WHITE);
+            g2.fillRoundRect(0,0,getWidth()-1,getHeight()-1,arc,arc);
+            g2.setColor(CLINICAL_BORDER);
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,arc,arc);
+            g2.dispose();
+            super.paintComponent(grafik);
+        }
+    }
+
+    /**
+     * Tombol kategori berbentuk pill/card agar navigasi riwayat lebih hidup.
+     * Warna tiap kategori tetap konsisten dengan icon dan tidak memengaruhi data.
+     */
+    /**
+     * Tombol kategori berbentuk pill/card agar navigasi riwayat lebih hidup.
+     * Icon diprioritaskan dari file /picture/*.png, fallback ke icon vektor.
+     */
+    private static class ClinicalTabButton extends JButton{
+        private final int kategori;
+        private final Color warna;
+        private final Icon ikonResource;
+        private boolean aktif=false;
+        private boolean hover=false;
+
+        ClinicalTabButton(String teks,int kategori,Color warna,Icon ikonResource){
+            super(teks);
+            this.kategori=kategori;
+            this.warna=warna;
+            this.ikonResource=ikonResource;
+            setFont(new Font("Segoe UI Semibold",Font.PLAIN,12));
+            setIconTextGap(7);
+            setHorizontalAlignment(SwingConstants.CENTER);
+            setHorizontalTextPosition(SwingConstants.RIGHT);
+            setVerticalTextPosition(SwingConstants.CENTER);
+            setFocusPainted(false);
+            setFocusable(false);
+            setContentAreaFilled(false);
+            setOpaque(false);
+            setBorderPainted(false);
+            setBorder(BorderFactory.createEmptyBorder(8,12,8,12));
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setAktif(false);
+            addMouseListener(new MouseAdapter(){
+                @Override
+                public void mouseEntered(MouseEvent e){
+                    hover=true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e){
+                    hover=false;
+                    repaint();
+                }
+            });
+        }
+
+        void setAktif(boolean aktif){
+            this.aktif=aktif;
+            // Tab aktif dibuat solid sesuai warna kategorinya agar langsung terbaca.
+            // Icon dan teks putih; tab nonaktif tetap netral gelap.
+            Color warnaTampil=aktif?Color.WHITE:CLINICAL_TAB_INACTIVE_TEXT;
+            setForeground(warnaTampil);
+            setIcon(buatIkonState(warnaTampil));
+            repaint();
+        }
+
+        /**
+         * Icon sumber selalu berasal dari file PNG /picture/. Warna hanya ditint
+         * untuk membedakan tab aktif dan nonaktif. Jika file tidak ditemukan,
+         * barulah fallback vektor lama dipakai agar tombol tidak pernah kosong.
+         */
+        private Icon buatIkonState(Color warnaTampil){
+            if(ikonResource instanceof ImageIcon){
+                ImageIcon sumber=(ImageIcon)ikonResource;
+                int w=Math.max(1,sumber.getIconWidth());
+                int h=Math.max(1,sumber.getIconHeight());
+                BufferedImage hasil=new BufferedImage(16,16,BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2=hasil.createGraphics();
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.drawImage(sumber.getImage(),0,0,16,16,null);
+                g2.dispose();
+
+                for(int y=0;y<16;y++){
+                    for(int x=0;x<16;x++){
+                        int argb=hasil.getRGB(x,y);
+                        int alpha=(argb>>>24)&0xff;
+                        if(alpha>0){
+                            hasil.setRGB(x,y,(alpha<<24)|(warnaTampil.getRGB()&0x00ffffff));
+                        }
+                    }
+                }
+                return new ImageIcon(hasil);
+            }
+            if(ikonResource!=null){
+                return ikonResource;
+            }
+            return new ClinicalTabIcon(kategori,warnaTampil);
+        }
+
+        @Override
+        protected void paintComponent(Graphics grafik){
+            Graphics2D g2=(Graphics2D)grafik.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            int arc=12;
+
+            Color latar;
+            Color garis;
+            if(aktif){
+                // Active state: background penuh warna kategori, border sedikit lebih gelap.
+                latar=warna;
+                garis=warna.darker();
+            }else if(hover){
+                // Nonaktif tetap netral; hover hanya memberi sedikit feedback visual.
+                latar=new Color(248,250,252);
+                garis=new Color(168,178,191);
+            }else{
+                latar=Color.WHITE;
+                garis=CLINICAL_BORDER;
+            }
+
+            g2.setColor(latar);
+            g2.fillRoundRect(0,0,getWidth()-1,getHeight()-1,arc,arc);
+            g2.setColor(garis);
+            g2.setStroke(new BasicStroke(aktif?1.4f:1f));
+            g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,arc,arc);
+            g2.dispose();
+            super.paintComponent(grafik);
+        }
+
+        private static Color campurWarna(Color warna1,Color warna2,float rasioWarna2){
+            float r=Math.max(0f,Math.min(1f,rasioWarna2));
+            int merah=Math.round(warna1.getRed()*(1f-r)+warna2.getRed()*r);
+            int hijau=Math.round(warna1.getGreen()*(1f-r)+warna2.getGreen()*r);
+            int biru=Math.round(warna1.getBlue()*(1f-r)+warna2.getBlue()*r);
+            return new Color(merah,hijau,biru);
+        }
+    }
+
+    /** Icon ringkas untuk tiap informasi identitas pasien. */
+    private static class ClinicalIdentityItemIcon implements Icon{
+        private final int jenis;
+        private final Color warna;
+
+        ClinicalIdentityItemIcon(int jenis,Color warna){
+            this.jenis=jenis;
+            this.warna=warna;
+        }
+
+        @Override
+        public int getIconWidth(){
+            return 22;
+        }
+
+        @Override
+        public int getIconHeight(){
+            return 22;
+        }
+
+        @Override
+        public void paintIcon(Component komponen,Graphics grafik,int x,int y){
+            Graphics2D g2=(Graphics2D)grafik.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(warna);
+            g2.setStroke(new BasicStroke(1.5f,BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND));
+            switch(jenis){
+                case 0: // No. Rawat - bed
+                    g2.drawLine(x+2,y+13,x+20,y+13);
+                    g2.drawLine(x+3,y+8,x+3,y+17);
+                    g2.drawLine(x+19,y+10,x+19,y+17);
+                    g2.drawRoundRect(x+5,y+9,13,4,2,2);
+                    g2.drawOval(x+5,y+6,4,3);
+                    g2.drawLine(x+3,y+16,x+3,y+20);
+                    g2.drawLine(x+19,y+16,x+19,y+20);
+                    break;
+                case 1: // Nama Pasien
+                    g2.drawOval(x+6,y+2,8,8);
+                    g2.drawArc(x+3,y+11,14,9,0,180);
+                    g2.drawOval(x+15,y+13,6,6);
+                    g2.drawLine(x+18,y+14,x+18,y+18);
+                    g2.drawLine(x+16,y+16,x+20,y+16);
+                    break;
+                case 2: // No. RM - kartu rekam medis
+                    g2.drawRoundRect(x+2,y+3,18,16,3,3);
+                    g2.drawRect(x+5,y+6,5,5);
+                    g2.drawLine(x+7,y+7,x+7,y+10);
+                    g2.drawLine(x+6,y+8,x+9,y+8);
+                    g2.drawLine(x+12,y+7,x+18,y+7);
+                    g2.drawLine(x+12,y+10,x+18,y+10);
+                    g2.drawLine(x+5,y+14,x+18,y+14);
+                    break;
+                default: // Tanggal Masuk - kalender
+                    g2.drawRoundRect(x+3,y+5,16,14,3,3);
+                    g2.drawLine(x+3,y+9,x+19,y+9);
+                    g2.drawLine(x+7,y+2,x+7,y+7);
+                    g2.drawLine(x+15,y+2,x+15,y+7);
+                    g2.fillOval(x+7,y+12,2,2);
+                    g2.fillOval(x+12,y+12,2,2);
+                    break;
+            }
+            g2.dispose();
+        }
+    }
+
+    /** Icon salin kecil seperti referensi kartu identitas. */
+    private static class ClinicalCopyIcon implements Icon{
+        @Override
+        public int getIconWidth(){
+            return 15;
+        }
+
+        @Override
+        public int getIconHeight(){
+            return 15;
+        }
+
+        @Override
+        public void paintIcon(Component komponen,Graphics grafik,int x,int y){
+            Graphics2D g2=(Graphics2D)grafik.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(70,80,94));
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.drawRoundRect(x+1,y+1,9,10,2,2);
+            g2.drawRoundRect(x+5,y+4,9,10,2,2);
+            g2.dispose();
         }
     }
 
@@ -1129,6 +1784,8 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
     }
 
     private static class ClinicalCellRenderer extends DefaultTableCellRenderer{
+        private final Icon bulletIcon=new ClinicalBulletIcon();
+
         ClinicalCellRenderer(){
             setOpaque(true);
             setBorder(BorderFactory.createEmptyBorder(0,10,0,10));
@@ -1136,17 +1793,45 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
 
         @Override
         public Component getTableCellRendererComponent(JTable table,Object value,boolean isSelected,boolean hasFocus,int row,int column){
-            super.getTableCellRendererComponent(table,value,isSelected,hasFocus,row,column);
-            setFont(new Font("Segoe UI",Font.PLAIN,12));
+            String teks=value==null?"":value.toString();
+            boolean rincian=teks.startsWith(DETAIL_PREFIX_CLINICAL);
+            String teksTampil=rincian?teks.substring(DETAIL_PREFIX_CLINICAL.length()):teks;
+            super.getTableCellRendererComponent(table,teksTampil,isSelected,hasFocus,row,column);
+            setFont(new Font("Segoe UI",Font.PLAIN,rincian?11:12));
+            setIcon(rincian?bulletIcon:null);
+            setIconTextGap(rincian?8:4);
+
             if(isSelected){
                 setBackground(table.getSelectionBackground());
                 setForeground(table.getSelectionForeground());
             }else{
-                setBackground(row%2==0?Color.WHITE:CLINICAL_ROW_ALT);
-                setForeground(CLINICAL_TEXT);
+                setBackground(rincian?new Color(250,252,255):(row%2==0?Color.WHITE:CLINICAL_ROW_ALT));
+                setForeground(rincian?CLINICAL_MUTED:CLINICAL_TEXT);
             }
-            setBorder(BorderFactory.createEmptyBorder(0,10,0,10));
+            setBorder(BorderFactory.createEmptyBorder(0,rincian?18:10,0,10));
             return this;
+        }
+    }
+
+    /** Bullet bulat digambar langsung, tidak memakai karakter Unicode. */
+    private static class ClinicalBulletIcon implements Icon{
+        @Override
+        public int getIconWidth(){
+            return 7;
+        }
+
+        @Override
+        public int getIconHeight(){
+            return 7;
+        }
+
+        @Override
+        public void paintIcon(Component c,Graphics g,int x,int y){
+            Graphics2D g2=(Graphics2D)g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(92,112,140));
+            g2.fillOval(x+1,y+1,5,5);
+            g2.dispose();
         }
     }
 
@@ -1164,8 +1849,32 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
             String status=value==null?"":value.toString();
             boolean selesai=status.toLowerCase().contains("sudah");
             setBackground(isSelected?table.getSelectionBackground():(row%2==0?Color.WHITE:CLINICAL_ROW_ALT));
-            badge.setStatus(status,selesai);
+            badge.setVisible(status!=null && !status.trim().isEmpty());
+            if(badge.isVisible()){
+                badge.setStatus(status,selesai);
+            }
             return this;
+        }
+    }
+
+    private static class ClinicalMasterDetailRow{
+        private final String[] parentData;
+        private final List<String> details;
+        private boolean expanded=false;
+
+        ClinicalMasterDetailRow(String[] parentData,List<String> details){
+            this.parentData=parentData;
+            this.details=details==null?new ArrayList<String>():details;
+        }
+    }
+
+    private static class ClinicalDisplayRowMeta{
+        private final int parentIndex;
+        private final boolean detailRow;
+
+        ClinicalDisplayRowMeta(int parentIndex,boolean detailRow){
+            this.parentIndex=parentIndex;
+            this.detailRow=detailRow;
         }
     }
 
@@ -1290,10 +1999,12 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
 
     private void isRawat() {
          Sequel.cariIsi("select no_rkm_medis from reg_periksa where no_rawat=? ",TNoRM,TNoRw.getText());
+         sinkronkanIdentitasClinical();
     }
 
     private void isPsien() {
         Sequel.cariIsi("select nm_pasien from pasien where no_rkm_medis=? ",TPasien,TNoRM.getText());
+        sinkronkanIdentitasClinical();
     }
 
     public void setNoRm(String norwt) {
@@ -1301,6 +2012,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
         Sequel.cariIsi("select no_rkm_medis from reg_periksa where no_rawat=? ",TNoRM,TNoRw.getText());
         Sequel.cariIsi("select nm_pasien from pasien where no_rkm_medis=? ",TPasien,TNoRM.getText());
         Sequel.cariIsi("select no_sep from bridging_sep where no_rawat=? ",SEP,TNoRw.getText());
+        sinkronkanIdentitasClinical();
         isiIdentitasRawatClinical();
         keterangan();
 //        isPsien();   
@@ -1308,17 +2020,16 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
     }
 
     /**
-     * Melengkapi dua informasi visual pada kartu pasien. Query ini hanya membaca
+     * Melengkapi informasi tanggal masuk pada kartu pasien. Query hanya membaca
      * data kamar dan tidak mengubah proses pengambilan riwayat pelayanan yang lama.
      */
     private void isiIdentitasRawatClinical(){
-        if(TTanggalMasukClinical==null || TTarifHariClinical==null){
+        if(LTanggalMasukClinical==null){
             return;
         }
-        TTanggalMasukClinical.setText("-");
-        TTarifHariClinical.setText("-");
+        LTanggalMasukClinical.setText("-");
         String sqlIdentitas="select date_format(kamar_inap.tgl_masuk,'%d-%m-%Y') as tanggal_masuk,"+
-                "kamar_inap.jam_masuk,kamar_inap.trf_kamar from kamar_inap where kamar_inap.no_rawat=? "+
+                "kamar_inap.jam_masuk from kamar_inap where kamar_inap.no_rawat=? "+
                 "order by kamar_inap.tgl_masuk asc,kamar_inap.jam_masuk asc limit 1";
         try(PreparedStatement psIdentitas=koneksi.prepareStatement(sqlIdentitas)){
             psIdentitas.setString(1,TNoRw.getText());
@@ -1329,21 +2040,15 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
                     if(jam!=null && jam.length()>5){
                         jam=jam.substring(0,5);
                     }
-                    TTanggalMasukClinical.setText((tanggal==null?"-":tanggal)+
+                    LTanggalMasukClinical.setText((tanggal==null?"-":tanggal)+
                             (jam==null || jam.trim().isEmpty()?"":" "+jam));
-                    Object tarif=rsIdentitas.getObject("trf_kamar");
-                    if(tarif!=null){
-                        NumberFormat rupiah=NumberFormat.getNumberInstance(new Locale("id","ID"));
-                        rupiah.setMaximumFractionDigits(0);
-                        TTarifHariClinical.setText("Rp"+rupiah.format(tarif));
-                    }
                 }
             }
         }catch(Exception e){
             System.out.println("Notif Identitas Rawat : "+e);
         }
     }
-    
+
     private void keterangan(){
             try {
                     Valid.tabelKosong(tabModeDokter);
@@ -1443,7 +2148,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
                         rscarilab=pscarilab.executeQuery();
                         while(rscarilab.next()){
                             tabModeLab.addRow(new String[]{
-                                rscarilab.getString("noorder"),rscarilab.getString("tgl_permintaan"),rscarilab.getString("jam_permintaan"),rscarilab.getString("nm_perawatan"),rscarilab.getString("nm_dokter"),rscarilab.getString("status")
+                                bersihkanNomorClinical(rscarilab.getString("noorder")),rscarilab.getString("tgl_permintaan"),rscarilab.getString("jam_permintaan"),rscarilab.getString("nm_perawatan"),rscarilab.getString("nm_dokter"),rscarilab.getString("status")
                             });
                         }
                     } catch (Exception e) {
@@ -1467,7 +2172,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
                         rscarilab=pscarilab.executeQuery();
                         while(rscarilab.next()){
                             tabModeLab.addRow(new String[]{
-                                rscarilab.getString("noorder"),rscarilab.getString("tgl_permintaan"),rscarilab.getString("jam_permintaan"),rscarilab.getString("nm_dokter"),rscarilab.getString("status")
+                                bersihkanNomorClinical(rscarilab.getString("noorder")),rscarilab.getString("tgl_permintaan"),rscarilab.getString("jam_permintaan"),rscarilab.getString("nm_dokter"),rscarilab.getString("status")
                             });
                         }
                     } catch (Exception e) {
@@ -1491,7 +2196,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
                         rscarilab=pscarilab.executeQuery();
                         while(rscarilab.next()){
                             tabModeLab.addRow(new String[]{
-                                rscarilab.getString("noorder"),rscarilab.getString("tgl_permintaan"),rscarilab.getString("jam_permintaan"),rscarilab.getString("nm_dokter"),rscarilab.getString("status")
+                                bersihkanNomorClinical(rscarilab.getString("noorder")),rscarilab.getString("tgl_permintaan"),rscarilab.getString("jam_permintaan"),rscarilab.getString("nm_dokter"),rscarilab.getString("status")
                             });
                         }
                     } catch (Exception e) {
@@ -1504,6 +2209,12 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
                             pscarilab.close();
                         }
                     }
+
+                    // Setelah seluruh data laboratorium selesai dimuat, bangun master-detail.
+                    // Ini wajib dilakukan sebelum interaksi klik agar metadata baris parent
+                    // dan rincian dari detail_periksa_lab sudah tersedia.
+                    bangunDataLabClinicalDariModel();
+                    renderLabRowsClinical();
 
                     Valid.tabelKosong(tabModeRad);
                     pscariradiologi=koneksi.prepareStatement("select permintaan_radiologi.noorder,permintaan_radiologi.tgl_permintaan,"+
@@ -1518,7 +2229,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
                         rscariradiologi=pscariradiologi.executeQuery();
                         while(rscariradiologi.next()){
                             tabModeRad.addRow(new String[]{
-                                rscariradiologi.getString("noorder"),rscariradiologi.getString("tgl_permintaan"),rscariradiologi.getString("jam_permintaan"),rscariradiologi.getString("nm_perawatan"),rscariradiologi.getString("nm_dokter"),rscariradiologi.getString("status")
+                                bersihkanNomorClinical(rscariradiologi.getString("noorder")),rscariradiologi.getString("tgl_permintaan"),rscariradiologi.getString("jam_permintaan"),rscariradiologi.getString("nm_perawatan"),rscariradiologi.getString("nm_dokter"),rscariradiologi.getString("status")
                             });
                         }
                     } catch (Exception e) {
@@ -1542,7 +2253,7 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
                         rscariobat=psobatlangsung.executeQuery();
                         while(rscariobat.next()){
                             tabModeApotek.addRow(new String[]{
-                                rscariobat.getString("no_resep"),rscariobat.getString("tgl_peresepan"),rscariobat.getString("jam_peresepan"),rscariobat.getString("nm_dokter"),rscariobat.getString("status")
+                                bersihkanNomorClinical(rscariobat.getString("no_resep")),rscariobat.getString("tgl_peresepan"),rscariobat.getString("jam_peresepan"),rscariobat.getString("nm_dokter"),rscariobat.getString("status")
                             });
                         }
                     } catch (Exception e) {
@@ -1555,6 +2266,16 @@ public class DlgKeteranganPenunjangRanap extends javax.swing.JDialog {
                             psobatlangsung.close();
                         }
                     }
+                    bangunDataApotekClinicalDariModel();
+                    renderApotekRowsClinical();
+                    aturLebarKolomOtomatisClinical(tbDokter);
+                    aturLebarKolomOtomatisClinical(tbPetugas);
+                    aturLebarKolomOtomatisClinical(tbDokterPetugas);
+                    aturLebarKolomOtomatisClinical(tbRadiologi);
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        aturLebarKolomOtomatisClinical(tbLab);
+                        aturLebarKolomOtomatisClinical(tbApotek);
+                    });
                     perbaruiJumlahDataClinical();
                 } catch (Exception e) {
                     System.out.println("Notif : "+e);
