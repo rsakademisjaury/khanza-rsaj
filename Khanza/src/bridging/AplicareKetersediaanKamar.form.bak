@@ -87,7 +87,7 @@
             <Property name="name" type="java.lang.String" value="jPanel3" noResource="true"/>
             <Property name="opaque" type="boolean" value="false"/>
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-              <Dimension value="[44, 140]"/>
+              <Dimension value="[44, 100]"/>
             </Property>
           </Properties>
           <Constraints>
@@ -227,34 +227,17 @@
                     <EventHandler event="keyPressed" listener="java.awt.event.KeyListener" parameters="java.awt.event.KeyEvent" handler="BtnAllKeyPressed"/>
                   </Events>
                 </Component>
-                <Component class="widget.Button" name="BtnSinkronKamar">
-                  <Properties>
-                    <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-                      <Image iconType="3" name="/picture/accept.png"/>
-                    </Property>
-                    <Property name="mnemonic" type="int" value="68"/>
-                    <Property name="text" type="java.lang.String" value="Update Data"/>
-                    <Property name="toolTipText" type="java.lang.String" value="Alt+D: hitung ulang dari tabel kamar (database lokal)"/>
-                    <Property name="name" type="java.lang.String" value="BtnSinkronKamar" noResource="true"/>
-                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[115, 30]"/>
-                    </Property>
-                  </Properties>
-                  <Events>
-                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="BtnSinkronKamarActionPerformed"/>
-                  </Events>
-                </Component>
                 <Component class="widget.Button" name="BtnUpdate">
                   <Properties>
                     <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
                       <Image iconType="3" name="/picture/accept.png"/>
                     </Property>
                     <Property name="mnemonic" type="int" value="85"/>
-                    <Property name="text" type="java.lang.String" value="Update BPJS"/>
-                    <Property name="toolTipText" type="java.lang.String" value="Alt+U: kirim baris dicentang ke BPJS"/>
+                    <Property name="text" type="java.lang.String" value="Update"/>
+                    <Property name="toolTipText" type="java.lang.String" value="Alt+U"/>
                     <Property name="name" type="java.lang.String" value="BtnUpdate" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[115, 30]"/>
+                      <Dimension value="[100, 30]"/>
                     </Property>
                   </Properties>
                   <Events>

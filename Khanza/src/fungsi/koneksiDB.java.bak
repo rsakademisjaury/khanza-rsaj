@@ -9,7 +9,6 @@ import AESsecurity.EnkripsiAES;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 import java.io.FileInputStream;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Properties;
 import javax.swing.JOptionPane;
 
@@ -62,12 +61,6 @@ public class koneksiDB {
             }
         }
         return connection;        
-    }
-
-    /** Koneksi tersendiri untuk operasi yang memerlukan transaksi dan rollback. */
-    public static Connection condbTransaksi() throws SQLException {
-        if(condb()==null) throw new SQLException("Koneksi database tidak tersedia.");
-        return dataSource.getConnection();
     }
     
     public static String HOST(){
@@ -2048,3 +2041,4 @@ public static String URLAPIBPJSRUJUKANSISRUTE(){
     }
 
 }
+

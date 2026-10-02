@@ -54,7 +54,7 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
     private ResultSet rs,rs2;
     private int i=0;
     private String status="",bangsal="",lokasistok="",kamar="",diagnosa="",order="",kelas="",penjab="",norawatibu="",posisi="",norm="";
-    private String noRawatTujuan="",noRmTujuan="",namaPasienTujuan="";
+    private String noRawatTujuan="",noRmTujuan="";
     private final widget.Button btnAlihkanJadwal = new widget.Button();
     private DlgCariDokter dokter=new DlgCariDokter(null,false);
     private DlgCariRuangOperasi ruangok=new DlgCariRuangOperasi(null,false);
@@ -2721,10 +2721,9 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         }
     }
     
-    static final class CalonJadwal {
+    private static final class CalonJadwal {
         final long id;
-        final String noRawat, kodePaket, tanggal, jam, jamSelesai, kodeDokter, dokter,
-                tindakan, ruang, status, dokterAnastesi, perawat, waktu;
+        final String noRawat, kodePaket, tanggal, jam, kodeDokter, dokter, tindakan, ruang, status;
 
         CalonJadwal(ResultSet data) throws SQLException {
             id = data.getLong("id_booking");
@@ -2732,15 +2731,11 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             kodePaket = data.getString("kode_paket");
             tanggal = data.getString("tanggal");
             jam = data.getString("jam_mulai");
-            jamSelesai = data.getString("jam_selesai");
             kodeDokter = data.getString("kd_dokter");
             dokter = data.getString("nm_dokter");
             tindakan = data.getString("nm_perawatan");
             ruang = data.getString("nm_ruang_ok");
             status = data.getString("status");
-            dokterAnastesi = data.getString("dokteranastesi");
-            perawat = data.getString("perawat");
-            waktu = data.getString("waktu");
         }
 
         @Override public String toString() {
@@ -2752,8 +2747,7 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private ArrayList<CalonJadwal> cariJadwalRalan() throws SQLException {
         ArrayList<CalonJadwal> calon = new ArrayList<>();
         if(noRmTujuan.isEmpty() || noRawatTujuan.isEmpty()) return calon;
-        String query = "select b.id_booking,b.no_rawat,b.kode_paket,b.tanggal,b.jam_mulai,b.jam_selesai,"+
-                "b.kd_dokter,b.status,b.dokteranastesi,b.perawat,b.waktu,"+
+        String query = "select b.id_booking,b.no_rawat,b.kode_paket,b.tanggal,b.jam_mulai,b.kd_dokter,b.status,"+
                 "d.nm_dokter,p.nm_perawatan,ok.nm_ruang_ok from booking_operasi b " +
                 "inner join reg_periksa r on b.no_rawat=r.no_rawat " +
                 "inner join dokter d on b.kd_dokter=d.kd_dokter " +
@@ -2780,13 +2774,16 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             for(CalonJadwal calon:calonJadwal) {
                 if(KdOperasi.getText().equals(calon.kodePaket) && KdDokter.getText().equals(calon.kodeDokter) &&
                    tanggal.equals(calon.tanggal) && jam.equals(calon.jam)) {
-                    PopupAlihkanJadwalOperasi.informasi(this,calonJadwal,namaPasienTujuan,noRmTujuan,
-                            () -> { if(akses.getbooking_operasi()) alihkanJadwalOperasi(); });
+                    JOptionPane.showMessageDialog(this,"Jadwal yang sama sudah ada di rawat jalan:\n"+
+                            calon+"\nGunakan tombol Alihkan Jadwal.");
                     return true;
                 }
             }
             if(!calonJadwal.isEmpty()) {
-                return !PopupAlihkanJadwalOperasi.konfirmasiJadwalBaru(this,calonJadwal.size());
+                return JOptionPane.showConfirmDialog(this,
+                        "Pasien ini mempunyai "+calonJadwal.size()+" jadwal aktif dari rawat jalan.\n"+
+                        "Pastikan ini operasi yang berbeda. Tetap buat jadwal baru?",
+                        "Periksa Jadwal Sebelumnya",JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION;
             }
             return false;
         } catch(SQLException ex) {
@@ -2803,8 +2800,14 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
                 JOptionPane.showMessageDialog(this,"Tidak ada jadwal rawat jalan aktif untuk No. RM ini.");
                 return;
             }
-            CalonJadwal pilihan = PopupAlihkanJadwalOperasi.pilih(this,calon,namaPasienTujuan,noRmTujuan,noRawatTujuan);
+            CalonJadwal pilihan = (CalonJadwal)JOptionPane.showInputDialog(this,
+                    "Pilih jadwal rawat jalan yang akan dialihkan ke "+noRawatTujuan+":",
+                    "Alihkan Jadwal Operasi",JOptionPane.QUESTION_MESSAGE,null,
+                    calon.toArray(),calon.get(0));
             if(pilihan==null) return;
+            if(JOptionPane.showConfirmDialog(this,
+                    "Alihkan jadwal:\n"+pilihan+"\n\nKe No. Rawat Ranap "+noRawatTujuan+"?",
+                    "Konfirmasi Pengalihan",JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION) return;
             pindahkanJadwal(pilihan.id);
             TCari.setText(noRawatTujuan);
             tampil();
@@ -2885,16 +2888,16 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         this.posisi=posisi;
         noRawatTujuan="Ranap".equals(posisi)?norwt:"";
         noRmTujuan="Ranap".equals(posisi)?norm:"";
-        namaPasienTujuan="Ranap".equals(posisi)?nama:"";
         btnAlihkanJadwal.setVisible("Ranap".equals(posisi));
         TCari.setText(norwt);
         ChkInput.setSelected(true);
         isForm();
         if("Ranap".equals(posisi)) SwingUtilities.invokeLater(() -> {
             try {
-                ArrayList<CalonJadwal> jadwal=cariJadwalRalan();
-                if(!jadwal.isEmpty()) PopupAlihkanJadwalOperasi.informasi(this,jadwal,namaPasienTujuan,noRmTujuan,
-                        () -> { if(akses.getbooking_operasi()) alihkanJadwalOperasi(); });
+                int jumlah=cariJadwalRalan().size();
+                if(jumlah>0) JOptionPane.showMessageDialog(this,
+                        "Ada "+jumlah+" jadwal operasi aktif dari rawat jalan untuk pasien ini.\n"+
+                        "Periksa tombol Alihkan Jadwal sebelum membuat jadwal baru.");
             } catch(SQLException ex) {
                 JOptionPane.showMessageDialog(this,"Pemeriksaan jadwal rawat jalan gagal: "+ex.getMessage());
             }

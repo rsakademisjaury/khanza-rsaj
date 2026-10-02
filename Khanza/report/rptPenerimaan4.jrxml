@@ -362,7 +362,7 @@
 				<textElement>
 					<font fontName="Tahoma" size="9" isBold="false" isUnderline="true"/>
 				</textElement>
-				<text><![CDATA[dr. Irwan Fitrahari]]></text>
+				<text><![CDATA[dr. Syamsiah Densi R., MARS]]></text>
 			</staticText>
 			<staticText>
 				<reportElement stretchType="RelativeToBandHeight" x="382" y="123" width="163" height="19" uuid="40b175f7-bb32-4bdc-af58-4056d17655a9"/>
@@ -384,6 +384,20 @@
 					<property name="com.jaspersoft.studio.unit.width" value="cm"/>
 				</reportElement>
 			</line>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" x="0" y="140" width="555" height="19" uuid="9e49ea5a-6f97-4437-a644-cfb7dfe0ef68"/>
+				<textElement textAlignment="Center">
+					<font fontName="Tahoma" size="9" isUnderline="false"/>
+				</textElement>
+				<text><![CDATA[Wadir. Medis & Keperawatan,]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToBandHeight" x="0" y="193" width="554" height="19" uuid="427d3674-9fb1-45da-9474-7a1504f6d8dd"/>
+				<textElement textAlignment="Center">
+					<font fontName="Tahoma" size="9" isBold="false" isUnderline="true"/>
+				</textElement>
+				<text><![CDATA[dr. Irwan Fitrahari]]></text>
+			</staticText>
 		</band>
 	</summary>
 </jasperReport>

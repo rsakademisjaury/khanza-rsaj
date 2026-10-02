@@ -99,6 +99,10 @@ public final class HasilPenunjangWhatsapp {
         private final String judul;
         private final Map<String, Berkas> berkas;
         private final long dibuat;
+        private WhatsappGateway.Hasil pending;
+        private List<Berkas> pendingBerkas;
+        private String pendingHp;
+        private String pendingPdf;
 
         private Sesi(String noRawat, String namaPasien, String noHpAwal, String judul, List<Berkas> daftar) {
             this.noRawat = noRawat == null ? "" : noRawat;
@@ -335,9 +339,39 @@ public final class HasilPenunjangWhatsapp {
             boolean kirimUlang = semuaBerkasSudahTerkirim(pilihan);
 
             File pdf = null;
+            synchronized (sesi) {
             try {
+                // Klik Periksa Status/POST ulang hanya mengambil status; tidak mengirim lagi.
+                if (sesi.pending != null) {
+                    WhatsappGateway.Hasil current = sesi.pending;
+                    if (!current.statusTidakPasti() || current.getMessageId().startsWith("msg_"))
+                        current = WhatsappGateway.cekStatusKirimDev(current.getMessageId());
+                    if (current.getStatus() == WhatsappGateway.Status.SUCCESS) {
+                        catatBerkasTerkirim(sesi.pendingBerkas,sesi.pendingHp);
+                        SESI.remove(form.get("sesi"));
+                        kirimHtml(exchange,200,halamanSukses(sesi,sesi.pendingHp,sesi.pendingBerkas.size(),sesi.pendingPdf,
+                                "Penerimaan dikonfirmasi KirimDev. ID: "+current.getMessageId(),kirimUlang));
+                    } else if (current.gagalPasti()) {
+                        // Izinkan percobaan baru hanya setelah kegagalan terkonfirmasi.
+                        sesi.pending = null;
+                        kirimHtml(exchange,500,halamanPesan("Pengiriman gagal",escapeHtml(current.getPesan())
+                                +"<br>Buka kembali popup dari SIMRS setelah penyebabnya diperbaiki."));
+                    } else {
+                        // Pertahankan ID awal bila pengecekan status gagal/timeout.
+                        kirimHtml(exchange,200,halamanPending(sesi,form.get("sesi"),form.get("ids"),current.getPesan()));
+                    }
+                    return;
+                }
                 pdf = buatPdfHasil(sesi, pilihan);
                 WhatsappGateway.Hasil hasil = kirimPdfWhatsapp(noHp, sesi, pdf, pilihan.size());
+                if ("KirimDev".equals(hasil.getProvider()) && (hasil.menungguKonfirmasi() || hasil.statusTidakPasti())) {
+                    sesi.pending = hasil;
+                    sesi.pendingBerkas = pilihan;
+                    sesi.pendingHp = noHp;
+                    sesi.pendingPdf = pdf.getName();
+                    kirimHtml(exchange,200,halamanPending(sesi,form.get("sesi"),form.get("ids"),hasil.getPesan()));
+                    return;
+                }
                 if (hasil.berhasil()) {
                     String catatan = "Dikirim melalui " + hasil.getProviderLabel() + ".";
                     try {
@@ -361,7 +395,19 @@ public final class HasilPenunjangWhatsapp {
                     try { pdf.delete(); } catch (Exception ex) {}
                 }
             }
+            }
         }
+    }
+
+    private static String halamanPending(Sesi sesi, String token, String ids, String reason) {
+        return halamanPesan("Menunggu konfirmasi WhatsApp",escapeHtml(reason)
+                +"<br><br>ID: <b>"+escapeHtml(sesi.pending.getMessageId())+"</b>"
+                +"<br>Status berkas belum ditandai terkirim. Tombol ini hanya memeriksa status, tanpa mengirim ulang."
+                +"<form method='post' action='/hasil-wa/kirim'><input type='hidden' name='sesi' value='"+escapeHtml(token)
+                +"'><input type='hidden' name='ids' value='"+escapeHtml(ids)
+                +"'><input type='hidden' name='no_hp' value='"+escapeHtml(sesi.pendingHp)
+                +"'><button class='btn' type='submit'>Periksa Status</button></form>"
+                +"<br>Jika status tidak pasti dan tidak ada ID msg_, periksa dashboard KirimDev. Jangan langsung kirim ulang.");
     }
 
     private static List<Berkas> ambilPilihan(Sesi sesi, String idsTeks) {

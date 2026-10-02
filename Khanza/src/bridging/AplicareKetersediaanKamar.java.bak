@@ -1129,8 +1129,7 @@ public final class AplicareKetersediaanKamar extends javax.swing.JDialog {
             return;
         }
         String konfirmasi="Update semua mapping Aplicare dari tabel kamar sekarang?\n"+
-            "Tersedia = jumlah KOSONG, dibatasi kapasitas dikurangi kamar ISI.\n"+
-            "Khusus ISO, semua kelas dalam bangsal dihitung.\n"+
+            "Tersedia = jumlah kamar aktif berstatus KOSONG (maksimal kapasitas).\n"+
             "Pria, wanita, dan pria & wanita = kapasitas mapping.\n"+
             "Data hanya disimpan ke database lokal; tombol Update tetap untuk mengirim ke BPJS.";
         if(JOptionPane.showConfirmDialog(this,konfirmasi,"Sinkron Data Kamar",
@@ -1140,20 +1139,11 @@ public final class AplicareKetersediaanKamar extends javax.swing.JDialog {
         setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         try(PreparedStatement sinkron=koneksi.prepareStatement(
                 "UPDATE aplicare_ketersediaan_kamar a LEFT JOIN ("+
-                " SELECT kd_bangsal, TRIM(kelas) AS kelas_kamar,"+
-                " SUM(CASE WHEN status='KOSONG' THEN 1 ELSE 0 END) AS kosong,"+
-                " SUM(CASE WHEN status='ISI' THEN 1 ELSE 0 END) AS isi"+
-                " FROM kamar WHERE statusdata='1'"+
+                " SELECT kd_bangsal, TRIM(kelas) AS kelas_kamar, COUNT(*) AS kosong"+
+                " FROM kamar WHERE statusdata='1' AND status='KOSONG'"+
                 " GROUP BY kd_bangsal, TRIM(kelas)"+
                 ") k ON k.kd_bangsal=a.kd_bangsal AND k.kelas_kamar=TRIM(a.kelas)"+
-                " LEFT JOIN (SELECT kd_bangsal,"+
-                " SUM(CASE WHEN status='KOSONG' THEN 1 ELSE 0 END) AS kosong,"+
-                " SUM(CASE WHEN status='ISI' THEN 1 ELSE 0 END) AS isi"+
-                " FROM kamar WHERE statusdata='1' GROUP BY kd_bangsal) ki"+
-                " ON ki.kd_bangsal=a.kd_bangsal"+
-                " SET a.tersedia=GREATEST(0,LEAST(a.kapasitas,"+
-                " COALESCE(CASE WHEN a.kode_kelas_aplicare='ISO' THEN ki.kosong ELSE k.kosong END,0),"+
-                " a.kapasitas-COALESCE(CASE WHEN a.kode_kelas_aplicare='ISO' THEN ki.isi ELSE k.isi END,0))),"+
+                " SET a.tersedia=LEAST(a.kapasitas,COALESCE(k.kosong,0)),"+
                 " a.tersediapria=a.kapasitas,a.tersediawanita=a.kapasitas,"+
                 " a.tersediapriawanita=a.kapasitas")){
             int diubah=sinkron.executeUpdate();
@@ -1453,11 +1443,8 @@ private void btnKamarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         return Sequel.cariIsi("select count(kd_kamar) from kamar where statusdata='1' and kelas='"+kelas+"' and kd_bangsal=?",kdBangsal);
     }
 
-    private String hitungStatusKamar(String kodeKelas,String kelas,String kdBangsal,String status){
-        if("ISO".equalsIgnoreCase(kodeKelas.trim())){
-            return Sequel.cariIsi("select count(kd_kamar) from kamar where statusdata='1' and status='"+status+"' and kd_bangsal=?",kdBangsal);
-        }
-        return Sequel.cariIsi("select count(kd_kamar) from kamar where statusdata='1' and kelas='"+kelas+"' and status='"+status+"' and kd_bangsal=?",kdBangsal);
+    private String hitungTersedia(String kelas,String kdBangsal){
+        return Sequel.cariIsi("select count(kd_kamar) from kamar where statusdata='1' and kelas='"+kelas+"' and status='KOSONG' and kd_bangsal=?",kdBangsal);
     }
 
     /*
@@ -1533,13 +1520,12 @@ private void btnKamarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             String kapasitas=dataKamar[4];
             int kapasitasMapping=angka(kapasitas);
 
-            /* ISO memakai semua kelas dalam bangsal; mapping lain tetap per kelas.
-             * Batas kapasitas dikurangi kamar ISI menangani jumlah kamar fisik
-             * yang melebihi kapasitas mapping Aplicare.
+            /*
+             * Yang disegarkan hanya tersedia: bed aktif dalam kelas/bangsal
+             * mapping dengan status KOSONG.
              */
-            int tersediaAktual=angka(hitungStatusKamar(kodeKelas,kelas,kdBangsal,"KOSONG"));
-            int terisiAktual=angka(hitungStatusKamar(kodeKelas,kelas,kdBangsal,"ISI"));
-            int tersediaFinal=Math.max(0,Math.min(tersediaAktual,kapasitasMapping-terisiAktual));
+            int tersediaAktual=angka(hitungTersedia(kelas,kdBangsal));
+            int tersediaFinal=Math.max(0,Math.min(tersediaAktual,kapasitasMapping));
             String tersedia=String.valueOf(tersediaFinal);
 
             String tersediaPria=kapasitas;
@@ -1635,14 +1621,8 @@ private void btnKamarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
 
     private void isCariKetersediaan() {
         if(!KdKamar.getText().equals("")){
-            if("ISO".equalsIgnoreCase(KdKelas.getText().trim())){
-                Kapasitas.setText(Sequel.cariIsi("select count(kd_kamar) from kamar where statusdata='1' and kd_bangsal=?",KdKamar.getText()));
-            }else{
-                Kapasitas.setText(Sequel.cariIsi("select count(kd_kamar) from kamar where statusdata='1' and kelas='"+Kelas.getSelectedItem()+"' and kd_bangsal=?",KdKamar.getText()));
-            }
-            int kosong=angka(hitungStatusKamar(KdKelas.getText(),String.valueOf(Kelas.getSelectedItem()),KdKamar.getText(),"KOSONG"));
-            int terisi=angka(hitungStatusKamar(KdKelas.getText(),String.valueOf(Kelas.getSelectedItem()),KdKamar.getText(),"ISI"));
-            Tersedia.setText(String.valueOf(Math.max(0,Math.min(kosong,angka(Kapasitas.getText())-terisi))));
+            Kapasitas.setText(Sequel.cariIsi("select count(kd_kamar) from kamar where statusdata='1' and kelas='"+Kelas.getSelectedItem()+"' and kd_bangsal=?",KdKamar.getText()));
+            Tersedia.setText(Sequel.cariIsi("select count(kd_kamar) from kamar where statusdata='1' and kelas='"+Kelas.getSelectedItem()+"' and status='KOSONG' and kd_bangsal=?",KdKamar.getText()));
             samakanKategoriDenganKapasitas();
         }
     }

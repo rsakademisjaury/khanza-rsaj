@@ -528,7 +528,14 @@ private void BtnTemplateKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:eve
                 WhatsappGateway.Hasil hasil = WhatsappGateway.kirimPesan(
                         NoHp.getText(), message, target, fieldFonnte);
 
-                if(hasil.berhasil()){
+                if (hasil.menungguKonfirmasi()) {
+                    JOptionPane.showMessageDialog(null,
+                            "Pesan diterima antrean KirimDev.\nPenerimaan tujuan belum dikonfirmasi.\nID: "
+                            + hasil.getMessageId()
+                            + "\nPeriksa ID di halaman Uji KirimDev sebelum mengirim ulang.",
+                            "Menunggu Konfirmasi", JOptionPane.INFORMATION_MESSAGE);
+                    BtnKeluarActionPerformed(evt);
+                } else if(hasil.berhasil()){
                     LocalDateTime now = LocalDateTime.now();
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                     String DateNow = now.format(formatter);
@@ -666,3 +673,4 @@ whastappriwayat.setVisible(true);
 
 
 }
+

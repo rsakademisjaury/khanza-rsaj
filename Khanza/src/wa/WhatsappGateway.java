@@ -44,6 +44,7 @@ public final class WhatsappGateway {
 
     public enum Status {
         SUCCESS,
+        PENDING,
         FAILED,
         UNKNOWN
     }
@@ -72,8 +73,10 @@ public final class WhatsappGateway {
         }
 
         public boolean berhasil() {
-            return status == Status.SUCCESS;
+            return status == Status.SUCCESS || status == Status.PENDING;
         }
+
+        public boolean menungguKonfirmasi() { return status == Status.PENDING; }
 
         public boolean gagalPasti() {
             return status == Status.FAILED;
@@ -132,6 +135,8 @@ public final class WhatsappGateway {
         int fonnteReadTimeout;
         int gowaConnectTimeout;
         int gowaReadTimeout;
+        String kirimdevBridgeUrl;
+        String kirimdevBridgeToken;
     }
 
     private WhatsappGateway() {
@@ -154,6 +159,8 @@ public final class WhatsappGateway {
         String nomorGoWA = normalisasiNomorIndonesia(noHp);
         Map<String, String> extra = fieldFonnte == null
                 ? new LinkedHashMap<String, String>() : fieldFonnte;
+
+        if (mode.equals("KIRIMDEV")) return kirimBridge(cfg, "text", noHp, pesan, null, "", "");
 
         if (mode.equals("GOWA")) {
             Hasil siap = cekGoWA(cfg);
@@ -201,6 +208,8 @@ public final class WhatsappGateway {
                     "File yang akan dikirim tidak ditemukan.", "", 0);
         }
 
+        if (mode.equals("KIRIMDEV")) return kirimBridge(cfg, "file", noHp, caption, file, namaFile, "");
+
         if (mode.equals("GOWA")) {
             Hasil siap = cekGoWA(cfg);
             if (!siap.berhasil()) return siap;
@@ -238,6 +247,72 @@ public final class WhatsappGateway {
     /** Cek koneksi device GoWA secara eksplisit. */
     public static Hasil cekGoWA() {
         return cekGoWA(bacaConfig());
+    }
+
+    /** Periksa status ID KirimDev tanpa mengirim ulang pesan. */
+    public static Hasil cekStatusKirimDev(String messageId) {
+        return kirimBridge(bacaConfig(), "status", "", "", null, "", messageId);
+    }
+
+    private static Hasil kirimBridge(Config cfg, String action, String to, String message,
+            File file, String filename, String messageId) {
+        HttpURLConnection con = null;
+        boolean sent = false;
+        try {
+            URL url = new URL(cfg.kirimdevBridgeUrl);
+            if (!"https".equalsIgnoreCase(url.getProtocol()) || url.getQuery() != null || url.getUserInfo() != null)
+                throw new IOException("kirimdev.bridge_url harus HTTPS tanpa query/kredensial.");
+            if (cfg.kirimdevBridgeToken.length() < 32 || cfg.kirimdevBridgeToken.contains("\r") || cfg.kirimdevBridgeToken.contains("\n"))
+                throw new IOException("Isi kirimdev.bridge_token minimal 32 karakter, sama dengan konfigurasi server SiPegawai.");
+            if (!"status".equals(action) && to != null && to.contains("@") && !to.matches("[0-9]+@s\\.whatsapp\\.net"))
+                throw new IOException("Target grup belum didukung adapter KirimDev; gunakan GOWA untuk grup.");
+            if (file != null && file.length() > 10L * 1024L * 1024L) throw new IOException("PDF melebihi batas adapter 10 MB.");
+            con = bukaKoneksi(cfg.kirimdevBridgeUrl, 10000, 60000);
+            con.setInstanceFollowRedirects(false);
+            con.setRequestMethod("POST");
+            con.setRequestProperty("X-RSAJ-Bridge-Token", cfg.kirimdevBridgeToken);
+            String boundary = "RSAJKirimDev" + java.util.UUID.randomUUID().toString().replace("-", "");
+            con.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+            con.setDoOutput(true);
+            OutputStream out = con.getOutputStream();
+            sent = true;
+            try {
+                tulisField(out,boundary,"action",action);
+                tulisField(out,boundary,"to",normalisasiNomorIndonesia(to));
+                tulisField(out,boundary,"message",message);
+                tulisField(out,boundary,"message_id",messageId);
+                if (file != null) {
+                    tulisField(out,boundary,"filename",filename);
+                    tulisFile(out,boundary,"file",filename,file);
+                }
+                out.write(("--"+boundary+"--\r\n").getBytes(StandardCharsets.UTF_8));
+                out.flush();
+            } finally { out.close(); }
+            int code = con.getResponseCode();
+            String body = bacaBody(con,code);
+            JsonNode root = JSON.readTree(body);
+            if (root == null) throw new IOException("Respons bridge kosong.");
+            String id = teksJson(root.path("message_id"), "");
+            if (id.equals("")) id = teksJson(root.path("request_id"), "");
+            String state = teksJson(root.path("status"), "UNKNOWN");
+            Status status = Status.UNKNOWN;
+            if (code >= 200 && code < 300 && root.path("ok").asBoolean(false)) {
+                if (state.equals("SUCCESS")) status = Status.SUCCESS;
+                else if (state.equals("PENDING")) status = Status.PENDING;
+            } else if (state.equals("FAILED") || (code >= 400 && code < 500 && code != 408)) status = Status.FAILED;
+            return hasil(status,"KirimDev",false,id,normalisasiNomorIndonesia(to),
+                    teksJson(root.path("reason"), "Status bridge belum dapat dipastikan."),body,code);
+        } catch (Exception ex) {
+            return hasil(sent ? Status.UNKNOWN : Status.FAILED,"KirimDev",false,messageId,to,
+                    "Bridge KirimDev: "+pesanException(ex)+(sent ? " Periksa dashboard sebelum mengirim ulang." : ""),"",0);
+        } finally { if (con != null) con.disconnect(); }
+    }
+
+    /** Kompatibel dengan Jackson 2.2.3 bawaan Khanza. */
+    private static String teksJson(JsonNode node, String nilaiDefault) {
+        if (node == null || node.isNull() || node.isMissingNode()) return nilaiDefault;
+        String nilai = node.asText();
+        return nilai == null ? nilaiDefault : nilai;
     }
 
     private static Hasil kirimPesanFonnte(Config cfg, String target,
@@ -561,6 +636,8 @@ public final class WhatsappGateway {
                 "gowa.connect_timeout_ms", "5000"), 5000);
         c.gowaReadTimeout = angka(nilai("gowa.read_timeout_ms", "GOWA_READ_TIMEOUT_MS", p,
                 "gowa.read_timeout_ms", "45000"), 45000);
+        c.kirimdevBridgeUrl = nilai("kirimdev.bridge_url", "KIRIMDEV_BRIDGE_URL", p, "kirimdev.bridge_url", "");
+        c.kirimdevBridgeToken = nilai("kirimdev.bridge_token", "KIRIMDEV_BRIDGE_TOKEN", p, "kirimdev.bridge_token", "");
         return c;
     }
 
@@ -577,7 +654,7 @@ public final class WhatsappGateway {
 
     private static String normalisasiMode(String provider) {
         String p = provider == null ? "AUTO" : provider.trim().toUpperCase(Locale.ENGLISH);
-        if (!p.equals("FONNTE") && !p.equals("GOWA") && !p.equals("AUTO")) return "AUTO";
+        if (!p.equals("FONNTE") && !p.equals("GOWA") && !p.equals("KIRIMDEV") && !p.equals("AUTO")) return "AUTO";
         return p;
     }
 
