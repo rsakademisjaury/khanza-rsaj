@@ -1339,6 +1339,20 @@ public class frmUtama extends javax.swing.JFrame {
     private final java.util.Map<ImageIcon, ImageIcon> cacheWallpaperBlur =
             new java.util.IdentityHashMap<>();
 
+    // PATCH RSAJ 2026-09-20 - hak akses toolbar hybrid.
+    // Departemen = default, akses_internalframe1_user = override per pengguna.
+    // Semua tombol utama tetap terlihat sesudah login, tetapi handler hanya
+    // berjalan bila flag final kategori bernilai true.
+    private boolean aksesToolbarRegistrasi = false;
+    private boolean aksesToolbarIGD = false;
+    private boolean aksesToolbarLaboratorium = false;
+    private boolean aksesToolbarRadiologi = false;
+    private boolean aksesToolbarFarmasi = false;
+    private boolean aksesToolbarRawatInap = false;
+    private boolean aksesToolbarRawatJalan = false;
+    private boolean aksesToolbarOperasi = false;
+    private boolean aksesToolbarKeuangan = false;
+
     private LoginBackdropPanel backdropLogin;
     private Component glassPaneSebelumLogin;
     private boolean glassPaneSebelumnyaTerlihat;
@@ -17036,7 +17050,9 @@ private void setAdminAccess() {
     BtnMenu.setEnabled(true);
     aturToolbarSetelahLogin();
     setWallpaperBlurAktif(false);
+    setAksesToolbarFinal(true, true, true, true, true, true, true, true, true);
     aturVisibilitasToolbarUtama(true, true, true, true, true, true, true, true, true);
+    aktifkanKlikToolbarUtama();
     BtnToolReg.setEnabled(true);
     BtnToolKamnap.setEnabled(true);
     BtnToolKasir.setEnabled(true);
@@ -17084,9 +17100,9 @@ private void setUserAccess() {
     // Pengaturan akses berdasarkan kondisi
     setConditionalAccess();
 
-    // PATCH RSAJ: visibility tombol utama mengikuti departemen pegawai.
-    // Hak akses detail masing-masing modul tetap menggunakan class akses
-    // Khanza seperti sebelumnya.
+    // PATCH RSAJ: semua tombol utama tetap terlihat sesudah login.
+    // Departemen menjadi default hak kategori, lalu dapat dioverride per user.
+    // Hak akses detail masing-masing modul tetap menggunakan class akses Khanza.
     muatAksesToolbarUtama();
 
     logTracker(edAdmin.getText());
@@ -17094,19 +17110,19 @@ private void setUserAccess() {
 }
 
 /**
- * Membaca hak tampil tombol internalFrame1 berdasarkan DEPARTEMEN pegawai.
- * Relasi yang dipakai:
- *   akses.getkode() -> pegawai.nik -> pegawai.departemen
- *   pegawai.departemen -> akses_internalframe1_departemen.dep_id
+ * Menghitung hak EKSEKUSI tombol internalFrame1 dengan model hybrid:
+ *   1) departemen pegawai menjadi hak akses default;
+ *   2) akses_internalframe1_user dapat override per pengguna;
+ *   3) NULL = ikut departemen, Ya = paksa boleh, Tidak = paksa blokir.
  *
- * Untuk user biasa digunakan model fail-closed: bila departemen/mapping tidak
- * ditemukan, tombol Registrasi s.d. Keuangan disembunyikan. Admin Utama tetap
- * bypass dan melihat semua tombol melalui setAdminAccess().
+ * Sesudah login seluruh tombol Registrasi s.d. Keuangan tetap terlihat dan
+ * aktif secara visual. Handler masing-masing tombol melakukan guard terhadap
+ * flag final ini. Admin Utama tetap bypass melalui setAdminAccess().
  */
 private void muatAksesToolbarUtama() {
-    // Default user biasa = SEMUA tombol departemen disembunyikan. Ini sengaja
-    // fail-closed: jika mapping tidak ditemukan, jangan malah menampilkan semua
-    // tombol seperti versi sebelumnya.
+    // Default user biasa = seluruh kategori TIDAK BERFUNGSI sampai mapping
+    // departemen/override user berhasil dibaca. Tombolnya sendiri tetap
+    // ditampilkan sesudah login agar susunan toolbar tetap familiar.
     boolean registrasi = false;
     boolean igd = false;
     boolean laboratorium = false;
@@ -17118,6 +17134,7 @@ private void muatAksesToolbarUtama() {
     boolean keuangan = false;
 
     String nikLogin = akses.getkode() == null ? "" : akses.getkode().trim();
+    String usernameLogin = edAdmin.getText() == null ? "" : edAdmin.getText().trim();
     String departemenPegawai = "";
     String depId = "";
 
@@ -17132,14 +17149,11 @@ private void muatAksesToolbarUtama() {
             }
         }
     } catch (Exception e) {
-        System.out.println("[Akses Toolbar Departemen] Gagal membaca departemen pegawai "
+        System.out.println("[Akses Toolbar] Gagal membaca departemen pegawai "
                 + nikLogin + ": " + e.getMessage());
     }
 
-    // LANGKAH 2: normalisasi ke departemen.dep_id. Ini membuat patch tetap
-    // bekerja baik bila pegawai.departemen berisi KODE (RAD) maupun NAMA
-    // departemen. Bila tabel departemen tidak menemukan padanan, nilai mentah
-    // pegawai.departemen tetap dipakai sebagai dep_id.
+    // LANGKAH 2: normalisasi pegawai.departemen -> departemen.dep_id.
     if (!departemenPegawai.isEmpty()) {
         depId = departemenPegawai;
         try (PreparedStatement pstMasterDep = koneksi.prepareStatement(
@@ -17157,25 +17171,24 @@ private void muatAksesToolbarUtama() {
                 }
             }
         } catch (Exception e) {
-            System.out.println("[Akses Toolbar Departemen] Normalisasi dep_id gagal untuk "
+            System.out.println("[Akses Toolbar] Normalisasi dep_id gagal untuk "
                     + departemenPegawai + ": " + e.getMessage());
         }
     }
 
-    // LANGKAH 3: baca mapping SATU baris departemen. TRIM + UPPER dipakai agar
-    // spasi/case di database lama tidak menyebabkan mapping gagal terbaca.
-    boolean mappingDitemukan = false;
+    // LANGKAH 3: hak akses DEFAULT dari departemen.
+    boolean mappingDepartemenDitemukan = false;
     if (!depId.isEmpty()) {
-        String sqlToolbar = "select registrasi,igd,laboratorium,radiologi," +
-                "farmasi,rawat_inap,rawat_jalan,operasi,keuangan " +
-                "from akses_internalframe1_departemen " +
-                "where upper(trim(dep_id))=upper(trim(?)) limit 1";
+        String sqlToolbar = "select registrasi,igd,laboratorium,radiologi,"
+                + "farmasi,rawat_inap,rawat_jalan,operasi,keuangan "
+                + "from akses_internalframe1_departemen "
+                + "where upper(trim(dep_id))=upper(trim(?)) limit 1";
 
         try (PreparedStatement pstToolbar = koneksi.prepareStatement(sqlToolbar)) {
             pstToolbar.setString(1, depId);
             try (ResultSet rsToolbar = pstToolbar.executeQuery()) {
                 if (rsToolbar.next()) {
-                    mappingDitemukan = true;
+                    mappingDepartemenDitemukan = true;
                     registrasi = nilaiAksesToolbarYa(rsToolbar.getString("registrasi"));
                     igd = nilaiAksesToolbarYa(rsToolbar.getString("igd"));
                     laboratorium = nilaiAksesToolbarYa(rsToolbar.getString("laboratorium"));
@@ -17188,22 +17201,120 @@ private void muatAksesToolbarUtama() {
                 }
             }
         } catch (Exception e) {
-            System.out.println("[Akses Toolbar Departemen] Gagal membaca mapping dep_id="
+            System.out.println("[Akses Toolbar] Gagal membaca mapping departemen dep_id="
                     + depId + ": " + e.getMessage());
         }
     }
 
-    if (!mappingDitemukan) {
-        System.out.println("[Akses Toolbar Departemen] Mapping tidak ditemukan. nik="
-                + nikLogin + ", pegawai.departemen=" + departemenPegawai
-                + ", dep_id=" + depId + ". Tombol departemen disembunyikan.");
-    } else {
-        System.out.println("[Akses Toolbar Departemen] Mapping aktif. nik="
-                + nikLogin + ", dep_id=" + depId);
+    // LANGKAH 4: OVERRIDE khusus user.
+    // NULL = ikut departemen, Ya = paksa boleh, Tidak = paksa tidak boleh.
+    boolean overrideUserDitemukan = false;
+    if (!nikLogin.isEmpty()) {
+        String sqlOverride = "select registrasi,igd,laboratorium,radiologi,"
+                + "farmasi,rawat_inap,rawat_jalan,operasi,keuangan "
+                + "from akses_internalframe1_user "
+                + "where upper(trim(kode_user))=upper(trim(?)) "
+                + "or upper(trim(kode_user))=upper(trim(?)) limit 1";
+
+        try (PreparedStatement pstOverride = koneksi.prepareStatement(sqlOverride)) {
+            // Terima dua pola mapping: NIK (akses.getkode()) maupun username login.
+            // Ini penting karena beberapa akun Khanza memakai username yang berbeda dari NIK.
+            pstOverride.setString(1, nikLogin);
+            pstOverride.setString(2, usernameLogin);
+            try (ResultSet rsOverride = pstOverride.executeQuery()) {
+                if (rsOverride.next()) {
+                    overrideUserDitemukan = true;
+                    registrasi = terapkanOverrideToolbar(rsOverride.getString("registrasi"), registrasi);
+                    igd = terapkanOverrideToolbar(rsOverride.getString("igd"), igd);
+                    laboratorium = terapkanOverrideToolbar(rsOverride.getString("laboratorium"), laboratorium);
+                    radiologi = terapkanOverrideToolbar(rsOverride.getString("radiologi"), radiologi);
+                    farmasi = terapkanOverrideToolbar(rsOverride.getString("farmasi"), farmasi);
+                    rawatInap = terapkanOverrideToolbar(rsOverride.getString("rawat_inap"), rawatInap);
+                    rawatJalan = terapkanOverrideToolbar(rsOverride.getString("rawat_jalan"), rawatJalan);
+                    operasi = terapkanOverrideToolbar(rsOverride.getString("operasi"), operasi);
+                    keuangan = terapkanOverrideToolbar(rsOverride.getString("keuangan"), keuangan);
+                }
+            }
+        } catch (Exception e) {
+            // Bila tabel override belum dibuat, akses departemen tetap berjalan
+            // seperti sebelumnya. Tidak mengganggu login maupun fungsi modul lain.
+            System.out.println("[Akses Toolbar] Override user tidak dapat dibaca. nik="
+                    + nikLogin + ", username=" + usernameLogin + ": " + e.getMessage());
+        }
     }
 
-    aturVisibilitasToolbarUtama(registrasi, igd, laboratorium, radiologi,
+    setAksesToolbarFinal(registrasi, igd, laboratorium, radiologi,
             farmasi, rawatInap, rawatJalan, operasi, keuangan);
+
+    // SESUDAH LOGIN semua kategori tetap terlihat dan tampak dapat diklik.
+    // Izin eksekusi ditahan di awal masing-masing ActionPerformed.
+    aturVisibilitasToolbarUtama(true, true, true, true, true, true, true, true, true);
+    aktifkanKlikToolbarUtama();
+
+    System.out.println("[Akses Toolbar] username=" + usernameLogin
+            + ", nik=" + nikLogin
+            + ", pegawai.departemen=" + departemenPegawai
+            + ", dep_id=" + depId
+            + ", departemen=" + (mappingDepartemenDitemukan ? "OK" : "TIDAK ADA")
+            + ", override_user=" + (overrideUserDitemukan ? "ADA" : "TIDAK ADA")
+            + ", final={REG=" + registrasi
+            + ",IGD=" + igd
+            + ",LAB=" + laboratorium
+            + ",RAD=" + radiologi
+            + ",FAR=" + farmasi
+            + ",RI=" + rawatInap
+            + ",RJ=" + rawatJalan
+            + ",OP=" + operasi
+            + ",KEU=" + keuangan + "}");
+}
+
+private void setAksesToolbarFinal(boolean registrasi, boolean igd,
+        boolean laboratorium, boolean radiologi, boolean farmasi,
+        boolean rawatInap, boolean rawatJalan, boolean operasi,
+        boolean keuangan) {
+    aksesToolbarRegistrasi = registrasi;
+    aksesToolbarIGD = igd;
+    aksesToolbarLaboratorium = laboratorium;
+    aksesToolbarRadiologi = radiologi;
+    aksesToolbarFarmasi = farmasi;
+    aksesToolbarRawatInap = rawatInap;
+    aksesToolbarRawatJalan = rawatJalan;
+    aksesToolbarOperasi = operasi;
+    aksesToolbarKeuangan = keuangan;
+}
+
+private boolean terapkanOverrideToolbar(String nilaiOverride, boolean nilaiDepartemen) {
+    if (nilaiOverride == null || nilaiOverride.trim().isEmpty()) {
+        return nilaiDepartemen;
+    }
+
+    String v = nilaiOverride.trim();
+    if (v.equalsIgnoreCase("Ya") || v.equalsIgnoreCase("Y")
+            || v.equalsIgnoreCase("true") || v.equals("1")) {
+        return true;
+    }
+
+    if (v.equalsIgnoreCase("Tidak") || v.equalsIgnoreCase("T")
+            || v.equalsIgnoreCase("N") || v.equalsIgnoreCase("false")
+            || v.equals("0")) {
+        return false;
+    }
+
+    return nilaiDepartemen;
+}
+
+private void aktifkanKlikToolbarUtama() {
+    // Tombol dibuat tetap aktif secara visual agar seluruh menu tetap familiar.
+    // Hak akses sebenarnya diperiksa di awal ActionPerformed masing-masing.
+    BtnToolReg.setEnabled(true);
+    btnToolIGD.setEnabled(true);
+    btnToolLab.setEnabled(true);
+    btnToolRad.setEnabled(true);
+    BtnToolJualObat.setEnabled(true);
+    BtnToolKamnap.setEnabled(true);
+    BtnToolKasir.setEnabled(true);
+    BtnOperasi.setEnabled(true);
+    BtnKeuangan.setEnabled(true);
 }
 
 private boolean nilaiAksesToolbarYa(String nilai) {
@@ -17271,8 +17382,10 @@ private void aturVisibilitasToolbarUtama(boolean registrasi, boolean igd,
  */
 private void aturToolbarBelumLogin() {
     setWallpaperBlurAktif(false);
+    setAksesToolbarFinal(false, false, false, false, false,
+            false, false, false, false);
 
-    // Tombol modul yang dikendalikan mapping departemen.
+    // Sebelum login seluruh tombol modul tetap disembunyikan.
     aturVisibilitasToolbarUtama(false, false, false, false, false,
             false, false, false, false);
 
@@ -17294,8 +17407,8 @@ private void aturToolbarBelumLogin() {
 
 /**
  * Komponen umum toolbar yang boleh muncul sesudah autentikasi berhasil.
- * Tombol modul Reg s.d. Keuangan tetap diatur terpisah oleh mapping departemen
- * (atau semua tampil untuk Admin Utama).
+ * Sesudah autentikasi, tombol Reg s.d. Keuangan akan ditampilkan semua.
+ * Hak akses kategori diperiksa di ActionPerformed, bukan lagi lewat visibility.
  */
 private void aturToolbarSetelahLogin() {
     BtnMenu.setVisible(true);
@@ -17631,6 +17744,9 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_BtnJawabanActionPerformed
 
     private void BtnKeuanganActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnKeuanganActionPerformed
+        if (!aksesToolbarKeuangan) {
+            return;
+        }
         //    isTutup();
         //        FlayMenu.removeAll();
         //        FlayMenu.add(btnRanapMasuk);
@@ -17768,6 +17884,9 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_BtnKeuanganActionPerformed
 
     private void BtnOperasiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnOperasiActionPerformed
+        if (!aksesToolbarOperasi) {
+            return;
+        }
         isTutup();
         setWallpaperBlurAktif(true);
         FlayMenu.removeAll();
@@ -17839,6 +17958,11 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_BtnOperasiActionPerformed
 
     private void BtnToolKasirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnToolKasirActionPerformed
+        // Hak kategori final (departemen + override user) adalah gerbang toolbar.
+        // Hak detail di dalam form tetap ditangani oleh mekanisme akses Khanza.
+        if (!aksesToolbarRawatJalan) {
+            return;
+        }
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
         // PATCH PERFORMA RSAJ: tutup dialog lama sebelum lazy-load Kasir Ralan.
@@ -17859,6 +17983,10 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_BtnToolKasirActionPerformed
 
     private void BtnToolKamnapActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnToolKamnapActionPerformed
+        // Hak kategori final (departemen + override user) adalah gerbang toolbar.
+        if (!aksesToolbarRawatInap) {
+            return;
+        }
         isTutup();
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         getKamarInap().isCek();
@@ -17871,6 +17999,9 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_BtnToolKamnapActionPerformed
 
     private void BtnToolJualObatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnToolJualObatActionPerformed
+        if (!aksesToolbarFarmasi) {
+            return;
+        }
         isTutup();
         setWallpaperBlurAktif(true);
         FlayMenu.removeAll();
@@ -17898,6 +18029,9 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_BtnToolJualObatActionPerformed
 
     private void btnToolRadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnToolRadActionPerformed
+        if (!aksesToolbarRadiologi) {
+            return;
+        }
         isTutup();
         setWallpaperBlurAktif(true);
         FlayMenu.removeAll();
@@ -17953,6 +18087,9 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_btnToolRadActionPerformed
 
     private void btnToolLabActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnToolLabActionPerformed
+        if (!aksesToolbarLaboratorium) {
+            return;
+        }
         isTutup();
         setWallpaperBlurAktif(true);
         FlayMenu.removeAll();
@@ -17989,10 +18126,16 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_btnToolLabActionPerformed
 
     private void btnToolIGDActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnToolIGDActionPerformed
+        if (!aksesToolbarIGD) {
+            return;
+        }
         btnIGDActionPerformed(evt);
     }//GEN-LAST:event_btnToolIGDActionPerformed
 
     private void BtnToolRegActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnToolRegActionPerformed
+        if (!aksesToolbarRegistrasi) {
+            return;
+        }
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         isTutup();
         getRegistrasi().siapkanPembukaan();
@@ -52290,20 +52433,61 @@ private void stopITServiceChat() {
         rujukanMasukNotifier = new bridging.SatuSehatRujukanMasukNotifier(this, this,
             () -> "Log Out".equals(BtnLog.getText().trim()) &&
                 (akses.getjml1() >= 1 || akses.getigd() || akses.getkamar_inap() || akses.getregistrasi()),
-            (pesan, buka) -> BaseToast.showInfoNoIcon(this, pesan, 7000, buka, "file:suara/notifikasi.wav"));
+            (pesan, buka) -> tampilkanToastRujukanMasuk(pesan, buka));
 
-        // PATCH RSAJ 2026-09-16:
-        // Ikon Rujukan Masuk pada toolbar harus memakai resource inbox RS.
-        URL iconInboxRujukan = getClass().getResource("/picture/inbox.png");
-        if (iconInboxRujukan != null) {
-            rujukanMasukNotifier.button().setIcon(new ImageIcon(iconInboxRujukan));
-        }
+        // CATATAN: jangan memanggil setIcon() pada button notifier.
+        // SatuSehatRujukanMasukNotifier.InboxButton sudah menggambar
+        // /picture/inbox.png sendiri pada paintComponent(). Jika setIcon()
+        // dipasang lagi di sini, Swing menggambar ikon dari super.paintComponent()
+        // lalu InboxButton menggambarnya sekali lagi sehingga terlihat dobel/bersusun.
 
         // Ikuti toolbar versi terbaru: notifikasi baru tampil setelah login.
         rujukanMasukNotifier.button().setVisible(false);
         panelKanan.add(rujukanMasukNotifier.button(), 0);
         panelKanan.revalidate(); panelKanan.repaint();
     }
+
+    /**
+     * Toast Rujukan Masuk harus mengikuti jumlah baris informasi. Pesan dari
+     * notifier dapat berisi \n atau tag <br>; keduanya dinormalisasi menjadi
+     * HTML sehingga komponen toast memperoleh preferred-height sesuai isi.
+     */
+    private void tampilkanToastRujukanMasuk(String pesan, Runnable buka) {
+        String mentah = pesan == null ? "" : pesan.trim();
+        String isi;
+
+        if (mentah.toLowerCase().startsWith("<html>")) {
+            // Jika suatu saat notifier sudah mengirim HTML, tetap bungkus dengan
+            // lebar tetap agar preferred-height dihitung dari jumlah baris.
+            String body = mentah.replaceFirst("(?i)^\\s*<html>", "")
+                                .replaceFirst("(?i)</html>\\s*$", "")
+                                .replace("\r\n", "<br>")
+                                .replace("\n", "<br>")
+                                .replace("\r", "<br>");
+            isi = "<html><table width='380' cellpadding='6' cellspacing='0'><tr><td>"
+                    + body + "</td></tr></table></html>";
+        } else {
+            // Notifier SATUSEHAT saat ini memang mengirim beberapa informasi
+            // dipisahkan dengan karakter newline. Ubah menjadi <br> supaya JLabel
+            // toast menghitung tinggi berdasarkan 1, 2, 3, 4, dst. baris.
+            isi = escapeHtmlToastRujukan(mentah)
+                    .replace("\r\n", "<br>")
+                    .replace("\n", "<br>")
+                    .replace("\r", "<br>");
+            isi = "<html><table width='380' cellpadding='6' cellspacing='0'><tr><td>"
+                    + isi + "</td></tr></table></html>";
+        }
+
+        BaseToast.showInfoNoIcon(this, isi, 7000, buka, "file:suara/notifikasi.wav");
+    }
+
+    private String escapeHtmlToastRujukan(String teks) {
+        if (teks == null || teks.isEmpty()) return "";
+        return teks.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;");
+    }
+
     private void mulaiRujukanMasukSatuSehat() {
         if (rujukanMasukNotifier != null) {
             String operator = akses.getkode();

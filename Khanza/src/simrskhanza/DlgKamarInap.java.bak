@@ -94,7 +94,7 @@
  import inventory.DlgResepObat;
  import laporan.DlgDataHAIs;
  import bridging.BPJSDataSEP; 
- import bridging.SatuSehatRujukanRanap;
+ import bridging.SatuSehatRujukanIGDRanapLauncher;
  import bridging.BPJSNik;
  import bridging.BPJSPeserta;
  import bridging.BPJSSPRI;
@@ -26287,8 +26287,10 @@ private String getUraianKonsultasi(String noRawat) {
      * Tambahan menu manual: Bridging > Rujukan Rawat Inap Satu Sehat.
      * Dibuat manual agar tidak mengganggu source GUI Builder NetBeans.
      */
+    private javax.swing.JMenuItem ppRujukanSatuSehatRanap;
+
     private void initMenuRujukanSatuSehatRanap() {
-        javax.swing.JMenuItem ppRujukanSatuSehatRanap = new javax.swing.JMenuItem();
+        ppRujukanSatuSehatRanap = new javax.swing.JMenuItem();
         ppRujukanSatuSehatRanap.setBackground(new java.awt.Color(255, 255, 254));
         ppRujukanSatuSehatRanap.setFont(new java.awt.Font("Tahoma", 0, 11));
         ppRujukanSatuSehatRanap.setForeground(new java.awt.Color(50, 50, 50));
@@ -26297,6 +26299,7 @@ private String getUraianKonsultasi(String noRawat) {
         ppRujukanSatuSehatRanap.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         ppRujukanSatuSehatRanap.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
         ppRujukanSatuSehatRanap.setName("ppRujukanSatuSehatRanap");
+        ppRujukanSatuSehatRanap.setEnabled(akses.getsisrute_rujukan_keluar());
         ppRujukanSatuSehatRanap.setPreferredSize(new java.awt.Dimension(330, 26));
         ppRujukanSatuSehatRanap.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -26311,29 +26314,11 @@ private String getUraianKonsultasi(String noRawat) {
     }
 
     private void ppRujukanSatuSehatRanapActionPerformed(java.awt.event.ActionEvent evt) {
-        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        try {
-            String noRawat = "";
-            if (tbKamIn.getSelectedRow() != -1) {
-                noRawat = nilaiTabel(tbKamIn, tbKamIn.getSelectedRow(), 0);
-            }
-            if (noRawat.trim().equals("")) {
-                noRawat = norawat.getText().trim();
-            }
-
-            SatuSehatRujukanRanap dlg = new SatuSehatRujukanRanap(null, false);
-            if (!noRawat.trim().equals("")) {
-                dlg.setNoRawatTerpilih(noRawat);
-            }
-            dlg.setSize(internalFrame1.getWidth() - 20, internalFrame1.getHeight() - 20);
-            dlg.setLocationRelativeTo(internalFrame1);
-            dlg.setVisible(true);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(null, "Gagal membuka form Rujukan Rawat Inap Satu Sehat:\n" + ex.getMessage());
-            ex.printStackTrace();
-        } finally {
-            this.setCursor(Cursor.getDefaultCursor());
+        if (!akses.getsisrute_rujukan_keluar()) {
+            JOptionPane.showMessageDialog(this, "Akun ini belum memiliki hak akses rujukan keluar Sisrute.");
+            return;
         }
+        SatuSehatRujukanIGDRanapLauncher.bukaRawatInap(this, tbKamIn, koneksi, akses.getkode());
     }
 
     private String nilaiTabel(javax.swing.JTable tabel, int row, int col) {
@@ -28074,6 +28059,9 @@ private void tampil() {
          MnCekKepesertaan.setEnabled(akses.getbpjs_cek_kartu());
          MnCekNIK.setEnabled(akses.getbpjs_cek_nik());
          MnRujukSisrute.setEnabled(akses.getsisrute_rujukan_keluar());
+         if (ppRujukanSatuSehatRanap != null) {
+             ppRujukanSatuSehatRanap.setEnabled(akses.getsisrute_rujukan_keluar());
+         }
          ppKlasifikasiPasien.setEnabled(akses.getklasifikasi_pasien_ranap());
          MnTeridentifikasiTB.setEnabled(akses.getkemenkes_sitt());
          MnPenilaianAwalKeperawatanRanap.setEnabled(akses.getpenilaian_awal_keperawatan_ranap());

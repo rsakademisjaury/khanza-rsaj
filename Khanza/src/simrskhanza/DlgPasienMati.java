@@ -453,6 +453,7 @@ public class DlgPasienMati extends javax.swing.JDialog {
         BtnPrint = new widget.Button();
         jLabel7 = new widget.Label();
         LCount = new widget.Label();
+        BtnRekapKematian = new widget.Button();
         BtnKeluar = new widget.Button();
         panelGlass9 = new widget.panelisi();
         jLabel6 = new widget.Label();
@@ -726,6 +727,24 @@ public class DlgPasienMati extends javax.swing.JDialog {
         LCount.setName("LCount"); // NOI18N
         LCount.setPreferredSize(new java.awt.Dimension(50, 23));
         panelGlass8.add(LCount);
+
+        BtnRekapKematian.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/b_print.png"))); // NOI18N
+        BtnRekapKematian.setMnemonic('R');
+        BtnRekapKematian.setText("Rekap Kematian");
+        BtnRekapKematian.setToolTipText("Alt+R");
+        BtnRekapKematian.setName("BtnRekapKematian"); // NOI18N
+        BtnRekapKematian.setPreferredSize(new java.awt.Dimension(150, 30));
+        BtnRekapKematian.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnRekapKematianActionPerformed(evt);
+            }
+        });
+        BtnRekapKematian.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                BtnRekapKematianKeyPressed(evt);
+            }
+        });
+        panelGlass8.add(BtnRekapKematian);
 
         BtnKeluar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/exit.png"))); // NOI18N
         BtnKeluar.setMnemonic('K');
@@ -1678,6 +1697,38 @@ public class DlgPasienMati extends javax.swing.JDialog {
         }
 }//GEN-LAST:event_BtnHapusKeyPressed
 
+    private void BtnRekapKematianActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnRekapKematianActionPerformed
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        String url = "";
+        try {
+            url = "http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB()
+                    + "/" + koneksiDB.HYBRIDWEB() + "/berkasrawat/rekap_kematian.php";
+            if (!TCari.getText().trim().equals("")) {
+                url += "?q=" + java.net.URLEncoder.encode(TCari.getText().trim(), "UTF-8");
+            }
+            if (!java.awt.Desktop.isDesktopSupported()
+                    || !java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+                throw new UnsupportedOperationException("Browser default tidak tersedia pada komputer ini.");
+            }
+            java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Browser belum dapat dibuka. Pastikan browser default sudah diatur pada komputer ini."
+                    + "\nAlamat rekap: " + url,
+                    "Rekap Kematian", JOptionPane.WARNING_MESSAGE);
+        } finally {
+            this.setCursor(Cursor.getDefaultCursor());
+        }
+    }//GEN-LAST:event_BtnRekapKematianActionPerformed
+
+    private void BtnRekapKematianKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnRekapKematianKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_SPACE) {
+            BtnRekapKematianActionPerformed(null);
+        } else {
+            Valid.pindah(evt, BtnPrint, BtnKeluar);
+        }
+    }//GEN-LAST:event_BtnRekapKematianKeyPressed
+
     private void BtnKeluarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnKeluarActionPerformed
         dispose();
 }//GEN-LAST:event_BtnKeluarActionPerformed
@@ -1685,7 +1736,7 @@ public class DlgPasienMati extends javax.swing.JDialog {
     private void BtnKeluarKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnKeluarKeyPressed
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
             dispose();
-        }else{Valid.pindah(evt,BtnPrint,TCari);}
+        }else{Valid.pindah(evt,BtnRekapKematian,TCari);}
 }//GEN-LAST:event_BtnKeluarKeyPressed
 
     private void BtnPrintActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnPrintActionPerformed
@@ -1748,7 +1799,7 @@ public class DlgPasienMati extends javax.swing.JDialog {
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
             BtnPrintActionPerformed(null);
         }else{
-            Valid.pindah(evt, BtnHapus, BtnKeluar);
+            Valid.pindah(evt, BtnHapus, BtnRekapKematian);
         }
 }//GEN-LAST:event_BtnPrintKeyPressed
 
@@ -2382,6 +2433,7 @@ private void MnCetakSuratKematianActionPerformed(java.awt.event.ActionEvent evt)
     private widget.Button BtnDokter;
     private widget.Button BtnHapus;
     private widget.Button BtnHapus1;
+    private widget.Button BtnRekapKematian;
     private widget.Button BtnKeluar;
     private widget.Button BtnPrint;
     private widget.Button BtnRefreshPhoto;

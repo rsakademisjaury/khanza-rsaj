@@ -5780,6 +5780,7 @@ import rekammedis.RMRiwayatPerawatan;
         MnPenilaianKecemasanAnak = new javax.swing.JMenuItem();
         MnPenilaianPasienPenyakitMenular = new javax.swing.JMenuItem();
         MnPenilaianPsikolog = new javax.swing.JMenuItem();
+        MnFormulirHemodialisa = new javax.swing.JMenuItem();
         MnHemodialisa = new javax.swing.JMenuItem();
         MnPemantauanPEWS = new javax.swing.JMenu();
         MnPemantauanPEWSAnak = new javax.swing.JMenuItem();
@@ -8131,6 +8132,22 @@ import rekammedis.RMRiwayatPerawatan;
             }
         });
         MnTindakan.add(MnPeriksaRadiologi);
+
+        MnFormulirHemodialisa.setBackground(new java.awt.Color(255, 255, 254));
+        MnFormulirHemodialisa.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
+        MnFormulirHemodialisa.setForeground(new java.awt.Color(50, 50, 50));
+        MnFormulirHemodialisa.setIcon(ICON_CATEGORY); // NOI18N
+        MnFormulirHemodialisa.setText("Formulir Hemodialisa");
+        MnFormulirHemodialisa.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        MnFormulirHemodialisa.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        MnFormulirHemodialisa.setName("MnFormulirHemodialisa"); // NOI18N
+        MnFormulirHemodialisa.setPreferredSize(new java.awt.Dimension(220, 26));
+        MnFormulirHemodialisa.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                MnFormulirHemodialisaActionPerformed(evt);
+            }
+        });
+        MnTindakan.add(MnFormulirHemodialisa);
 
         MnOperasi.setBackground(new java.awt.Color(255, 255, 254));
         MnOperasi.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
@@ -19828,6 +19845,46 @@ import rekammedis.RMRiwayatPerawatan;
          }
      }//GEN-LAST:event_MnBarcode2ActionPerformed
  
+    private void MnFormulirHemodialisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnFormulirHemodialisaActionPerformed
+        bukaFormulirHemodialisaRSAJ(tbKamIn, 0);
+    }//GEN-LAST:event_MnFormulirHemodialisaActionPerformed
+
+    // No. Rawat diambil langsung dari model baris terpilih, termasuk popup konsultasi.
+    private void bukaFormulirHemodialisaRSAJ(javax.swing.JTable tabel, int kolomNoRawat) {
+        if (!akses.gethemodialisa()) {
+            JOptionPane.showMessageDialog(this, "Akun ini tidak memiliki hak akses Hemodialisa.");
+            return;
+        }
+        int baris = tabel.getSelectedRow();
+        if (baris < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih pasien pada tabel terlebih dahulu.");
+            tabel.requestFocus();
+            return;
+        }
+        Object nilai = tabel.getModel().getValueAt(tabel.convertRowIndexToModel(baris), kolomNoRawat);
+        String noRawat = nilai == null ? "" : nilai.toString().trim();
+        if (noRawat.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No. Rawat pada baris terpilih belum tersedia. Pilih baris pasien dengan No. Rawat.");
+            return;
+        }
+        rekammedis.DlgFormulirHemodialisa form = null;
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        try {
+            form = new rekammedis.DlgFormulirHemodialisa(null, true);
+            form.setNoRawat(noRawat);
+            form.setLocationRelativeTo(internalFrame1);
+            this.setCursor(Cursor.getDefaultCursor());
+            form.setVisible(true);
+        } catch (Exception ex) {
+            if (form != null) {
+                form.dispose();
+            }
+            JOptionPane.showMessageDialog(this, "Formulir Hemodialisa gagal dibuka: " + ex.getMessage());
+        } finally {
+            this.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
      private void MnHemodialisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnHemodialisaActionPerformed
          if(tabMode.getRowCount()==0){
              JOptionPane.showMessageDialog(null,"Maaf, table masih kosong...!!!!");
@@ -26454,6 +26511,7 @@ private String getUraianKonsultasi(String noRawat) {
     private javax.swing.JMenuItem MnHapusObatOperasi;
     private javax.swing.JMenuItem MnHapusTagihanOperasi;
     private javax.swing.JMenuItem MnHasilPemeriksaanUSG;
+    private javax.swing.JMenuItem MnFormulirHemodialisa;
     private javax.swing.JMenuItem MnHemodialisa;
     private javax.swing.JMenuItem MnInputResep;
     private javax.swing.JMenuItem MnJadwalOperasi;
@@ -28054,6 +28112,7 @@ private void tampil() {
          MnPCare.setEnabled(akses.getbridging_pcare_daftar()); 
          ppMonitoringAsuhanGizi.setEnabled(akses.getmonitoring_asuhan_gizi()); 
          MnHemodialisa.setEnabled(akses.gethemodialisa()); 
+        MnFormulirHemodialisa.setEnabled(akses.gethemodialisa());
          MnPenjualan1.setEnabled(akses.getpenjualan_obat()); 
          MnBilling.setEnabled(akses.getbilling_ranap()); 
          MnCekKepesertaan.setEnabled(akses.getbpjs_cek_kartu());

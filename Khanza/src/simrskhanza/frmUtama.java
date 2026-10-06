@@ -1358,6 +1358,8 @@ public class frmUtama extends javax.swing.JFrame {
     private boolean glassPaneSebelumnyaTerlihat;
     private boolean sinkronisasiLoginTerjadwal;
     private boolean pemulihanFokusLoginTerjadwal;
+    // Tetap true selama autentikasi diperlukan, meski native dialog tersembunyi.
+    private boolean dialogLoginDiperlukan;
     private javax.swing.Timer timerPulsaFokusLogin;
     private java.beans.PropertyChangeListener pemantauWindowAktifLogin;
     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize(); 
@@ -2666,7 +2668,7 @@ public class frmUtama extends javax.swing.JFrame {
         if (pemantauWindowAktifLogin == null) {
             pemantauWindowAktifLogin = evt -> {
                 Object windowAktif = evt.getNewValue();
-                if (DlgLogin.isVisible()
+                if (dialogLoginDiperlukan
                         && (windowAktif == this || windowAktif == DlgLogin)) {
                     jadwalkanPemulihanFokusLogin();
                 }
@@ -2683,7 +2685,7 @@ public class frmUtama extends javax.swing.JFrame {
      * field login dipertahankan agar pengguna dapat langsung melanjutkan input.
      */
     private void jadwalkanPemulihanFokusLogin() {
-        if (!DlgLogin.isVisible() || pemulihanFokusLoginTerjadwal
+        if (!dialogLoginDiperlukan || pemulihanFokusLoginTerjadwal
                 || (getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
             return;
         }
@@ -2691,12 +2693,21 @@ public class frmUtama extends javax.swing.JFrame {
         pemulihanFokusLoginTerjadwal = true;
         java.awt.EventQueue.invokeLater(() -> {
             pemulihanFokusLoginTerjadwal = false;
-            if (!DlgLogin.isVisible() || !isShowing()
+            if (!dialogLoginDiperlukan || !isShowing()
                     || (getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
                 return;
             }
 
             Component fokusTerakhir = DlgLogin.getMostRecentFocusOwner();
+            // Pulihkan dialog tanpa mereset username/password atau mengulang login.
+            if (!DlgLogin.isVisible()) {
+                posisikanLoginDiSisiKanan();
+                DlgLogin.setVisible(true);
+            }
+            aktifkanBackdropLogin();
+            if (timerAnimasiWallpaperLogin == null && !daftarWallpaper.isEmpty()) {
+                mulaiAnimasiWallpaperLogin();
+            }
             angkatDialogLogin(fokusTerakhir);
         });
     }
@@ -2818,6 +2829,7 @@ public class frmUtama extends javax.swing.JFrame {
             return;
         }
 
+        dialogLoginDiperlukan = true;
         aturGambarPanelJudul(false);
         BtnLogin.setSelected(false);
         DlgLogin.setSize(LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN);
@@ -17411,6 +17423,8 @@ private void aturToolbarBelumLogin() {
  * Hak akses kategori diperiksa di ActionPerformed, bukan lagi lewat visibility.
  */
 private void aturToolbarSetelahLogin() {
+    // Batalkan pemulihan yang masih antre sebelum dialog login ditutup.
+    dialogLoginDiperlukan = false;
     BtnMenu.setVisible(true);
     BtnNotif.setVisible(true);
     BtnJawaban.setVisible(true);
