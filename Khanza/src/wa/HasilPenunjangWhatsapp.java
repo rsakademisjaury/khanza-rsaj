@@ -43,6 +43,12 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 
 /**
  * Pengiriman satu PDF hasil Lab/Radiologi melalui WhatsappGateway.
@@ -462,6 +468,7 @@ public final class HasilPenunjangWhatsapp {
             .append(daftar).append("</ul></div>")
             .append("<div class='note'>Centang berkas yang ingin dikirim. Tombol Preview membuka file di jendela/tab terpisah sehingga popup ini tetap terbuka. Pasien akan menerima lampiran PDF hasil pemeriksaan melalui WhatsApp, bukan tautan berkas.</div>")
             .append("<div class='actions'><a class='btn close' href='javascript:window.close()'>Batal</a><button id='kirim' class='btn send' type='submit'>").append(escapeHtml(labelKirim)).append("</button></div>")
+            .append(sesiLaboratorium(sesi) ? "<div class='note'><strong>PDF lab dikunci otomatis.</strong> Password pembuka: tanggal lahir DDMMYYYY + nomor RM lengkap tanpa spasi, termasuk angka nol di depan. Pastikan nomor tujuan milik pasien atau penerima yang berwenang. Pengiriman dibatalkan jika identitas atau penguncian gagal.</div>" : "")
             .append("</form></div></div></div></body></html>");
         return html.toString();
     }
@@ -481,13 +488,16 @@ public final class HasilPenunjangWhatsapp {
 
     private static File buatPdfHasil(Sesi sesi, List<Berkas> pilihan) throws Exception {
         if (pilihan == null || pilihan.isEmpty()) throw new IOException("Tidak ada berkas yang dipilih.");
+        // Validasi identitas sebelum mengambil gambar atau membuat berkas.
+        // Hanya alur Laboratorium yang diubah; alur Radiologi tetap seperti semula.
+        String password = sesiLaboratorium(sesi) ? ambilPasswordPdfLab(sesi, pilihan) : null;
         int[] batasPiksel = new int[]{1700, 1300, 1000};
         float[] kualitas = new float[]{0.80f, 0.64f, 0.50f};
         File hasilTerbaik = null;
         for (int i = 0; i < batasPiksel.length; i++) {
             File pdf = File.createTempFile("Hasil_" + namaAman(sesi.judul) + "_", ".pdf");
             try {
-                tulisPdf(pdf, pilihan, batasPiksel[i], kualitas[i]);
+                tulisPdf(pdf, pilihan, batasPiksel[i], kualitas[i], password);
                 if (hasilTerbaik != null) hasilTerbaik.delete();
                 hasilTerbaik = pdf;
                 if (pdf.length() <= BATAS_PDF_AMAN) return pdf;
@@ -505,7 +515,63 @@ public final class HasilPenunjangWhatsapp {
         return hasilTerbaik;
     }
 
-    private static void tulisPdf(File tujuan, List<Berkas> pilihan, int batasPiksel, float kualitas) throws Exception {
+    private static boolean sesiLaboratorium(Sesi sesi) {
+        if ("Laboratorium".equalsIgnoreCase(sesi.judul.trim())) return true;
+        for (Berkas berkas : sesi.berkas.values()) {
+            if ("005".equals(berkas.kodeBerkas)) return true;
+        }
+        return false;
+    }
+
+    private static String ambilPasswordPdfLab(Sesi sesi, List<Berkas> pilihan) throws Exception {
+        Connection koneksi = koneksiDB.condb();
+        String sql = "select pasien.no_rkm_medis,pasien.tgl_lahir from reg_periksa "
+                + "inner join pasien on pasien.no_rkm_medis=reg_periksa.no_rkm_medis "
+                + "where reg_periksa.no_rawat=?";
+        try (PreparedStatement ps = koneksi.prepareStatement(sql)) {
+            ps.setString(1, sesi.noRawat);
+            String noRm;
+            String tanggalLahir;
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new IOException("Identitas pasien tidak ditemukan. Pengiriman dibatalkan.");
+                noRm = rs.getString("no_rkm_medis");
+                tanggalLahir = rs.getString("tgl_lahir");
+            }
+            String password = buatPasswordPdfLab(tanggalLahir, noRm);
+            // Berkas riwayat pun harus dimiliki pasien yang sama.
+            for (Berkas berkas : pilihan) {
+                if (!"005".equals(berkas.kodeBerkas) || kosong(berkas.noRawatSumber)) {
+                    throw new IOException("Identitas sumber hasil laboratorium tidak lengkap. Pengiriman dibatalkan.");
+                }
+                ps.setString(1, berkas.noRawatSumber);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next() || kosong(rs.getString("no_rkm_medis"))
+                            || !noRm.trim().equals(rs.getString("no_rkm_medis").trim())) {
+                        throw new IOException("Berkas hasil bukan milik pasien tujuan. Pengiriman dibatalkan.");
+                    }
+                }
+            }
+            return password;
+        }
+    }
+
+    private static String buatPasswordPdfLab(String tanggalLahir, String noRm) throws IOException {
+        if (kosong(noRm) || !noRm.trim().matches("[A-Za-z0-9.-]{1,40}")) {
+            throw new IOException("Nomor RM pasien belum valid. Pengiriman dibatalkan.");
+        }
+        try {
+            LocalDate lahir = LocalDate.parse(tanggalLahir == null ? "" : tanggalLahir.trim());
+            if (lahir.getYear() < 1 || lahir.isAfter(LocalDate.now())) throw new IllegalArgumentException();
+            // Jangan konversi RM ke angka: angka nol di depan wajib dipertahankan.
+            return lahir.format(DateTimeFormatter.ofPattern("ddMMuuuu", Locale.ROOT)) + noRm.trim();
+        } catch (RuntimeException ex) {
+            // Tidak memasukkan tanggal lahir/password ke pesan error atau log.
+            throw new IOException("Tanggal lahir pasien belum valid. Pengiriman dibatalkan.");
+        }
+    }
+
+    private static void tulisPdf(File tujuan, List<Berkas> pilihan, int batasPiksel, float kualitas,
+            String password) throws Exception {
         ArrayList<FotoPdf> foto = new ArrayList<FotoPdf>();
         for (Berkas berkas : pilihan) {
             BufferedImage sumber = bacaGambar(berkas);
@@ -563,8 +629,48 @@ public final class HasilPenunjangWhatsapp {
             out.write(String.format(Locale.US, "%010d 00000 n \n", posisi.get(i)).getBytes(StandardCharsets.US_ASCII));
         }
         out.write(("trailer\n<< /Size " + objek.size() + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n").getBytes(StandardCharsets.US_ASCII));
-        FileOutputStream fos = new FileOutputStream(tujuan);
-        try { fos.write(out.toByteArray()); } finally { fos.close(); }
+        if (password != null) {
+            // PDF polos hanya di memori; yang ditulis ke disk sudah terenkripsi.
+            simpanPdfTerkunci(out.toByteArray(), tujuan, password, foto.size());
+        } else {
+            FileOutputStream fos = new FileOutputStream(tujuan);
+            try { fos.write(out.toByteArray()); } finally { fos.close(); }
+        }
+    }
+
+    private static void simpanPdfTerkunci(byte[] data, File tujuan, String password, int jumlahHalaman) throws Exception {
+        if (kosong(password)) throw new IOException("Password PDF tidak tersedia. Pengiriman dibatalkan.");
+        try {
+            byte[] owner = new byte[32];
+            RANDOM.nextBytes(owner);
+            try (PDDocument dokumen = PDDocument.load(data)) {
+                StandardProtectionPolicy kebijakan = new StandardProtectionPolicy(
+                        Base64.getUrlEncoder().withoutPadding().encodeToString(owner), password, new AccessPermission());
+                kebijakan.setEncryptionKeyLength(256);
+                dokumen.protect(kebijakan);
+                dokumen.save(tujuan);
+            }
+            // Harus ditolak tanpa password, dan terbuka dengan password pasien.
+            boolean ditolak = false;
+            try (PDDocument tanpaPassword = PDDocument.load(tujuan)) {
+                ditolak = false;
+            } catch (InvalidPasswordException ex) {
+                ditolak = true;
+            }
+            if (!ditolak) throw new IOException("PDF belum terkunci.");
+            try (PDDocument cek = PDDocument.load(tujuan, password)) {
+                if (!cek.isEncrypted() || cek.getEncryption().getLength() != 256
+                        || cek.getNumberOfPages() != jumlahHalaman) {
+                    throw new IOException("Verifikasi PDF gagal.");
+                }
+            }
+        } catch (Exception ex) {
+            tujuan.delete();
+            throw new IOException("Penguncian PDF gagal. Tidak ada hasil yang dikirim.");
+        } catch (LinkageError ex) {
+            tujuan.delete();
+            throw new IOException("Library PDFBox tidak siap. Pengiriman dibatalkan; lakukan Clean & Build.");
+        }
     }
 
     private static byte[] streamObjek(String header, byte[] data) throws IOException {
@@ -643,6 +749,17 @@ public final class HasilPenunjangWhatsapp {
 
     private static WhatsappGateway.Hasil kirimPdfWhatsapp(String noHp, Sesi sesi,
             File pdf, int jumlahBerkas) throws Exception {
+        if (sesiLaboratorium(sesi)) {
+            String namaLampiran = "Hasil_Laboratorium_" + java.util.UUID.randomUUID().toString() + ".pdf";
+            String pesan = "Salam Sehat,\n\nHasil pemeriksaan Laboratorium Anda terlampir dalam PDF berpassword.\n"
+                    + "Untuk membuka, masukkan tgl. lahir format DDMMYYYY diikuti 6 No. Rekam Medik dari RS "
+                    + "tanpa spasi.\n\n"                    
+                    + "Contoh: Tgl. lahir : 24 Nov 1988 \n"                    
+                    + "No. Rekam Medik : 123456 \n"
+                    + "Password : 24111988123456.\n\n"
+                    + "Jangan membagikan dokumen atau password kepada pihak yang tidak berhak.\n\nTerima kasih.";
+            return WhatsappGateway.kirimFile(noHp, pesan, pdf, namaLampiran);
+        }
         String namaLampiran = namaAman(sesi.judul) + "_" + namaAman(sesi.noRawat) + ".pdf";
         String pesan = "Salam Sehat,\n\nBerikut kami kirimkan hasil pemeriksaan " + sesi.judul
                 + " an. " + sesi.namaPasien + " (No. Rawat " + sesi.noRawat + ").\n"

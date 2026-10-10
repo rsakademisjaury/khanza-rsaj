@@ -1360,6 +1360,11 @@ public class frmUtama extends javax.swing.JFrame {
     private boolean pemulihanFokusLoginTerjadwal;
     // Tetap true selama autentikasi diperlukan, meski native dialog tersembunyi.
     private boolean dialogLoginDiperlukan;
+    private SessionIdleLock kunciSesi;
+    private String usernameSesi = "";
+    private boolean adminSesi;
+    private SessionLockDialog dialogKunciSesi;
+    private SwingWorker<Boolean, Void> workerBukaSesi;
     private javax.swing.Timer timerPulsaFokusLogin;
     private java.beans.PropertyChangeListener pemantauWindowAktifLogin;
     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize(); 
@@ -2465,7 +2470,7 @@ public class frmUtama extends javax.swing.JFrame {
             @Override
             public void componentShown(java.awt.event.ComponentEvent evt) {
                 perbaruiSudutLogin();
-                posisikanLoginDiSisiKanan();
+                posisikanDialogLogin();
             }
 
             @Override
@@ -2698,10 +2703,15 @@ public class frmUtama extends javax.swing.JFrame {
                 return;
             }
 
+            if (kunciSesi != null && kunciSesi.isLocked()) {
+                kunciSesi.updateSurfaceBounds();
+                kunciSesi.restoreLoginFocus();
+                return;
+            }
             Component fokusTerakhir = DlgLogin.getMostRecentFocusOwner();
             // Pulihkan dialog tanpa mereset username/password atau mengulang login.
             if (!DlgLogin.isVisible()) {
-                posisikanLoginDiSisiKanan();
+                posisikanDialogLogin();
                 DlgLogin.setVisible(true);
             }
             aktifkanBackdropLogin();
@@ -2718,12 +2728,17 @@ public class frmUtama extends javax.swing.JFrame {
      * login tidak ikut berada di atas browser/WhatsApp saat user pindah aplikasi.
      */
     private void angkatDialogLogin(Component fokusTerakhir) {
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            kunciSesi.updateSurfaceBounds();
+            kunciSesi.restoreLoginFocus();
+            return;
+        }
         if (!DlgLogin.isVisible() || !isShowing()
                 || (getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
             return;
         }
 
-        posisikanLoginDiSisiKanan();
+        posisikanDialogLogin();
 
         if (timerPulsaFokusLogin != null) {
             timerPulsaFokusLogin.stop();
@@ -2754,7 +2769,7 @@ public class frmUtama extends javax.swing.JFrame {
 
             if (DlgLogin.isVisible() && isShowing()
                     && (getExtendedState() & java.awt.Frame.ICONIFIED) == 0) {
-                posisikanLoginDiSisiKanan();
+                posisikanDialogLogin();
                 DlgLogin.toFront();
                 pulihkanFokusKomponenLogin(fokusTerakhir);
             }
@@ -2769,11 +2784,19 @@ public class frmUtama extends javax.swing.JFrame {
                         fokusTerakhir, DlgLogin)) {
             fokusTerakhir.requestFocusInWindow();
         } else {
-            edAdmin.requestFocusInWindow();
+            if (kunciSesi != null && kunciSesi.isLocked()) {
+                kunciSesi.restoreLoginFocus();
+            } else {
+                edAdmin.requestFocusInWindow();
+            }
         }
     }
 
     private void jadwalkanSinkronisasiLogin() {
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            kunciSesi.updateSurfaceBounds();
+            return;
+        }
         if (!DlgLogin.isVisible() || sinkronisasiLoginTerjadwal
                 || (getExtendedState() & java.awt.Frame.ICONIFIED) != 0) {
             return;
@@ -2784,7 +2807,7 @@ public class frmUtama extends javax.swing.JFrame {
             sinkronisasiLoginTerjadwal = false;
             if (DlgLogin.isVisible() && isShowing()
                     && (getExtendedState() & java.awt.Frame.ICONIFIED) == 0) {
-                posisikanLoginDiSisiKanan();
+                posisikanDialogLogin();
                 perbaruiBackdropLogin();
                 DlgLogin.toFront();
             }
@@ -2792,11 +2815,14 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     /**
-     * Menempatkan dialog di sisi kanan usable bounds monitor yang dipakai
-     * frmUtama, dengan posisi vertikal tetap di tengah. Perhitungan ini aman
-     * untuk taskbar serta konfigurasi satu atau beberapa monitor.
+     * Login awal di kanan monitor; login timeout di tengah area frmUtama.
+     * Seluruh jalur shown/resize/pemulihan fokus memakai posisi yang sama.
      */
-    private void posisikanLoginDiSisiKanan() {
+    private void posisikanDialogLogin() {
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            kunciSesi.updateSurfaceBounds();
+            return;
+        }
         if (!isShowing()) {
             return;
         }
@@ -2829,11 +2855,17 @@ public class frmUtama extends javax.swing.JFrame {
             return;
         }
 
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            kunciSesi.restoreLoginFocus();
+            return;
+        }
         dialogLoginDiperlukan = true;
-        aturGambarPanelJudul(false);
+        if (kunciSesi == null || !kunciSesi.isLocked()) {
+            aturGambarPanelJudul(false);
+        }
         BtnLogin.setSelected(false);
         DlgLogin.setSize(LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN);
-        posisikanLoginDiSisiKanan();
+        posisikanDialogLogin();
         aktifkanBackdropLogin();
 
         if (!DlgLogin.isVisible()) {
@@ -2857,6 +2889,9 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     private void aktifkanBackdropLogin() {
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            return; // Penutup polos dikelola SessionIdleLock saat timeout.
+        }
         if (backdropLogin == null) {
             backdropLogin = new LoginBackdropPanel();
         }
@@ -2885,6 +2920,9 @@ public class frmUtama extends javax.swing.JFrame {
     }
 
     private void sembunyikanBackdropLogin() {
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            return; // Penutup baru dilepas setelah kredensial diverifikasi.
+        }
         // PENTING: animasi hanya boleh hidup saat login. Begitu login selesai
         // atau dialog disembunyikan, timer animasi langsung dihentikan.
         hentikanAnimasiWallpaperLogin();
@@ -10993,6 +11031,9 @@ public class frmUtama extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void formWindowClosed(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosed
+        if (kunciSesi != null) {
+            kunciSesi.close();
+        }
         stopITServiceChat();
         hentikanRujukanMasukSatuSehat();
         hentikanRotasiWallpaper();
@@ -11005,6 +11046,11 @@ private void BtnLogActionPerformed(java.awt.event.ActionEvent evt) {
 
     switch (BtnLog.getText().trim()) {
         case "Log Out":
+            if (kunciSesi != null) {
+                kunciSesi.stop();
+            }
+            usernameSesi = "";
+            edAdmin.setEditable(true);
             hentikanRujukanMasukSatuSehat();
             // --- MATIKAN POLLING + RESET TOMBOL NOTIF ---
             try {
@@ -11117,6 +11163,12 @@ private void jMenu4MenuSelected(javax.swing.event.MenuEvent evt) {//GEN-FIRST:ev
 }//GEN-LAST:event_jMenu4MenuSelected
 
 private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowStateChanged
+    if (kunciSesi != null && kunciSesi.isLocked()) {
+        // Pertahankan input/form pelayanan ketika minimize dalam kondisi terkunci.
+        jadwalkanSinkronisasiLogin();
+        jadwalkanPemulihanFokusLogin();
+        return;
+    }
     if ((evt.getNewState() & java.awt.Frame.ICONIFIED) != 0) {
         // Minimize hanya menyembunyikan login bersama owner, bukan dispose.
         // Dialog lain tetap ditutup seperti perilaku sebelumnya.
@@ -13475,11 +13527,16 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
     }//GEN-LAST:event_btnPiutangBelumLunasActionPerformed
 
     private void formComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentMoved
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            jadwalkanSinkronisasiLogin();
+            kunciSesi.restoreLoginFocus();
+            return; // Form pelayanan tidak dipindah/diangkat selama terkunci.
+        }
         Window[] wins = Window.getWindows();
         for (Window win : wins) {
             if (win instanceof JDialog) {
                 if (win == DlgLogin) {
-                    posisikanLoginDiSisiKanan();
+                    posisikanDialogLogin();
                 } else {
                     win.setLocationRelativeTo(PanelUtama);
                 }
@@ -13491,12 +13548,16 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
     }//GEN-LAST:event_formComponentMoved
 
     private void PanelWallMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_PanelWallMouseMoved
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            kunciSesi.restoreLoginFocus();
+            return;
+        }
         setToolbar();
         Window[] wins = Window.getWindows();
         for (Window win : wins) {
             if (win instanceof JDialog) {
                 if (win == DlgLogin) {
-                    posisikanLoginDiSisiKanan();
+                    posisikanDialogLogin();
                 } else {
                     win.setLocationRelativeTo(PanelUtama);
                 }
@@ -17020,6 +17081,10 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
     }//GEN-LAST:event_MnPenyerahanResepActionPerformed
 
     private void BtnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnLoginActionPerformed
+    if (kunciSesi != null && kunciSesi.isLocked()) {
+        loginUlangSesi();
+        return;
+    }
     BtnLogin.setSelected(true);
     // Memeriksa input username dan password
     if (edAdmin.getText().trim().isEmpty()) {
@@ -17037,9 +17102,11 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
 
             if (akses.getjml1() >= 1) {
                 setAdminAccess();
+                mulaiPemantauanSesi();
                 startITServiceChat();
             } else if (akses.getjml2() >= 1) {
                 setUserAccess();
+                mulaiPemantauanSesi();
 
                 //notif
                 initBtnNotif();
@@ -17056,6 +17123,151 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
             System.out.println("Notifikasi : " + e);
         }
     }//GEN-LAST:event_BtnLoginActionPerformed
+
+    /** Mulai hitungan baru hanya sesudah login biasa benar-benar berhasil. */
+    private void mulaiPemantauanSesi() {
+        // Startup frmUtama dijalankan SwingWorker. Pasang event queue saat
+        // login berhasil di EDT, bukan dari constructor background tersebut.
+        if (kunciSesi == null) {
+            kunciSesi = new SessionIdleLock(DlgLogin, this::tampilkanLoginTimeout);
+        }
+        usernameSesi = edAdmin.getText();
+        adminSesi = akses.getjml1() >= 1;
+        edPwd.setText("");
+        kunciSesi.start();
+    }
+
+    private void tampilkanLoginTimeout() {
+        // Form/draft dan akses akun lama tetap hidup di balik penutup polos.
+        dialogLoginDiperlukan = true;
+        hentikanAnimasiWallpaperLogin();
+        if (timerPulsaFokusLogin != null) {
+            timerPulsaFokusLogin.stop();
+            timerPulsaFokusLogin = null;
+        }
+        DlgLogin.setAlwaysOnTop(false);
+        dialogKunciSesi = new SessionLockDialog(DlgLogin.getOwner(),
+                jLabelUser.getIcon(), jLabelPassword1.getIcon(),
+                cekBox1.getIcon(), cekBox1.getSelectedIcon(),
+                this::loginUlangSesi, this::gantiUserSaatTimeout);
+        dialogKunciSesi.prepare(usernameSesi);
+        // Ambil wallpaper yang sudah ada di cache login, bukan snapshot form.
+        ImageIcon latarTimeout = daftarWallpaper.isEmpty() ? wallpaperFallbackPanel
+                : daftarWallpaper.get(Math.max(0, Math.min(indeksWallpaper, daftarWallpaper.size() - 1)));
+        kunciSesi.prepareBackdrop(latarTimeout);
+        kunciSesi.showLockedLogin(dialogKunciSesi);
+    }
+
+    /** Akhiri sesi lama melalui logout biasa; SIMRS tetap terbuka. */
+    private void gantiUserSaatTimeout() {
+        if (kunciSesi == null || !kunciSesi.isLocked()) {
+            return;
+        }
+        // Worker yang selesai sesudah logout tidak boleh membuka sesi lama.
+        if (workerBukaSesi != null) {
+            workerBukaSesi.cancel(false);
+            workerBukaSesi = null;
+        }
+        if (dialogKunciSesi != null) {
+            dialogKunciSesi.clearPassword();
+            dialogKunciSesi = null;
+        }
+        dialogLoginDiperlukan = false;
+        kunciSesi.releaseForLogout();
+        edAdmin.setEditable(true);
+        edAdmin.setText("");
+        edPwd.setText("");
+        adminSesi = false;
+        // Alur lama menonaktifkan akses/polling, menutup form akun lama,
+        // lalu menampilkan login awal di kanan dengan username editable.
+        BtnLogActionPerformed(new java.awt.event.ActionEvent(
+                BtnLog, java.awt.event.ActionEvent.ACTION_PERFORMED, "Log Out"));
+        edAdmin.requestFocusInWindow();
+    }
+
+    private void loginUlangSesi() {
+        if (kunciSesi == null || !kunciSesi.isLocked()
+                || dialogKunciSesi == null || workerBukaSesi != null) {
+            return;
+        }
+        final SessionLockDialog dialog = dialogKunciSesi;
+        final String userTerkunci = usernameSesi;
+        final boolean akunAdmin = adminSesi;
+        if (!userTerkunci.equals(dialog.getUsername())) {
+            dialog.setStatus("Akun berbeda. Gunakan Ganti User.");
+            dialog.clearPassword();
+            return;
+        }
+        final char[] password = dialog.getPassword();
+        if (password.length == 0) {
+            dialog.setStatus("Masukkan password untuk membuka sesi.");
+            dialog.focusPassword();
+            return;
+        }
+        dialog.clearPassword();
+        dialog.setBusy(true);
+        dialog.setStatus("Memeriksa password...");
+        workerBukaSesi = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                try {
+                    // Tabel/enkripsi sama dengan login semula. Tidak memanggil
+                    // akses.setData() atau mengubah hak akses ketika reauth.
+                    String sql = akunAdmin
+                            ? "select 1 from admin where usere=AES_ENCRYPT(?,'nur') "
+                              + "and passworde=AES_ENCRYPT(?,'windi') limit 1"
+                            : "select 1 from user where id_user=AES_ENCRYPT(?,'nur') "
+                              + "and password=AES_ENCRYPT(?,'windi') limit 1";
+                    // Koneksi khusus agar query password tidak menahan koneksi
+                    // bersama yang digunakan refresh/alarm lab di EDT.
+                    try (Connection koneksiVerifikasi = koneksiDB.condbTransaksi();
+                         PreparedStatement verifikasi = koneksiVerifikasi.prepareStatement(sql)) {
+                        verifikasi.setQueryTimeout(10);
+                        verifikasi.setString(1, userTerkunci);
+                        verifikasi.setString(2, new String(password));
+                        try (ResultSet hasil = verifikasi.executeQuery()) {
+                            return hasil.next();
+                        }
+                    }
+                } finally {
+                    java.util.Arrays.fill(password, '\0');
+                }
+            }
+
+            @Override
+            protected void done() {
+                java.util.Arrays.fill(password, '\0');
+                // Ganti User tetap dapat dipakai ketika DB lambat. Baik hasil
+                // maupun error worker lama diabaikan setelah dialog/sesi diganti.
+                if (workerBukaSesi != this || dialogKunciSesi != dialog
+                        || !kunciSesi.isLocked() || !userTerkunci.equals(usernameSesi)) {
+                    return;
+                }
+                workerBukaSesi = null;
+                dialog.setBusy(false);
+                boolean sah;
+                try {
+                    sah = get();
+                } catch (Exception ex) {
+                    dialog.setStatus("Verifikasi gagal. Periksa koneksi lalu coba lagi.");
+                    dialog.focusPassword();
+                    return;
+                }
+                if (!sah) {
+                    dialog.setStatus("Password salah. Sesi tetap terkunci.");
+                    dialog.focusPassword();
+                    return;
+                }
+                dialogLoginDiperlukan = false;
+                dialog.clearPassword();
+                dialogKunciSesi = null;
+                kunciSesi.unlock();
+                logTracker(akses.getkode());
+            }
+        };
+        // Verifikasi tidak memblokir EDT/modal event loop dan timer alarm lab.
+        workerBukaSesi.execute();
+    }
 
 // Method untuk mengatur akses Admin Utama
 private void setAdminAccess() {
@@ -17559,6 +17771,13 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     }//GEN-LAST:event_edPwdKeyPressed
 
     private void BtnCancelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnCancelActionPerformed
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            gantiUserSaatTimeout();
+            return;
+        }
+        if (kunciSesi != null) {
+            kunciSesi.close();
+        }
         // TODO add your handling code here:                
         edAdmin.setText("");
         edPwd.setText("");
@@ -27040,6 +27259,9 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     // Pengecualian login hanya digunakan saat frmUtama diminimalkan.
     // Seluruh pemanggil isTutup() yang lama tetap menutup dialog seperti semula.
     private void isTutup(boolean pertahankanDialogLogin) {
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            return;
+        }
         FlayMenu.setVisible(false);
         setWallpaperBlurAktif(false);
         akses.setform("frmUtama");

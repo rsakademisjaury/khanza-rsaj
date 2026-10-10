@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.5.1  -->
-<!-- 2024-07-05T10:20:07 -->
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="null" pageWidth="141" pageHeight="141" columnWidth="131" leftMargin="5" rightMargin="5" topMargin="5" bottomMargin="5" uuid="77b01bec-1798-4bf8-a1db-702e49a3574b">
 	<property name="ireport.zoom" value="4.0"/>
 	<property name="ireport.x" value="0"/>
@@ -94,9 +93,17 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu]]>
 	<detail>
 		<band height="131" splitType="Stretch">
 			<textField>
-				<reportElement x="0" y="84" width="131" height="21" uuid="b031ada4-6106-4736-ba25-a80b72b5825f"/>
+				<reportElement x="0" y="88" width="131" height="16" uuid="ad3a6216-e281-4d85-9b26-d10acc8d397c"/>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font fontName="Arial" size="7"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{status}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="80" width="131" height="21" uuid="b031ada4-6106-4736-ba25-a80b72b5825f"/>
 				<textElement textAlignment="Center" verticalAlignment="Top">
-					<font fontName="Arial" size="9" isBold="true"/>
+					<font fontName="Arial" size="13" isBold="true"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{kamar_real}]]></textFieldExpression>
@@ -142,9 +149,9 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu]]>
 				<textFieldExpression><![CDATA["RM : "+$F{no_rkm_medis}+"   Tgl. Lahir : "+$F{tgl_lahir}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="0" y="46" width="131" height="24" uuid="6de2232c-6332-4bb3-b971-fdb6eee18540"/>
+				<reportElement x="1" y="42" width="131" height="31" uuid="6de2232c-6332-4bb3-b971-fdb6eee18540"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
-					<font fontName="Arial" size="9" isBold="true"/>
+					<font fontName="Arial" size="12" isBold="true"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
 				<textFieldExpression><![CDATA[$F{nm_pasien}]]></textFieldExpression>
@@ -157,14 +164,6 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu]]>
 				</textElement>
 				<text><![CDATA[INSTALASI GIZI]]></text>
 			</staticText>
-			<textField>
-				<reportElement x="0" y="86" width="131" height="16" uuid="ad3a6216-e281-4d85-9b26-d10acc8d397c"/>
-				<textElement textAlignment="Center" verticalAlignment="Bottom">
-					<font fontName="Arial" size="7"/>
-					<paragraph lineSpacing="Single"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{status}]]></textFieldExpression>
-			</textField>
 		</band>
 	</detail>
 	<summary>

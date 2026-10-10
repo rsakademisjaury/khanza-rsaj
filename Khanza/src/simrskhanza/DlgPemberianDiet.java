@@ -6,6 +6,12 @@ import fungsi.koneksiDB;
 import fungsi.sekuel;
 import fungsi.validasi;
 import fungsi.akses;
+import bridging.ApiSatuSehat;
+import bridging.SatuSehatCekNIK;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.event.KeyEvent;
@@ -22,7 +28,14 @@ import javax.swing.JTable;
 import javax.swing.event.DocumentEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
+import javax.swing.SwingUtilities;
 import laporan.LaporanSisaDietPasien;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.HttpStatusCodeException;
+import kepegawaian.DlgCariDokter;
 import setting.DlgCariJamDiet;
 
 /**
@@ -37,6 +50,10 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
     private PreparedStatement ps,ps2;
     private ResultSet rs;
     private int i=0,pilih=0;
+    private String linkSatuSehat="";
+    private final ApiSatuSehat apiSatuSehat=new ApiSatuSehat();
+    private final SatuSehatCekNIK cekViaSatuSehat=new SatuSehatCekNIK();
+    private final ObjectMapper mapperSatuSehat=new ObjectMapper();
 
     /** Creates new form DlgPemberianInfus
      * @param parent
@@ -44,6 +61,12 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
     public DlgPemberianDiet(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+
+        try {
+            linkSatuSehat=koneksiDB.URLFHIRSATUSEHAT();
+        } catch (Exception e) {
+            System.out.println("Notifikasi URL FHIR SATUSEHAT Diet : "+e);
+        }
         
         tabMode=new DefaultTableModel(null,new Object[]{
             "No.Rawat",//0
@@ -226,11 +249,28 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
             @Override
             public void windowDeactivated(WindowEvent e) {}
         });
+
+        dokter.addWindowListener(new WindowListener() {
+            @Override public void windowOpened(WindowEvent e) {}
+            @Override public void windowClosing(WindowEvent e) {}
+            @Override public void windowClosed(WindowEvent e) {
+                if(dokter.getTable().getSelectedRow()!= -1){
+                    KdDokterInstruksi.setText(dokter.getTable().getValueAt(dokter.getTable().getSelectedRow(),0).toString());
+                    NmDokterInstruksi.setText(dokter.getTable().getValueAt(dokter.getTable().getSelectedRow(),1).toString());
+                    InstruksiDiet.requestFocus();
+                }
+            }
+            @Override public void windowIconified(WindowEvent e) {}
+            @Override public void windowDeiconified(WindowEvent e) {}
+            @Override public void windowActivated(WindowEvent e) {}
+            @Override public void windowDeactivated(WindowEvent e) {}
+        });
     }
     
     private DlgCariDiet diet=new DlgCariDiet(null,false);
     private DlgCariBangsal bangsal=new DlgCariBangsal(null,false);
     private DlgCariJamDiet jamdiet=new DlgCariJamDiet(null,false);
+    private DlgCariDokter dokter=new DlgCariDokter(null,false);
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -293,6 +333,15 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         Status_Titipan = new widget.ComboBox();
         jLabel13 = new widget.Label();
         jLabel14 = new widget.Label();
+        jLabel15 = new widget.Label();
+        JenisPemberi = new widget.ComboBox();
+        jLabel16 = new widget.Label();
+        KdDokterInstruksi = new widget.TextBox();
+        NmDokterInstruksi = new widget.TextBox();
+        BtnDokterInstruksi = new widget.Button();
+        jLabel17 = new widget.Label();
+        ScrollInstruksi = new widget.ScrollPane();
+        InstruksiDiet = new widget.TextArea();
         TabRawat = new javax.swing.JTabbedPane();
         Scroll = new widget.ScrollPane();
         tbDataDiet = new widget.Table();
@@ -572,7 +621,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         panelGlass10.add(jLabel19);
 
         DTPCari1.setForeground(new java.awt.Color(50, 70, 50));
-        DTPCari1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "26-06-2025" }));
+        DTPCari1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-10-2026" }));
         DTPCari1.setDisplayFormat("dd-MM-yyyy");
         DTPCari1.setName("DTPCari1"); // NOI18N
         DTPCari1.setOpaque(false);
@@ -586,7 +635,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         panelGlass10.add(jLabel21);
 
         DTPCari2.setForeground(new java.awt.Color(50, 70, 50));
-        DTPCari2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "26-06-2025" }));
+        DTPCari2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-10-2026" }));
         DTPCari2.setDisplayFormat("dd-MM-yyyy");
         DTPCari2.setName("DTPCari2"); // NOI18N
         DTPCari2.setOpaque(false);
@@ -653,7 +702,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         PanelInput.add(ChkInput, java.awt.BorderLayout.PAGE_END);
 
         FormInput.setName("FormInput"); // NOI18N
-        FormInput.setPreferredSize(new java.awt.Dimension(160, 120));
+        FormInput.setPreferredSize(new java.awt.Dimension(160, 190));
         FormInput.setLayout(null);
 
         jLabel4.setText("No.Rawat :");
@@ -689,7 +738,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         TPasien.setBounds(205, 12, 290, 23);
 
         DTPTgl.setForeground(new java.awt.Color(50, 70, 50));
-        DTPTgl.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "26-06-2025" }));
+        DTPTgl.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-10-2026" }));
         DTPTgl.setDisplayFormat("dd-MM-yyyy");
         DTPTgl.setName("DTPTgl"); // NOI18N
         DTPTgl.setOpaque(false);
@@ -773,8 +822,13 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         FormInput.add(BtnJam);
         BtnJam.setBounds(315, 42, 28, 23);
 
-        KamarReal.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "-", "PAVILIUN A", "PAVILIUN B", "PAVILIUN C", "PAVILIUN D", "MELATI - 01", "MELATI - 02", "MELATI - 03", "MELATI - 04", "MELATI - 05", "MELATI - 06", "MELATI - 07", "MELATI - 08", "MELATI - 09", "MELATI - 10", "MELATI - 11", "MELATI - 12", "MELATI - 14", "MELATI - 15", "MELATI - 16", "MELATI - 17", "MELATI - 18", "MELATI - 19", "MELATI - 20", "MELATI - 21", "MELATI - 22", "MELATI - 24", "ANGGREK - 01 - 01", "ANGGREK - 01 - 02", "ANGGREK - 02 - 01", "ANGGREK - 02 - 02", "ANGGREK - 03 - 01", "ANGGREK - 03 - 02", "ANGGREK - 04 - 01", "ANGGREK - 04 - 02", "ANGGREK - 05 - 01", "ANGGREK - 05 - 02", "ANGGREK - 06 - 01", "ANGGREK - 06 - 02", "ANGGREK - 07 - 01", "ANGGREK - 07 - 02", "ANGGREK - 08 - 01", "ANGGREK - 08 - 02", "ANGGREK - 09 - 01", "ANGGREK - 09 - 02", "ANGGREK - 10 - 01", "ANGGREK - 10 - 02", "ANGGREK - 11 - 01", "ANGGREK - 11 - 02", "ANGGREK - 12 - 01", "ANGGREK - 12 - 02", "ANGGREK - 14 - 01", "ANGGREK - 14 - 02", "ANGGREK - 15 - 01", "ANGGREK - 15 - 02", "ANGGREK - 16 - 01", "ANGGREK - 16 - 02", "ANGGREK - 17 - 01", "ANGGREK - 17 - 02", "ANGGREK - 18 - 01", "ANGGREK - 18 - 02", "ANGGREK - 19 - 01", "ANGGREK - 19 - 02", "ANGGREK - 20 - 01", "ANGGREK - 20 - 02", "ANGGREK - 21 - 01", "ANGGREK - 21 - 02", "ANGGREK - 22 - 01", "ANGGREK - 22 - 02", "ANGGREK - 23 - 01", "ANGGREK - 23 - 02", "ANGGREK - 24 - 01", "ANGGREK - 24 - 02", "ANGGREK - 25 - 01", "ANGGREK - 25 - 02", "ANGGREK - 26 - 01", "ANGGREK - 26 - 02", "ANGGREK - 27 - 01", "ANGGREK - 27 - 02", "ANGGREK - 28 - 01", "ANGGREK - 28 - 02", "SERUNI - 01 - 01", "SERUNI - 02 - 01", "SERUNI - 02 - 02", "SERUNI - 03 - 01", "SERUNI - 03 - 02", "SERUNI - 04 - 01", "SERUNI - 04 - 02", "SERUNI - 05 - 01", "SERUNI - 05 - 02", "SERUNI - 05 - 03", "SERUNI - 06 - 01", "SERUNI - 06 - 02", "SERUNI - 06 - 03", "SERUNI - ISO - 01", "SERUNI - ISO - 07", "SERUNI - ISO - 08", "MAWAR - A - 01", "MAWAR - A - 02", "MAWAR - A - 03", "MAWAR - A - 04", "MAWAR - B - 01", "MAWAR - B - 02", "MAWAR - B - 03", "MAWAR - B - 04", "MAWAR - C - 01", "MAWAR - C - 02", "MAWAR - C - 03", "MAWAR - C - 04", "MAWAR - D - 01", "MAWAR - D - 02", "MAWAR - D - 03", "MAWAR - D - 04", "MAWAR - E - 01", "MAWAR - E - 02", "MAWAR - E - 03", "MAWAR - E - 04", "MAWAR - F - 01", "MAWAR - F - 02", "MAWAR - F - 03", "MAWAR - F - 04", "CEMPAKA - 01 - 01", "CEMPAKA - 01 - 02", "CEMPAKA - 01 - 03", "CEMPAKA - 01 - 04", "CEMPAKA - 01 - 05", "CEMPAKA - 01 - 06", "CEMPAKA - 02 - 01", "CEMPAKA - 02 - 02", "CEMPAKA - 02 - 03", "CEMPAKA - 02 - 04", "CEMPAKA - 03 - 01", "CEMPAKA - 03 - 02", "CEMPAKA - 03 - 03", "CEMPAKA - 03 - 04", "CEMPAKA - 04 - 01", "CEMPAKA - 04 - 02", "CEMPAKA - 04 - 03", "CEMPAKA - 04 - 04", "CEMPAKA - 04 - 05", "CEMPAKA - 04 - 06", "CEMPAKA - 04 - 07", "CEMPAKA - 04 - 08", "CEMPAKA - 07 - 01", "CEMPAKA - 07 - 02", "CEMPAKA - 07 - 03", "CEMPAKA - 07 - 04", "CEMPAKA - 08 - 01", "CEMPAKA - 08 - 02", "CEMPAKA - 08 - 03", "CEMPAKA - 08 - 04", "CEMPAKA - 09 - 01", "CEMPAKA - 09 - 02", "CEMPAKA - 09 - 03", "CEMPAKA - 09 - 04", "CEMPAKA - 09 - 05", "CEMPAKA - 09 - 06", "CEMPAKA - 09 - 07", "CEMPAKA - 09 - 08", "CEMPAKA - ISO - A", "CEMPAKA - ISO - B", "CEMPAKA - ISO - C", "CEMPAKA - ISO - D", "DAHLIA - VIP 01", "DAHLIA - VIP 02", "DAHLIA - VIP 03", "DAHLIA - VIP 04", "DAHLIA - 01 - 01", "DAHLIA - 01 - 02", "DAHLIA - 02 - 01", "DAHLIA - 02 - 02", "DAHLIA - 03 - 01", "DAHLIA - 03 - 02", "DAHLIA - 04 - 01", "DAHLIA - 04 - 02", "DAHLIA - 05 - 01", "DAHLIA - 05 - 02", "DAHLIA - 06 - 01", "DAHLIA - 06 - 02", "DAHLIA - 07 - 01", "DAHLIA - 07 - 02", "DAHLIA - 08 - 01", "DAHLIA - 08 - 02", "DAHLIA - 08 - 03", "DAHLIA - 09 - 01", "DAHLIA - 09 - 02", "DAHLIA - 09 - 03", "DAHLIA - 10 - 01", "DAHLIA - 10 - 02", "DAHLIA - 10 - 03", "DAHLIA - 10 - 04", "DAHLIA - 10 - 05", "DAHLIA - 10 - 06", "DAHLIA - 10 - 07", "DAHLIA - 10 - 08", "DAHLIA - 11 - 01", "DAHLIA - 11 - 02", "DAHLIA - 11 - 03", "DAHLIA - 11 - 04", "DAHLIA - 12 - 01", "DAHLIA - 12 - 02", "DAHLIA - 12 - 03", "DAHLIA - 13 - 01", "DAHLIA - 13 - 02", "DAHLIA - 13 - 03", "DAHLIA - 14 - 01", "DAHLIA - 14 - 02", "DAHLIA - 14 - 03", "DAHLIA - FISIO - 01", "DAHLIA - FISIO - 02", "DAHLIA - FISIO - 03", "DAHLIA - FISIO - 04", "DAHLIA - FISIO - 05", "DAHLIA - FISIO - 06", "DAHLIA - FISIO - 07", "DAHLIA - FISIO - 08", "DAHLIA - FISIO - 09", "DAHLIA - FISIO - 10", "DAHLIA - ISO - 01", "DAHLIA - ISO - 02", "DAHLIA - KBAYI - 01", "DAHLIA - KBAYI - 02", "DAHLIA - KBAYI - 03", "DAHLIA - P - 01", "DAHLIA - P - 02", "DAHLIA - P - 03", "DAHLIA - P - 04", "DAHLIA - P - 05", "DAHLIA - PATO - 01", "DAHLIA - PATO - 02", "DAHLIA - PATO - 03", "DAHLIA - PATO - 04", "DAHLIA - PATO - 05", "PICU - 01", "PICU - 02", "PICU - 03", "PICU - 04", "PICU - 05", "ICCU - 01", "ICCU - 02", "ICCU - 03", "ICCU - 04", "ICU - 01", "ICU - 02", "ICU - 03", "ICU - 04", "ICU - 05", "ICU - 06", "ICU - 07", "ICU - 08", "ICU - 09", "ICU - 10", "ICU - Khusus - 01", "ICU - Khusus - 02", "CVCU - 01" }));
+        KamarReal.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "ANGGREK-01-01", "ANGGREK-01-02", "ANGGREK-02-01", "ANGGREK-02-02", "ANGGREK-03-01", "ANGGREK-03-02", "ANGGREK-04-01", "ANGGREK-04-02", "ANGGREK-05-01", "ANGGREK-05-02", "ANGGREK-06-01", "ANGGREK-06-02", "ANGGREK-07-01", "ANGGREK-07-02", "ANGGREK-08-01", "ANGGREK-08-02", "ANGGREK-09-01", "ANGGREK-09-02", "ANGGREK-10-01", "ANGGREK-10-02", "ANGGREK-11-01", "ANGGREK-11-02", "ANGGREK-12-01", "ANGGREK-12-02", "ANGGREK-14-01", "ANGGREK-14-02", "ANGGREK-15-01", "ANGGREK-15-02", "ANGGREK-16-01", "ANGGREK-16-02", "ANGGREK-17-01", "ANGGREK-17-02", "ANGGREK-18-01", "ANGGREK-18-02", "ANGGREK-19-01", "ANGGREK-19-02", "ANGGREK-20-01", "ANGGREK-20-02", "ANGGREK-21-01", "ANGGREK-21-02", "ANGGREK-22-01", "ANGGREK-22-02", "ANGGREK-23-01", "ANGGREK-23-02", "ANGGREK-24-01", "ANGGREK-24-02", "ANGGREK-25-01", "ANGGREK-25-02", "ANGGREK-26-01", "ANGGREK-26-02", "ANGGREK-27-01", "ANGGREK-27-02", "ANGGREK-28-01", "ANGGREK-28-02", "ANGGREK-29-01", "ANGGREK-29-02", "ANGGREK-30-01", "ANGGREK-30-02", "CEMPAKA-01-01", "CEMPAKA-01-02", "CEMPAKA-01-03", "CEMPAKA-01-04", "CEMPAKA-02-01", "CEMPAKA-02-02", "CEMPAKA-02-03", "CEMPAKA-02-04", "CEMPAKA-03-01", "CEMPAKA-03-02", "CEMPAKA-03-03", "CEMPAKA-03-04", "CEMPAKA-04-01", "CEMPAKA-04-02", "CEMPAKA-04-03", "CEMPAKA-04-04", "CEMPAKA-05-01", "CEMPAKA-05-02", "CEMPAKA-05-03", "CEMPAKA-05-04", "CEMPAKA-06-01", "CEMPAKA-06-02", "CEMPAKA-06-03", "CEMPAKA-06-04", "DAHLIA-01-01", "DAHLIA-02-01", "DAHLIA-03-01", "DAHLIA-04-01", "DAHLIA-05-01", "DAHLIA-06-01", "DAHLIA-07-01", "DAHLIA-08-01", "DAHLIA-08-02", "DAHLIA-09-01", "DAHLIA-09-02", "DAHLIA-10-01", "DAHLIA-10-02", "DAHLIA-11-01", "DAHLIA-11-02", "DAHLIA-11-03", "DAHLIA-11-04", "DAHLIA-12-02", "DAHLIA-PATO-01", "DAHLIA-PATO-02", "DAHLIA-PATO-03", "DAHLIA-PATO-04", "HCU-01", "HCU-02", "HCU-03", "HCU-04", "HCU-05", "HCU-06", "ICCU-01", "ICCU-02", "ICCU-03", "ICU-01", "ICU-02", "ICU-03", "ICU-04", "ICU-05", "ICU-06", "ICU-07", "ICU-08", "ICU-09", "ICU-10", "MAWAR-1-01", "MAWAR-1-02", "MAWAR-1-03", "MAWAR-2-01", "MAWAR-2-02", "MAWAR-2-03", "MAWAR-3-01", "MAWAR-3-02", "MAWAR-3-03", "MAWAR-4-01", "MAWAR-4-02", "MAWAR-4-03", "MAWAR-5-01", "MAWAR-5-02", "MAWAR-5-03", "MAWAR-6-01", "MAWAR-6-02", "MAWAR-6-03", "MELATI-01-01", "MELATI-01-02", "MELATI-02-01", "MELATI-03-01", "MELATI-03-02", "MELATI-04-01", "MELATI-05-01", "MELATI-05-02", "MELATI-06-01", "MELATI-07-01", "MELATI-07-02", "MELATI-08-01", "MELATI-09-01", "MELATI-09-02", "MELATI-10-01", "MELATI-11-01", "MELATI-11-02", "MELATI-12-01", "MELATI-14-01", "MELATI-15-01", "MELATI-15-02", "MELATI-16-01", "MELATI-17-01", "MELATI-17-02", "MELATI-18-01", "MELATI-19-01", "MELATI-19-02", "MELATI-20-01", "MELATI-21-01", "MELATI-21-02", "MELATI-22-01", "MELATI-23-01", "MELATI-23-02", "MELATI-24-01", "NICU-01", "NICU-02", "NICU-03", "PAVILIUN A", "PAVILIUN B", "PAVILIUN C", "PAVILIUN D", "PICU-01", "PICU-02", "PICU-03", "PICU-04", "SERUNI-01-01", "SERUNI-02-01", "SERUNI-02-02", "SERUNI-03-01", "SERUNI-03-02", "SERUNI-04-01", "SERUNI-04-02", "SERUNI-05-01", "SERUNI-05-02", "SERUNI-06-02", "SERUNI-06-03", "SERUNI-07-01", "SERUNI-08-01", "SERUNI-A-A", "SERUNI-B-B", "SERUNI-C-C", "SERUNI-D-D" }));
         KamarReal.setName("KamarReal"); // NOI18N
+        KamarReal.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                KamarRealActionPerformed(evt);
+            }
+        });
         KamarReal.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 KamarRealKeyPressed(evt);
@@ -796,12 +850,69 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         jLabel13.setText("Kamar Real :  ");
         jLabel13.setName("jLabel13"); // NOI18N
         FormInput.add(jLabel13);
-        jLabel13.setBounds(10, 80, 70, 20);
+        jLabel13.setBounds(0, 80, 80, 20);
 
         jLabel14.setText("Status Titipan : ");
         jLabel14.setName("jLabel14"); // NOI18N
         FormInput.add(jLabel14);
         jLabel14.setBounds(320, 80, 90, 23);
+
+        jLabel15.setText("Pemberi Instruksi :");
+        jLabel15.setName("jLabel15"); // NOI18N
+        FormInput.add(jLabel15);
+        jLabel15.setBounds(0, 110, 110, 23);
+
+        JenisPemberi.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "DPJP", "Dokter Gizi" }));
+        JenisPemberi.setName("JenisPemberi"); // NOI18N
+        JenisPemberi.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                JenisPemberiActionPerformed(evt);
+            }
+        });
+        FormInput.add(JenisPemberi);
+        JenisPemberi.setBounds(115, 110, 125, 23);
+
+        jLabel16.setText("Dokter :");
+        jLabel16.setName("jLabel16"); // NOI18N
+        FormInput.add(jLabel16);
+        jLabel16.setBounds(250, 110, 55, 23);
+
+        KdDokterInstruksi.setEditable(false);
+        KdDokterInstruksi.setName("KdDokterInstruksi"); // NOI18N
+        FormInput.add(KdDokterInstruksi);
+        KdDokterInstruksi.setBounds(310, 110, 90, 23);
+
+        NmDokterInstruksi.setEditable(false);
+        NmDokterInstruksi.setHighlighter(null);
+        NmDokterInstruksi.setName("NmDokterInstruksi"); // NOI18N
+        FormInput.add(NmDokterInstruksi);
+        NmDokterInstruksi.setBounds(402, 110, 310, 23);
+
+        BtnDokterInstruksi.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/190.png"))); // NOI18N
+        BtnDokterInstruksi.setToolTipText("Pilih dokter pemberi instruksi");
+        BtnDokterInstruksi.setName("BtnDokterInstruksi"); // NOI18N
+        BtnDokterInstruksi.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnDokterInstruksiActionPerformed(evt);
+            }
+        });
+        FormInput.add(BtnDokterInstruksi);
+        BtnDokterInstruksi.setBounds(714, 110, 28, 23);
+
+        jLabel17.setText("Instruksi Diet :");
+        jLabel17.setName("jLabel17"); // NOI18N
+        FormInput.add(jLabel17);
+        jLabel17.setBounds(0, 140, 110, 23);
+
+        ScrollInstruksi.setName("ScrollInstruksi"); // NOI18N
+
+        InstruksiDiet.setColumns(20);
+        InstruksiDiet.setRows(2);
+        InstruksiDiet.setName("InstruksiDiet"); // NOI18N
+        ScrollInstruksi.setViewportView(InstruksiDiet);
+
+        FormInput.add(ScrollInstruksi);
+        ScrollInstruksi.setBounds(115, 140, 627, 45);
 
         PanelInput.add(FormInput, java.awt.BorderLayout.CENTER);
 
@@ -885,6 +996,10 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
                 Valid.textKosong(KdDiet,"diet");
             }else if(JamDiet.getText().trim().equals("")){
                 Valid.textKosong(WaktuDiet,"Waktu Diet");
+            }else if(KdDokterInstruksi.getText().trim().equals("")){
+                Valid.textKosong(KdDokterInstruksi,"dokter pemberi instruksi");
+            }else if(InstruksiDiet.getText().trim().equals("")){
+                Valid.textKosong(InstruksiDiet,"instruksi diet");
             }else{
                 if(Sequel.menyimpantf("detail_beri_diet1","'"+TNoRw.getText()+"','"+Kamar.getText()+"','"+
                         Valid.SetTgl(DTPTgl.getSelectedItem()+"")+"','"+
@@ -892,6 +1007,19 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
                         KdDiet.getText()+"','"+
                         KamarReal.getSelectedItem()+"','"+
                         Status_Titipan.getSelectedItem()+"'","data")==true){
+                    simpanInstruksiGiziLokal();
+                    kirimNutritionOrderAsync(
+                        TNoRw.getText(),
+                        TPasien.getText(),
+                        Valid.SetTgl(DTPTgl.getSelectedItem()+""),
+                        WaktuDiet.getText(),
+                        JamDiet.getText(),
+                        KdDiet.getText(),
+                        NmDiet.getText(),
+                        KdDokterInstruksi.getText(),
+                        NmDokterInstruksi.getText(),
+                        InstruksiDiet.getText().trim()
+                    );
                     tabMode.addRow(new String[]{
                         TNoRw.getText(),TPasien.getText(),Kamar.getText(),Valid.SetTgl(DTPTgl.getSelectedItem()+""),WaktuDiet.getText(),JamDiet.getText(),NmDiet.getText(),"-",Kamar.getText(),KdDiet.getText(),KamarReal.getSelectedItem()+"",Status_Titipan.getSelectedItem()+""
                     });
@@ -987,7 +1115,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
                 param.put("logo",Sequel.cariGambar("select setting.logo from setting")); 
                 Valid.MyReportqry("rptBrDiet.jasper","report","::[ Data Pemberian Diet ]::",
                     "select detail_beri_diet1.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,concat(detail_beri_diet1.kd_kamar,', ',bangsal.nm_bangsal) as namakamar,"+
-                    "detail_beri_diet1.tanggal,detail_beri_diet1.waktu,jam_diet_pasien.jam,diet.nama_diet,detail_beri_diet1.kd_kamar,detail_beri_diet1.kd_diet " +
+                    "detail_beri_diet1.tanggal,detail_beri_diet1.waktu,jam_diet_pasien.jam,diet.nama_diet,detail_beri_diet1.kd_kamar,detail_beri_diet1.kd_diet,detail_beri_diet1.kd_kamar_real " +
                     "from detail_beri_diet1 inner join reg_periksa on detail_beri_diet1.no_rawat=reg_periksa.no_rawat "+
                     "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
                     "inner join diet on detail_beri_diet1.kd_diet=diet.kd_diet "+
@@ -1275,6 +1403,24 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         }
     }//GEN-LAST:event_MnSisaDietPasienActionPerformed
 
+    private void JenisPemberiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_JenisPemberiActionPerformed
+        if(JenisPemberi.getSelectedItem()!=null && JenisPemberi.getSelectedItem().toString().equals("DPJP")){
+            muatDPJP();
+        }else{
+            KdDokterInstruksi.setText("");
+            NmDokterInstruksi.setText("");
+        }
+    }//GEN-LAST:event_JenisPemberiActionPerformed
+
+    private void BtnDokterInstruksiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnDokterInstruksiActionPerformed
+        akses.setform("DlgPemberianDiet");
+        dokter.emptTeks();
+        dokter.isCek();
+        dokter.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
+        dokter.setLocationRelativeTo(internalFrame1);
+        dokter.setVisible(true);
+    }//GEN-LAST:event_BtnDokterInstruksiActionPerformed
+
     private void KamarRealKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_KamarRealKeyPressed
         // TODO add your handling code here:
     }//GEN-LAST:event_KamarRealKeyPressed
@@ -1282,6 +1428,10 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private void Status_TitipanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_Status_TitipanKeyPressed
         // TODO add your handling code here:
     }//GEN-LAST:event_Status_TitipanKeyPressed
+
+    private void KamarRealActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_KamarRealActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_KamarRealActionPerformed
 
     /**
     * @param args the command line arguments
@@ -1303,6 +1453,7 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private widget.Button BtnAll;
     private widget.Button BtnBatal;
     private widget.Button BtnCari;
+    private widget.Button BtnDokterInstruksi;
     private widget.Button BtnHapus;
     private widget.Button BtnJam;
     private widget.Button BtnJam2;
@@ -1317,21 +1468,26 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private widget.Tanggal DTPTgl;
     private widget.TextBox Diagnosa;
     private widget.PanelBiasa FormInput;
+    private widget.TextArea InstruksiDiet;
     private widget.TextBox JamDiet;
     private widget.TextBox JamDiet2;
+    private widget.ComboBox JenisPemberi;
     private widget.TextBox Kamar;
     private widget.ComboBox KamarReal;
     private widget.TextBox KdDiet;
+    private widget.TextBox KdDokterInstruksi;
     private widget.Label LCount;
     private javax.swing.JMenuItem MnLabelDiet;
     private javax.swing.JMenuItem MnLabelDiet1;
     private javax.swing.JMenuItem MnSisaDietPasien;
     private widget.TextBox NmBangsalCari;
     private widget.TextBox NmDiet;
+    private widget.TextBox NmDokterInstruksi;
     private javax.swing.JPanel PanelInput;
     private widget.TextBox Ruang;
     private widget.ScrollPane Scroll;
     private widget.ScrollPane Scroll1;
+    private widget.ScrollPane ScrollInstruksi;
     private widget.ComboBox Status_Titipan;
     private widget.TextBox TCari;
     private widget.TextBox TNoRw;
@@ -1345,6 +1501,9 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private widget.Label jLabel12;
     private widget.Label jLabel13;
     private widget.Label jLabel14;
+    private widget.Label jLabel15;
+    private widget.Label jLabel16;
+    private widget.Label jLabel17;
     private widget.Label jLabel19;
     private widget.Label jLabel21;
     private widget.Label jLabel4;
@@ -1476,6 +1635,13 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         NmDiet.setText("");
         WaktuDiet.setText("");
         JamDiet.setText("");
+        InstruksiDiet.setText("");
+        JenisPemberi.setSelectedItem("DPJP");
+        KdDokterInstruksi.setText("");
+        NmDokterInstruksi.setText("");
+        if(!TNoRw.getText().trim().equals("")){
+            muatDPJP();
+        }
         DTPTgl.setDate(new Date());
         DTPTgl.requestFocus();
     }
@@ -1491,9 +1657,9 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             NmDiet.setText(tbDataDiet.getValueAt(tbDataDiet.getSelectedRow(),7).toString());                        
             KamarReal.setSelectedItem(tbDataDiet.getValueAt(tbDataDiet.getSelectedRow(),9).toString());
             Status_Titipan.setSelectedItem(tbDataDiet.getValueAt(tbDataDiet.getSelectedRow(),10).toString());
-            
 
             Valid.SetTgl(DTPTgl,tbDataDiet.getValueAt(tbDataDiet.getSelectedRow(),3).toString());
+            muatInstruksiGiziLokal();
         }
     }
     
@@ -1513,12 +1679,14 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         DTPCari2.setDate(tgl2);
         ChkInput.setSelected(true);
         isForm();
+        JenisPemberi.setSelectedItem("DPJP");
+        muatDPJP();
     }
     
     private void isForm(){
         if(ChkInput.isSelected()==true){
             ChkInput.setVisible(false);
-            PanelInput.setPreferredSize(new Dimension(WIDTH,150));
+            PanelInput.setPreferredSize(new Dimension(WIDTH,220));
             FormInput.setVisible(true);      
             ChkInput.setVisible(true);
         }else if(ChkInput.isSelected()==false){           
@@ -1529,6 +1697,463 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         }
     }
     
+    private void muatDPJP(){
+        KdDokterInstruksi.setText("");
+        NmDokterInstruksi.setText("");
+        if(TNoRw.getText().trim().equals("")) return;
+        try{
+            ps=koneksi.prepareStatement(
+                "select dpjp_ranap.kd_dokter,dokter.nm_dokter " +
+                "from dpjp_ranap inner join dokter on dpjp_ranap.kd_dokter=dokter.kd_dokter " +
+                "where dpjp_ranap.no_rawat=? limit 1");
+            ps.setString(1,TNoRw.getText());
+            rs=ps.executeQuery();
+            if(rs.next()){
+                KdDokterInstruksi.setText(rs.getString("kd_dokter"));
+                NmDokterInstruksi.setText(rs.getString("nm_dokter"));
+            }
+        }catch(Exception e){
+            System.out.println("Notifikasi muat DPJP diet : "+e);
+        }finally{
+            try{ if(rs!=null) rs.close(); }catch(Exception e){}
+            try{ if(ps!=null) ps.close(); }catch(Exception e){}
+        }
+    }
+
+    private void simpanInstruksiGiziLokal(){
+        PreparedStatement pst=null;
+        try{
+            pst=koneksi.prepareStatement(
+                "insert into satu_sehat_nutritionorder " +
+                "(no_rawat,tanggal,waktu,kd_diet,jenis_pemberi,kd_dokter,instruksi,status_kirim) " +
+                "values (?,?,?,?,?,?,?,'Belum') " +
+                "on duplicate key update jenis_pemberi=values(jenis_pemberi)," +
+                "instruksi=values(instruksi),status_kirim=if(id_nutritionorder is null,'Belum',status_kirim)");
+            pst.setString(1,TNoRw.getText());
+            pst.setString(2,Valid.SetTgl(DTPTgl.getSelectedItem()+""));
+            pst.setString(3,WaktuDiet.getText());
+            pst.setString(4,KdDiet.getText());
+            pst.setString(5,JenisPemberi.getSelectedItem().toString().equals("Dokter Gizi")?"DOKTER_GIZI":"DPJP");
+            pst.setString(6,KdDokterInstruksi.getText());
+            pst.setString(7,InstruksiDiet.getText().trim());
+            pst.executeUpdate();
+        }catch(Exception e){
+            JOptionPane.showMessageDialog(null,
+                "Data diet berhasil disimpan, tetapi instruksi gizi lokal belum tersimpan.\n"+
+                "Pastikan tabel satu_sehat_nutritionorder sudah dibuat.\n\n"+e.getMessage());
+            System.out.println("Notifikasi simpan instruksi gizi : "+e);
+        }finally{
+            try{ if(pst!=null) pst.close(); }catch(Exception e){}
+        }
+    }
+
+    private void muatInstruksiGiziLokal(){
+        PreparedStatement pst=null;
+        ResultSet rst=null;
+        try{
+            pst=koneksi.prepareStatement(
+                "select jenis_pemberi,kd_dokter,instruksi from satu_sehat_nutritionorder " +
+                "where no_rawat=? and tanggal=? and waktu=? and kd_diet=? order by (waktu_kirim is not null) desc,waktu_kirim desc,kd_dokter limit 1");
+            pst.setString(1,TNoRw.getText());
+            pst.setString(2,Valid.SetTgl(DTPTgl.getSelectedItem()+""));
+            pst.setString(3,WaktuDiet.getText());
+            pst.setString(4,KdDiet.getText());
+            rst=pst.executeQuery();
+            if(rst.next()){
+                JenisPemberi.setSelectedItem(rst.getString("jenis_pemberi").equals("DOKTER_GIZI")?"Dokter Gizi":"DPJP");
+                KdDokterInstruksi.setText(rst.getString("kd_dokter"));
+                Sequel.cariIsi("select nm_dokter from dokter where kd_dokter=?",NmDokterInstruksi,rst.getString("kd_dokter"));
+                InstruksiDiet.setText(rst.getString("instruksi"));
+            }else{
+                JenisPemberi.setSelectedItem("DPJP");
+                muatDPJP();
+                InstruksiDiet.setText("");
+            }
+        }catch(Exception e){
+            // Tabel tracking belum tersedia tidak boleh mengganggu fungsi diet lama.
+            JenisPemberi.setSelectedItem("DPJP");
+            muatDPJP();
+            InstruksiDiet.setText("");
+            System.out.println("Notifikasi muat instruksi gizi : "+e);
+        }finally{
+            try{ if(rst!=null) rst.close(); }catch(Exception e){}
+            try{ if(pst!=null) pst.close(); }catch(Exception e){}
+        }
+    }
+
+
+    /**
+     * Mengirim instruksi diet sebagai FHIR NutritionOrder setelah data lokal berhasil disimpan.
+     * Proses dijalankan di thread daemon agar kegagalan/jeda SATUSEHAT tidak menghambat penyimpanan diet Khanza.
+     */
+    private void kirimNutritionOrderAsync(final String noRawat, final String namaPasien,
+            final String tanggal, final String waktu, final String jam, final String kdDiet,
+            final String namaDiet, final String kdDokter, final String namaDokter,
+            final String instruksi){
+        Thread worker=new Thread(() -> {
+            kirimNutritionOrderSatuSehat(noRawat,namaPasien,tanggal,waktu,jam,kdDiet,namaDiet,kdDokter,namaDokter,instruksi);
+        },"SATUSEHAT-NutritionOrder-"+noRawat.replace("/","-"));
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private void kirimNutritionOrderSatuSehat(String noRawat, String namaPasien,
+            String tanggal, String waktu, String jam, String kdDiet, String namaDiet,
+            String kdDokter, String namaDokter, String instruksi){
+        String idEncounter="",nikPasien="",nikDokter="",idPasien="",idPraktisi="",hasil="";
+        try{
+            // Jangan POST ulang data yang sudah memiliki ID NutritionOrder.
+            if(sudahTerkirimNutritionOrder(noRawat,tanggal,waktu,kdDiet,kdDokter)){
+                return;
+            }
+
+            idEncounter=cariAtauBuatSatuSehatEncounter(noRawat);
+            if(idEncounter.equals("")){
+                throw new Exception("Encounter SATUSEHAT belum tersedia dan gagal dibuat otomatis untuk No. Rawat "+noRawat);
+            }
+
+            nikPasien=cariNikPasien(noRawat);
+            if(nikPasien.equals("")){
+                throw new Exception("NIK pasien kosong/tidak ditemukan untuk No. Rawat "+noRawat);
+            }
+
+            nikDokter=cariNikDokter(kdDokter);
+            if(nikDokter.equals("")){
+                throw new Exception("NIK dokter pemberi instruksi tidak ditemukan. Kode dokter: "+kdDokter);
+            }
+
+            idPasien=cekViaSatuSehat.tampilIDPasien(nikPasien);
+            if(idPasien==null || idPasien.trim().equals("")){
+                throw new Exception("Patient IHS tidak ditemukan untuk NIK pasien "+nikPasien);
+            }
+
+            idPraktisi=cekViaSatuSehat.tampilIDParktisi(nikDokter);
+            if(idPraktisi==null || idPraktisi.trim().equals("")){
+                throw new Exception("Practitioner IHS tidak ditemukan untuk NIK dokter "+nikDokter);
+            }
+
+            String jamFHIR=(jam==null?"":jam.trim());
+            if(jamFHIR.length()==5){
+                jamFHIR=jamFHIR+":00";
+            }else if(jamFHIR.length()!=8){
+                jamFHIR="00:00:00";
+            }
+            // RS AJJP berada di WITA (UTC+08:00).
+            String dateTime=tanggal+"T"+jamFHIR+"+08:00";
+
+            ObjectNode root=mapperSatuSehat.createObjectNode();
+            root.put("resourceType","NutritionOrder");
+root.put("status","active");
+            // Ini instruksi/preskripsi klinis untuk dilaksanakan, bukan sekadar rekomendasi.
+            root.put("intent","order");
+
+            ObjectNode patient=root.putObject("patient");
+            patient.put("reference","Patient/"+idPasien);
+            if(namaPasien!=null && !namaPasien.trim().equals("")){
+                patient.put("display",namaPasien.trim());
+            }
+
+            ObjectNode encounter=root.putObject("encounter");
+            encounter.put("reference","Encounter/"+idEncounter);
+
+            root.put("dateTime",dateTime);
+
+            ObjectNode orderer=root.putObject("orderer");
+            orderer.put("reference","Practitioner/"+idPraktisi);
+            if(namaDokter!=null && !namaDokter.trim().equals("")){
+                orderer.put("display",namaDokter.trim());
+            }
+
+            ObjectNode oralDiet=root.putObject("oralDiet");
+            // Nama diet Khanza belum dipetakan ke terminologi SATUSEHAT/SNOMED,
+            // sehingga jangan mengarang coding. Simpan sebagai CodeableConcept.text dulu.
+            if(namaDiet!=null && !namaDiet.trim().equals("")){
+                ArrayNode type=oralDiet.putArray("type");
+                type.addObject().put("text",namaDiet.trim());
+            }
+            oralDiet.put("instruction",instruksi);
+
+            ArrayNode note=root.putArray("note");
+            note.addObject().put("text","Kode diet Khanza: "+kdDiet+"; waktu diet: "+waktu+(jam==null||jam.trim().equals("")?"":" "+jam));
+
+            String requestJson=mapperSatuSehat.writeValueAsString(root);
+            HttpHeaders headers=new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.add("Authorization","Bearer "+apiSatuSehat.TokenSatuSehat());
+            HttpEntity<String> requestEntity=new HttpEntity<>(requestJson,headers);
+
+            if(linkSatuSehat==null || linkSatuSehat.trim().equals("")){
+                linkSatuSehat=koneksiDB.URLFHIRSATUSEHAT();
+            }
+            System.out.println("URL : "+linkSatuSehat+"/NutritionOrder");
+            System.out.println("Request JSON NutritionOrder : "+requestJson);
+            hasil=apiSatuSehat.getRest().exchange(linkSatuSehat+"/NutritionOrder",HttpMethod.POST,requestEntity,String.class).getBody();
+            System.out.println("Result JSON NutritionOrder : "+hasil);
+
+            JsonNode responseNode=mapperSatuSehat.readTree(hasil);
+            String idNutritionOrder=responseNode.path("id").asText();
+            if(idNutritionOrder.equals("")){
+                throw new Exception("Response SATUSEHAT tidak mengandung ID NutritionOrder. Response: "+hasil);
+            }
+
+            updateStatusNutritionOrder(noRawat,tanggal,waktu,kdDiet,kdDokter,idNutritionOrder,"Terkirim",hasil);
+        }catch(HttpStatusCodeException e){
+            hasil=e.getResponseBodyAsString();
+            if(hasil==null || hasil.trim().equals("")) hasil=e.toString();
+            updateStatusNutritionOrder(noRawat,tanggal,waktu,kdDiet,kdDokter,null,"Gagal",hasil);
+            tampilPesanGagalNutritionOrder(noRawat,hasil);
+            System.out.println("Notifikasi Bridging NutritionOrder : "+e);
+        }catch(Exception e){
+            hasil=e.getMessage()==null?e.toString():e.getMessage();
+            updateStatusNutritionOrder(noRawat,tanggal,waktu,kdDiet,kdDokter,null,"Gagal",hasil);
+            tampilPesanGagalNutritionOrder(noRawat,hasil);
+            System.out.println("Notifikasi Bridging NutritionOrder : "+e);
+        }
+    }
+
+    private boolean sudahTerkirimNutritionOrder(String noRawat,String tanggal,String waktu,String kdDiet,String kdDokter){
+        PreparedStatement pst=null;
+        ResultSet rst=null;
+        try{
+            pst=koneksi.prepareStatement(
+                "select id_nutritionorder from satu_sehat_nutritionorder where no_rawat=? and tanggal=? and waktu=? and kd_diet=? and kd_dokter=? limit 1");
+            pst.setString(1,noRawat);
+            pst.setString(2,tanggal);
+            pst.setString(3,waktu);
+            pst.setString(4,kdDiet);
+            pst.setString(5,kdDokter);
+            rst=pst.executeQuery();
+            return rst.next() && rst.getString("id_nutritionorder")!=null && !rst.getString("id_nutritionorder").trim().equals("");
+        }catch(Exception e){
+            System.out.println("Notifikasi cek NutritionOrder : "+e);
+            return false;
+        }finally{
+            try{ if(rst!=null) rst.close(); }catch(Exception e){}
+            try{ if(pst!=null) pst.close(); }catch(Exception e){}
+        }
+    }
+
+    private String cariSatuSehatEncounter(String noRawat) throws Exception{
+        PreparedStatement pst=null;
+        ResultSet rst=null;
+        try{
+            pst=koneksi.prepareStatement("select id_encounter from satu_sehat_encounter where no_rawat=? limit 1");
+            pst.setString(1,noRawat);
+            rst=pst.executeQuery();
+            return rst.next()?rst.getString("id_encounter").trim():"";
+        }finally{
+            try{ if(rst!=null) rst.close(); }catch(Exception e){}
+            try{ if(pst!=null) pst.close(); }catch(Exception e){}
+        }
+    }
+
+    /**
+     * Mengambil Encounter lokal. Jika belum ada, membuat Encounter SATUSEHAT
+     * otomatis memakai pola yang sama dengan SatuSehatKirimEncounter.
+     */
+    private String cariAtauBuatSatuSehatEncounter(String noRawat) throws Exception{
+        String idEncounter=cariSatuSehatEncounter(noRawat);
+        if(idEncounter!=null && !idEncounter.trim().equals("")){
+            return idEncounter.trim();
+        }
+        return buatSatuSehatEncounterOtomatis(noRawat);
+    }
+
+    private String buatSatuSehatEncounterOtomatis(String noRawat) throws Exception{
+        PreparedStatement pst=null;
+        ResultSet rst=null;
+        String noRM="",namaPasien="",nikPasien="",kdDokter="",namaDokter="",nikDokter="";
+        String namaPoli="",idLokasi="",tglRegistrasi="",jamRegistrasi="",statusLanjut="";
+        try{
+            String idLokal=cariSatuSehatEncounter(noRawat);
+            if(idLokal!=null && !idLokal.trim().equals("")){
+                return idLokal.trim();
+            }
+            pst=koneksi.prepareStatement(
+                "select reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.no_ktp,"+
+                "reg_periksa.kd_dokter,dokter.nm_dokter,pegawai.no_ktp as nik_dokter,"+
+                "poliklinik.nm_poli,satu_sehat_mapping_lokasi_ralan.id_lokasi_satusehat,"+
+                "reg_periksa.tgl_registrasi,reg_periksa.jam_reg,reg_periksa.status_lanjut "+
+                "from reg_periksa "+
+                "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
+                "left join dokter on reg_periksa.kd_dokter=dokter.kd_dokter "+
+                "left join pegawai on reg_periksa.kd_dokter=pegawai.nik "+
+                "left join poliklinik on reg_periksa.kd_poli=poliklinik.kd_poli "+
+                "left join satu_sehat_mapping_lokasi_ralan on reg_periksa.kd_poli=satu_sehat_mapping_lokasi_ralan.kd_poli "+
+                "where reg_periksa.no_rawat=? limit 1");
+            pst.setString(1,noRawat);
+            rst=pst.executeQuery();
+            if(!rst.next()){
+                throw new Exception("Data registrasi tidak ditemukan untuk pembuatan Encounter No. Rawat "+noRawat);
+            }
+            noRM=rst.getString("no_rkm_medis")==null?"":rst.getString("no_rkm_medis").trim();
+            namaPasien=rst.getString("nm_pasien")==null?"":rst.getString("nm_pasien").trim();
+            nikPasien=rst.getString("no_ktp")==null?"":rst.getString("no_ktp").trim();
+            kdDokter=rst.getString("kd_dokter")==null?"":rst.getString("kd_dokter").trim();
+            namaDokter=rst.getString("nm_dokter")==null?"":rst.getString("nm_dokter").trim();
+            nikDokter=rst.getString("nik_dokter")==null?"":rst.getString("nik_dokter").trim();
+            namaPoli=rst.getString("nm_poli")==null?"":rst.getString("nm_poli").trim();
+            idLokasi=rst.getString("id_lokasi_satusehat")==null?"":rst.getString("id_lokasi_satusehat").trim();
+            tglRegistrasi=rst.getString("tgl_registrasi")==null?"":rst.getString("tgl_registrasi").trim();
+            jamRegistrasi=rst.getString("jam_reg")==null?"":rst.getString("jam_reg").trim();
+            statusLanjut=rst.getString("status_lanjut")==null?"":rst.getString("status_lanjut").trim();
+        }finally{
+            try{ if(rst!=null) rst.close(); }catch(Exception e){}
+            try{ if(pst!=null) pst.close(); }catch(Exception e){}
+        }
+        if(nikPasien.equals("")) throw new Exception("NIK pasien belum tersedia untuk membuat Encounter SATUSEHAT. No. RM: "+noRM);
+        if(nikDokter.equals("")) throw new Exception("NIK dokter registrasi/DPJP belum tersedia untuk membuat Encounter SATUSEHAT. Kode dokter: "+kdDokter);
+        if(idLokasi.equals("")) throw new Exception("Mapping Location SATUSEHAT belum tersedia untuk poliklinik/asal registrasi: "+namaPoli);
+
+        String idPasienEncounter=cekViaSatuSehat.tampilIDPasien(nikPasien);
+        if(idPasienEncounter==null || idPasienEncounter.trim().equals(""))
+            throw new Exception("Patient IHS tidak ditemukan untuk membuat Encounter. NIK pasien: "+nikPasien);
+        String idDokterEncounter=cekViaSatuSehat.tampilIDParktisi(nikDokter);
+        if(idDokterEncounter==null || idDokterEncounter.trim().equals(""))
+            throw new Exception("Practitioner IHS tidak ditemukan untuk membuat Encounter. NIK dokter: "+nikDokter);
+
+        String jamFHIR=jamRegistrasi;
+        if(jamFHIR.length()==5) jamFHIR=jamFHIR+":00"; else if(jamFHIR.length()!=8) jamFHIR="00:00:00";
+        String waktuMulai=tglRegistrasi+"T"+jamFHIR+"+08:00";
+        String kodeClass=statusLanjut.equalsIgnoreCase("Ralan")?"AMB":"IMP";
+        String displayClass=kodeClass.equals("AMB")?"ambulatory":"inpatient encounter";
+
+        ObjectNode root=mapperSatuSehat.createObjectNode();
+        root.put("resourceType","Encounter");
+        ArrayNode identifier=root.putArray("identifier");
+        ObjectNode ident=identifier.addObject();
+        ident.put("system","http://sys-ids.kemkes.go.id/encounter/"+koneksiDB.IDSATUSEHAT());
+        ident.put("value",noRawat);
+        root.put("status","in-progress");
+        ObjectNode encounterClass=root.putObject("class");
+        encounterClass.put("system","http://terminology.hl7.org/CodeSystem/v3-ActCode");
+        encounterClass.put("code",kodeClass);
+        encounterClass.put("display",displayClass);
+        ObjectNode subject=root.putObject("subject");
+        subject.put("reference","Patient/"+idPasienEncounter.trim());
+        subject.put("display",namaPasien);
+        ArrayNode participant=root.putArray("participant");
+        ObjectNode participantItem=participant.addObject();
+        ArrayNode participantType=participantItem.putArray("type");
+        ObjectNode participantTypeCC=participantType.addObject();
+        ArrayNode participantCoding=participantTypeCC.putArray("coding");
+        ObjectNode participantCode=participantCoding.addObject();
+        participantCode.put("system","http://terminology.hl7.org/CodeSystem/v3-ParticipationType");
+        participantCode.put("code","ATND");
+        participantCode.put("display","attender");
+        ObjectNode individual=participantItem.putObject("individual");
+        individual.put("reference","Practitioner/"+idDokterEncounter.trim());
+        individual.put("display",namaDokter);
+        ObjectNode period=root.putObject("period");
+        period.put("start",waktuMulai);
+        ArrayNode location=root.putArray("location");
+        ObjectNode locationItem=location.addObject();
+        ObjectNode locationRef=locationItem.putObject("location");
+        locationRef.put("reference","Location/"+idLokasi);
+        locationRef.put("display",namaPoli);
+        ArrayNode statusHistory=root.putArray("statusHistory");
+        ObjectNode arrived=statusHistory.addObject();
+        arrived.put("status","arrived");
+        ObjectNode arrivedPeriod=arrived.putObject("period");
+        arrivedPeriod.put("start",waktuMulai);
+        arrivedPeriod.put("end",waktuMulai);
+        ObjectNode inProgress=statusHistory.addObject();
+        inProgress.put("status","in-progress");
+        ObjectNode inProgressPeriod=inProgress.putObject("period");
+        inProgressPeriod.put("start",waktuMulai);
+        ObjectNode serviceProvider=root.putObject("serviceProvider");
+        serviceProvider.put("reference","Organization/"+koneksiDB.IDSATUSEHAT());
+
+        String requestJson=mapperSatuSehat.writeValueAsString(root);
+        HttpHeaders headers=new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add("Authorization","Bearer "+apiSatuSehat.TokenSatuSehat());
+        HttpEntity<String> requestEntity=new HttpEntity<>(requestJson,headers);
+        if(linkSatuSehat==null || linkSatuSehat.trim().equals("")) linkSatuSehat=koneksiDB.URLFHIRSATUSEHAT();
+        System.out.println("URL : "+linkSatuSehat+"/Encounter");
+        System.out.println("Request JSON Encounter Otomatis Diet : "+requestJson);
+        String hasil=apiSatuSehat.getRest().exchange(linkSatuSehat+"/Encounter",HttpMethod.POST,requestEntity,String.class).getBody();
+        System.out.println("Result JSON Encounter Otomatis Diet : "+hasil);
+        JsonNode responseNode=mapperSatuSehat.readTree(hasil);
+        String idEncounter=responseNode.path("id").asText();
+        if(idEncounter==null || idEncounter.trim().equals(""))
+            throw new Exception("Response SATUSEHAT tidak mengandung ID Encounter. Response: "+hasil);
+        idEncounter=idEncounter.trim();
+        if(Sequel.menyimpantf2("satu_sehat_encounter","?,?","No.Rawat",2,new String[]{noRawat,idEncounter})==false){
+            String idTersimpan=cariSatuSehatEncounter(noRawat);
+            if(idTersimpan==null || idTersimpan.trim().equals(""))
+                throw new Exception("Encounter berhasil dibuat di SATUSEHAT ("+idEncounter+") tetapi gagal disimpan ke tabel satu_sehat_encounter.");
+            idEncounter=idTersimpan.trim();
+        }
+        System.out.println("Encounter SATUSEHAT otomatis berhasil untuk No. Rawat "+noRawat+" : "+idEncounter);
+        return idEncounter;
+    }
+
+    private String cariNikPasien(String noRawat) throws Exception{
+        PreparedStatement pst=null;
+        ResultSet rst=null;
+        try{
+            pst=koneksi.prepareStatement(
+                "select pasien.no_ktp from reg_periksa inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis where reg_periksa.no_rawat=? limit 1");
+            pst.setString(1,noRawat);
+            rst=pst.executeQuery();
+            return rst.next() && rst.getString("no_ktp")!=null?rst.getString("no_ktp").trim():"";
+        }finally{
+            try{ if(rst!=null) rst.close(); }catch(Exception e){}
+            try{ if(pst!=null) pst.close(); }catch(Exception e){}
+        }
+    }
+
+    private String cariNikDokter(String kdDokter) throws Exception{
+        PreparedStatement pst=null;
+        ResultSet rst=null;
+        try{
+            pst=koneksi.prepareStatement(
+                "select pegawai.no_ktp from dokter inner join pegawai on dokter.kd_dokter=pegawai.nik where dokter.kd_dokter=? limit 1");
+            pst.setString(1,kdDokter);
+            rst=pst.executeQuery();
+            return rst.next() && rst.getString("no_ktp")!=null?rst.getString("no_ktp").trim():"";
+        }finally{
+            try{ if(rst!=null) rst.close(); }catch(Exception e){}
+            try{ if(pst!=null) pst.close(); }catch(Exception e){}
+        }
+    }
+
+    private void updateStatusNutritionOrder(String noRawat,String tanggal,String waktu,String kdDiet,String kdDokter,
+            String idNutritionOrder,String status,String responseText){
+        PreparedStatement pst=null;
+        try{
+            pst=koneksi.prepareStatement(
+                "update satu_sehat_nutritionorder set id_nutritionorder=coalesce(?,id_nutritionorder),status_kirim=?,response=?,waktu_kirim=now() " +
+                "where no_rawat=? and tanggal=? and waktu=? and kd_diet=? and kd_dokter=?");
+            if(idNutritionOrder==null || idNutritionOrder.trim().equals("")){
+                pst.setNull(1,java.sql.Types.VARCHAR);
+            }else{
+                pst.setString(1,idNutritionOrder);
+            }
+            pst.setString(2,status);
+            pst.setString(3,responseText);
+            pst.setString(4,noRawat);
+            pst.setString(5,tanggal);
+            pst.setString(6,waktu);
+            pst.setString(7,kdDiet);
+            pst.setString(8,kdDokter);
+            pst.executeUpdate();
+        }catch(Exception e){
+            System.out.println("Notifikasi update status NutritionOrder : "+e);
+        }finally{
+            try{ if(pst!=null) pst.close(); }catch(Exception e){}
+        }
+    }
+
+    private void tampilPesanGagalNutritionOrder(String noRawat,String pesan){
+        final String ringkas=(pesan==null?"":(pesan.length()>900?pesan.substring(0,900)+"...":pesan));
+        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null,
+            "Diet pasien berhasil disimpan di Khanza, tetapi NutritionOrder SATUSEHAT belum terkirim.\n"+
+            "No. Rawat : "+noRawat+"\n\n"+ringkas,
+            "SATUSEHAT - NutritionOrder",JOptionPane.WARNING_MESSAGE));
+    }
+
     public void isCek(){
         BtnSimpan.setEnabled(akses.getdiet_pasien());
         BtnHapus.setEnabled(akses.getdiet_pasien());

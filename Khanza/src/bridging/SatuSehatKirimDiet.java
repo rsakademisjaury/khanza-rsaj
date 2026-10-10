@@ -64,7 +64,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
         initComponents();
 
         this.setLocation(10,2);
-        setSize(628,674);
+        setSize(800,674);
 
         tabMode=new DefaultTableModel(null,new String[]{
                 "P","Tanggal Registrasi","No.Rawat","No.RM","Nama Pasien","No.KTP Pasien","ID Encounter",
@@ -207,6 +207,8 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
         DTPCari2 = new widget.Tanggal();
         jLabel16 = new widget.Label();
         TCari = new widget.TextBox();
+        jLabel18 = new widget.Label();
+        CmbStatus = new javax.swing.JComboBox<>();
         BtnCari = new widget.Button();
 
         jPopupMenu1.setName("jPopupMenu1"); // NOI18N
@@ -399,13 +401,29 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
         panelGlass9.add(jLabel16);
 
         TCari.setName("TCari"); // NOI18N
-        TCari.setPreferredSize(new java.awt.Dimension(210, 23));
+        TCari.setPreferredSize(new java.awt.Dimension(150, 23));
         TCari.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 TCariKeyPressed(evt);
             }
         });
         panelGlass9.add(TCari);
+
+        jLabel18.setText("Status :");
+        jLabel18.setName("jLabel18"); // NOI18N
+        jLabel18.setPreferredSize(new java.awt.Dimension(50, 23));
+        panelGlass9.add(jLabel18);
+
+        CmbStatus.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
+        CmbStatus.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Semua", "Belum Terkirim", "Terkirim" }));
+        CmbStatus.setName("CmbStatus"); // NOI18N
+        CmbStatus.setPreferredSize(new java.awt.Dimension(120, 23));
+        CmbStatus.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                CmbStatusActionPerformed(evt);
+            }
+        });
+        panelGlass9.add(CmbStatus);
 
         BtnCari.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/accept.png"))); // NOI18N
         BtnCari.setMnemonic('6');
@@ -536,6 +554,10 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
         }
     }//GEN-LAST:event_TCariKeyPressed
 
+    private void CmbStatusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CmbStatusActionPerformed
+        tampil();
+    }//GEN-LAST:event_CmbStatusActionPerformed
+
     private void BtnCariActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnCariActionPerformed
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         tampil();
@@ -556,6 +578,26 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
                 try {
                     idpraktisi=cekViaSatuSehat.tampilIDParktisi(tbObat.getValueAt(i,9).toString());
                     idpasien=cekViaSatuSehat.tampilIDPasien(tbObat.getValueAt(i,5).toString());
+
+                    // Jika Patient tidak ditemukan dari NIK, ambil Patient IHS dari Encounter
+                    // yang sebelumnya sudah berhasil dikirim ke SATUSEHAT.
+                    if(idpasien==null || idpasien.trim().equals("")){
+                        idpasien=ambilPatientIHSdariEncounter(tbObat.getValueAt(i,6).toString());
+                    }
+
+                    // Jangan pernah mengirim Composition dengan reference "Patient/" kosong.
+                    if(idpasien==null || idpasien.trim().equals("")){
+                        System.out.println("Pengiriman Diet dibatalkan : Patient IHS tidak ditemukan untuk No.Rawat "
+                                +tbObat.getValueAt(i,2).toString()+" / NIK "+tbObat.getValueAt(i,5).toString());
+                        continue;
+                    }
+
+                    if(idpraktisi==null || idpraktisi.trim().equals("")){
+                        System.out.println("Pengiriman Diet dibatalkan : Practitioner IHS tidak ditemukan untuk NIK "
+                                +tbObat.getValueAt(i,9).toString());
+                        continue;
+                    }
+
                     try{
                         headers = new HttpHeaders();
                         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -619,7 +661,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
                                             "}," +
                                             "\"text\" : {" +
                                                 "\"status\" : \"additional\"," +
-                                                "\"div\" : \""+tbObat.getValueAt(i,7).toString()+"\"" +
+                                                "\"div\" : "+mapper.writeValueAsString(buatNarasiDiet(tbObat.getValueAt(i,7).toString())) +
                                             "}" +
                                         "}" +
                                     "]" +
@@ -640,7 +682,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
                             }
                         }
                     }catch(Exception e){
-                        System.out.println("Notifikasi Bridging : "+e);
+                        cetakErrorBridging(e);
                     }
                 } catch (Exception e) {
                     System.out.println("Notifikasi : "+e);
@@ -667,6 +709,26 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
                 try {
                     idpraktisi=cekViaSatuSehat.tampilIDParktisi(tbObat.getValueAt(i,9).toString());
                     idpasien=cekViaSatuSehat.tampilIDPasien(tbObat.getValueAt(i,5).toString());
+
+                    // Jika Patient tidak ditemukan dari NIK, ambil Patient IHS dari Encounter
+                    // yang sebelumnya sudah berhasil dikirim ke SATUSEHAT.
+                    if(idpasien==null || idpasien.trim().equals("")){
+                        idpasien=ambilPatientIHSdariEncounter(tbObat.getValueAt(i,6).toString());
+                    }
+
+                    // Jangan pernah mengirim Composition dengan reference "Patient/" kosong.
+                    if(idpasien==null || idpasien.trim().equals("")){
+                        System.out.println("Pengiriman Diet dibatalkan : Patient IHS tidak ditemukan untuk No.Rawat "
+                                +tbObat.getValueAt(i,2).toString()+" / NIK "+tbObat.getValueAt(i,5).toString());
+                        continue;
+                    }
+
+                    if(idpraktisi==null || idpraktisi.trim().equals("")){
+                        System.out.println("Pengiriman Diet dibatalkan : Practitioner IHS tidak ditemukan untuk NIK "
+                                +tbObat.getValueAt(i,9).toString());
+                        continue;
+                    }
+
                     try{
                         headers = new HttpHeaders();
                         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -731,7 +793,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
                                             "}," +
                                             "\"text\" : {" +
                                                 "\"status\" : \"additional\" ," +
-                                                "\"div\" : \""+tbObat.getValueAt(i,7).toString().replaceAll("(\r\n|\r|\n|\n\r)","<br>").replaceAll("\t", " ")+"\"" +
+                                                "\"div\" : "+mapper.writeValueAsString(buatNarasiDiet(tbObat.getValueAt(i,7).toString())) +
                                             "}" +
                                         "}" +
                                     "]" +
@@ -743,7 +805,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
                         System.out.println("Result JSON : "+json);
                         tbObat.setValueAt(false,i,0);
                     }catch(Exception e){
-                        System.out.println("Notifikasi Bridging : "+e);
+                        cetakErrorBridging(e);
                     }
                 } catch (Exception e) {
                     System.out.println("Notifikasi : "+e);
@@ -754,13 +816,21 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
 
     private void BtnAllActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnAllActionPerformed
         TCari.setText("");
-        tampil();
+        if(CmbStatus.getSelectedIndex()!=0){
+            CmbStatus.setSelectedIndex(0);
+        }else{
+            tampil();
+        }
     }//GEN-LAST:event_BtnAllActionPerformed
 
     private void BtnAllKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnAllKeyPressed
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
             TCari.setText("");
-            tampil();
+            if(CmbStatus.getSelectedIndex()!=0){
+                CmbStatus.setSelectedIndex(0);
+            }else{
+                tampil();
+            }
         }else{
             Valid.pindah(evt, BtnPrint, BtnKeluar);
         }
@@ -789,6 +859,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
     private widget.Button BtnKirim;
     private widget.Button BtnPrint;
     private widget.Button BtnUpdate;
+    private javax.swing.JComboBox<String> CmbStatus;
     private widget.Tanggal DTPCari1;
     private widget.Tanggal DTPCari2;
     private widget.Label LCount;
@@ -799,6 +870,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
     private widget.Label jLabel15;
     private widget.Label jLabel16;
     private widget.Label jLabel17;
+    private widget.Label jLabel18;
     private widget.Label jLabel7;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPopupMenu jPopupMenu1;
@@ -809,6 +881,91 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
     private widget.Table tbObat;
     // End of variables declaration//GEN-END:variables
     
+    private String filterStatusPengiriman() {
+        if(CmbStatus.getSelectedItem()==null){
+            return "";
+        }
+        String status=CmbStatus.getSelectedItem().toString();
+        if(status.equals("Belum Terkirim")){
+            return "and ifnull(satu_sehat_diet.id_diet,'')='' ";
+        }else if(status.equals("Terkirim")){
+            return "and ifnull(satu_sehat_diet.id_diet,'')<>'' ";
+        }
+        return "";
+    }
+
+    /**
+     * Menampilkan OperationOutcome/body error SATUSEHAT agar penyebab HTTP 4xx terbaca jelas.
+     */
+    private void cetakErrorBridging(Exception e){
+        System.out.println("Notifikasi Bridging : "+e);
+        if(e instanceof org.springframework.web.client.HttpClientErrorException){
+            org.springframework.web.client.HttpClientErrorException httpError =
+                    (org.springframework.web.client.HttpClientErrorException)e;
+            System.out.println("Response Error SATUSEHAT : "+httpError.getResponseBodyAsString());
+        }
+    }
+
+    /**
+     * Membentuk Narrative.div sesuai FHIR: XHTML div + aman saat ditempel ke string JSON.
+     */
+    private String buatNarasiDiet(String teks){
+        String nilai=(teks==null?"":teks);
+        nilai=nilai.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;");
+        nilai=nilai.replace("\r\n", "<br/>")
+                   .replace("\n", "<br/>")
+                   .replace("\r", "<br/>")
+                   .replace("\t", " ");
+
+        // Kembalikan XHTML mentah. Saat dimasukkan ke payload JSON,
+        // ObjectMapper.writeValueAsString() yang melakukan JSON escaping.
+        return "<div xmlns=\"http://www.w3.org/1999/xhtml\">"+nilai+"</div>";
+    }
+
+    /**
+     * Mengambil Patient IHS dari resource Encounter SATUSEHAT.
+     * Digunakan sebagai fallback ketika pencarian Patient berdasarkan NIK menghasilkan total=0.
+     */
+    private String ambilPatientIHSdariEncounter(String idEncounter){
+        String patientIHS="";
+        if(idEncounter==null || idEncounter.trim().equals("")){
+            return patientIHS;
+        }
+
+        try{
+            HttpHeaders headerEncounter = new HttpHeaders();
+            headerEncounter.setContentType(MediaType.APPLICATION_JSON);
+            headerEncounter.add("Authorization", "Bearer "+api.TokenSatuSehat());
+            HttpEntity entityEncounter = new HttpEntity(headerEncounter);
+
+            String urlEncounter=link+"/Encounter/"+idEncounter.trim();
+            System.out.println("URL Encounter untuk fallback Patient : "+urlEncounter);
+            String jsonEncounter=api.getRest().exchange(
+                    urlEncounter, HttpMethod.GET, entityEncounter, String.class).getBody();
+            System.out.println("Response Encounter fallback Patient : "+jsonEncounter);
+
+            JsonNode encounterNode=mapper.readTree(jsonEncounter);
+            JsonNode referenceNode=encounterNode.path("subject").path("reference");
+            String reference="";
+            if(referenceNode!=null && !referenceNode.isMissingNode() && !referenceNode.isNull()){
+                reference=referenceNode.asText();
+            }
+            if(reference.startsWith("Patient/") && reference.length()>8){
+                patientIHS=reference.substring(8).trim();
+                System.out.println("Patient IHS ditemukan dari Encounter : "+patientIHS);
+            }else{
+                System.out.println("Patient IHS tidak ditemukan pada subject.reference Encounter : "+reference);
+            }
+        }catch(Exception e){
+            System.out.println("Gagal mengambil Patient IHS dari Encounter : "+e);
+        }
+        return patientIHS;
+    }
+
     private void tampil() {
         Valid.tabelKosong(tabMode);
         try{
@@ -825,6 +982,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
                    "left join satu_sehat_diet on satu_sehat_diet.no_rawat=catatan_adime_gizi.no_rawat "+
                    "and satu_sehat_diet.tanggal=catatan_adime_gizi.tanggal "+
                    "where catatan_adime_gizi.instruksi<>'' and nota_jalan.tanggal between ? and ? "+
+                   filterStatusPengiriman()+
                    (TCari.getText().equals("")?"":"and (reg_periksa.no_rawat like ? or reg_periksa.no_rkm_medis like ? or "+
                    "pasien.nm_pasien like ? or pasien.no_ktp like ? or pegawai.no_ktp like ? or pegawai.nama like ?) "));
             try {
@@ -870,6 +1028,7 @@ public final class SatuSehatKirimDiet extends javax.swing.JDialog {
                    "left join satu_sehat_diet on satu_sehat_diet.no_rawat=catatan_adime_gizi.no_rawat "+
                    "and satu_sehat_diet.tanggal=catatan_adime_gizi.tanggal "+
                    "where catatan_adime_gizi.instruksi<>'' and nota_inap.tanggal between ? and ? "+
+                   filterStatusPengiriman()+
                    (TCari.getText().equals("")?"":"and (reg_periksa.no_rawat like ? or reg_periksa.no_rkm_medis like ? or "+
                    "pasien.nm_pasien like ? or pasien.no_ktp like ? or pegawai.no_ktp like ? or pegawai.nama like ?) "));
             try {

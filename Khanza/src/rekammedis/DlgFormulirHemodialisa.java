@@ -1,21 +1,50 @@
 package rekammedis;
 
-import AESsecurity.EnkripsiAES;
 import fungsi.akses;
+import fungsi.koneksiDB;
+import fungsi.MetadataBerkas;
+import AESsecurity.EnkripsiAES;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.io.File;
+import java.awt.image.BufferedImage;
 import java.awt.*;
 import java.awt.event.*;
 import java.math.BigDecimal;
 import java.sql.*;
-import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.DefaultTableModel;
+import javax.imageio.ImageIO;
+import laporan.DlgBerkasRawat;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperPrintManager;
+import net.sf.jasperreports.engine.JasperReportsContext;
+import net.sf.jasperreports.engine.SimpleJasperReportsContext;
+import net.sf.jasperreports.engine.DefaultJasperReportsContext;
+import net.sf.jasperreports.engine.fonts.FontFamily;
+import net.sf.jasperreports.engine.fonts.SimpleFontFamily;
+import net.sf.jasperreports.engine.data.JRMapCollectionDataSource;
+import net.sf.jasperreports.engine.util.JRLoader;
+import net.sf.jasperreports.swing.JRViewer;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
-/** Formulir sesi HD RSAJ. Java 8+, tanpa dependensi Jasper/library tambahan. */
+/** Formulir sesi HD RSAJ. Java 8+, memakai JasperReports dan ZXing SIMRS. */
 public class DlgFormulirHemodialisa extends JDialog {
     private static final String[] KEYS = {"alamat","ruangan","anamnesis","pemeriksaan_fisik",
         "laboratorium","diagnosa","terapi","nadi","tekanan_darah","suhu","pernapasan",
@@ -27,6 +56,18 @@ public class DlgFormulirHemodialisa extends JDialog {
         "konduktivitas","suhu","tmp","laju_heparin","tekanan_arteri","tekanan_vena","laju_darah","kelainan"};
     private static final String[] OBS_LABELS = {"Jam","Waktu HD (jam)","T.D.","Laju dial",
         "Konduktivitas","Suhu","TMP","Laju heparin","Tek. arteri","Tek. vena","Laju darah","Kelainan / komplikasi"};
+    private static final String[] HISTORY_FIELD_LABELS = {"Alamat","Ruang / Bangsal","Anamnesis","Pemeriksaan Fisik",
+        "Lab / Catatan","Diagnosa","Terapi","Nadi","Tekanan Darah","Suhu","Pernapasan",
+        "BB Sebelum HD","BB Sesudah HD","Hb","Ureum Sebelum HD","Ureum Sesudah HD",
+        "Kreatinin Sebelum HD","Kreatinin Sesudah HD","Elektrolit / Satuan","Heparin Dosis Beban",
+        "Total Dosis Selama HD","Dosis Heparin Tiap Jam","Lamanya HD","Priming Volume",
+        "NIP / Kode Pelaksana","Nama Pelaksana","Kode Dokter (Arsip)","Nama Dokter (Arsip)"};
+    private static final int HISTORY_OBS_INDEX=8+KEYS.length, HISTORY_UPLOAD_INDEX=HISTORY_OBS_INDEX+1;
+    private static String[] historyHeaders(){
+        List<String> headers=new ArrayList<>(Arrays.asList("ID Sesi","No. Rawat","Tanggal / Jam","HD ke","No. RM","Nama Pasien","Jenis Kelamin","Umur"));
+        headers.addAll(Arrays.asList(HISTORY_FIELD_LABELS));headers.add("Observasi Selama HD");headers.add("Status Upload");headers.add("Versi");
+        return headers.toArray(new String[0]);
+    }
     private final Map<String,javax.swing.text.JTextComponent> fields = new LinkedHashMap<>();
     private final List<Component> inputs = new ArrayList<>();
     private final Store store;
@@ -35,19 +76,21 @@ public class DlgFormulirHemodialisa extends JDialog {
     private boolean loading, dirty, busy, ownsConnection;
     private JTextField rawat = new RoundedTextField(20);
     private JLabel nilaiRawat = new JLabel("Belum ada data"), nilaiRM = new JLabel("Belum ada data"), nilaiNama = new JLabel("Belum ada data");
-    private JButton btnSave, btnNew, btnUpdate, btnPrint, btnExit;
+    private JButton btnSave, btnNew, btnUpdate, btnPrint, btnUpload, btnDelete, btnExit;
     private static final Color BLUE = new Color(26, 105, 163), BG = new Color(245,248,251);
     private static final Font NORMAL = new Font("Segoe UI",Font.PLAIN,12), SEMIBOLD = new Font("Segoe UI Semibold",Font.PLAIN,13);
-    private widget.Tanggal tanggal = new widget.Tanggal();
+    private RoundedDatePicker tanggal = new RoundedDatePicker();
     private JTextField hdKe = new RoundedTextField(12);
+    private SoapNavigator clinicalNavigator, vitalNavigator;
     private Component areaInduk;
     private JLabel totalHeparin = new JLabel("—");
     private DefaultTableModel obsModel = new DefaultTableModel(OBS_LABELS,0);
     private JTable observasi = new JTable(obsModel);
-    private DefaultTableModel listModel = new DefaultTableModel(new String[]{"ID","Tanggal","HD ke","Pelaksana","Versi"},0) {
+    private DefaultTableModel listModel = new DefaultTableModel(historyHeaders(),0) {
         @Override public boolean isCellEditable(int r,int c) { return false; }
     };
     private JTable daftar = new JTable(listModel);
+    private JTabbedPane tabs;
 
     public DlgFormulirHemodialisa(Frame parent, boolean modal) {
         this(parent,modal,openConnection(),akses.getkode());
@@ -172,7 +215,7 @@ public class DlgFormulirHemodialisa extends JDialog {
         heading.add(identityBlock("Nama Pasien",nilaiNama,"/picture/nama_pasien.png"));
         heading.add(Box.createHorizontalGlue());
         contentPanel.add(heading,BorderLayout.NORTH);
-        JTabbedPane tabs=new JTabbedPane();tabs.setFont(SEMIBOLD);tabs.setBackground(BG);
+        tabs=new JTabbedPane();tabs.setFont(SEMIBOLD);tabs.setBackground(BG);
         tabs.setUI(new javax.swing.plaf.basic.BasicTabbedPaneUI(){
             @Override protected void installDefaults(){
                 super.installDefaults();tabInsets=new Insets(10,22,10,22);
@@ -190,78 +233,112 @@ public class DlgFormulirHemodialisa extends JDialog {
         JPanel body = new VerticalPanel();
         JPanel session = section("Identitas sesi",3);
         tanggal.setDisplayFormat("dd-MM-yyyy");tanggal.setFont(NORMAL);
-        tanggal.setPreferredSize(new Dimension(170,34));
-        styleInput(hdKe);hdKe.setEditable(false);
+        int dateWidth=tanggal.getFontMetrics(NORMAL).stringWidth("31-12-2026")+40;
+        tanggal.setPreferredSize(new Dimension(dateWidth,30));
+        tanggal.putClientProperty("hdCompactWidth",dateWidth);
+        styleInput(hdKe);hdKe.setEditable(false);hdKe.setColumns(0);
+        int hdWidth=hdKe.getFontMetrics(new Font("Segoe UI",Font.PLAIN,11)).stringWidth("Hemodialisa ke")+18;
+        hdKe.setPreferredSize(new Dimension(hdWidth,30));hdKe.putClientProperty("hdCompactWidth",hdWidth);
         hdKe.setToolTipText("Jumlah kunjungan pasien ke poli 53 sampai registrasi ini, tanpa kunjungan batal");
-        addControl(session,"Tanggal",tanggal); inputs.add(tanggal);
+        addControl(session,"Tanggal",tanggal);
+        // Tanggal formulir berasal dari registrasi No. Rawat dan tidak diubah di layar.
+        tanggal.setEnabled(false);
         addControl(session,"Hemodialisa ke",hdKe); inputs.add(hdKe);
         addField(session,"ruangan","Ruang / bangsal",false);fields.get("ruangan").setEditable(false);
         // Retain stored address values for existing sessions; no address input is displayed.
         fields.put("alamat",new JTextField()); 
-        JPanel clinical = section("Data klinik",1);
+        JPanel clinical = section("Data klinik",5);
         addField(clinical,"anamnesis","Anamnesis",true);
         addField(clinical,"pemeriksaan_fisik","Pemeriksaan fisik",true);
-        addField(clinical,"laboratorium","Laboratorium / catatan",true);
+        addField(clinical,"laboratorium","Lab / catatan",true);
         addField(clinical,"diagnosa","Diagnosa",true);
         addField(clinical,"terapi","Terapi",true); 
-        JPanel vital = section("Status presens",3);
+        clinicalNavigator=sectionNavigator(clinical,false);
+        JPanel vital = section("Status presens",2);
         addField(vital,"nadi","Nadi (x/menit)",false);
         addField(vital,"tekanan_darah","Tekanan darah (mmHg)",false);
         addField(vital,"suhu","Suhu (°C)",false);
         addField(vital,"pernapasan","Pernapasan (x/menit)",false);
         addField(vital,"bb_sebelum","BB sebelum HD (kg)",false);
         addField(vital,"bb_sesudah","BB sesudah HD (kg)",false); 
-        JPanel lab = section("Hasil laboratorium",3);
+        vitalNavigator=sectionNavigator(vital,true);
+        JPanel lab = section("Hasil laboratorium",2);
         addField(lab,"hb","Hb",false);
-        addField(lab,"elektrolit","Elektrolit / satuan",true);
+        addField(lab,"elektrolit","Elektrolit / satuan",false);
         addField(lab,"ureum_sebelum","Ureum sebelum HD",false);
         addField(lab,"ureum_sesudah","Ureum sesudah HD",false);
         addField(lab,"kreatinin_sebelum","Kreatinin sebelum HD",false);
         addField(lab,"kreatinin_sesudah","Kreatinin sesudah HD",false); 
-        JPanel treatment = section("Pelaksanaan HD dan heparin",3);
+        JPanel treatment = section("Pelaksanaan HD dan heparin",2);
         addField(treatment,"heparin_beban","Heparin dosis beban (U)",false);
+        addField(treatment,"lama_hd","Lamanya HD (jam)",false);
         addField(treatment,"heparin_selama","Total dosis selama HD (U)",false);
         addField(treatment,"heparin_per_jam","Dosis heparin tiap jam (U/jam)",false);
         totalHeparin.setToolTipText("Jumlah dosis beban + total dosis selama HD");
         addControl(treatment,"Jumlah heparin (U)",totalHeparin);
-        addField(treatment,"lama_hd","Lamanya HD (jam)",false);
-        addField(treatment,"priming_volume","Priming volume (mL)",false); 
-        JPanel staff = section("Pelaksana dan dokter",2);
+        addField(treatment,"priming_volume","Priming volume (mL)",false);
+        tabSequence("heparin_beban","heparin_selama","lama_hd","heparin_per_jam","priming_volume");
+        JPanel staff = section("Pelaksana",2);
         addField(staff,"pelaksana_nip","NIP / kode pelaksana",false);
         addField(staff,"pelaksana_nama","Nama pelaksana",false);
-        addField(staff,"dokter_kode","Kode dokter (opsional)",false);
-        addField(staff,"dokter_nama","Nama dokter (opsional)",false); 
+        // Keep legacy database keys without displaying or printing doctor inputs.
+        fields.put("dokter_kode",new JTextField());fields.put("dokter_nama",new JTextField());
 
-        JPanel left = new JPanel(), right = new JPanel();
-        left.setLayout(new BoxLayout(left,BoxLayout.Y_AXIS));right.setLayout(new BoxLayout(right,BoxLayout.Y_AXIS));left.setOpaque(false);right.setOpaque(false);
-        left.add(clinical);left.add(Box.createVerticalStrut(12));left.add(lab);left.add(Box.createVerticalGlue());
-        right.add(vital);right.add(Box.createVerticalStrut(12));right.add(treatment);right.add(Box.createVerticalStrut(12));right.add(staff);right.add(Box.createVerticalGlue());
-        JPanel columns=new JPanel(new GridLayout(1,2,14,0));columns.setOpaque(false);columns.add(left);columns.add(right);
-        body.add(session,BorderLayout.NORTH);body.add(columns,BorderLayout.CENTER);
+        JPanel trio=new JPanel(new GridLayout(1,3,12,0));trio.setOpaque(false);trio.setAlignmentX(Component.LEFT_ALIGNMENT);
+        trio.add(vital);trio.add(treatment);trio.add(lab);
+        trio.setMaximumSize(new Dimension(Integer.MAX_VALUE,trio.getPreferredSize().height));
+        JPanel cards=new JPanel();cards.setLayout(new BoxLayout(cards,BoxLayout.Y_AXIS));cards.setOpaque(false);
+        cards.add(clinical);cards.add(Box.createVerticalStrut(12));
+        cards.add(trio);cards.add(Box.createVerticalStrut(12));cards.add(staff);cards.add(Box.createVerticalGlue());
+        body.add(session,BorderLayout.NORTH);body.add(cards,BorderLayout.CENTER);
         JScrollPane formScroll=new JScrollPane(body);formScroll.setBorder(BorderFactory.createEmptyBorder());formScroll.getVerticalScrollBar().setUnitIncrement(24);
         tabs.addTab("Data Formulir",formScroll);
         JPanel obsPanel=new JPanel(new BorderLayout(8,10));obsPanel.setBackground(BG);obsPanel.setBorder(BorderFactory.createEmptyBorder(10,0,0,0));
         observasi.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);styleTable(observasi);
-        RoundedTextField cellInput=new RoundedTextField(0);styleInput(cellInput);observasi.setDefaultEditor(Object.class,new DefaultCellEditor(cellInput));observasi.putClientProperty("terminateEditOnFocusLost",Boolean.TRUE);
+        observasi.setFocusTraversalKeysEnabled(false);
+        RoundedTextField cellInput=new RoundedTextField(0);styleInput(cellInput);
+        observasi.setDefaultEditor(Object.class,new DefaultCellEditor(cellInput){
+            @Override public boolean stopCellEditing(){
+                if(observasi.getEditingColumn()==0)cellInput.setText(normalizeObservationTime(cellInput.getText()));
+                return super.stopCellEditing();
+            }
+        });
+        observasi.putClientProperty("terminateEditOnFocusLost",Boolean.TRUE);
+        cellInput.setFocusTraversalKeysEnabled(false);
+        AbstractAction nextObservation=new AbstractAction(){@Override public void actionPerformed(ActionEvent e){nextObservationCell();}};
+        for(JComponent component:new JComponent[]{observasi,cellInput}){
+            int condition=component==observasi?JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT:JComponent.WHEN_FOCUSED;
+            component.getInputMap(condition).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,0),"hdNextCell");
+            component.getInputMap(condition).put(KeyStroke.getKeyStroke(KeyEvent.VK_TAB,0),"hdNextCell");
+            component.getActionMap().put("hdNextCell",nextObservation);
+        }
         for(int i=0;i<OBS_LABELS.length;i++)observasi.getColumnModel().getColumn(i).setPreferredWidth(i==11?270:110);
         obsPanel.add(new JScrollPane(observasi),BorderLayout.CENTER);inputs.add(observasi);
         JPanel obsActions=new JPanel(new FlowLayout(FlowLayout.LEFT,7,4));obsActions.setOpaque(false);
         obsActions.add(button("Tambah baris",()->obsModel.addRow(new Object[12])));
         obsActions.add(button("Hapus baris",()->{if(observasi.isEditing())observasi.getCellEditor().stopCellEditing();int r=observasi.getSelectedRow();if(r>=0)obsModel.removeRow(r);}));
-        JLabel hint=new JLabel("Jam: HH:mm  •  Waktu HD: jam sejak mulai");hint.setFont(NORMAL);hint.setForeground(new Color(107,120,134));obsActions.add(hint);
+        JLabel hint=new JLabel("Jam: 1830 / 18.30 / 18,30 → 18:30  •  Waktu HD: jam sejak mulai");hint.setFont(NORMAL);hint.setForeground(new Color(107,120,134));obsActions.add(hint);
         obsPanel.add(obsActions,BorderLayout.SOUTH);tabs.addTab("Observasi Selama HD",obsPanel);
         JPanel history=new JPanel(new BorderLayout(8,10));history.setBackground(BG);history.setBorder(BorderFactory.createEmptyBorder(10,0,0,0));
         styleTable(daftar);daftar.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        daftar.removeColumn(daftar.getColumnModel().getColumn(0));daftar.removeColumn(daftar.getColumnModel().getColumn(3));
+        daftar.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        daftar.removeColumn(daftar.getColumnModel().getColumn(0));
+        for(int i=0;i<daftar.getColumnCount();i++){
+            int modelIndex=daftar.convertColumnIndexToModel(i);
+            daftar.getColumnModel().getColumn(i).setPreferredWidth(modelIndex==HISTORY_OBS_INDEX?360:
+                modelIndex==HISTORY_UPLOAD_INDEX?125:modelIndex==5||modelIndex>=8&&modelIndex<=14?240:140);
+        }
+        daftar.getSelectionModel().addListSelectionListener(e->{if(!e.getValueIsAdjusting())refreshActionState();});
         history.add(new JScrollPane(daftar),BorderLayout.CENTER);
         JPanel historyActions=new JPanel(new FlowLayout(FlowLayout.LEFT,7,4));historyActions.setOpaque(false);
         historyActions.add(button("Muat sesi terpilih",this::loadSelected));historyActions.add(button("Refresh daftar",this::refreshList));
-        historyActions.add(button("Hapus Sesi",this::deleteForm));history.add(historyActions,BorderLayout.SOUTH);tabs.addTab("Daftar Sesi HD",history);
+        btnDelete=button("Hapus Sesi",this::deleteForm);historyActions.add(btnDelete);history.add(historyActions,BorderLayout.SOUTH);tabs.addTab("Daftar Sesi HD",history);
+        tabs.addChangeListener(e->refreshActionState());
         contentPanel.add(tabs,BorderLayout.CENTER);
         JPanel actions=new JPanel(new FlowLayout(FlowLayout.LEFT,6,8));actions.setBackground(Color.WHITE);
         actions.setBorder(BorderFactory.createMatteBorder(1,0,0,0,new Color(224,231,238)));
-        btnSave=button("Simpan",this::saveForm);btnNew=button("Baru",this::newSession);btnUpdate=button("Ganti",this::updateForm);btnPrint=button("Cetak",this::printForm);btnExit=button("Keluar",this::closeForm);
-        actions.add(btnSave);actions.add(btnNew);actions.add(btnUpdate);actions.add(btnPrint);actions.add(btnExit);contentPanel.add(actions,BorderLayout.SOUTH);
+        btnSave=button("Simpan",this::saveForm);btnNew=button("Baru",this::newSession);btnUpdate=button("Ganti",this::updateForm);btnPrint=button("Cetak",this::printForm);btnUpload=button("Upload",this::uploadForm);btnExit=button("Keluar",this::closeForm);
+        actions.add(btnSave);actions.add(btnNew);actions.add(btnUpdate);actions.add(btnPrint);actions.add(btnUpload);actions.add(btnExit);contentPanel.add(actions,BorderLayout.SOUTH);
         tanggal.addActionListener(e->markDirty());
         DocumentListener listener=new DocumentListener(){public void insertUpdate(DocumentEvent e){changed();}public void removeUpdate(DocumentEvent e){changed();}public void changedUpdate(DocumentEvent e){changed();}private void changed(){markDirty();updateHeparin();}};
         for(javax.swing.text.JTextComponent f:fields.values())f.getDocument().addDocumentListener(listener);
@@ -274,12 +351,125 @@ public class DlgFormulirHemodialisa extends JDialog {
         JLabel h=new JLabel(title);h.setFont(SEMIBOLD);h.setForeground(BLUE);
         GridBagConstraints c=new GridBagConstraints();c.gridx=0;c.gridy=0;c.gridwidth=cols;c.weightx=1;c.fill=GridBagConstraints.HORIZONTAL;c.insets=new Insets(0,0,4,0);p.add(h,c);return p;
     }
+    private SoapNavigator sectionNavigator(JPanel section,boolean vitalOnly) {
+        JLabel label=(JLabel)section.getComponent(0);
+        GridBagLayout layout=(GridBagLayout)section.getLayout();
+        GridBagConstraints constraints=layout.getConstraints(label);section.remove(label);
+        JPanel header=new JPanel(new BorderLayout());header.setOpaque(false);header.add(label,BorderLayout.WEST);
+        SoapNavigator navigator=new SoapNavigator(vitalOnly);
+        header.add(navigator,BorderLayout.EAST);
+        section.add(header,constraints);
+        return navigator;
+    }
+    private final class SoapNavigator extends JPanel {
+        private final boolean vitalOnly;
+        private List<SoapChoice> choices;
+        private int index;
+        private final JLabel counter=new JLabel("–/–",SwingConstants.CENTER);
+        private final JButton previous=arrow("\u2039","Catatan sebelumnya",-1), next=arrow("\u203a","Catatan berikutnya",1);
+        SoapNavigator(boolean vitalOnly){
+            super(new FlowLayout(FlowLayout.CENTER,0,0));this.vitalOnly=vitalOnly;
+            setOpaque(false);setPreferredSize(new Dimension(94,26));
+            counter.setFont(new Font("Segoe UI Semibold",Font.PLAIN,11));counter.setForeground(Color.WHITE);
+            counter.setPreferredSize(new Dimension(46,24));
+            add(previous);add(counter);add(next);updateButtons();
+        }
+        private JButton arrow(String glyph,String tooltip,int direction){
+            JButton b=new JButton(glyph);b.setFont(new Font("Segoe UI",Font.PLAIN,19));b.setForeground(Color.WHITE);
+            b.setMargin(new Insets(0,0,0,0));b.setPreferredSize(new Dimension(22,24));
+            b.setToolTipText(tooltip);b.setOpaque(false);b.setContentAreaFilled(false);b.setBorderPainted(false);b.setFocusPainted(false);
+            b.addActionListener(e->move(direction));return b;
+        }
+        @Override protected void paintComponent(Graphics graphics){
+            Graphics2D g=(Graphics2D)graphics.create();g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(BLUE);g.fillRoundRect(0,0,getWidth(),getHeight(),18,18);g.dispose();super.paintComponent(graphics);
+        }
+        void reset(List<SoapChoice> sources,Map<String,String> displayed){
+            choices=sources;index=sources==null||sources.isEmpty()?0:matchingIndex(sources,displayed);
+            counter.setToolTipText(sources==null?"Klik panah untuk memuat catatan":"");
+            previous.setToolTipText("Catatan sebelumnya");next.setToolTipText("Catatan berikutnya");
+            updateButtons();
+        }
+        private int matchingIndex(List<SoapChoice> sources,Map<String,String> displayed){
+            for(int i=0;i<sources.size();i++){
+                Map<String,String> v=sources.get(i).values;
+                if(vitalOnly){
+                    if(Objects.equals(displayed.get("nadi"),v.get("nadi"))&&Objects.equals(displayed.get("tekanan_darah"),v.get("tensi"))
+                        &&Objects.equals(displayed.get("suhu"),v.get("suhu_tubuh"))&&Objects.equals(displayed.get("pernapasan"),v.get("respirasi"))
+                        &&Objects.equals(displayed.get("bb_sebelum"),v.get("berat")))return i;
+                }else{
+                    String plan=v.get("rtl"),instructions=v.get("instruksi");
+                    String therapy=plan.isEmpty()?instructions:instructions.isEmpty()||instructions.equals(plan)?plan:plan+"\nInstruksi: "+instructions;
+                    if(Objects.equals(displayed.get("anamnesis"),v.get("keluhan"))&&Objects.equals(displayed.get("pemeriksaan_fisik"),v.get("pemeriksaan"))
+                        &&Objects.equals(displayed.get("terapi"),therapy))return i;
+                }
+            }
+            return -1;
+        }
+        private void updateButtons(){
+            counter.setText(choices==null?"–/–":choices.isEmpty()?"0/0":index<0?"–/"+choices.size():(index+1)+"/"+choices.size());
+            previous.setEnabled(choices!=null&&index>0);
+            next.setEnabled(choices==null||index<choices.size()-1);
+        }
+        private void move(int direction){
+            if(current==null||busy)return;
+            if(choices==null){
+                final String noRawat=current.rawat;
+                job(()->store.soapChoices(noRawat,vitalOnly),records->{
+                    if(current==null||!noRawat.equals(current.rawat))return;
+                    reset(records,current.data);
+                    if(records.isEmpty())counter.setToolTipText("Belum ada catatan "+(vitalOnly?"TTV":"SOAP / CPPT"));
+                    else moveLoaded(direction);
+                });
+            } else moveLoaded(direction);
+        }
+        private void moveLoaded(int direction){
+            int nextIndex=index+direction;
+            if(nextIndex<0||nextIndex>=choices.size())return;
+            index=nextIndex;SoapChoice choice=choices.get(index);
+            if(vitalOnly)applyVital(choice.values);else applyClinical(choice.values);
+            String origin=choice.when+" • "+choice.source+" • "+choice.writer;
+            counter.setToolTipText(origin);previous.setToolTipText("Sebelumnya • "+origin);next.setToolTipText("Berikutnya • "+origin);
+            updateButtons();
+        }
+    }
+    private void tabSequence(String... keys) {
+        for(int i=0;i<keys.length-1;i++){
+            final javax.swing.text.JTextComponent from=fields.get(keys[i]),to=fields.get(keys[i+1]);
+            from.setFocusTraversalKeysEnabled(false);
+            from.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_TAB,0),"hdNextField");
+            from.getActionMap().put("hdNextField",new AbstractAction(){@Override public void actionPerformed(ActionEvent e){to.requestFocusInWindow();}});
+            final javax.swing.text.JTextComponent previous=i==0?null:fields.get(keys[i-1]);
+            from.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_TAB,InputEvent.SHIFT_DOWN_MASK),"hdPreviousField");
+            from.getActionMap().put("hdPreviousField",new AbstractAction(){@Override public void actionPerformed(ActionEvent e){
+                if(previous==null)KeyboardFocusManager.getCurrentKeyboardFocusManager().focusPreviousComponent(from);
+                else previous.requestFocusInWindow();
+            }});
+        }
+    }
+    private void nextObservationCell() {
+        int row=observasi.isEditing()?observasi.getEditingRow():observasi.getSelectedRow();
+        int col=observasi.isEditing()?observasi.getEditingColumn():observasi.getSelectedColumn();
+        if(row<0||col<0)return;
+        if(observasi.isEditing()&&!observasi.getCellEditor().stopCellEditing())return;
+        if(++col>=observasi.getColumnCount()){
+            col=0;row++;
+            if(row>=obsModel.getRowCount()){Object[] blank=new Object[12];Arrays.fill(blank,"");obsModel.addRow(blank);}
+        }
+        observasi.changeSelection(row,col,false,false);
+        if(observasi.editCellAt(row,col)){
+            Component editor=observasi.getEditorComponent();if(editor!=null)editor.requestFocusInWindow();
+        }
+    }
     private void addControl(JPanel panel,String label,JComponent control) {
         JLabel l=new JLabel(label);l.setFont(new Font("Segoe UI",Font.PLAIN,11));l.setForeground(new Color(100,112,125));
         JPanel field=new JPanel(new BorderLayout(0,5));field.setOpaque(false);field.add(l,BorderLayout.NORTH);field.add(control,BorderLayout.CENTER);
         int cols=(Integer)panel.getClientProperty("hdCols"),slot=(Integer)panel.getClientProperty("hdSlots");
-        GridBagConstraints c=new GridBagConstraints();c.gridx=slot%cols;c.gridy=slot/cols+1;c.weightx=1;c.fill=GridBagConstraints.HORIZONTAL;c.anchor=GridBagConstraints.NORTHWEST;
+        GridBagConstraints c=new GridBagConstraints();c.gridx=slot%cols;c.gridy=slot/cols+1;boolean compact=control.getClientProperty("hdCompactWidth") instanceof Integer;
+        c.weightx=compact?0:1;c.fill=GridBagConstraints.HORIZONTAL;c.anchor=GridBagConstraints.NORTHWEST;
+        if(compact)field.setPreferredSize(new Dimension((Integer)control.getClientProperty("hdCompactWidth"),field.getPreferredSize().height));
         c.insets=new Insets(9,0,0,c.gridx<cols-1?12:0);panel.add(field,c);panel.putClientProperty("hdSlots",slot+1);control.setFont(NORMAL);
+        if(control instanceof JTextField||control==totalHeparin){Dimension d=control.getPreferredSize();control.setPreferredSize(new Dimension(d.width,30));}
         if(control instanceof JSpinner){
             control.setBackground(new Color(253,254,255));control.setBorder(BorderFactory.createEmptyBorder());
             field.add(new RoundedControlPanel(control),BorderLayout.CENTER);
@@ -324,6 +514,46 @@ public class DlgFormulirHemodialisa extends JDialog {
             g.setColor(focused?BLUE:new Color(217,225,233));g.draw(new java.awt.geom.RoundRectangle2D.Float(x+0.5f,y+0.5f,Math.max(0,w-1.5f),Math.max(0,h-1.5f),INPUT_ARC,INPUT_ARC));g.dispose();
         }
     }
+    private static java.awt.Shape leftDateShape(float x,float y,float w,float h) {
+        float r=7;java.awt.geom.Path2D.Float path=new java.awt.geom.Path2D.Float();
+        path.moveTo(x+r,y);path.lineTo(x+w,y);path.lineTo(x+w,y+h);path.lineTo(x+r,y+h);
+        path.quadTo(x,y+h,x,y+h-r);path.lineTo(x,y+r);path.quadTo(x,y,x+r,y);path.closePath();return path;
+    }
+    private static class LeftDateBorder extends javax.swing.border.AbstractBorder {
+        @Override public Insets getBorderInsets(Component c){return new Insets(6,9,6,5);}
+        @Override public Insets getBorderInsets(Component c,Insets i){i.set(6,9,6,5);return i;}
+        @Override public boolean isBorderOpaque(){return false;}
+        @Override public void paintBorder(Component c,Graphics graphics,int x,int y,int w,int h){
+            Graphics2D g=(Graphics2D)graphics.create();g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            Component focus=KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+            g.setColor(focus==c||(focus!=null&&SwingUtilities.isDescendingFrom(focus,(Container)c))?BLUE:new Color(217,225,233));
+            g.draw(leftDateShape(x+0.5f,y+0.5f,w-1.5f,h-1.5f));g.dispose();
+        }
+    }
+    private static class RoundedDatePicker extends uz.ncipro.calendar.JDateTimePicker {
+        RoundedDatePicker(){setOpaque(false);setBackground(new Color(253,254,255));setBorder(new LeftDateBorder());setFont(NORMAL);setEditable(false);styleParts(this);}
+        private static void styleParts(Container parent){
+            for(Component child:parent.getComponents()) {
+                child.setFont(NORMAL);
+                if(child instanceof AbstractButton){AbstractButton b=(AbstractButton)child;b.setBorderPainted(false);b.setContentAreaFilled(false);}
+                if(child instanceof javax.swing.text.JTextComponent){JComponent t=(JComponent)child;t.setOpaque(false);t.setBorder(BorderFactory.createEmptyBorder());}
+                if(child instanceof Container)styleParts((Container)child);
+            }
+        }
+        @Override protected void paintComponent(Graphics graphics){
+            Graphics2D g=(Graphics2D)graphics.create();g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(getBackground());g.fill(leftDateShape(0,0,getWidth(),getHeight()));
+            g.setFont(NORMAL);g.setColor(getForeground());java.util.Date value=getDate();
+            FontMetrics metrics=g.getFontMetrics();
+            if(value!=null)g.drawString(new SimpleDateFormat("dd-MM-yyyy").format(value),9,(getHeight()-metrics.getHeight())/2+metrics.getAscent());
+            int x=getWidth()-13,y=getHeight()/2;g.setStroke(new BasicStroke(1.5f));
+            g.drawLine(x-4,y-2,x,y+2);g.drawLine(x,y+2,x+4,y-2);g.dispose();
+        }
+        // Native arrow/editor components retain their calendar listeners and hit areas;
+        // the combo paints its own date and arrow, without nested native borders.
+        @Override protected void paintChildren(Graphics graphics){}
+    }
+
     private static class RoundedTextField extends JTextField {
         RoundedTextField(int columns){super(columns);setOpaque(false);}
         @Override protected void paintComponent(Graphics graphics){
@@ -363,7 +593,7 @@ public class DlgFormulirHemodialisa extends JDialog {
     private JButton button(String text,Runnable action) {
         widget.Button b=new widget.Button();b.setText(text);b.setFont(new Font("Segoe UI Semibold",Font.PLAIN,12));b.setPreferredSize(new Dimension(Math.max(100,b.getPreferredSize().width),30));
         String path="/picture/";
-        switch(text){case "Simpan":path+="save-16x16.png";break;case "Baru":path+="Cancel-2-16x16.png";break;case "Ganti":path+="inventaris.png";break;case "Cetak":path+="b_print.png";break;case "Keluar":path+="exit.png";break;case "Hapus Sesi":case "Hapus baris":path+="delete-16x16.png";break;default:path+="file-edit-16x16.png";}
+        switch(text){case "Simpan":path+="save-16x16.png";break;case "Baru":path+="Cancel-2-16x16.png";break;case "Ganti":path+="inventaris.png";break;case "Cetak":path+="b_print.png";break;case "Upload":path+="email.png";break;case "Keluar":path+="exit.png";break;case "Hapus Sesi":case "Hapus baris":path+="delete-16x16.png";break;default:path+="file-edit-16x16.png";}
         b.setIcon(resourceIcon(path,16,16));b.addActionListener(e->{if(!busy)action.run();});inputs.add(b);return b;
     }
     private void refreshIdentity(Session s) {
@@ -373,17 +603,33 @@ public class DlgFormulirHemodialisa extends JDialog {
     }
     private void refreshActionState() {
         boolean has=current!=null,saved=has&&current.id!=null;
+        String selected=selectedSessionId();
+        boolean selectedForActions=tabs!=null&&tabs.getSelectedIndex()==2&&selected!=null;
+        boolean uploaded=selectedForActions?"Sudah Upload".equals(listModel.getValueAt(daftar.convertRowIndexToModel(daftar.getSelectedRow()),HISTORY_UPLOAD_INDEX)):
+            saved&&isCurrentUploaded();
         if(btnSave!=null)btnSave.setEnabled(!busy&&has&&!saved);
         if(btnUpdate!=null)btnUpdate.setEnabled(!busy&&saved);
         if(btnNew!=null)btnNew.setEnabled(!busy&&has);
         if(btnPrint!=null)btnPrint.setEnabled(!busy&&saved);
+        if(btnUpload!=null)btnUpload.setEnabled(!busy&&(selectedForActions||saved));
+        if(btnDelete!=null)btnDelete.setEnabled(!busy&&(selectedForActions||saved)&&!uploaded);
+    }
+    private String selectedSessionId(){
+        int row=daftar.getSelectedRow();
+        return row<0?null:String.valueOf(listModel.getValueAt(daftar.convertRowIndexToModel(row),0));
+    }
+    private boolean isCurrentUploaded(){
+        if(current==null||current.id==null)return false;
+        for(int row=0;row<listModel.getRowCount();row++)if(current.id.equals(listModel.getValueAt(row,0)))
+            return "Sudah Upload".equals(listModel.getValueAt(row,HISTORY_UPLOAD_INDEX));
+        return false;
     }
     private static void styleTable(JTable table) {
         table.setFont(NORMAL);table.setRowHeight(30);table.setGridColor(new Color(230,236,242));table.setSelectionBackground(new Color(217,235,250));table.setSelectionForeground(new Color(35,67,93));
         table.getTableHeader().setFont(SEMIBOLD);table.getTableHeader().setBackground(new Color(235,244,251));table.getTableHeader().setForeground(BLUE);table.getTableHeader().setPreferredSize(new Dimension(0,34));
         table.setDefaultRenderer(Object.class,new javax.swing.table.DefaultTableCellRenderer(){
             @Override public Component getTableCellRendererComponent(JTable t,Object v,boolean selected,boolean focused,int row,int col){
-                Component c=super.getTableCellRendererComponent(t,v,selected,focused,row,col);if(!selected)c.setBackground(row%2==0?Color.WHITE:new Color(248,251,254));setBorder(BorderFactory.createEmptyBorder(3,7,3,7));return c;
+                Component c=super.getTableCellRendererComponent(t,v,selected,focused,row,col);if(!selected)c.setBackground(row%2==0?Color.WHITE:new Color(248,251,254));setBorder(BorderFactory.createEmptyBorder(3,7,3,7));setToolTipText(v==null?null:String.valueOf(v));return c;
             }
         });
     }
@@ -426,38 +672,75 @@ public class DlgFormulirHemodialisa extends JDialog {
     private void fetchPatient() {
         String n=rawat.getText().trim(); if(n.isEmpty()){info("Isi No. Rawat terlebih dahulu.");return;}
         if(!mayDiscard())return;
-        job(()->store.patient(n,user),s->{
-            current=s;resetFields();loading=true;fill(s);loading=false;dirty=false;
-            rawat.setEditable(false);refreshList();
+        job(()->{
+            List<Object[]> rows=store.list(n);
+            Session session=rows.isEmpty()?store.patient(n,user):store.load(String.valueOf(rows.get(0)[0]));
+            return new OpenResult(session,rows);
+        },result->{
+            current=result.session;resetFields();loading=true;fill(current);loading=false;dirty=current.needsResave;
+            rawat.setEditable(false);showHistoryRows(result.rows,current.id);
+            tabs.setSelectedIndex(result.rows.isEmpty()?0:2);refreshActionState();
         });
+    }
+    private static final class OpenResult {
+        final Session session;final List<Object[]> rows;
+        OpenResult(Session session,List<Object[]> rows){this.session=session;this.rows=rows;}
     }
     private void fill(Session s) {
         rawat.setText(s.rawat);
         refreshIdentity(s);
         tanggal.setDate(s.date);hdKe.setText(String.valueOf(s.hdKe));
         for(String key:KEYS)fields.get(key).setText(s.data.getOrDefault(key,""));
+        clinicalNavigator.reset(s.clinicalSources,s.data);vitalNavigator.reset(s.vitalSources,s.data);
         if(s.id!=null){obsModel.setRowCount(0);for(String[] row:s.rows)obsModel.addRow(row);}
         updateHeparin();
+    }
+    private void applyClinical(Map<String,String> soap) {
+        fields.get("anamnesis").setText(soap.get("keluhan"));
+        fields.get("pemeriksaan_fisik").setText(soap.get("pemeriksaan"));
+        String plan=soap.get("rtl"),instructions=soap.get("instruksi");
+        fields.get("terapi").setText(plan.isEmpty()?instructions:instructions.isEmpty()||instructions.equals(plan)?plan:plan+"\nInstruksi: "+instructions);
+        // Lab/catatan dan diagnosa yang diedit pengguna tidak diganti saat berpindah SOAP.
+    }
+    private void applyVital(Map<String,String> vital) {
+        fields.get("nadi").setText(vital.get("nadi"));fields.get("tekanan_darah").setText(vital.get("tensi"));
+        fields.get("suhu").setText(vital.get("suhu_tubuh"));fields.get("pernapasan").setText(vital.get("respirasi"));
+        fields.get("bb_sebelum").setText(vital.get("berat"));
     }
     private void newSession() {
         if(!mayDiscard())return;
         if(current==null){rawat.setEditable(true);rawat.requestFocus();return;}
         // Tetap pada pasien ini; tidak menyalin hasil klinik sesi sebelumnya.
         String n=current.rawat;
-        job(()->store.patient(n,user),s->{current=s;resetFields();loading=true;fill(s);loading=false;dirty=false;});
+        job(()->store.patient(n,user),s->{current=s;resetFields();loading=true;fill(s);loading=false;dirty=false;tabs.setSelectedIndex(0);});
     }
     /** Memungkinkan ganti pasien tanpa menutup dialog. */
     public void gantiPasien(String noRawat) { setNoRm(noRawat); }
     private void refreshList() {
         if(current==null)return;
         String n=current.rawat;
-        job(()->store.list(n),rows->{listModel.setRowCount(0);for(Object[] r:rows)listModel.addRow(r);});
+        String keep=selectedSessionId();if(keep==null)keep=current.id;
+        final String selected=keep;
+        job(()->store.list(n),rows->showHistoryRows(rows,selected));
+    }
+    private void showHistoryRows(List<Object[]> rows,String selectId) {
+        daftar.clearSelection();
+        listModel.setRowCount(0);
+        int select=-1;
+        for(Object[] row:rows){
+            listModel.addRow(row);
+            if(selectId!=null&&selectId.equals(row[0]))select=listModel.getRowCount()-1;
+        }
+        if(select<0&&listModel.getRowCount()>0)select=0;
+        if(select>=0)daftar.setRowSelectionInterval(select,select);
+        refreshActionState();
     }
     private void loadSelected() {
         int r=daftar.getSelectedRow(); if(r<0){info("Pilih sesi pada daftar.");return;}
         if(!mayDiscard())return;
-        String id=listModel.getValueAt(daftar.convertRowIndexToModel(r),0).toString();
-        job(()->store.load(id),s->{loading=true;current=s;fill(s);loading=false;dirty=false;});
+        String id=selectedSessionId();
+        job(()->store.load(id),s->{loading=true;current=s;fill(s);loading=false;dirty=s.needsResave;tabs.setSelectedIndex(0);refreshActionState();
+            if(dirty)info("Tanggal sesi lama disesuaikan dengan registrasi. Klik Ganti untuk menyimpan sebelum Cetak.");});
     }
     private Session snapshot() {
         if(current==null)throw new IllegalArgumentException("Ambil data pasien terlebih dahulu.");
@@ -465,9 +748,7 @@ public class DlgFormulirHemodialisa extends JDialog {
         if(picked==null)throw new IllegalArgumentException("Pilih tanggal formulir.");
         if(observasi.isEditing()&&!observasi.getCellEditor().stopCellEditing())throw new IllegalArgumentException("Selesaikan isian observasi.");
         Session s=current.copy();
-        Calendar selected=Calendar.getInstance(),stamp=Calendar.getInstance();selected.setTime(picked);stamp.setTime(current.date);
-        stamp.set(selected.get(Calendar.YEAR),selected.get(Calendar.MONTH),selected.get(Calendar.DAY_OF_MONTH));
-        s.date=stamp.getTime();s.hdKe=current.hdKe;
+        s.date=new java.util.Date(current.date.getTime());s.hdKe=current.hdKe;
         for(String key:KEYS){String value=text(key);int max=key.endsWith("nama")?150:30;
             if(Arrays.asList("ruangan").contains(key))max=150;
             boolean longText=Arrays.asList("alamat","anamnesis","pemeriksaan_fisik","laboratorium","diagnosa","terapi","elektrolit").contains(key);
@@ -480,7 +761,9 @@ public class DlgFormulirHemodialisa extends JDialog {
             String[] row=new String[12];boolean hasResult=false;
             for(int c=0;c<12;c++){Object v=obsModel.getValueAt(r,c);row[c]=v==null?"":v.toString().trim();if(c>=2&&!row[c].isEmpty())hasResult=true;}
             if(!hasResult)continue;
-            if(!row[0].matches("(?:[01][0-9]|2[0-3]):[0-5][0-9]"))throw new IllegalArgumentException("Jam observasi baris "+(r+1)+" harus HH:mm.");
+            row[0]=normalizeObservationTime(row[0]);
+            if(!row[0].matches("(?:[01][0-9]|2[0-3]):[0-5][0-9]"))throw new IllegalArgumentException("Jam observasi baris "+(r+1)+" harus HH:mm (contoh 1830, 18.30, atau 18,30).");
+            if(!row[0].equals(String.valueOf(obsModel.getValueAt(r,0))))obsModel.setValueAt(row[0],r,0);
             if(row[1].isEmpty())throw new IllegalArgumentException("Isi waktu HD pada baris "+(r+1)+".");
             validateNumber(row[1],"Waktu HD baris "+(r+1),false);
             BigDecimal elapsed=decimal(row[1]);
@@ -494,6 +777,17 @@ public class DlgFormulirHemodialisa extends JDialog {
     }
     private static BigDecimal decimal(String value) {
         try {return new BigDecimal(value.replace(',','.'));}catch(NumberFormatException e){throw new IllegalArgumentException("Nilai angka tidak valid: "+value);}
+    }
+    static String normalizeObservationTime(String value) {
+        String input=value==null?"":value.trim();
+        String hour,minute;
+        if(input.matches("[0-9]{3,4}")){
+            hour=input.substring(0,input.length()-2);minute=input.substring(input.length()-2);
+        }else if(input.matches("[0-9]{1,2}[:.,][0-9]{2}")){
+            int separator=input.length()-3;hour=input.substring(0,separator);minute=input.substring(separator+1);
+        }else return input;
+        int h=Integer.parseInt(hour),m=Integer.parseInt(minute);
+        return h<=23&&m<=59?String.format(Locale.ROOT,"%02d:%02d",h,m):input;
     }
     private static void validateNumber(String value,String label,boolean signed) {
         if(value.isEmpty())return;
@@ -515,9 +809,23 @@ public class DlgFormulirHemodialisa extends JDialog {
         catch(IllegalArgumentException e){info(e.getMessage());}
     }
     private void deleteForm() {
-        if(current==null||current.id==null){info("Muat sesi tersimpan terlebih dahulu.");return;}
+        String selected=tabs.getSelectedIndex()==2?selectedSessionId():null;
+        String id=selected!=null?selected:current==null?null:current.id;
+        if(id==null){info("Pilih sesi HD yang akan dihapus.");return;}
+        if((selected!=null&&"Sudah Upload".equals(listModel.getValueAt(daftar.convertRowIndexToModel(daftar.getSelectedRow()),HISTORY_UPLOAD_INDEX)))||
+            selected==null&&isCurrentUploaded()){
+            info("Sesi HD sudah di-upload dan tidak dapat dihapus.");return;
+        }
+        if(!mayDiscard())return;
         if(JOptionPane.showConfirmDialog(this,"Hapus sesi HD ini beserta seluruh observasinya?","Hapus Sesi",JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION)return;
-        Session s=current.copy();job(()->{store.delete(s);return store.patient(s.rawat,user);},patient->{current=patient;resetFields();loading=true;fill(patient);loading=false;dirty=false;refreshList();});
+        final String target=id;
+        job(()->{
+            Session s=store.load(target);store.delete(s);
+            List<Object[]> rows=store.list(s.rawat);
+            Session next=rows.isEmpty()?store.patient(s.rawat,user):store.load(String.valueOf(rows.get(0)[0]));
+            return new OpenResult(next,rows);
+        },result->{current=result.session;resetFields();loading=true;fill(current);loading=false;dirty=current.needsResave;
+            showHistoryRows(result.rows,current.id);tabs.setSelectedIndex(result.rows.isEmpty()?0:2);refreshActionState();});
     }
     private void closeForm(){if(!busy&&mayDiscard())dispose();}
     @Override public void dispose(){
@@ -541,9 +849,181 @@ public class DlgFormulirHemodialisa extends JDialog {
     private void printForm() {
         if(observasi.isEditing())observasi.getCellEditor().stopCellEditing();
         if(current==null||current.id==null||dirty){info("Simpan perubahan formulir sebelum mencetak.");return;}
-        JEditorPane page=new JEditorPane("text/html",html(current));page.setEditable(false);
-        try{page.print(new MessageFormat("Formulir Hemodialisa — "+current.rm),new MessageFormat("Halaman {0}"),true,null,null,true);}
-        catch(java.awt.print.PrinterException e){info("Cetak gagal: "+e.getMessage());}
+        // Snapshot sesi tersimpan: QR memakai pelaksana sesi, bukan akun pencetak.
+        final Session saved=current.copy();
+        job(()->{
+            JasperReportsContext context=hdReportContext();
+            JasperPrint print=JasperFillManager.getInstance(context).fill(loadHdReport(),reportParameters(saved),
+                new JRMapCollectionDataSource(reportRows(saved)));
+            return new HdPreview(context,print);
+        },result->{
+            JDialog preview=new JDialog(this,"Formulir Hemodialisa - "+saved.rm,false);
+            preview.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            preview.add(new JRViewer(result.context,result.print,null,null));preview.setBounds(getBounds());
+            preview.setVisible(true);
+        });
+    }
+    private void uploadForm() {
+        if(observasi.isEditing())observasi.getCellEditor().stopCellEditing();
+        String selected=tabs.getSelectedIndex()==2?selectedSessionId():null;
+        if(selected==null&&(current==null||current.id==null||dirty)){
+            info("Simpan perubahan formulir sebelum upload.");return;
+        }
+        final String id=selected!=null?selected:current.id;
+        job(()->{
+            Session saved=store.load(id);
+            if(saved.needsResave)throw new IllegalStateException("Tanggal sesi perlu diperbarui. Muat sesi lalu klik Ganti sebelum Upload.");
+            return new UploadResult(saved.rawat,id,uploadSavedReport(saved));
+        },result->{
+            for(int row=0;row<listModel.getRowCount();row++)if(result.id.equals(listModel.getValueAt(row,0)))
+                listModel.setValueAt("Sudah Upload",row,HISTORY_UPLOAD_INDEX);
+            refreshActionState();openUploadedDigitalFiles(result.rawat,result.pages);refreshList();
+        });
+    }
+    private static final class UploadResult {
+        final String rawat,id;final int pages;
+        UploadResult(String rawat,String id,int pages){this.rawat=rawat;this.id=id;this.pages=pages;}
+    }
+    private void openUploadedDigitalFiles(String noRawat,int pages) {
+        try {
+            DlgBerkasRawat berkas=new DlgBerkasRawat(null,true);
+            berkas.setJudul("::[ Berkas Digital Perawatan ]::","berkasrawat/pages");
+            String login=akses.gethapus_berkas_digital_perawatan()?"login2.php":"login2nonhapus.php";
+            String url="http://"+koneksiDB.HOSTHYBRIDWEB()+":"+koneksiDB.PORTWEB()+"/"+
+                koneksiDB.HYBRIDWEB()+"/berkasrawat/"+login+"?act=login&usere="+
+                URLEncoder.encode(koneksiDB.USERHYBRIDWEB(),"UTF-8")+"&passwordte="+
+                URLEncoder.encode(koneksiDB.PASHYBRIDWEB(),"UTF-8")+"&no_rawat="+
+                URLEncoder.encode(noRawat,"UTF-8");
+            berkas.loadURL(url);
+            Component anchor=areaInduk==null?this:areaInduk;
+            berkas.setSize(Math.max(700,anchor.getWidth()-20),Math.max(500,anchor.getHeight()-20));
+            berkas.setLocationRelativeTo(anchor);
+            berkas.setVisible(true);
+        } catch(Exception ex) {
+            info("Upload "+pages+" halaman berhasil, tetapi Berkas Digital Perawatan tidak dapat dibuka: "+ex.getMessage());
+        }
+    }
+    private int uploadSavedReport(Session saved) throws Exception {
+        store.checkDigitalCode();
+        JasperReportsContext context=hdReportContext();
+        JasperPrint print=JasperFillManager.getInstance(context).fill(loadHdReport(),reportParameters(saved),
+            new JRMapCollectionDataSource(reportRows(saved)));
+        int count=print.getPages().size();
+        if(count==0)throw new IllegalStateException("Report HD tidak memiliki halaman untuk di-upload.");
+        URL endpoint=new URL("http://"+koneksiDB.HOSTHYBRIDWEB()+":"+koneksiDB.PORTWEB()+"/"+
+            koneksiDB.HYBRIDWEB()+"/upload.php?doc=berkasrawat/pages/upload/");
+        String prefix="Formulir_HD_"+saved.id.replaceAll("[^A-Za-z0-9_-]","_");
+        for(int page=0;page<count;page++){
+            Image rendered=JasperPrintManager.getInstance(context).printToImage(print,page,300f/72f);
+            BufferedImage jpg=new BufferedImage(rendered.getWidth(null),rendered.getHeight(null),BufferedImage.TYPE_INT_RGB);
+            Graphics2D graphics=jpg.createGraphics();
+            try{graphics.setColor(Color.WHITE);graphics.fillRect(0,0,jpg.getWidth(),jpg.getHeight());graphics.drawImage(rendered,0,0,null);}
+            finally{graphics.dispose();}
+            ByteArrayOutputStream bytes=new ByteArrayOutputStream();
+            if(!ImageIO.write(jpg,"jpg",bytes))throw new IllegalStateException("Encoder JPG tidak tersedia.");
+            String fileName=prefix+"_hal_"+(page+1)+".jpg";
+            postJpg(endpoint,fileName,bytes.toByteArray());
+            store.recordDigitalFile(saved,"pages/upload/"+fileName,fileName,user);
+        }
+        return count;
+    }
+    private static void postJpg(URL endpoint,String fileName,byte[] bytes) throws Exception {
+        String boundary="----KhanzaHD"+UUID.randomUUID().toString().replace("-","");
+        HttpURLConnection connection=(HttpURLConnection)endpoint.openConnection();
+        try{
+            connection.setRequestMethod("POST");connection.setDoOutput(true);
+            connection.setConnectTimeout(10000);connection.setReadTimeout(60000);
+            connection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);
+            try(OutputStream out=connection.getOutputStream()){
+                out.write(("--"+boundary+"\r\nContent-Disposition: form-data; name=\"file\"; filename=\""+fileName+"\"\r\n"+
+                    "Content-Type: image/jpeg\r\n\r\n").getBytes("UTF-8"));
+                out.write(bytes);out.write(("\r\n--"+boundary+"--\r\n").getBytes("UTF-8"));
+            }
+            int status=connection.getResponseCode();
+            InputStream response=status>=400?connection.getErrorStream():connection.getInputStream();
+            if(response!=null)try(InputStream in=response){byte[] buffer=new byte[4096];while(in.read(buffer)!=-1){/* habiskan respons agar koneksi dapat ditutup */}}
+            if(status<200||status>=300)throw new java.io.IOException("Server berkas menolak "+fileName+" (HTTP "+status+").");
+        }finally{connection.disconnect();}
+    }
+    private static final class HdPreview {
+        final JasperReportsContext context;final JasperPrint print;
+        HdPreview(JasperReportsContext context,JasperPrint print){this.context=context;this.print=print;}
+    }
+    static JasperReportsContext hdReportContext() {
+        // Registrasi font khusus report HD: tidak mengubah konfigurasi report SIMRS lain.
+        SimpleJasperReportsContext context=new SimpleJasperReportsContext(DefaultJasperReportsContext.getInstance());
+        String windows=System.getenv("WINDIR");
+        if(windows==null||windows.trim().isEmpty())windows=System.getenv("SystemRoot");
+        File supplied=new File("report/fonts");
+        File installed=windows==null?null:new File(windows,"Fonts");
+        List<FontFamily> fonts=new ArrayList<>(context.getExtensions(FontFamily.class));
+        String[] names={"Segoe UI","Segoe UI Semibold"},files={"segoeui.ttf","seguisb.ttf"};
+        for(int i=0;i<names.length;i++){
+            File font=new File(supplied,files[i]);
+            if(!font.isFile()&&installed!=null)font=new File(installed,files[i]);
+            if(!font.isFile())throw new IllegalStateException("Font "+names[i]+" belum tersedia. Periksa font Windows atau tempatkan "+files[i]+" di report/fonts.");
+            final String name=names[i];fonts.removeIf(f->name.equals(f.getName()));
+            SimpleFontFamily family=new SimpleFontFamily(context);family.setName(name);
+            family.setNormal(font.getAbsolutePath());family.setPdfEncoding("Identity-H");family.setPdfEmbedded(Boolean.TRUE);
+            fonts.add(family);
+        }
+        context.setExtensions(FontFamily.class,fonts);return context;
+    }
+    static JasperReport loadHdReport() throws Exception {
+        File compiled=new File("report/rptFormulirHemodialisaRSAJ.jasper");
+        File template=new File("report/rptFormulirHemodialisaRSAJ.jrxml");
+        if(compiled.isFile()){
+            try{return (JasperReport)JRLoader.loadObject(compiled);}
+            catch(Exception | LinkageError incompatible){
+                if(!template.isFile())throw new IllegalStateException("Jasper tidak cocok dengan library SIMRS. Pasang JRXML HD juga.",incompatible);
+            }
+        }
+        if(!template.isFile())throw new IllegalStateException("Report HD belum terpasang. Salin folder report dari paket HD ke folder SIMRS.");
+        // Kompilasi dalam memori bila versi Jasper berbeda; tidak mengubah report lain.
+        return JasperCompileManager.compileReport(template.getPath());
+    }
+    static Map<String,Object> reportParameters(Session s) throws Exception {
+        Map<String,Object> p=new HashMap<>();p.putAll(s.data);
+        Locale id=new Locale("id","ID");
+        p.put("id_hd",s.id);p.put("no_rawat",s.rawat);p.put("no_rm",s.rm);
+        p.put("nama_pasien",s.name);p.put("jenis_kelamin",s.sex);p.put("umur",s.age);
+        p.put("hari",new SimpleDateFormat("EEEE",id).format(s.date));
+        p.put("tanggal",new SimpleDateFormat("dd MMMM yyyy",id).format(s.date));
+        p.put("hemodialisa_ke",String.valueOf(s.hdKe));
+        String beban=s.data.getOrDefault("heparin_beban",""),selama=s.data.getOrDefault("heparin_selama","");
+        p.put("jumlah_heparin",beban.isEmpty()&&selama.isEmpty()?"":
+            (beban.isEmpty()?BigDecimal.ZERO:decimal(beban)).add(selama.isEmpty()?BigDecimal.ZERO:decimal(selama)).stripTrailingZeros().toPlainString());
+        StringBuilder klinik=new StringBuilder();
+        String[] labels={"Anamnesis","Pemeriksaan fisik","Laboratorium / catatan","Diagnosa","Terapi"};
+        String[] keys={"anamnesis","pemeriksaan_fisik","laboratorium","diagnosa","terapi"};
+        for(int i=0;i<keys.length;i++){
+            if(i>0)klinik.append('\n');klinik.append(labels[i]).append(": ").append(s.data.getOrDefault(keys[i],""));
+        }
+        p.put("data_klinik",klinik.toString());
+        p.put("qr_pelaksana",signatureQr(s));return p;
+    }
+    static String signaturePayload(Session s) {
+        return "RS AKADEMIS JAURY JUSUF PUTERA\nFormulir Hemodialisa\nPelaksana: "+
+            s.data.getOrDefault("pelaksana_nama","")+"\nNIP/Kode: "+s.data.getOrDefault("pelaksana_nip","")+
+            "\nID sesi: "+s.id+"\nTanggal HD: "+new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(s.date)+"\nVersi: "+s.version;
+    }
+    static BufferedImage signatureQr(Session s) throws Exception {
+        Map<EncodeHintType,Object> hints=new EnumMap<>(EncodeHintType.class);
+        hints.put(EncodeHintType.CHARACTER_SET,"UTF-8");hints.put(EncodeHintType.MARGIN,4);
+        hints.put(EncodeHintType.ERROR_CORRECTION,ErrorCorrectionLevel.M);
+        BitMatrix code=new MultiFormatWriter().encode(signaturePayload(s),BarcodeFormat.QR_CODE,480,480,hints);
+        BufferedImage image=new BufferedImage(code.getWidth(),code.getHeight(),BufferedImage.TYPE_INT_RGB);
+        for(int y=0;y<code.getHeight();y++)for(int x=0;x<code.getWidth();x++)image.setRGB(x,y,code.get(x,y)?0xFF000000:0xFFFFFFFF);
+        return image;
+    }
+    static Collection<Map<String,?>> reportRows(Session s) {
+        List<Map<String,?>> rows=new ArrayList<>();
+        for(String[] row:s.rows){Map<String,Object> values=new LinkedHashMap<>();
+            for(int c=0;c<OBS_KEYS.length;c++)values.put(OBS_KEYS[c],row[c]==null?"":row[c]);rows.add(values);}
+        // Grid cetak tetap memiliki sedikitnya 11 baris seperti formulir asli.
+        // Baris tambahan benar-benar kosong, tanpa hasil/jam buatan.
+        while(rows.size()<11){Map<String,Object> blank=new LinkedHashMap<>();for(String key:OBS_KEYS)blank.put(key,"");rows.add(blank);}
+        return rows;
     }
     static String esc(String value) {
         if(value==null)return "";return value.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;").replace("\n","<br>");
@@ -569,20 +1049,56 @@ public class DlgFormulirHemodialisa extends JDialog {
         for(String label:OBS_LABELS)b.append("<th>").append(esc(label)).append("</th>");b.append("</tr>");
         for(String[] row:s.rows){b.append("<tr>");for(String v:row)b.append("<td>").append(esc(v)).append("</td>");b.append("</tr>");}
         if(s.rows.isEmpty())b.append("<tr><td colspan='12'>Belum ada hasil observasi yang dicatat.</td></tr>");
-        b.append("</table><br><table><tr>").append(cell("Pelaksana",s.data.get("pelaksana_nama")+" / "+s.data.get("pelaksana_nip"))).append(cell("Dokter",s.data.get("dokter_nama"))).append("</tr><tr><td><br><br>Tanda tangan: __________________</td><td><br><br>Tanda tangan: __________________</td></tr></table></body></html>");return b.toString();
+        b.append("</table><br><table><tr>").append(cell("Pelaksana",s.data.get("pelaksana_nama")+" / "+s.data.get("pelaksana_nip"))).append("</tr><tr><td><br><br>Tanda tangan: __________________</td></tr></table></body></html>");return b.toString();
     }
 
     static final class Session {
-        String id,rawat,rm,name,sex,age;int version,hdKe=1;
+        String id,rawat,rm,name,sex,age;int version,hdKe=1;boolean needsResave;
         java.util.Date date=new java.util.Date();
         Map<String,String> data=new LinkedHashMap<>();List<String[]> rows=new ArrayList<>();
+        List<SoapChoice> clinicalSources,vitalSources;
         Session(){for(String key:KEYS)data.put(key,"");}
-        Session copy(){Session s=new Session();s.id=id;s.rawat=rawat;s.rm=rm;s.name=name;s.sex=sex;s.age=age;s.version=version;s.hdKe=hdKe;s.date=new java.util.Date(date.getTime());s.data.putAll(data);for(String[] row:rows)s.rows.add(row.clone());return s;}
+        Session copy(){Session s=new Session();s.id=id;s.rawat=rawat;s.rm=rm;s.name=name;s.sex=sex;s.age=age;s.version=version;s.hdKe=hdKe;s.needsResave=needsResave;s.date=new java.util.Date(date.getTime());s.data.putAll(data);s.clinicalSources=clinicalSources;s.vitalSources=vitalSources;for(String[] row:rows)s.rows.add(row.clone());return s;}
+    }
+    static final class SoapChoice {
+        final String source,when,writer;final Map<String,String> values;
+        SoapChoice(String source,String when,String writer,Map<String,String> values){
+            this.source=source;this.when=when;this.writer=writer;this.values=values;
+        }
+        @Override public String toString(){return when+"   •   "+source+"   •   "+writer;}
+        String description(boolean vitalOnly){
+            StringBuilder b=new StringBuilder(toString()).append("\n\n");
+            String[] keys=vitalOnly?new String[]{"nadi","tensi","suhu_tubuh","respirasi","berat"}:new String[]{"keluhan","pemeriksaan","penilaian","rtl","instruksi"};
+            String[] labels=vitalOnly?new String[]{"Nadi","Tekanan darah","Suhu","Pernapasan","BB sebelum HD"}:new String[]{"Anamnesis","Pemeriksaan fisik","Penilaian SOAP","Rencana/terapi","Instruksi"};
+            for(int i=0;i<keys.length;i++)b.append(labels[i]).append(": ").append(values.get(keys[i])).append("\n\n");
+            return b.toString();
+        }
     }
     /** Seluruh nilai pengguna memakai PreparedStatement; induk/detail satu transaksi. */
     static final class Store {
         private final Connection c;
         Store(Connection connection){c=Objects.requireNonNull(connection,"Koneksi database belum tersedia");}
+        void checkDigitalCode() throws SQLException {
+            synchronized(c){try(PreparedStatement p=c.prepareStatement("SELECT nama FROM master_berkas_digital WHERE kode=?")){
+                p.setString(1,"138");try(ResultSet r=p.executeQuery()){
+                    if(!r.next())throw new SQLException("Kode berkas 138 (Berkas Lain-lain) belum tersedia di master_berkas_digital.");
+                }
+            }}
+        }
+        void recordDigitalFile(Session s,String location,String fileName,String actor) throws SQLException {
+            synchronized(c){transaction(()->{
+                boolean exists;
+                try(PreparedStatement p=c.prepareStatement("SELECT 1 FROM berkas_digital_perawatan WHERE no_rawat=? AND kode=? AND lokasi_file=? LIMIT 1")){
+                    p.setString(1,s.rawat);p.setString(2,"138");p.setString(3,location);
+                    try(ResultSet r=p.executeQuery()){exists=r.next();}
+                }
+                if(!exists)try(PreparedStatement p=c.prepareStatement("INSERT INTO berkas_digital_perawatan (no_rawat,kode,lokasi_file) VALUES (?,?,?)")){
+                    p.setString(1,s.rawat);p.setString(2,"138");p.setString(3,location);
+                    if(p.executeUpdate()!=1)throw new SQLException("Berkas digital HD gagal dicatat.");
+                }
+                MetadataBerkas.simpan(c,s.rawat,"138",location,fileName,actor);
+            });}
+        }
         Session patient(String n,String actor) throws SQLException {
             synchronized(c){
                 Session s=new Session();String status;java.sql.Date registrationDate;java.sql.Time registrationTime;
@@ -594,7 +1110,14 @@ public class DlgFormulirHemodialisa extends JDialog {
                         status=safe(r.getString(8));registrationDate=r.getDate(9);registrationTime=r.getTime(10);
                     }
                 }
+                if(registrationDate==null||registrationTime==null)throw new SQLException("Tanggal/jam registrasi pasien belum tersedia.");
+                s.date=Timestamp.valueOf(registrationDate.toString()+" "+registrationTime.toString());
+                s.data.put("diagnosa","CKD Stage V");
                 boolean inpatient="Ranap".equalsIgnoreCase(status);
+                s.data.put("pelaksana_nip",actor==null?"":actor);
+                try(PreparedStatement p=c.prepareStatement("SELECT nama FROM pegawai WHERE nik=?")){
+                    p.setString(1,actor==null?"":actor);try(ResultSet r=p.executeQuery()){if(r.next())s.data.put("pelaksana_nama",safe(r.getString(1)));}
+                }
                 String roomSql=inpatient?
                     "SELECT CONCAT(k.kd_kamar,' - ',b.nm_bangsal) FROM kamar_inap ki JOIN kamar k ON k.kd_kamar=ki.kd_kamar JOIN bangsal b ON b.kd_bangsal=k.kd_bangsal WHERE ki.no_rawat=? ORDER BY CASE WHEN ki.tgl_keluar='0000-00-00' THEN 0 ELSE 1 END,ki.tgl_masuk DESC,ki.jam_masuk DESC LIMIT 1":
                     "SELECT p.nm_poli FROM reg_periksa r JOIN poliklinik p ON p.kd_poli=r.kd_poli WHERE r.no_rawat=?";
@@ -603,15 +1126,15 @@ public class DlgFormulirHemodialisa extends JDialog {
                     p.setString(1,s.rm);p.setDate(2,registrationDate);p.setDate(3,registrationDate);p.setTime(4,registrationTime);
                     try(ResultSet r=p.executeQuery()){if(r.next())s.hdKe=r.getInt(1);}
                 }
-                String table=inpatient?"pemeriksaan_ranap":"pemeriksaan_ralan";
-                Map<String,String> soap=latestSoap(table,n,actor,false);
+                List<SoapChoice> clinical=soapChoices(n,inpatient,false);s.clinicalSources=clinical;
+                Map<String,String> soap=clinical.isEmpty()?Collections.emptyMap():clinical.get(0).values;
                 if(!soap.isEmpty()) {
                     s.data.put("anamnesis",soap.get("keluhan"));s.data.put("pemeriksaan_fisik",soap.get("pemeriksaan"));
-                    s.data.put("diagnosa",soap.get("penilaian"));
                     String plan=soap.get("rtl"),instructions=soap.get("instruksi");
                     s.data.put("terapi",plan.isEmpty()?instructions:instructions.isEmpty()||instructions.equals(plan)?plan:plan+"\nInstruksi: "+instructions);
                 }
-                Map<String,String> vital=hasVitals(soap)?soap:latestSoap(table,n,actor,true);
+                List<SoapChoice> vitals=soapChoices(n,inpatient,true);s.vitalSources=vitals;
+                Map<String,String> vital=vitals.isEmpty()?Collections.emptyMap():vitals.get(0).values;
                 if(!vital.isEmpty()) {
                     s.data.put("nadi",vital.get("nadi"));s.data.put("tekanan_darah",vital.get("tensi"));
                     s.data.put("suhu",vital.get("suhu_tubuh"));s.data.put("pernapasan",vital.get("respirasi"));s.data.put("bb_sebelum",vital.get("berat"));
@@ -619,27 +1142,118 @@ public class DlgFormulirHemodialisa extends JDialog {
                 return s;
             }
         }
+        List<SoapChoice> soapChoices(String n,boolean vitalOnly) throws SQLException {
+            synchronized(c){
+                String status="";
+                try(PreparedStatement p=c.prepareStatement("SELECT status_lanjut FROM reg_periksa WHERE no_rawat=?")){
+                    p.setString(1,n);try(ResultSet r=p.executeQuery()){if(r.next())status=safe(r.getString(1));else throw new SQLException("No. Rawat tidak ditemukan.");}
+                }
+                return soapChoices(n,"Ranap".equalsIgnoreCase(status),vitalOnly);
+            }
+        }
+        private List<SoapChoice> soapChoices(String n,boolean inpatient,boolean vitalOnly) throws SQLException {
+            String first=inpatient?"pemeriksaan_ranap":"pemeriksaan_ralan";
+            List<SoapChoice> choices=new ArrayList<>();
+            soapRows(first,n,vitalOnly,choices);
+            soapRows(inpatient?"pemeriksaan_ralan":"pemeriksaan_ranap",n,vitalOnly,choices);
+            // Catatan tertua muncul mula-mula; sumber sesuai status menang pada waktu yang sama.
+            choices.sort(Comparator.comparing(item->item.when));return choices;
+        }
+        private void soapRows(String table,String n,boolean vitalOnly,List<SoapChoice> choices) throws SQLException {
+            String[] required=vitalOnly?new String[]{"nadi","tensi","suhu_tubuh","respirasi","berat"}:
+                new String[]{"keluhan","pemeriksaan","penilaian","rtl","instruksi"};
+            List<String> present=new ArrayList<>();
+            for(String key:required)present.add("TRIM(COALESCE(pr."+key+",''))<>''");
+            String sql="SELECT pr.*,COALESCE(pg.nama,'') AS penulis FROM "+table+" pr LEFT JOIN pegawai pg ON pg.nik=pr.nip "+
+                "WHERE pr.no_rawat=? AND ("+String.join(" OR ",present)+") ORDER BY pr.tgl_perawatan,pr.jam_rawat,pr.nip";
+            try(PreparedStatement p=c.prepareStatement(sql)){
+                p.setString(1,n);try(ResultSet r=p.executeQuery()){while(r.next()){
+                    Map<String,String> values=new LinkedHashMap<>();
+                    for(String key:new String[]{"keluhan","pemeriksaan","penilaian","rtl","instruksi","nadi","tensi","suhu_tubuh","respirasi","berat"})
+                        values.put(key,safe(r.getString(key)).trim());
+                    String when=safe(r.getString("tgl_perawatan"))+" "+safe(r.getString("jam_rawat"));
+                    String writer=safe(r.getString("penulis"));if(writer.isEmpty())writer=safe(r.getString("nip"));
+                    choices.add(new SoapChoice(table.equals("pemeriksaan_ranap")?"Ranap":"Ralan",when,writer,values));
+                }}
+            }
+        }
+        private Map<String,String> encounterSoap(boolean inpatient,String n,String actor,boolean vitalOnly) throws SQLException {
+            String preferred=inpatient?"pemeriksaan_ranap":"pemeriksaan_ralan";
+            Map<String,String> values=latestSoap(preferred,n,actor,vitalOnly);
+            // Ralan SOAP may predate conversion of the same registration to Ranap.
+            if(values.isEmpty())values=latestSoap(inpatient?"pemeriksaan_ralan":"pemeriksaan_ranap",n,actor,vitalOnly);
+            return values;
+        }
         private Map<String,String> latestSoap(String table,String n,String actor,boolean vitalOnly) throws SQLException {
-            // table comes only from the two fixed Ralan/Ranap names above.
-            String sql="SELECT pr.*,pg.nama FROM "+table+" pr LEFT JOIN pegawai pg ON pg.nik=pr.nip WHERE pr.no_rawat=? "+
-                "AND (pr.nip=? OR LOWER(COALESCE(pg.jbtn,'')) LIKE '%perawat%' OR LOWER(COALESCE(pg.jbtn,'')) LIKE '%keperawatan%') "+
-                (vitalOnly?"AND (TRIM(COALESCE(pr.tensi,''))<>'' OR TRIM(COALESCE(pr.nadi,''))<>'' OR TRIM(COALESCE(pr.suhu_tubuh,''))<>'' OR TRIM(COALESCE(pr.respirasi,''))<>'' OR TRIM(COALESCE(pr.berat,''))<>'') ":"")+
-                "ORDER BY CASE WHEN pr.nip=? THEN 0 ELSE 1 END,pr.tgl_perawatan DESC,pr.jam_rawat DESC,pr.nip LIMIT 1";
+            // Table names come exclusively from the two fixed encounter tables above.
+            String[] required=vitalOnly?new String[]{"tensi","nadi","suhu_tubuh","respirasi","berat"}:
+                new String[]{"keluhan","pemeriksaan","penilaian","rtl","instruksi"};
+            List<String> present=new ArrayList<>();
+            for(String key:required)present.add("TRIM(COALESCE(pr."+key+",''))<>''");
+            String nurse="LOWER(COALESCE(pg.jbtn,'')) LIKE '%perawat%' OR LOWER(COALESCE(pg.jbtn,'')) LIKE '%keperawatan%' "+
+                "OR LOWER(COALESCE(pg.jbtn,'')) LIKE '%nurse%' OR LOWER(COALESCE(pg.jbtn,'')) LIKE '%ners%'";
+            String sql="SELECT pr.* FROM "+table+" pr LEFT JOIN pegawai pg ON pg.nik=pr.nip "+
+                "WHERE pr.no_rawat=? AND ("+String.join(" OR ",present)+") "+
+                "ORDER BY CASE WHEN pr.nip=? THEN 0 WHEN ("+nurse+") THEN 1 ELSE 2 END, "+
+                "pr.tgl_perawatan DESC,pr.jam_rawat DESC,pr.nip LIMIT 1";
             Map<String,String> values=new LinkedHashMap<>();
             try(PreparedStatement p=c.prepareStatement(sql)) {
-                p.setString(1,n);p.setString(2,actor==null?"":actor);p.setString(3,actor==null?"":actor);
+                p.setString(1,n);p.setString(2,actor==null?"":actor);
                 try(ResultSet r=p.executeQuery()){if(r.next())for(String key:new String[]{"keluhan","pemeriksaan","penilaian","rtl","instruksi","nadi","tensi","suhu_tubuh","respirasi","berat"})values.put(key,safe(r.getString(key)).trim());}
             }
             return values;
         }
-        private static boolean hasVitals(Map<String,String> values) {
-            for(String key:new String[]{"nadi","tensi","suhu_tubuh","respirasi","berat"})if(!values.getOrDefault(key,"").isEmpty())return true;
+        List<Object[]> list(String n) throws SQLException {
+            synchronized(c){
+                List<Object[]> out=new ArrayList<>();
+                try(PreparedStatement p=c.prepareStatement("SELECT * FROM rsaj_formulir_hemodialisa WHERE no_rawat=? ORDER BY tanggal DESC,id_hd DESC")){
+                    p.setString(1,n);try(ResultSet r=p.executeQuery()){while(r.next()){
+                        Object[] row=new Object[historyHeaders().length];
+                        row[0]=r.getString("id_hd");row[1]=r.getString("no_rawat");row[2]=r.getTimestamp("tanggal");row[3]=r.getInt("hd_ke");
+                        row[4]=safe(r.getString("no_rkm_medis"));row[5]=safe(r.getString("nama_pasien"));
+                        row[6]=safe(r.getString("jenis_kelamin"));row[7]=safe(r.getString("umur"));
+                        for(int i=0;i<KEYS.length;i++)row[8+i]=safe(r.getString(KEYS[i]));
+                        row[HISTORY_OBS_INDEX]="";row[HISTORY_UPLOAD_INDEX]="Belum Upload";
+                        row[HISTORY_UPLOAD_INDEX+1]=r.getInt("versi");out.add(row);
+                    }}
+                }
+                if(out.isEmpty())return out;
+                Map<String,StringBuilder> observations=new HashMap<>();
+                try(PreparedStatement p=c.prepareStatement("SELECT o.* FROM rsaj_formulir_hemodialisa_observasi o JOIN rsaj_formulir_hemodialisa h ON h.id_hd=o.id_hd WHERE h.no_rawat=? ORDER BY o.id_hd,o.urutan")){
+                    p.setString(1,n);try(ResultSet r=p.executeQuery()){while(r.next()){
+                        StringBuilder summary=observations.computeIfAbsent(r.getString("id_hd"),k->new StringBuilder());
+                        if(summary.length()>0)summary.append("  |  ");
+                        summary.append("Baris ").append(r.getInt("urutan")).append(": ");
+                        for(int i=0;i<OBS_KEYS.length;i++){
+                            if(i>0)summary.append("; ");
+                            summary.append(OBS_LABELS[i]).append("=").append(safe(r.getString(OBS_KEYS[i])));
+                        }
+                    }}
+                }
+                List<String> locations=digitalLocations(n);
+                for(Object[] row:out){
+                    String id=String.valueOf(row[0]);StringBuilder obs=observations.get(id);
+                    row[HISTORY_OBS_INDEX]=obs==null?"":obs.toString();
+                    row[HISTORY_UPLOAD_INDEX]=hasUpload(locations,id)?"Sudah Upload":"Belum Upload";
+                }
+                return out;
+            }
+        }
+        private List<String> digitalLocations(String rawat) throws SQLException {
+            List<String> locations=new ArrayList<>();
+            try(PreparedStatement p=c.prepareStatement("SELECT lokasi_file FROM berkas_digital_perawatan WHERE no_rawat=? AND kode=? AND lokasi_file LIKE 'pages/upload/Formulir_HD_%'")){
+                p.setString(1,rawat);p.setString(2,"138");
+                try(ResultSet r=p.executeQuery()){while(r.next())locations.add(safe(r.getString(1)));}
+            }
+            return locations;
+        }
+        private static boolean hasUpload(List<String> locations,String id) {
+            String prefix="pages/upload/Formulir_HD_"+id.replaceAll("[^A-Za-z0-9_-]","_")+"_hal_";
+            for(String location:locations)if(location.startsWith(prefix))return true;
             return false;
         }
-        List<Object[]> list(String n) throws SQLException {
-            synchronized(c){List<Object[]> out=new ArrayList<>();try(PreparedStatement p=c.prepareStatement("SELECT id_hd,tanggal,hd_ke,pelaksana_nama,versi FROM rsaj_formulir_hemodialisa WHERE no_rawat=? ORDER BY tanggal DESC,id_hd")){
-                p.setString(1,n);try(ResultSet r=p.executeQuery()){while(r.next())out.add(new Object[]{r.getString(1),r.getTimestamp(2),r.getInt(3),r.getString(4),r.getInt(5)});}return out;
-            }}
+        boolean uploaded(String rawat,String id) throws SQLException {
+            synchronized(c){return hasUpload(digitalLocations(rawat),id);}
         }
         Session load(String id) throws SQLException {
             synchronized(c){Session s=new Session();transaction(()->{try(PreparedStatement p=c.prepareStatement("SELECT * FROM rsaj_formulir_hemodialisa WHERE id_hd=? FOR UPDATE")){
@@ -647,7 +1261,20 @@ public class DlgFormulirHemodialisa extends JDialog {
             }
             try(PreparedStatement p=c.prepareStatement("SELECT * FROM rsaj_formulir_hemodialisa_observasi WHERE id_hd=? ORDER BY urutan")){
                 p.setString(1,id);try(ResultSet r=p.executeQuery()){while(r.next()){String[] row=new String[12];for(int i=0;i<12;i++)row[i]=safe(r.getString(OBS_KEYS[i]));s.rows.add(row);}}
-            }});return s;}
+            }});
+            // Tanggal sesi lama disesuaikan dengan registrasi sebelum dicetak.
+            try(PreparedStatement p=c.prepareStatement("SELECT tgl_registrasi FROM reg_periksa WHERE no_rawat=?")){
+                p.setString(1,s.rawat);try(ResultSet r=p.executeQuery()){if(r.next()&&r.getDate(1)!=null){
+                    Calendar registration=Calendar.getInstance(),saved=Calendar.getInstance();
+                    registration.setTime(r.getDate(1));saved.setTime(s.date);
+                    if(saved.get(Calendar.YEAR)!=registration.get(Calendar.YEAR)||saved.get(Calendar.MONTH)!=registration.get(Calendar.MONTH)||saved.get(Calendar.DAY_OF_MONTH)!=registration.get(Calendar.DAY_OF_MONTH)){
+                        saved.set(registration.get(Calendar.YEAR),registration.get(Calendar.MONTH),registration.get(Calendar.DAY_OF_MONTH));
+                        s.date=saved.getTime();s.needsResave=true;
+                    }
+                }}
+            }
+            // Snapshot tersimpan tidak menarik SOAP/TTV lagi. Panah memuat riwayat hanya saat digunakan.
+            return s;}
         }
         Session save(Session source,String actor) throws SQLException {
             synchronized(c){Session s=source.copy();boolean fresh=s.id==null;if(fresh)s.id=UUID.randomUUID().toString();
@@ -668,11 +1295,13 @@ public class DlgFormulirHemodialisa extends JDialog {
                     try(PreparedStatement p=c.prepareStatement("INSERT INTO rsaj_formulir_hemodialisa_observasi (id_hd,urutan,"+String.join(",",OBS_KEYS)+") VALUES ("+String.join(",",Collections.nCopies(14,"?"))+")")){
                         int seq=0;for(String[] row:s.rows){p.setString(1,s.id);p.setInt(2,++seq);for(int i=0;i<12;i++){if(i==1)p.setBigDecimal(i+3,decimal(row[i]));else p.setString(i+3,row[i]);}p.addBatch();}p.executeBatch();
                     }
-                });s.version=fresh?1:s.version+1;return s;
+                });s.version=fresh?1:s.version+1;s.needsResave=false;return s;
             }
         }
         void delete(Session s) throws SQLException {
-            synchronized(c){transaction(()->{try(PreparedStatement p=c.prepareStatement("DELETE FROM rsaj_formulir_hemodialisa WHERE id_hd=? AND versi=?")){
+            synchronized(c){transaction(()->{
+                if(hasUpload(digitalLocations(s.rawat),s.id))throw new SQLException("Sesi HD sudah di-upload ke Berkas Digital Perawatan dan tidak dapat dihapus.");
+                try(PreparedStatement p=c.prepareStatement("DELETE FROM rsaj_formulir_hemodialisa WHERE id_hd=? AND versi=?")){
                 p.setString(1,s.id);p.setInt(2,s.version);if(p.executeUpdate()!=1)throw new SQLException("Sesi telah berubah. Muat ulang sebelum menghapus.");
             }});}
         }

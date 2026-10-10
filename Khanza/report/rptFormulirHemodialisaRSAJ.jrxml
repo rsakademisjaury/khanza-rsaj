@@ -1,0 +1,1156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rptFormulirHemodialisaRSAJ" pageWidth="595" pageHeight="935" whenNoDataType="AllSectionsNoDetail" columnWidth="547" leftMargin="24" rightMargin="24" topMargin="20" bottomMargin="20" isSummaryWithPageHeaderAndFooter="true" uuid="416f2754-7289-44ba-87ae-5d6d9ffeb7c7">
+	<property name="net.sf.jasperreports.default.font.name" value="Segoe UI"/>
+	<parameter name="id_hd" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="no_rawat" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="no_rm" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="nama_pasien" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="jenis_kelamin" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="umur" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="hari" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tanggal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="hemodialisa_ke" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="alamat" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="ruangan" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="data_klinik" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="nadi" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tekanan_darah" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="suhu" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pernapasan" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="bb_sebelum" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="bb_sesudah" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="hb" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="elektrolit" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="ureum_sebelum" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="ureum_sesudah" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="kreatinin_sebelum" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="kreatinin_sesudah" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="heparin_beban" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="heparin_selama" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="heparin_per_jam" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="jumlah_heparin" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="lama_hd" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="priming_volume" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pelaksana_nip" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pelaksana_nama" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="qr_pelaksana" class="java.awt.Image"/>
+	<field name="jam" class="java.lang.String"/>
+	<field name="waktu" class="java.lang.String"/>
+	<field name="tekanan_darah" class="java.lang.String"/>
+	<field name="laju_dial" class="java.lang.String"/>
+	<field name="konduktivitas" class="java.lang.String"/>
+	<field name="suhu" class="java.lang.String"/>
+	<field name="tmp" class="java.lang.String"/>
+	<field name="laju_heparin" class="java.lang.String"/>
+	<field name="tekanan_arteri" class="java.lang.String"/>
+	<field name="tekanan_vena" class="java.lang.String"/>
+	<field name="laju_darah" class="java.lang.String"/>
+	<field name="kelainan" class="java.lang.String"/>
+	<group name="IdentitasSesi">
+		<groupExpression><![CDATA[$P{id_hd}]]></groupExpression>
+		<groupHeader>
+			<band height="75" splitType="Stretch">
+				<staticText>
+					<reportElement x="0" y="0" width="120" height="13" uuid="c977f14a-d402-41a8-8c6c-60ef911c6cfa"/>
+					<textElement textAlignment="Center" verticalAlignment="Top">
+						<font fontName="Segoe UI Semibold" size="9" isBold="false"/>
+					</textElement>
+					<text><![CDATA[RUMAH SAKIT AKADEMIS]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="7" width="120" height="20" uuid="f9f21e2a-432a-4db3-bc80-32212555fa13"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="13" isBold="false"/>
+					</textElement>
+					<text><![CDATA[J A U R Y]]></text>
+				</staticText>
+				<line>
+					<reportElement positionType="Float" x="0" y="26" width="120" height="1" uuid="ada1fba1-7165-4672-8bd1-5217ad13b63c">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					</reportElement>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="0" y="22" width="547" height="22" uuid="85186c1d-8639-4939-ade8-ca54d1173cb7"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="14" isBold="false" isUnderline="true"/>
+					</textElement>
+					<text><![CDATA[FORMULIR HEMODIALISA]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="56" width="80" height="18" uuid="94c6f0f8-a7c2-4e00-8af8-88b93944452e"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Hari / Tanggal]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="90" y="56" width="154" height="18" uuid="12c816dc-34d5-497d-ada0-6262f6ad9521"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{hari} +", "+$P{tanggal}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="90" y="74" width="154" height="1" uuid="0379f8f9-4326-4836-a9af-785603533eaf"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="80" y="56" width="10" height="18" uuid="6416b42d-a92e-4ca8-a48b-902a124ca8a9"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+			</band>
+			<band height="19" splitType="Stretch">
+				<staticText>
+					<reportElement x="0" y="0" width="80" height="18" uuid="c2dc40e6-0f06-4590-92eb-9eb84fabaf6b"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Nama penderita]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="90" y="0" width="154" height="18" uuid="bff8bd1e-a152-44f1-b58c-2ff0a4db0a0a"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{nama_pasien}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="90" y="18" width="154" height="1" uuid="cc5ee3ba-ca27-48d2-9fca-1609781163c5"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="257" y="-19" width="110" height="18" uuid="28f82ab9-bca8-435e-bf2a-4e22742cb233"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[No. Register C.M.]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="367" y="-20" width="180" height="18" uuid="adae2378-0f4f-4db7-af31-1cc17ae56ecc"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{no_rm}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="367" y="-2" width="180" height="1" uuid="4bb30234-050d-48ee-b168-02cfb3031047"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="80" y="0" width="10" height="18" uuid="15ab3099-ae81-43a0-9d04-7e8ab949eb5f"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="357" y="-19" width="10" height="18" uuid="ee759480-96b2-4f3d-b738-4e0759ec9f8e"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+			</band>
+			<band height="19" splitType="Stretch">
+				<staticText>
+					<reportElement x="0" y="0" width="80" height="18" uuid="37c000bc-1910-4ad2-9ceb-0072dd05ee48"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[JK / Umur]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="90" y="0" width="154" height="18" uuid="ac21418c-dd01-44ad-81f4-daafaba325c5"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{jenis_kelamin}+"   /   "+$P{umur}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="90" y="18" width="154" height="1" uuid="aed8c38c-7219-4f46-b343-2f782fca1a6d"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="257" y="-19" width="110" height="18" uuid="5eb5dd6e-ad66-4cc5-8227-020ea79d7b22"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Ruang / Bangsal]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="367" y="-20" width="180" height="18" uuid="c117b6af-df98-48a1-ae57-37a5c2c8932e"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{ruangan}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="367" y="-2" width="180" height="1" uuid="4840e950-47bd-4b31-9da0-275d5d036a83"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="80" y="0" width="10" height="18" uuid="5b0c6e0e-8888-4bc0-a0cf-423720e2e83d"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="357" y="-19" width="10" height="18" uuid="c6f9cfe7-9792-49c8-8f2a-be90745d6d70"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+			</band>
+			<band height="21" splitType="Stretch">
+				<staticText>
+					<reportElement x="257" y="-19" width="110" height="18" uuid="3b51ff9e-e51e-4488-bd30-337073cda8d0"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Hemodialisa yg ke]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="367" y="-20" width="180" height="18" uuid="18141575-e729-47ca-91f2-cb83473d2b72"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{hemodialisa_ke}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="367" y="-2" width="180" height="1" uuid="4c634a09-45d3-4a81-bee5-5e69286c8793"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="90" y="0" width="457" height="18" uuid="51e875d0-e8c9-4a60-8084-9d30a43ae95a"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{alamat}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="0" y="0" width="80" height="18" uuid="3ad4ee4d-49a4-4978-b66f-fc01b062b28a"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Alamat rumah]]></text>
+				</staticText>
+				<line>
+					<reportElement positionType="Float" x="0" y="20" width="547" height="1" uuid="1b88a7ef-c58b-46d5-807e-290b73d47843"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="80" y="0" width="10" height="18" uuid="dcf58d20-5b93-4c0a-9acf-0c54eccce85b"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="357" y="-19" width="10" height="18" uuid="cac7432e-474e-4e4a-96e3-fea066544a33"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+			</band>
+			<band height="1" splitType="Stretch"/>
+			<band height="78" splitType="Stretch">
+				<staticText>
+					<reportElement x="0" y="2" width="547" height="18" uuid="000921a8-26fe-4371-aaa5-916870ed979d"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Data Klinik: Anamnesis / Pemeriksaan fisik / Laboratorium / Diagnosa / Terapi]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="0" y="21" width="547" height="56" uuid="70ae33f0-4a5d-44c6-8a62-4b89b296a1c8"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{data_klinik}]]></textFieldExpression>
+				</textField>
+			</band>
+			<band height="154" splitType="Stretch">
+				<line>
+					<reportElement positionType="Float" x="0" y="0" width="547" height="1" uuid="2ac2f4f3-5ba5-4c63-8a21-c795e4a49a17"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="0" y="3" width="547" height="18" uuid="e8403930-b403-4e7e-9716-e4f457a1440c"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Status Presens]]></text>
+				</staticText>
+				<textField isBlankWhenNull="true">
+					<reportElement x="0" y="23" width="547" height="18" uuid="5a37c4a3-3dee-4d42-b39c-2c9edb4cedd2"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Nadi   :   " + $P{nadi} + " /menit          Tekanan darah   :   " + $P{tekanan_darah} + " mmHg          Suhu   :   " + $P{suhu} + " °C          Pernapasan   :   " + $P{pernapasan} + " /menit"]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement x="0" y="46" width="80" height="18" uuid="6801f400-91cd-46eb-9a76-986d0bc562b9"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[BB sebelum HD]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="90" y="46" width="40" height="18" uuid="f5a2ff35-721b-4d90-aea2-8d7b5171aaa5"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{bb_sebelum}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="90" y="64" width="40" height="1" uuid="e59a9a31-48ac-4995-a0fa-a02179884741"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="0" y="69" width="80" height="18" uuid="4fcf5be0-4363-4f47-ba34-e1cee2aad928"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[BB sesudah HD]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="90" y="69" width="40" height="18" uuid="04647fd8-edd7-479c-b80b-e280510ceb45"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{bb_sesudah}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="90" y="87" width="40" height="1" uuid="52321335-849b-450d-8abd-fda73b90f81c"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="237" y="44" width="310" height="18" uuid="674dfcc6-8574-4e19-8193-3a17a031c696"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Laboratorium]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="237" y="62" width="108" height="18" uuid="6af3a2d4-c69b-4bfa-a726-b8675b6553c7"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Hb]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="62" width="192" height="18" uuid="5b730cfb-f0a1-4cc6-9340-5de22a5fbb19"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{hb}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="80" width="192" height="1" uuid="9affe7f1-8952-4d03-b535-752331b0d01a"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="237" y="80" width="108" height="18" uuid="dd027f7b-3b8e-4124-b129-5d780ad24854"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Ureum sebelum HD]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="80" width="192" height="18" uuid="4e03435d-ecc7-4da1-a287-7b84a1642c14"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{ureum_sebelum}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="98" width="192" height="1" uuid="e7fb2cc5-ab92-4bd1-875b-ff121bcce4b8"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="237" y="98" width="108" height="18" uuid="d9d53810-1457-4f51-a837-da704adf0d22"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Ureum sesudah HD]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="98" width="192" height="18" uuid="f87ec9c7-2038-42fe-b6e2-1e294d50b6e2"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{ureum_sesudah}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="116" width="192" height="1" uuid="eebb6048-c006-4c90-a3fa-a837952e27f5"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="237" y="116" width="108" height="18" uuid="90fd79c0-172f-42e4-b571-a81cb0accc3c"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Kreatinin sebelum HD]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="116" width="192" height="18" uuid="519111de-c72b-427a-bf45-e6752235523d"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{kreatinin_sebelum}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="134" width="192" height="1" uuid="3352eb89-bb78-4e09-a67f-b802b2fefd59"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="237" y="134" width="108" height="18" uuid="5ac009e9-9fc5-48d9-9da6-6eeb81e61f7e"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Kreatinin sesudah HD]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="134" width="192" height="18" uuid="b0f6fcc1-56c0-47cb-8747-a43997c464e0"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{kreatinin_sesudah}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="152" width="192" height="1" uuid="dc568aa0-79a2-483f-8310-151db8c9b0ad"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="80" y="46" width="10" height="18" uuid="a36f3fe5-cf59-40ca-856a-59f693a875d9"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="80" y="69" width="10" height="18" uuid="7bb8573e-a3db-4da1-812c-99cd4d4eea2e"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="135" y="46" width="22" height="18" uuid="ffd475fc-0d75-4be7-954b-c6d6d134e8cc"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[kg]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="135" y="69" width="22" height="18" uuid="7134d571-da2f-4ab2-ab92-a7be7045d452"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[kg]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="345" y="62" width="10" height="18" uuid="c2f5c2dd-28a6-4f3a-80d2-499552e654fa"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="345" y="80" width="10" height="18" uuid="03a2243b-79da-4d01-8f71-96b3d408e818"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="345" y="98" width="10" height="18" uuid="eee11c20-a233-4b40-8198-50728c2ec2b3"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="345" y="116" width="10" height="18" uuid="39761a77-ee13-4e1a-bc69-ebd07358a345"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="345" y="134" width="10" height="18" uuid="bd822ad4-fb92-429b-8939-faf5309164c4"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+			</band>
+			<band height="23" splitType="Stretch">
+				<staticText>
+					<reportElement x="237" y="0" width="108" height="18" uuid="c080348e-d04c-403a-a1b5-c625dd839ef4"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Elektrolit / satuan]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="0" width="192" height="18" uuid="254e11b7-32e4-4070-a110-0b51cbe16dac"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{elektrolit}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="18" width="192" height="1" uuid="60e2ae10-c73b-4d3e-a9d3-a20bcdd348ce"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="345" y="0" width="10" height="18" uuid="452c4ef1-8dab-4a83-84f3-24abb5e50681"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+			</band>
+			<band height="87" splitType="Stretch">
+				<staticText>
+					<reportElement x="0" y="0" width="215" height="18" uuid="36c2c092-b811-44da-8dd0-9d6919801a80"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Pemakaian heparin]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="0" y="21" width="110" height="18" uuid="f2fa7652-33be-448a-b426-1a76205e9ad5"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Dosis beban]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="120" y="21" width="54" height="18" uuid="511f5306-45b8-4f8b-a681-280bfba454e5"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{heparin_beban}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="120" y="39" width="54" height="1" uuid="72cfad68-ed29-41b9-9217-7125d08b968e"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="0" y="43" width="110" height="18" uuid="20da533b-c9d0-4c62-98e0-227917682beb"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Total dosis selama HD]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="120" y="43" width="54" height="18" uuid="36a60bcc-c8af-4b54-9fba-c89d3d387d1e"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{heparin_selama}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="120" y="61" width="54" height="1" uuid="84b16624-5930-4448-8396-e962b33257d8"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="0" y="65" width="110" height="18" uuid="9839e4d6-8923-471c-a3a4-1c8565a646ee"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Jumlah]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="120" y="65" width="54" height="18" uuid="2983703c-f0f4-493a-9736-cb192853f6f6"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{jumlah_heparin}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="120" y="83" width="54" height="1" uuid="5d055eb7-21e5-465c-adeb-1526dbb9a2ed"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="237" y="22" width="108" height="18" uuid="1623f537-96f1-403c-bd28-85735b0e25f0"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Lamanya hemodialisa]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="22" width="53" height="18" uuid="ae3bd60d-6ad8-483c-9121-ac7bff593e48"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{lama_hd}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="39" width="53" height="1" uuid="eb670b3d-c025-43af-ac49-963c7e918894"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="237" y="44" width="108" height="18" uuid="fb2158d4-13e4-44c6-ba0a-8c2a3734d3c5"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Dosis heparin tiap jam]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="44" width="53" height="18" uuid="91a030a7-4ee7-42d2-a933-91fd6811ffde"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{heparin_per_jam}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="61" width="53" height="1" uuid="1852ae0b-c780-4a40-bd20-66f1dd1b5de4"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="237" y="66" width="108" height="18" uuid="15b3289e-bc88-45c1-aec6-affa45108323"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Priming volume]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="355" y="66" width="53" height="18" uuid="91e7729f-0f3c-4f44-b2f2-c564ceda8441"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9" isBold="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{priming_volume}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement positionType="Float" x="355" y="83" width="53" height="1" uuid="75cc8f68-e1a2-47f1-961b-626dab31b4d8"/>
+					<graphicElement>
+						<pen lineWidth="0.6"/>
+					</graphicElement>
+				</line>
+				<staticText>
+					<reportElement x="110" y="21" width="10" height="18" uuid="09301cdf-1d05-47bd-8f78-543a5c1e4d93"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="110" y="43" width="10" height="18" uuid="98aaffab-b5d1-4cb5-98cf-5b9e23202dc0"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="110" y="65" width="10" height="18" uuid="7f0ef574-eae7-427c-870f-63d8b0475307"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="162" y="21" width="12" height="18" uuid="75d64afd-b835-447b-8ad2-b985e078a1d1"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[U]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="162" y="43" width="12" height="18" uuid="6db4bd37-27a9-4bda-aca1-aedf471c26fc"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[U]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="162" y="65" width="12" height="18" uuid="780bb2e9-faeb-41d3-bfbf-fa8409be8a69"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[U]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="345" y="22" width="10" height="18" uuid="e3b75125-4e9d-4ff6-826e-48ff4b23e55c"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="345" y="44" width="10" height="18" uuid="92948621-12cc-4d08-b3cc-0f2a131cffe6"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="345" y="66" width="10" height="18" uuid="a4db5213-552b-4bdb-bc2a-917155b9f7a4"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="390" y="22" width="18" height="18" uuid="e5bc74e3-2e20-422f-aafe-1620e6a2118c"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[jam]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="396" y="44" width="12" height="18" uuid="787522de-4eca-4f1a-8c58-4f0c80f8c3d8"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[U]]></text>
+				</staticText>
+				<staticText>
+					<reportElement x="396" y="66" width="12" height="18" uuid="1f2da92d-9b28-4b4b-be50-cfdfa4fd0b3f"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[ml]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+	</group>
+	<group name="TabelObservasi" isReprintHeaderOnEachPage="true">
+		<groupExpression><![CDATA[$P{id_hd}]]></groupExpression>
+		<groupHeader>
+			<band height="50" splitType="Prevent">
+				<staticText>
+					<reportElement x="0" y="0" width="547" height="14" uuid="758b4e3e-40b4-4cf0-b816-366d9419937f"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="10" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Perubahan selama hemodialisa:]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="0" y="14" width="32" height="36" uuid="8e4d58d8-d7c6-4726-82f4-4e96705d5816"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Jam]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="32" y="14" width="38" height="36" uuid="43f2d2ed-f9d7-46e9-a064-74c3d4a9cf16"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Waktu
+HD (jam)]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="70" y="14" width="41" height="36" uuid="830902ca-4e95-4487-8c2d-1d4a721d3355"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[T.D.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="111" y="14" width="39" height="36" uuid="a4343a43-4902-4999-ab73-e7ecca02dd74"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Laju
+dial]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="150" y="14" width="43" height="36" uuid="2aeac3b9-9308-4c55-a18d-8ae8dee53737"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Konduk-
+tivitas]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="193" y="14" width="32" height="36" uuid="59b2aa6e-f455-499b-b9d7-e1e531f6cb20"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Suhu]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="225" y="14" width="28" height="36" uuid="3cf787ba-fc53-49cd-973f-d7c523a4d8bd"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[TMP]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="253" y="14" width="42" height="36" uuid="01025065-68c5-42fa-a720-449141901497"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Laju
+heparin]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="295" y="14" width="34" height="36" uuid="f48bac9f-a4b6-4127-9b10-4404bf875691"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Tek.
+art.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="329" y="14" width="34" height="36" uuid="de6efe2d-b64f-487a-bcf5-3c576da4b3ae"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Tek.
+ven.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="363" y="14" width="45" height="36" uuid="8f98476c-15ce-4b64-80ff-241ac7afd0a5"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[Laju
+darah]]></text>
+				</staticText>
+				<staticText>
+					<reportElement stretchType="RelativeToTallestObject" x="408" y="14" width="139" height="36" uuid="4a5ee29d-4753-462a-9b96-95d9c11551c2"/>
+					<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+						<pen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="7.5" isBold="false"/>
+					</textElement>
+					<text><![CDATA[KELAINAN /
+KOMPLIKASI]]></text>
+				</staticText>
+			</band>
+		</groupHeader>
+	</group>
+	<detail>
+		<band height="16" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="32" height="16" uuid="926056b6-46fd-482d-a10b-a20541ab868a"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{jam}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="32" y="0" width="38" height="16" uuid="e1ca7e65-2f30-4332-b064-bd3629648f1a"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{waktu}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="70" y="0" width="41" height="16" uuid="c02af44f-5360-4e21-85c1-d79ac084fc8c"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tekanan_darah}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="111" y="0" width="39" height="16" uuid="acf4bfd4-e320-4711-a598-d13d9174bf28"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{laju_dial}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="150" y="0" width="43" height="16" uuid="47ecd72a-a739-47f8-9be6-b4b4657b2a86"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{konduktivitas}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="193" y="0" width="32" height="16" uuid="276bdd59-bc7a-4ad5-82e7-e4be65bdc036"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{suhu}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="225" y="0" width="28" height="16" uuid="bbaaba2b-d6d4-4306-b7fe-48315f0fc8b1"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tmp}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="253" y="0" width="42" height="16" uuid="9f616d16-4d29-44be-8721-7ce0c60f0c05"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{laju_heparin}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="295" y="0" width="34" height="16" uuid="e19f7efe-d7e4-4bfc-80c3-06c1fda27932"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tekanan_arteri}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="329" y="0" width="34" height="16" uuid="05416ea4-8cd8-4187-a5c9-bcb74eb15f48"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tekanan_vena}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="363" y="0" width="45" height="16" uuid="d7dec281-346f-4250-a7ff-3618b4cb61ff"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{laju_darah}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="408" y="0" width="139" height="16" uuid="23ed4b87-eb71-4d8f-b959-bd5b2c010a5a"/>
+				<box topPadding="3" leftPadding="3" bottomPadding="2" rightPadding="3">
+					<pen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kelainan}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="14" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="0" width="430" height="14" uuid="f10e3399-bad8-400b-92f5-697fcaa395c1"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["No. Rawat: " + $P{no_rawat} + "  |  RM: " + $P{no_rm}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="450" y="0" width="97" height="14" uuid="f6957507-fe51-462a-9fa8-518fc691cefd"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Halaman " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="106" splitType="Prevent">
+			<staticText>
+				<reportElement x="0" y="6" width="300" height="18" uuid="9acdfd50-d4a1-4748-90f0-7829832be020"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI Semibold" size="10" isBold="false"/>
+				</textElement>
+				<text><![CDATA[PELAKSANA:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="0" y="26" width="315" height="18" uuid="18d75fb1-5327-4d58-828a-a3b492c14daf"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Segoe UI Semibold" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{pelaksana_nama}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="44" width="315" height="13" uuid="9705a9e3-b74d-423f-b61b-f49fb852678b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["NIK   :   " + $P{pelaksana_nip}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="345" y="6" width="202" height="18" uuid="6e77ba80-372b-458e-9aec-d45b8ec311ea"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI Semibold" size="10" isBold="false"/>
+				</textElement>
+				<text><![CDATA[TANDA TANGAN]]></text>
+			</staticText>
+			<image scaleImage="RetainShape" hAlign="Center" vAlign="Middle">
+				<reportElement x="406" y="26" width="80" height="80" uuid="62fbf376-b9d9-4822-83f1-2a8d0627d3a5"/>
+				<imageExpression><![CDATA[$P{qr_pelaksana}]]></imageExpression>
+			</image>
+		</band>
+	</summary>
+</jasperReport>

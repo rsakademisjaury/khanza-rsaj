@@ -467,7 +467,7 @@
                     </Property>
                     <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
                       <StringArray count="1">
-                        <StringItem index="0" value="26-06-2025"/>
+                        <StringItem index="0" value="09-10-2026"/>
                       </StringArray>
                     </Property>
                     <Property name="displayFormat" type="java.lang.String" value="dd-MM-yyyy"/>
@@ -495,7 +495,7 @@
                     </Property>
                     <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
                       <StringArray count="1">
-                        <StringItem index="0" value="26-06-2025"/>
+                        <StringItem index="0" value="09-10-2026"/>
                       </StringArray>
                     </Property>
                     <Property name="displayFormat" type="java.lang.String" value="dd-MM-yyyy"/>
@@ -604,7 +604,7 @@
               <Properties>
                 <Property name="name" type="java.lang.String" value="FormInput" noResource="true"/>
                 <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                  <Dimension value="[160, 120]"/>
+                  <Dimension value="[160, 190]"/>
                 </Property>
               </Properties>
               <Constraints>
@@ -690,7 +690,7 @@
                     </Property>
                     <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
                       <StringArray count="1">
-                        <StringItem index="0" value="26-06-2025"/>
+                        <StringItem index="0" value="09-10-2026"/>
                       </StringArray>
                     </Property>
                     <Property name="displayFormat" type="java.lang.String" value="dd-MM-yyyy"/>
@@ -819,267 +819,216 @@
                 <Component class="widget.ComboBox" name="KamarReal">
                   <Properties>
                     <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
-                      <StringArray count="255">
-                        <StringItem index="0" value="-"/>
-                        <StringItem index="1" value="PAVILIUN A"/>
-                        <StringItem index="2" value="PAVILIUN B"/>
-                        <StringItem index="3" value="PAVILIUN C"/>
-                        <StringItem index="4" value="PAVILIUN D"/>
-                        <StringItem index="5" value="MELATI - 01"/>
-                        <StringItem index="6" value="MELATI - 02"/>
-                        <StringItem index="7" value="MELATI - 03"/>
-                        <StringItem index="8" value="MELATI - 04"/>
-                        <StringItem index="9" value="MELATI - 05"/>
-                        <StringItem index="10" value="MELATI - 06"/>
-                        <StringItem index="11" value="MELATI - 07"/>
-                        <StringItem index="12" value="MELATI - 08"/>
-                        <StringItem index="13" value="MELATI - 09"/>
-                        <StringItem index="14" value="MELATI - 10"/>
-                        <StringItem index="15" value="MELATI - 11"/>
-                        <StringItem index="16" value="MELATI - 12"/>
-                        <StringItem index="17" value="MELATI - 14"/>
-                        <StringItem index="18" value="MELATI - 15"/>
-                        <StringItem index="19" value="MELATI - 16"/>
-                        <StringItem index="20" value="MELATI - 17"/>
-                        <StringItem index="21" value="MELATI - 18"/>
-                        <StringItem index="22" value="MELATI - 19"/>
-                        <StringItem index="23" value="MELATI - 20"/>
-                        <StringItem index="24" value="MELATI - 21"/>
-                        <StringItem index="25" value="MELATI - 22"/>
-                        <StringItem index="26" value="MELATI - 24"/>
-                        <StringItem index="27" value="ANGGREK - 01 - 01"/>
-                        <StringItem index="28" value="ANGGREK - 01 - 02"/>
-                        <StringItem index="29" value="ANGGREK - 02 - 01"/>
-                        <StringItem index="30" value="ANGGREK - 02 - 02"/>
-                        <StringItem index="31" value="ANGGREK - 03 - 01"/>
-                        <StringItem index="32" value="ANGGREK - 03 - 02"/>
-                        <StringItem index="33" value="ANGGREK - 04 - 01"/>
-                        <StringItem index="34" value="ANGGREK - 04 - 02"/>
-                        <StringItem index="35" value="ANGGREK - 05 - 01"/>
-                        <StringItem index="36" value="ANGGREK - 05 - 02"/>
-                        <StringItem index="37" value="ANGGREK - 06 - 01"/>
-                        <StringItem index="38" value="ANGGREK - 06 - 02"/>
-                        <StringItem index="39" value="ANGGREK - 07 - 01"/>
-                        <StringItem index="40" value="ANGGREK - 07 - 02"/>
-                        <StringItem index="41" value="ANGGREK - 08 - 01"/>
-                        <StringItem index="42" value="ANGGREK - 08 - 02"/>
-                        <StringItem index="43" value="ANGGREK - 09 - 01"/>
-                        <StringItem index="44" value="ANGGREK - 09 - 02"/>
-                        <StringItem index="45" value="ANGGREK - 10 - 01"/>
-                        <StringItem index="46" value="ANGGREK - 10 - 02"/>
-                        <StringItem index="47" value="ANGGREK - 11 - 01"/>
-                        <StringItem index="48" value="ANGGREK - 11 - 02"/>
-                        <StringItem index="49" value="ANGGREK - 12 - 01"/>
-                        <StringItem index="50" value="ANGGREK - 12 - 02"/>
-                        <StringItem index="51" value="ANGGREK - 14 - 01"/>
-                        <StringItem index="52" value="ANGGREK - 14 - 02"/>
-                        <StringItem index="53" value="ANGGREK - 15 - 01"/>
-                        <StringItem index="54" value="ANGGREK - 15 - 02"/>
-                        <StringItem index="55" value="ANGGREK - 16 - 01"/>
-                        <StringItem index="56" value="ANGGREK - 16 - 02"/>
-                        <StringItem index="57" value="ANGGREK - 17 - 01"/>
-                        <StringItem index="58" value="ANGGREK - 17 - 02"/>
-                        <StringItem index="59" value="ANGGREK - 18 - 01"/>
-                        <StringItem index="60" value="ANGGREK - 18 - 02"/>
-                        <StringItem index="61" value="ANGGREK - 19 - 01"/>
-                        <StringItem index="62" value="ANGGREK - 19 - 02"/>
-                        <StringItem index="63" value="ANGGREK - 20 - 01"/>
-                        <StringItem index="64" value="ANGGREK - 20 - 02"/>
-                        <StringItem index="65" value="ANGGREK - 21 - 01"/>
-                        <StringItem index="66" value="ANGGREK - 21 - 02"/>
-                        <StringItem index="67" value="ANGGREK - 22 - 01"/>
-                        <StringItem index="68" value="ANGGREK - 22 - 02"/>
-                        <StringItem index="69" value="ANGGREK - 23 - 01"/>
-                        <StringItem index="70" value="ANGGREK - 23 - 02"/>
-                        <StringItem index="71" value="ANGGREK - 24 - 01"/>
-                        <StringItem index="72" value="ANGGREK - 24 - 02"/>
-                        <StringItem index="73" value="ANGGREK - 25 - 01"/>
-                        <StringItem index="74" value="ANGGREK - 25 - 02"/>
-                        <StringItem index="75" value="ANGGREK - 26 - 01"/>
-                        <StringItem index="76" value="ANGGREK - 26 - 02"/>
-                        <StringItem index="77" value="ANGGREK - 27 - 01"/>
-                        <StringItem index="78" value="ANGGREK - 27 - 02"/>
-                        <StringItem index="79" value="ANGGREK - 28 - 01"/>
-                        <StringItem index="80" value="ANGGREK - 28 - 02"/>
-                        <StringItem index="81" value="SERUNI - 01 - 01"/>
-                        <StringItem index="82" value="SERUNI - 02 - 01"/>
-                        <StringItem index="83" value="SERUNI - 02 - 02"/>
-                        <StringItem index="84" value="SERUNI - 03 - 01"/>
-                        <StringItem index="85" value="SERUNI - 03 - 02"/>
-                        <StringItem index="86" value="SERUNI - 04 - 01"/>
-                        <StringItem index="87" value="SERUNI - 04 - 02"/>
-                        <StringItem index="88" value="SERUNI - 05 - 01"/>
-                        <StringItem index="89" value="SERUNI - 05 - 02"/>
-                        <StringItem index="90" value="SERUNI - 05 - 03"/>
-                        <StringItem index="91" value="SERUNI - 06 - 01"/>
-                        <StringItem index="92" value="SERUNI - 06 - 02"/>
-                        <StringItem index="93" value="SERUNI - 06 - 03"/>
-                        <StringItem index="94" value="SERUNI - ISO - 01"/>
-                        <StringItem index="95" value="SERUNI - ISO - 07"/>
-                        <StringItem index="96" value="SERUNI - ISO - 08"/>
-                        <StringItem index="97" value="MAWAR - A - 01"/>
-                        <StringItem index="98" value="MAWAR - A - 02"/>
-                        <StringItem index="99" value="MAWAR - A - 03"/>
-                        <StringItem index="100" value="MAWAR - A - 04"/>
-                        <StringItem index="101" value="MAWAR - B - 01"/>
-                        <StringItem index="102" value="MAWAR - B - 02"/>
-                        <StringItem index="103" value="MAWAR - B - 03"/>
-                        <StringItem index="104" value="MAWAR - B - 04"/>
-                        <StringItem index="105" value="MAWAR - C - 01"/>
-                        <StringItem index="106" value="MAWAR - C - 02"/>
-                        <StringItem index="107" value="MAWAR - C - 03"/>
-                        <StringItem index="108" value="MAWAR - C - 04"/>
-                        <StringItem index="109" value="MAWAR - D - 01"/>
-                        <StringItem index="110" value="MAWAR - D - 02"/>
-                        <StringItem index="111" value="MAWAR - D - 03"/>
-                        <StringItem index="112" value="MAWAR - D - 04"/>
-                        <StringItem index="113" value="MAWAR - E - 01"/>
-                        <StringItem index="114" value="MAWAR - E - 02"/>
-                        <StringItem index="115" value="MAWAR - E - 03"/>
-                        <StringItem index="116" value="MAWAR - E - 04"/>
-                        <StringItem index="117" value="MAWAR - F - 01"/>
-                        <StringItem index="118" value="MAWAR - F - 02"/>
-                        <StringItem index="119" value="MAWAR - F - 03"/>
-                        <StringItem index="120" value="MAWAR - F - 04"/>
-                        <StringItem index="121" value="CEMPAKA - 01 - 01"/>
-                        <StringItem index="122" value="CEMPAKA - 01 - 02"/>
-                        <StringItem index="123" value="CEMPAKA - 01 - 03"/>
-                        <StringItem index="124" value="CEMPAKA - 01 - 04"/>
-                        <StringItem index="125" value="CEMPAKA - 01 - 05"/>
-                        <StringItem index="126" value="CEMPAKA - 01 - 06"/>
-                        <StringItem index="127" value="CEMPAKA - 02 - 01"/>
-                        <StringItem index="128" value="CEMPAKA - 02 - 02"/>
-                        <StringItem index="129" value="CEMPAKA - 02 - 03"/>
-                        <StringItem index="130" value="CEMPAKA - 02 - 04"/>
-                        <StringItem index="131" value="CEMPAKA - 03 - 01"/>
-                        <StringItem index="132" value="CEMPAKA - 03 - 02"/>
-                        <StringItem index="133" value="CEMPAKA - 03 - 03"/>
-                        <StringItem index="134" value="CEMPAKA - 03 - 04"/>
-                        <StringItem index="135" value="CEMPAKA - 04 - 01"/>
-                        <StringItem index="136" value="CEMPAKA - 04 - 02"/>
-                        <StringItem index="137" value="CEMPAKA - 04 - 03"/>
-                        <StringItem index="138" value="CEMPAKA - 04 - 04"/>
-                        <StringItem index="139" value="CEMPAKA - 04 - 05"/>
-                        <StringItem index="140" value="CEMPAKA - 04 - 06"/>
-                        <StringItem index="141" value="CEMPAKA - 04 - 07"/>
-                        <StringItem index="142" value="CEMPAKA - 04 - 08"/>
-                        <StringItem index="143" value="CEMPAKA - 07 - 01"/>
-                        <StringItem index="144" value="CEMPAKA - 07 - 02"/>
-                        <StringItem index="145" value="CEMPAKA - 07 - 03"/>
-                        <StringItem index="146" value="CEMPAKA - 07 - 04"/>
-                        <StringItem index="147" value="CEMPAKA - 08 - 01"/>
-                        <StringItem index="148" value="CEMPAKA - 08 - 02"/>
-                        <StringItem index="149" value="CEMPAKA - 08 - 03"/>
-                        <StringItem index="150" value="CEMPAKA - 08 - 04"/>
-                        <StringItem index="151" value="CEMPAKA - 09 - 01"/>
-                        <StringItem index="152" value="CEMPAKA - 09 - 02"/>
-                        <StringItem index="153" value="CEMPAKA - 09 - 03"/>
-                        <StringItem index="154" value="CEMPAKA - 09 - 04"/>
-                        <StringItem index="155" value="CEMPAKA - 09 - 05"/>
-                        <StringItem index="156" value="CEMPAKA - 09 - 06"/>
-                        <StringItem index="157" value="CEMPAKA - 09 - 07"/>
-                        <StringItem index="158" value="CEMPAKA - 09 - 08"/>
-                        <StringItem index="159" value="CEMPAKA - ISO - A"/>
-                        <StringItem index="160" value="CEMPAKA - ISO - B"/>
-                        <StringItem index="161" value="CEMPAKA - ISO - C"/>
-                        <StringItem index="162" value="CEMPAKA - ISO - D"/>
-                        <StringItem index="163" value="DAHLIA - VIP 01"/>
-                        <StringItem index="164" value="DAHLIA - VIP 02"/>
-                        <StringItem index="165" value="DAHLIA - VIP 03"/>
-                        <StringItem index="166" value="DAHLIA - VIP 04"/>
-                        <StringItem index="167" value="DAHLIA - 01 - 01"/>
-                        <StringItem index="168" value="DAHLIA - 01 - 02"/>
-                        <StringItem index="169" value="DAHLIA - 02 - 01"/>
-                        <StringItem index="170" value="DAHLIA - 02 - 02"/>
-                        <StringItem index="171" value="DAHLIA - 03 - 01"/>
-                        <StringItem index="172" value="DAHLIA - 03 - 02"/>
-                        <StringItem index="173" value="DAHLIA - 04 - 01"/>
-                        <StringItem index="174" value="DAHLIA - 04 - 02"/>
-                        <StringItem index="175" value="DAHLIA - 05 - 01"/>
-                        <StringItem index="176" value="DAHLIA - 05 - 02"/>
-                        <StringItem index="177" value="DAHLIA - 06 - 01"/>
-                        <StringItem index="178" value="DAHLIA - 06 - 02"/>
-                        <StringItem index="179" value="DAHLIA - 07 - 01"/>
-                        <StringItem index="180" value="DAHLIA - 07 - 02"/>
-                        <StringItem index="181" value="DAHLIA - 08 - 01"/>
-                        <StringItem index="182" value="DAHLIA - 08 - 02"/>
-                        <StringItem index="183" value="DAHLIA - 08 - 03"/>
-                        <StringItem index="184" value="DAHLIA - 09 - 01"/>
-                        <StringItem index="185" value="DAHLIA - 09 - 02"/>
-                        <StringItem index="186" value="DAHLIA - 09 - 03"/>
-                        <StringItem index="187" value="DAHLIA - 10 - 01"/>
-                        <StringItem index="188" value="DAHLIA - 10 - 02"/>
-                        <StringItem index="189" value="DAHLIA - 10 - 03"/>
-                        <StringItem index="190" value="DAHLIA - 10 - 04"/>
-                        <StringItem index="191" value="DAHLIA - 10 - 05"/>
-                        <StringItem index="192" value="DAHLIA - 10 - 06"/>
-                        <StringItem index="193" value="DAHLIA - 10 - 07"/>
-                        <StringItem index="194" value="DAHLIA - 10 - 08"/>
-                        <StringItem index="195" value="DAHLIA - 11 - 01"/>
-                        <StringItem index="196" value="DAHLIA - 11 - 02"/>
-                        <StringItem index="197" value="DAHLIA - 11 - 03"/>
-                        <StringItem index="198" value="DAHLIA - 11 - 04"/>
-                        <StringItem index="199" value="DAHLIA - 12 - 01"/>
-                        <StringItem index="200" value="DAHLIA - 12 - 02"/>
-                        <StringItem index="201" value="DAHLIA - 12 - 03"/>
-                        <StringItem index="202" value="DAHLIA - 13 - 01"/>
-                        <StringItem index="203" value="DAHLIA - 13 - 02"/>
-                        <StringItem index="204" value="DAHLIA - 13 - 03"/>
-                        <StringItem index="205" value="DAHLIA - 14 - 01"/>
-                        <StringItem index="206" value="DAHLIA - 14 - 02"/>
-                        <StringItem index="207" value="DAHLIA - 14 - 03"/>
-                        <StringItem index="208" value="DAHLIA - FISIO - 01"/>
-                        <StringItem index="209" value="DAHLIA - FISIO - 02"/>
-                        <StringItem index="210" value="DAHLIA - FISIO - 03"/>
-                        <StringItem index="211" value="DAHLIA - FISIO - 04"/>
-                        <StringItem index="212" value="DAHLIA - FISIO - 05"/>
-                        <StringItem index="213" value="DAHLIA - FISIO - 06"/>
-                        <StringItem index="214" value="DAHLIA - FISIO - 07"/>
-                        <StringItem index="215" value="DAHLIA - FISIO - 08"/>
-                        <StringItem index="216" value="DAHLIA - FISIO - 09"/>
-                        <StringItem index="217" value="DAHLIA - FISIO - 10"/>
-                        <StringItem index="218" value="DAHLIA - ISO - 01"/>
-                        <StringItem index="219" value="DAHLIA - ISO - 02"/>
-                        <StringItem index="220" value="DAHLIA - KBAYI - 01"/>
-                        <StringItem index="221" value="DAHLIA - KBAYI - 02"/>
-                        <StringItem index="222" value="DAHLIA - KBAYI - 03"/>
-                        <StringItem index="223" value="DAHLIA - P - 01"/>
-                        <StringItem index="224" value="DAHLIA - P - 02"/>
-                        <StringItem index="225" value="DAHLIA - P - 03"/>
-                        <StringItem index="226" value="DAHLIA - P - 04"/>
-                        <StringItem index="227" value="DAHLIA - P - 05"/>
-                        <StringItem index="228" value="DAHLIA - PATO - 01"/>
-                        <StringItem index="229" value="DAHLIA - PATO - 02"/>
-                        <StringItem index="230" value="DAHLIA - PATO - 03"/>
-                        <StringItem index="231" value="DAHLIA - PATO - 04"/>
-                        <StringItem index="232" value="DAHLIA - PATO - 05"/>
-                        <StringItem index="233" value="PICU - 01"/>
-                        <StringItem index="234" value="PICU - 02"/>
-                        <StringItem index="235" value="PICU - 03"/>
-                        <StringItem index="236" value="PICU - 04"/>
-                        <StringItem index="237" value="PICU - 05"/>
-                        <StringItem index="238" value="ICCU - 01"/>
-                        <StringItem index="239" value="ICCU - 02"/>
-                        <StringItem index="240" value="ICCU - 03"/>
-                        <StringItem index="241" value="ICCU - 04"/>
-                        <StringItem index="242" value="ICU - 01"/>
-                        <StringItem index="243" value="ICU - 02"/>
-                        <StringItem index="244" value="ICU - 03"/>
-                        <StringItem index="245" value="ICU - 04"/>
-                        <StringItem index="246" value="ICU - 05"/>
-                        <StringItem index="247" value="ICU - 06"/>
-                        <StringItem index="248" value="ICU - 07"/>
-                        <StringItem index="249" value="ICU - 08"/>
-                        <StringItem index="250" value="ICU - 09"/>
-                        <StringItem index="251" value="ICU - 10"/>
-                        <StringItem index="252" value="ICU - Khusus - 01"/>
-                        <StringItem index="253" value="ICU - Khusus - 02"/>
-                        <StringItem index="254" value="CVCU - 01"/>
+                      <StringArray count="203">
+                        <StringItem index="0" value="ANGGREK-01-01"/>
+                        <StringItem index="1" value="ANGGREK-01-02"/>
+                        <StringItem index="2" value="ANGGREK-02-01"/>
+                        <StringItem index="3" value="ANGGREK-02-02"/>
+                        <StringItem index="4" value="ANGGREK-03-01"/>
+                        <StringItem index="5" value="ANGGREK-03-02"/>
+                        <StringItem index="6" value="ANGGREK-04-01"/>
+                        <StringItem index="7" value="ANGGREK-04-02"/>
+                        <StringItem index="8" value="ANGGREK-05-01"/>
+                        <StringItem index="9" value="ANGGREK-05-02"/>
+                        <StringItem index="10" value="ANGGREK-06-01"/>
+                        <StringItem index="11" value="ANGGREK-06-02"/>
+                        <StringItem index="12" value="ANGGREK-07-01"/>
+                        <StringItem index="13" value="ANGGREK-07-02"/>
+                        <StringItem index="14" value="ANGGREK-08-01"/>
+                        <StringItem index="15" value="ANGGREK-08-02"/>
+                        <StringItem index="16" value="ANGGREK-09-01"/>
+                        <StringItem index="17" value="ANGGREK-09-02"/>
+                        <StringItem index="18" value="ANGGREK-10-01"/>
+                        <StringItem index="19" value="ANGGREK-10-02"/>
+                        <StringItem index="20" value="ANGGREK-11-01"/>
+                        <StringItem index="21" value="ANGGREK-11-02"/>
+                        <StringItem index="22" value="ANGGREK-12-01"/>
+                        <StringItem index="23" value="ANGGREK-12-02"/>
+                        <StringItem index="24" value="ANGGREK-14-01"/>
+                        <StringItem index="25" value="ANGGREK-14-02"/>
+                        <StringItem index="26" value="ANGGREK-15-01"/>
+                        <StringItem index="27" value="ANGGREK-15-02"/>
+                        <StringItem index="28" value="ANGGREK-16-01"/>
+                        <StringItem index="29" value="ANGGREK-16-02"/>
+                        <StringItem index="30" value="ANGGREK-17-01"/>
+                        <StringItem index="31" value="ANGGREK-17-02"/>
+                        <StringItem index="32" value="ANGGREK-18-01"/>
+                        <StringItem index="33" value="ANGGREK-18-02"/>
+                        <StringItem index="34" value="ANGGREK-19-01"/>
+                        <StringItem index="35" value="ANGGREK-19-02"/>
+                        <StringItem index="36" value="ANGGREK-20-01"/>
+                        <StringItem index="37" value="ANGGREK-20-02"/>
+                        <StringItem index="38" value="ANGGREK-21-01"/>
+                        <StringItem index="39" value="ANGGREK-21-02"/>
+                        <StringItem index="40" value="ANGGREK-22-01"/>
+                        <StringItem index="41" value="ANGGREK-22-02"/>
+                        <StringItem index="42" value="ANGGREK-23-01"/>
+                        <StringItem index="43" value="ANGGREK-23-02"/>
+                        <StringItem index="44" value="ANGGREK-24-01"/>
+                        <StringItem index="45" value="ANGGREK-24-02"/>
+                        <StringItem index="46" value="ANGGREK-25-01"/>
+                        <StringItem index="47" value="ANGGREK-25-02"/>
+                        <StringItem index="48" value="ANGGREK-26-01"/>
+                        <StringItem index="49" value="ANGGREK-26-02"/>
+                        <StringItem index="50" value="ANGGREK-27-01"/>
+                        <StringItem index="51" value="ANGGREK-27-02"/>
+                        <StringItem index="52" value="ANGGREK-28-01"/>
+                        <StringItem index="53" value="ANGGREK-28-02"/>
+                        <StringItem index="54" value="ANGGREK-29-01"/>
+                        <StringItem index="55" value="ANGGREK-29-02"/>
+                        <StringItem index="56" value="ANGGREK-30-01"/>
+                        <StringItem index="57" value="ANGGREK-30-02"/>
+                        <StringItem index="58" value="CEMPAKA-01-01"/>
+                        <StringItem index="59" value="CEMPAKA-01-02"/>
+                        <StringItem index="60" value="CEMPAKA-01-03"/>
+                        <StringItem index="61" value="CEMPAKA-01-04"/>
+                        <StringItem index="62" value="CEMPAKA-02-01"/>
+                        <StringItem index="63" value="CEMPAKA-02-02"/>
+                        <StringItem index="64" value="CEMPAKA-02-03"/>
+                        <StringItem index="65" value="CEMPAKA-02-04"/>
+                        <StringItem index="66" value="CEMPAKA-03-01"/>
+                        <StringItem index="67" value="CEMPAKA-03-02"/>
+                        <StringItem index="68" value="CEMPAKA-03-03"/>
+                        <StringItem index="69" value="CEMPAKA-03-04"/>
+                        <StringItem index="70" value="CEMPAKA-04-01"/>
+                        <StringItem index="71" value="CEMPAKA-04-02"/>
+                        <StringItem index="72" value="CEMPAKA-04-03"/>
+                        <StringItem index="73" value="CEMPAKA-04-04"/>
+                        <StringItem index="74" value="CEMPAKA-05-01"/>
+                        <StringItem index="75" value="CEMPAKA-05-02"/>
+                        <StringItem index="76" value="CEMPAKA-05-03"/>
+                        <StringItem index="77" value="CEMPAKA-05-04"/>
+                        <StringItem index="78" value="CEMPAKA-06-01"/>
+                        <StringItem index="79" value="CEMPAKA-06-02"/>
+                        <StringItem index="80" value="CEMPAKA-06-03"/>
+                        <StringItem index="81" value="CEMPAKA-06-04"/>
+                        <StringItem index="82" value="DAHLIA-01-01"/>
+                        <StringItem index="83" value="DAHLIA-02-01"/>
+                        <StringItem index="84" value="DAHLIA-03-01"/>
+                        <StringItem index="85" value="DAHLIA-04-01"/>
+                        <StringItem index="86" value="DAHLIA-05-01"/>
+                        <StringItem index="87" value="DAHLIA-06-01"/>
+                        <StringItem index="88" value="DAHLIA-07-01"/>
+                        <StringItem index="89" value="DAHLIA-08-01"/>
+                        <StringItem index="90" value="DAHLIA-08-02"/>
+                        <StringItem index="91" value="DAHLIA-09-01"/>
+                        <StringItem index="92" value="DAHLIA-09-02"/>
+                        <StringItem index="93" value="DAHLIA-10-01"/>
+                        <StringItem index="94" value="DAHLIA-10-02"/>
+                        <StringItem index="95" value="DAHLIA-11-01"/>
+                        <StringItem index="96" value="DAHLIA-11-02"/>
+                        <StringItem index="97" value="DAHLIA-11-03"/>
+                        <StringItem index="98" value="DAHLIA-11-04"/>
+                        <StringItem index="99" value="DAHLIA-12-02"/>
+                        <StringItem index="100" value="DAHLIA-PATO-01"/>
+                        <StringItem index="101" value="DAHLIA-PATO-02"/>
+                        <StringItem index="102" value="DAHLIA-PATO-03"/>
+                        <StringItem index="103" value="DAHLIA-PATO-04"/>
+                        <StringItem index="104" value="HCU-01"/>
+                        <StringItem index="105" value="HCU-02"/>
+                        <StringItem index="106" value="HCU-03"/>
+                        <StringItem index="107" value="HCU-04"/>
+                        <StringItem index="108" value="HCU-05"/>
+                        <StringItem index="109" value="HCU-06"/>
+                        <StringItem index="110" value="ICCU-01"/>
+                        <StringItem index="111" value="ICCU-02"/>
+                        <StringItem index="112" value="ICCU-03"/>
+                        <StringItem index="113" value="ICU-01"/>
+                        <StringItem index="114" value="ICU-02"/>
+                        <StringItem index="115" value="ICU-03"/>
+                        <StringItem index="116" value="ICU-04"/>
+                        <StringItem index="117" value="ICU-05"/>
+                        <StringItem index="118" value="ICU-06"/>
+                        <StringItem index="119" value="ICU-07"/>
+                        <StringItem index="120" value="ICU-08"/>
+                        <StringItem index="121" value="ICU-09"/>
+                        <StringItem index="122" value="ICU-10"/>
+                        <StringItem index="123" value="MAWAR-1-01"/>
+                        <StringItem index="124" value="MAWAR-1-02"/>
+                        <StringItem index="125" value="MAWAR-1-03"/>
+                        <StringItem index="126" value="MAWAR-2-01"/>
+                        <StringItem index="127" value="MAWAR-2-02"/>
+                        <StringItem index="128" value="MAWAR-2-03"/>
+                        <StringItem index="129" value="MAWAR-3-01"/>
+                        <StringItem index="130" value="MAWAR-3-02"/>
+                        <StringItem index="131" value="MAWAR-3-03"/>
+                        <StringItem index="132" value="MAWAR-4-01"/>
+                        <StringItem index="133" value="MAWAR-4-02"/>
+                        <StringItem index="134" value="MAWAR-4-03"/>
+                        <StringItem index="135" value="MAWAR-5-01"/>
+                        <StringItem index="136" value="MAWAR-5-02"/>
+                        <StringItem index="137" value="MAWAR-5-03"/>
+                        <StringItem index="138" value="MAWAR-6-01"/>
+                        <StringItem index="139" value="MAWAR-6-02"/>
+                        <StringItem index="140" value="MAWAR-6-03"/>
+                        <StringItem index="141" value="MELATI-01-01"/>
+                        <StringItem index="142" value="MELATI-01-02"/>
+                        <StringItem index="143" value="MELATI-02-01"/>
+                        <StringItem index="144" value="MELATI-03-01"/>
+                        <StringItem index="145" value="MELATI-03-02"/>
+                        <StringItem index="146" value="MELATI-04-01"/>
+                        <StringItem index="147" value="MELATI-05-01"/>
+                        <StringItem index="148" value="MELATI-05-02"/>
+                        <StringItem index="149" value="MELATI-06-01"/>
+                        <StringItem index="150" value="MELATI-07-01"/>
+                        <StringItem index="151" value="MELATI-07-02"/>
+                        <StringItem index="152" value="MELATI-08-01"/>
+                        <StringItem index="153" value="MELATI-09-01"/>
+                        <StringItem index="154" value="MELATI-09-02"/>
+                        <StringItem index="155" value="MELATI-10-01"/>
+                        <StringItem index="156" value="MELATI-11-01"/>
+                        <StringItem index="157" value="MELATI-11-02"/>
+                        <StringItem index="158" value="MELATI-12-01"/>
+                        <StringItem index="159" value="MELATI-14-01"/>
+                        <StringItem index="160" value="MELATI-15-01"/>
+                        <StringItem index="161" value="MELATI-15-02"/>
+                        <StringItem index="162" value="MELATI-16-01"/>
+                        <StringItem index="163" value="MELATI-17-01"/>
+                        <StringItem index="164" value="MELATI-17-02"/>
+                        <StringItem index="165" value="MELATI-18-01"/>
+                        <StringItem index="166" value="MELATI-19-01"/>
+                        <StringItem index="167" value="MELATI-19-02"/>
+                        <StringItem index="168" value="MELATI-20-01"/>
+                        <StringItem index="169" value="MELATI-21-01"/>
+                        <StringItem index="170" value="MELATI-21-02"/>
+                        <StringItem index="171" value="MELATI-22-01"/>
+                        <StringItem index="172" value="MELATI-23-01"/>
+                        <StringItem index="173" value="MELATI-23-02"/>
+                        <StringItem index="174" value="MELATI-24-01"/>
+                        <StringItem index="175" value="NICU-01"/>
+                        <StringItem index="176" value="NICU-02"/>
+                        <StringItem index="177" value="NICU-03"/>
+                        <StringItem index="178" value="PAVILIUN A"/>
+                        <StringItem index="179" value="PAVILIUN B"/>
+                        <StringItem index="180" value="PAVILIUN C"/>
+                        <StringItem index="181" value="PAVILIUN D"/>
+                        <StringItem index="182" value="PICU-01"/>
+                        <StringItem index="183" value="PICU-02"/>
+                        <StringItem index="184" value="PICU-03"/>
+                        <StringItem index="185" value="PICU-04"/>
+                        <StringItem index="186" value="SERUNI-01-01"/>
+                        <StringItem index="187" value="SERUNI-02-01"/>
+                        <StringItem index="188" value="SERUNI-02-02"/>
+                        <StringItem index="189" value="SERUNI-03-01"/>
+                        <StringItem index="190" value="SERUNI-03-02"/>
+                        <StringItem index="191" value="SERUNI-04-01"/>
+                        <StringItem index="192" value="SERUNI-04-02"/>
+                        <StringItem index="193" value="SERUNI-05-01"/>
+                        <StringItem index="194" value="SERUNI-05-02"/>
+                        <StringItem index="195" value="SERUNI-06-02"/>
+                        <StringItem index="196" value="SERUNI-06-03"/>
+                        <StringItem index="197" value="SERUNI-07-01"/>
+                        <StringItem index="198" value="SERUNI-08-01"/>
+                        <StringItem index="199" value="SERUNI-A-A"/>
+                        <StringItem index="200" value="SERUNI-B-B"/>
+                        <StringItem index="201" value="SERUNI-C-C"/>
+                        <StringItem index="202" value="SERUNI-D-D"/>
                       </StringArray>
                     </Property>
                     <Property name="name" type="java.lang.String" value="KamarReal" noResource="true"/>
                   </Properties>
                   <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="KamarRealActionPerformed"/>
                     <EventHandler event="keyPressed" listener="java.awt.event.KeyListener" parameters="java.awt.event.KeyEvent" handler="KamarRealKeyPressed"/>
                   </Events>
                   <Constraints>
@@ -1116,7 +1065,7 @@
                   </Properties>
                   <Constraints>
                     <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-                      <AbsoluteConstraints x="10" y="80" width="70" height="20"/>
+                      <AbsoluteConstraints x="0" y="80" width="80" height="20"/>
                     </Constraint>
                   </Constraints>
                 </Component>
@@ -1131,6 +1080,121 @@
                     </Constraint>
                   </Constraints>
                 </Component>
+                <Component class="widget.Label" name="jLabel15">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="Pemberi Instruksi :"/>
+                    <Property name="name" type="java.lang.String" value="jLabel15" noResource="true"/>
+                  </Properties>
+                  <Constraints>
+                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+                      <AbsoluteConstraints x="0" y="110" width="110" height="23"/>
+                    </Constraint>
+                  </Constraints>
+                </Component>
+                <Component class="widget.ComboBox" name="JenisPemberi">
+                  <Properties>
+                    <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
+                      <StringArray count="2">
+                        <StringItem index="0" value="DPJP"/>
+                        <StringItem index="1" value="Dokter Gizi"/>
+                      </StringArray>
+                    </Property>
+                    <Property name="name" type="java.lang.String" value="JenisPemberi" noResource="true"/>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="JenisPemberiActionPerformed"/>
+                  </Events>
+                  <Constraints>
+                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+                      <AbsoluteConstraints x="115" y="110" width="125" height="23"/>
+                    </Constraint>
+                  </Constraints>
+                </Component>
+                <Component class="widget.Label" name="jLabel16">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="Dokter :"/>
+                    <Property name="name" type="java.lang.String" value="jLabel16" noResource="true"/>
+                  </Properties>
+                  <Constraints>
+                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+                      <AbsoluteConstraints x="250" y="110" width="55" height="23"/>
+                    </Constraint>
+                  </Constraints>
+                </Component>
+                <Component class="widget.TextBox" name="KdDokterInstruksi">
+                  <Properties>
+                    <Property name="editable" type="boolean" value="false"/>
+                    <Property name="name" type="java.lang.String" value="KdDokterInstruksi" noResource="true"/>
+                  </Properties>
+                  <Constraints>
+                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+                      <AbsoluteConstraints x="310" y="110" width="90" height="23"/>
+                    </Constraint>
+                  </Constraints>
+                </Component>
+                <Component class="widget.TextBox" name="NmDokterInstruksi">
+                  <Properties>
+                    <Property name="editable" type="boolean" value="false"/>
+                    <Property name="highlighter" type="javax.swing.text.Highlighter" editor="org.netbeans.modules.form.ComponentChooserEditor">
+                      <ComponentRef name="null"/>
+                    </Property>
+                    <Property name="name" type="java.lang.String" value="NmDokterInstruksi" noResource="true"/>
+                  </Properties>
+                  <Constraints>
+                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+                      <AbsoluteConstraints x="402" y="110" width="310" height="23"/>
+                    </Constraint>
+                  </Constraints>
+                </Component>
+                <Component class="widget.Button" name="BtnDokterInstruksi">
+                  <Properties>
+                    <Property name="icon" type="javax.swing.Icon" noResource="true" editor="org.netbeans.modules.form.editors2.IconEditor">
+                      <Image iconType="3" name="/picture/190.png"/>
+                    </Property>
+                    <Property name="toolTipText" type="java.lang.String" value="Pilih dokter pemberi instruksi"/>
+                    <Property name="name" type="java.lang.String" value="BtnDokterInstruksi" noResource="true"/>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="BtnDokterInstruksiActionPerformed"/>
+                  </Events>
+                  <Constraints>
+                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+                      <AbsoluteConstraints x="714" y="110" width="28" height="23"/>
+                    </Constraint>
+                  </Constraints>
+                </Component>
+                <Component class="widget.Label" name="jLabel17">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="Instruksi Diet :"/>
+                    <Property name="name" type="java.lang.String" value="jLabel17" noResource="true"/>
+                  </Properties>
+                  <Constraints>
+                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+                      <AbsoluteConstraints x="0" y="140" width="110" height="23"/>
+                    </Constraint>
+                  </Constraints>
+                </Component>
+                <Container class="widget.ScrollPane" name="ScrollInstruksi">
+                  <Properties>
+                    <Property name="name" type="java.lang.String" value="ScrollInstruksi" noResource="true"/>
+                  </Properties>
+                  <Constraints>
+                    <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
+                      <AbsoluteConstraints x="115" y="140" width="627" height="45"/>
+                    </Constraint>
+                  </Constraints>
+
+                  <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
+                  <SubComponents>
+                    <Component class="widget.TextArea" name="InstruksiDiet">
+                      <Properties>
+                        <Property name="columns" type="int" value="20"/>
+                        <Property name="rows" type="int" value="2"/>
+                        <Property name="name" type="java.lang.String" value="InstruksiDiet" noResource="true"/>
+                      </Properties>
+                    </Component>
+                  </SubComponents>
+                </Container>
               </SubComponents>
             </Container>
           </SubComponents>

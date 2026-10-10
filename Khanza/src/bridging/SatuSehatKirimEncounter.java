@@ -49,7 +49,10 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
     private PreparedStatement ps;
     private ResultSet rs;   
     private int i=0;
-    private String link="",json="",iddokter="",idpasien="";
+    private String link="",json="",iddokter="",idpasien="",tokenSatuSehatAktif="";
+    private boolean hentikanRequestSatuSehat=false;
+    private static final int MAKS_RETRY_429=3;
+    private static final long JEDA_RETRY_429_MS=5000L;
     private ApiSatuSehat api=new ApiSatuSehat();
     private HttpHeaders headers ;
     private HttpEntity requestEntity;
@@ -595,91 +598,49 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
     }//GEN-LAST:event_BtnCariKeyPressed
 
     private void BtnKirimActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnKirimActionPerformed
+        // Ambil token SATUSEHAT satu kali untuk satu proses klik Kirim.
+        // Token yang sama dipakai untuk Practitioner, Patient dan Encounter.
+        hentikanRequestSatuSehat=false;
+        if(!siapkanTokenSatuSehat()){
+            System.out.println("Notifikasi Bridging : Token SATUSEHAT tidak dapat diperoleh, proses kirim Encounter dibatalkan.");
+            return;
+        }
+
         for(i=0;i<tbObat.getRowCount();i++){
             if(tbObat.getValueAt(i,0).toString().equals("true")&&(!tbObat.getValueAt(i,5).toString().equals(""))&&(!tbObat.getValueAt(i,8).toString().equals(""))&&tbObat.getValueAt(i,15).toString().equals("")){
                 try {
-                    iddokter=cekViaSatuSehat.tampilIDParktisi(tbObat.getValueAt(i,8).toString());
+                    iddokter=cariIDPractitionerSatuSehat(tbObat.getValueAt(i,8).toString());
                     String[] dataPasienSatuSehat=ambilDataPasienUntukSatuSehat(tbObat.getValueAt(i,3).toString());
                     idpasien=cariIDPasienSatuSehat(tbObat.getValueAt(i,5).toString(),tbObat.getValueAt(i,4).toString(),dataPasienSatuSehat[0],dataPasienSatuSehat[1]);
+
                     if(iddokter==null||iddokter.trim().equals("")){
-                        System.out.println("Notifikasi Bridging : Practitioner tidak ditemukan untuk NIK dokter "+tbObat.getValueAt(i,8).toString()+", Encounter "+tbObat.getValueAt(i,2).toString()+" tidak dikirim.");
+                        if(hentikanRequestSatuSehat){
+                            System.out.println("Notifikasi Bridging : Proses batch dihentikan karena autentikasi/rate limit SATUSEHAT belum pulih.");
+                            break;
+                        }
+                        System.out.println("Notifikasi Bridging : ID Practitioner belum berhasil diperoleh untuk NIK dokter "+tbObat.getValueAt(i,8).toString()+", Encounter "+tbObat.getValueAt(i,2).toString()+" tidak dikirim.");
                         continue;
                     }
+
                     if(idpasien==null||idpasien.trim().equals("")){
-                        System.out.println("Notifikasi Bridging : Patient tidak ditemukan di SATUSEHAT untuk NIK "+tbObat.getValueAt(i,5).toString()+" / nama "+tbObat.getValueAt(i,4).toString()+" / tgl lahir "+dataPasienSatuSehat[0]+" / gender "+dataPasienSatuSehat[1]+", Encounter "+tbObat.getValueAt(i,2).toString()+" tidak dikirim.");
+                        if(hentikanRequestSatuSehat){
+                            System.out.println("Notifikasi Bridging : Proses batch dihentikan karena autentikasi/rate limit SATUSEHAT belum pulih.");
+                            break;
+                        }
+                        System.out.println("Notifikasi Bridging : ID Patient belum berhasil diperoleh di SATUSEHAT untuk NIK "+tbObat.getValueAt(i,5).toString()+" / nama "+tbObat.getValueAt(i,4).toString()+" / tgl lahir "+dataPasienSatuSehat[0]+" / gender "+dataPasienSatuSehat[1]+", Encounter "+tbObat.getValueAt(i,2).toString()+" tidak dikirim.");
                         continue;
                     }
-                    try{
-                        headers = new HttpHeaders();
-                        headers.setContentType(MediaType.APPLICATION_JSON);
-                        headers.add("Authorization", "Bearer "+api.TokenSatuSehat());
-                        json = "{" +
-                                    "\"resourceType\": \"Encounter\"," +
-                                    "\"status\": \"arrived\"," +
-                                    "\"class\": {" +
-                                        "\"system\": \"http://terminology.hl7.org/CodeSystem/v3-ActCode\"," +
-                                        "\"code\": \""+(tbObat.getValueAt(i,13).toString().equals("Ralan")?"AMB":"IMP")+"\"," +
-                                        "\"display\": \""+(tbObat.getValueAt(i,13).toString().equals("Ralan")?"ambulatory":"inpatient encounter")+"\"" +
-                                    "}," +
-                                    "\"subject\": {" +
-                                        "\"reference\": \"Patient/"+idpasien+"\"," +
-                                        "\"display\": \""+tbObat.getValueAt(i,4).toString()+"\"" +
-                                    "}," +
-                                    "\"participant\": [" +
-                                        "{" +
-                                            "\"type\": [" +
-                                                "{" +
-                                                    "\"coding\": [" +
-                                                        "{" +
-                                                            "\"system\": \"http://terminology.hl7.org/CodeSystem/v3-ParticipationType\"," +
-                                                            "\"code\": \"ATND\"," +
-                                                            "\"display\": \"attender\"" +
-                                                        "}" +
-                                                    "]" +
-                                                "}" +
-                                            "]," +
-                                            "\"individual\": {" +
-                                                "\"reference\": \"Practitioner/"+iddokter+"\"," +
-                                                "\"display\": \""+tbObat.getValueAt(i,7).toString()+"\"" +
-                                            "}" +
-                                        "}" +
-                                    "]," +
-                                    "\"period\": {" +
-                                        "\"start\": \""+tbObat.getValueAt(i,1).toString()+"\"" +
-                                    "}," +
-                                    "\"location\": [" +
-                                        "{" +
-                                            "\"location\": {" +
-                                                "\"reference\": \"Location/"+tbObat.getValueAt(i,11).toString()+"\"," +
-                                                "\"display\": \""+tbObat.getValueAt(i,10).toString()+"\"" +
-                                            "}" +
-                                        "}" +
-                                    "]," +
-                                    "\"statusHistory\": [" +
-                                        "{" +
-                                            "\"status\": \"arrived\"," +
-                                            "\"period\": {" +
-                                                "\"start\": \""+tbObat.getValueAt(i,1).toString()+"\"," +
-                                                "\"end\": \""+tbObat.getValueAt(i,14).toString()+"\"" +
-                                            "}" +
-                                        "}" +
-                                    "]," +
-                                    "\"serviceProvider\": {" +
-                                        "\"reference\": \"Organization/"+koneksiDB.IDSATUSEHAT()+"\"" +
-                                    "}," +
-                                    "\"identifier\": [" +
-                                        "{" +
-                                            "\"system\": \"http://sys-ids.kemkes.go.id/encounter/"+koneksiDB.IDSATUSEHAT()+"\"," +
-                                            "\"value\": \""+tbObat.getValueAt(i,2).toString()+"\"" +
-                                        "}" +
-                                    "]" +
-                                "}";
-                        System.out.println("URL : "+link+"/Encounter");
-                        System.out.println("Request JSON : "+json);
-                        requestEntity = new HttpEntity(json,headers);
-                        json=api.getRest().exchange(link+"/Encounter", HttpMethod.POST, requestEntity, String.class).getBody();
-                        System.out.println("Result JSON : "+json);
-                        root = mapper.readTree(json);
+
+                    json = buatJsonEncounterSatuSehat(i,"",false);
+                    String urlEncounter=link+"/Encounter";
+                    System.out.println("URL : "+urlEncounter);
+                    System.out.println("Request JSON : "+json);
+                    String hasilEncounter=kirimRequestSatuSehat(urlEncounter,HttpMethod.POST,json,true,"Kirim Encounter");
+                    jedaAntarDataSatuSehat();
+
+                    if(hasilEncounter!=null&&!hasilEncounter.trim().equals("")){
+                        System.out.println("Result JSON : "+hasilEncounter);
+                        root = mapper.readTree(hasilEncounter);
                         response = root.path("id");
                         if(!response.asText().equals("")){
                             if(Sequel.menyimpantf2("satu_sehat_encounter","?,?","No.Rawat",2,new String[]{
@@ -689,14 +650,9 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
                                 tbObat.setValueAt(false,i,0);
                             }
                         }
-                    }catch(HttpClientErrorException e){
-                        System.out.println("Notifikasi Bridging : "+e);
-                        System.out.println("Response Body : "+e.getResponseBodyAsString());
-                    }catch(Exception e){
-                        System.out.println("Notifikasi Bridging : "+e);
                     }
                 } catch (Exception e) {
-                    System.out.println("Notifikasi : "+e);
+                    System.out.println("Notifikasi Bridging : "+e);
                 }
             }
         }
@@ -715,100 +671,57 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
     }//GEN-LAST:event_ppBersihkanActionPerformed
 
     private void BtnUpdateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnUpdateActionPerformed
+        // Ambil token SATUSEHAT satu kali untuk satu proses klik Update.
+        hentikanRequestSatuSehat=false;
+        if(!siapkanTokenSatuSehat()){
+            System.out.println("Notifikasi Bridging : Token SATUSEHAT tidak dapat diperoleh, proses update Encounter dibatalkan.");
+            return;
+        }
+
         for(i=0;i<tbObat.getRowCount();i++){
             if(tbObat.getValueAt(i,0).toString().equals("true")&&(!tbObat.getValueAt(i,5).toString().equals(""))&&(!tbObat.getValueAt(i,8).toString().equals(""))&&(!tbObat.getValueAt(i,15).toString().equals(""))){
                 try {
-                    iddokter=cekViaSatuSehat.tampilIDParktisi(tbObat.getValueAt(i,8).toString());
+                    iddokter=cariIDPractitionerSatuSehat(tbObat.getValueAt(i,8).toString());
                     String[] dataPasienSatuSehat=ambilDataPasienUntukSatuSehat(tbObat.getValueAt(i,3).toString());
                     idpasien=cariIDPasienSatuSehat(tbObat.getValueAt(i,5).toString(),tbObat.getValueAt(i,4).toString(),dataPasienSatuSehat[0],dataPasienSatuSehat[1]);
+
                     if(iddokter==null||iddokter.trim().equals("")){
-                        System.out.println("Notifikasi Bridging : Practitioner tidak ditemukan untuk NIK dokter "+tbObat.getValueAt(i,8).toString()+", Encounter "+tbObat.getValueAt(i,2).toString()+" tidak dikirim.");
+                        if(hentikanRequestSatuSehat){
+                            System.out.println("Notifikasi Bridging : Proses batch dihentikan karena autentikasi/rate limit SATUSEHAT belum pulih.");
+                            break;
+                        }
+                        System.out.println("Notifikasi Bridging : ID Practitioner belum berhasil diperoleh untuk NIK dokter "+tbObat.getValueAt(i,8).toString()+", Encounter "+tbObat.getValueAt(i,2).toString()+" tidak diupdate.");
                         continue;
                     }
+
                     if(idpasien==null||idpasien.trim().equals("")){
-                        System.out.println("Notifikasi Bridging : Patient tidak ditemukan di SATUSEHAT untuk NIK "+tbObat.getValueAt(i,5).toString()+" / nama "+tbObat.getValueAt(i,4).toString()+" / tgl lahir "+dataPasienSatuSehat[0]+" / gender "+dataPasienSatuSehat[1]+", Encounter "+tbObat.getValueAt(i,2).toString()+" tidak dikirim.");
+                        if(hentikanRequestSatuSehat){
+                            System.out.println("Notifikasi Bridging : Proses batch dihentikan karena autentikasi/rate limit SATUSEHAT belum pulih.");
+                            break;
+                        }
+                        System.out.println("Notifikasi Bridging : ID Patient belum berhasil diperoleh di SATUSEHAT untuk NIK "+tbObat.getValueAt(i,5).toString()+" / nama "+tbObat.getValueAt(i,4).toString()+" / tgl lahir "+dataPasienSatuSehat[0]+" / gender "+dataPasienSatuSehat[1]+", Encounter "+tbObat.getValueAt(i,2).toString()+" tidak diupdate.");
                         continue;
                     }
-                    try{
-                        headers = new HttpHeaders();
-                        headers.setContentType(MediaType.APPLICATION_JSON);
-                        headers.add("Authorization", "Bearer "+api.TokenSatuSehat());
-                        json = "{" +
-                                    "\"resourceType\": \"Encounter\"," +
-                                    "\"id\": \""+tbObat.getValueAt(i,15).toString()+"\"," +
-                                    "\"identifier\": [" +
-                                        "{" +
-                                            "\"system\": \"http://sys-ids.kemkes.go.id/encounter/"+koneksiDB.IDSATUSEHAT()+"\"," +
-                                            "\"value\": \""+tbObat.getValueAt(i,2).toString()+"\"" +
-                                        "}" +
-                                    "]," +
-                                    "\"status\": \"arrived\"," +
-                                    "\"class\": {" +
-                                        "\"system\": \"http://terminology.hl7.org/CodeSystem/v3-ActCode\"," +
-                                        "\"code\": \""+(tbObat.getValueAt(i,13).toString().equals("Ralan")?"AMB":"IMP")+"\"," +
-                                        "\"display\": \""+(tbObat.getValueAt(i,13).toString().equals("Ralan")?"ambulatory":"inpatient encounter")+"\"" +
-                                    "}," +
-                                    "\"subject\": {" +
-                                        "\"reference\": \"Patient/"+idpasien+"\"," +
-                                        "\"display\": \""+tbObat.getValueAt(i,4).toString()+"\"" +
-                                    "}," +
-                                    "\"participant\": [" +
-                                        "{" +
-                                            "\"type\": [" +
-                                                "{" +
-                                                    "\"coding\": [" +
-                                                        "{" +
-                                                            "\"system\": \"http://terminology.hl7.org/CodeSystem/v3-ParticipationType\"," +
-                                                            "\"code\": \"ATND\"," +
-                                                            "\"display\": \"attender\"" +
-                                                        "}" +
-                                                    "]" +
-                                                "}" +
-                                            "]," +
-                                            "\"individual\": {" +
-                                                "\"reference\": \"Practitioner/"+iddokter+"\"," +
-                                                "\"display\": \""+tbObat.getValueAt(i,7).toString()+"\"" +
-                                            "}" +
-                                        "}" +
-                                    "]," +
-                                    "\"period\": {" +
-                                        "\"start\": \""+tbObat.getValueAt(i,1).toString()+"\"" +
-                                    "}," +
-                                    "\"location\": [" +
-                                        "{" +
-                                            "\"location\": {" +
-                                                "\"reference\": \"Location/"+tbObat.getValueAt(i,11).toString()+"\"," +
-                                                "\"display\": \""+tbObat.getValueAt(i,10).toString()+"\"" +
-                                            "}" +
-                                        "}" +
-                                    "]," +
-                                    "\"statusHistory\": [" +
-                                        "{" +
-                                            "\"status\": \"arrived\"," +
-                                            "\"period\": {" +
-                                                "\"start\": \""+tbObat.getValueAt(i,1).toString()+"\"," +
-                                                "\"end\": \""+tbObat.getValueAt(i,14).toString()+"\"" +
-                                            "}" +
-                                        "}" +
-                                    "]," +
-                                    "\"serviceProvider\": {" +
-                                        "\"reference\": \"Organization/"+koneksiDB.IDSATUSEHAT()+"\"" +
-                                    "}" +
-                                "}";
-                        System.out.println("URL : "+link+"/Encounter/"+tbObat.getValueAt(i,15).toString());
-                        System.out.println("Request JSON : "+json);
-                        requestEntity = new HttpEntity(json,headers);
-                        json=api.getRest().exchange(link+"/Encounter/"+tbObat.getValueAt(i,15).toString(), HttpMethod.PUT, requestEntity, String.class).getBody();
-                        System.out.println("Result JSON : "+json);
+
+                    String diagnosisFinal=ambilDiagnosisEncounterSatuSehat(tbObat.getValueAt(i,2).toString());
+                    if(diagnosisFinal==null||diagnosisFinal.trim().equals("")){
+                        System.out.println("Notifikasi Bridging : Update Encounter dibatalkan. Condition/diagnosis SATUSEHAT belum tersedia untuk No.Rawat "+tbObat.getValueAt(i,2).toString()+". Kirim Condition terlebih dahulu, kemudian lakukan Update Encounter.");
+                        continue;
+                    }
+                    json = buatJsonEncounterSatuSehat(i,tbObat.getValueAt(i,15).toString(),true);
+                    String urlEncounter=link+"/Encounter/"+tbObat.getValueAt(i,15).toString();
+                    System.out.println("URL : "+urlEncounter);
+                    System.out.println("Request JSON : "+json);
+                    String hasilEncounter=kirimRequestSatuSehat(urlEncounter,HttpMethod.PUT,json,true,"Update Encounter");
+                    jedaAntarDataSatuSehat();
+                    if(hasilEncounter!=null){
+                        if(!hasilEncounter.trim().equals("")){
+                            System.out.println("Result JSON : "+hasilEncounter);
+                        }
                         tbObat.setValueAt(false,i,0);
-                    }catch(HttpClientErrorException e){
-                        System.out.println("Notifikasi Bridging : "+e);
-                        System.out.println("Response Body : "+e.getResponseBodyAsString());
-                    }catch(Exception e){
-                        System.out.println("Notifikasi Bridging : "+e);
                     }
                 } catch (Exception e) {
-                    System.out.println("Notifikasi : "+e);
+                    System.out.println("Notifikasi Bridging : "+e);
                 }
             }
         }
@@ -874,6 +787,182 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
     private javax.swing.JMenuItem ppPilihSemua;
     private widget.Table tbObat;
     // End of variables declaration//GEN-END:variables
+    private String buatJsonEncounterSatuSehat(int row,String idEncounter,boolean finalisasi) throws Exception{
+        String waktuMulai=getNilaiTable(row,1);
+        String noRawat=getNilaiTable(row,2);
+        String namaPasien=getNilaiTable(row,4);
+        String namaDokter=getNilaiTable(row,7);
+        String namaPoli=getNilaiTable(row,10);
+        String idLokasi=getNilaiTable(row,11);
+        String statusLanjut=getNilaiTable(row,13);
+        String waktuPulang=getNilaiTable(row,14);
+
+        if(finalisasi&&(waktuPulang==null||waktuPulang.trim().equals(""))){
+            waktuPulang=waktuMulai;
+            System.out.println("Notifikasi Bridging : Tanggal/Jam pulang kosong untuk Encounter "+noRawat+", period.end memakai waktu registrasi.");
+        }
+
+        String kodeClass=statusLanjut.equals("Ralan")?"AMB":"IMP";
+        String displayClass=statusLanjut.equals("Ralan")?"ambulatory":"inpatient encounter";
+        String diagnosis=finalisasi?ambilDiagnosisEncounterSatuSehat(noRawat):"";
+
+        StringBuilder jsonEncounter=new StringBuilder();
+        jsonEncounter.append("{");
+        jsonEncounter.append("\"resourceType\":\"Encounter\",");
+        if(idEncounter!=null&&!idEncounter.trim().equals("")){
+            jsonEncounter.append("\"id\":\"").append(jsonEscapeSatuSehat(idEncounter)).append("\",");
+        }
+        jsonEncounter.append("\"identifier\":[{");
+        jsonEncounter.append("\"system\":\"http://sys-ids.kemkes.go.id/encounter/").append(jsonEscapeSatuSehat(koneksiDB.IDSATUSEHAT())).append("\",");
+        jsonEncounter.append("\"value\":\"").append(jsonEscapeSatuSehat(noRawat)).append("\"");
+        jsonEncounter.append("}],");
+        jsonEncounter.append("\"status\":\"").append(finalisasi?"finished":"in-progress").append("\",");
+        jsonEncounter.append("\"class\":{");
+        jsonEncounter.append("\"system\":\"http://terminology.hl7.org/CodeSystem/v3-ActCode\",");
+        jsonEncounter.append("\"code\":\"").append(kodeClass).append("\",");
+        jsonEncounter.append("\"display\":\"").append(displayClass).append("\"");
+        jsonEncounter.append("},");
+        jsonEncounter.append("\"subject\":{");
+        jsonEncounter.append("\"reference\":\"Patient/").append(jsonEscapeSatuSehat(idpasien)).append("\",");
+        jsonEncounter.append("\"display\":\"").append(jsonEscapeSatuSehat(namaPasien)).append("\"");
+        jsonEncounter.append("},");
+        jsonEncounter.append("\"participant\":[{");
+        jsonEncounter.append("\"type\":[{\"coding\":[{");
+        jsonEncounter.append("\"system\":\"http://terminology.hl7.org/CodeSystem/v3-ParticipationType\",");
+        jsonEncounter.append("\"code\":\"ATND\",");
+        jsonEncounter.append("\"display\":\"attender\"");
+        jsonEncounter.append("}]}],");
+        jsonEncounter.append("\"individual\":{");
+        jsonEncounter.append("\"reference\":\"Practitioner/").append(jsonEscapeSatuSehat(iddokter)).append("\",");
+        jsonEncounter.append("\"display\":\"").append(jsonEscapeSatuSehat(namaDokter)).append("\"");
+        jsonEncounter.append("}");
+        jsonEncounter.append("}],");
+        jsonEncounter.append("\"period\":{");
+        jsonEncounter.append("\"start\":\"").append(jsonEscapeSatuSehat(waktuMulai)).append("\"");
+        if(finalisasi){
+            jsonEncounter.append(",\"end\":\"").append(jsonEscapeSatuSehat(waktuPulang)).append("\"");
+        }
+        jsonEncounter.append("},");
+        jsonEncounter.append("\"location\":[{");
+        jsonEncounter.append("\"location\":{");
+        jsonEncounter.append("\"reference\":\"Location/").append(jsonEscapeSatuSehat(idLokasi)).append("\",");
+        jsonEncounter.append("\"display\":\"").append(jsonEscapeSatuSehat(namaPoli)).append("\"");
+        jsonEncounter.append("}");
+        jsonEncounter.append("}],");
+        jsonEncounter.append("\"statusHistory\":[");
+        jsonEncounter.append("{\"status\":\"arrived\",\"period\":{\"start\":\"").append(jsonEscapeSatuSehat(waktuMulai)).append("\",\"end\":\"").append(jsonEscapeSatuSehat(waktuMulai)).append("\"}},");
+        if(finalisasi){
+            jsonEncounter.append("{\"status\":\"in-progress\",\"period\":{\"start\":\"").append(jsonEscapeSatuSehat(waktuMulai)).append("\",\"end\":\"").append(jsonEscapeSatuSehat(waktuPulang)).append("\"}},");
+            jsonEncounter.append("{\"status\":\"finished\",\"period\":{\"start\":\"").append(jsonEscapeSatuSehat(waktuPulang)).append("\",\"end\":\"").append(jsonEscapeSatuSehat(waktuPulang)).append("\"}}");
+        }else{
+            jsonEncounter.append("{\"status\":\"in-progress\",\"period\":{\"start\":\"").append(jsonEscapeSatuSehat(waktuMulai)).append("\"}}");
+        }
+        jsonEncounter.append("],");
+        if(finalisasi&&!diagnosis.equals("")){
+            jsonEncounter.append("\"diagnosis\":").append(diagnosis).append(",");
+        }
+        jsonEncounter.append("\"serviceProvider\":{");
+        jsonEncounter.append("\"reference\":\"Organization/").append(jsonEscapeSatuSehat(koneksiDB.IDSATUSEHAT())).append("\"");
+        jsonEncounter.append("}");
+        jsonEncounter.append("}");
+        return jsonEncounter.toString();
+    }
+
+    private String ambilDiagnosisEncounterSatuSehat(String noRawat){
+        StringBuilder diagnosis=new StringBuilder();
+        PreparedStatement psDiagnosis=null;
+        ResultSet rsDiagnosis=null;
+        int rank=1;
+        try{
+            psDiagnosis=koneksi.prepareStatement(
+                    "select id_condition from satu_sehat_condition where no_rawat=? and trim(ifnull(id_condition,''))<>''"
+            );
+            psDiagnosis.setString(1,noRawat);
+            rsDiagnosis=psDiagnosis.executeQuery();
+            while(rsDiagnosis.next()){
+                if(rank>1){
+                    diagnosis.append(",");
+                }
+                diagnosis.append("{");
+                diagnosis.append("\"condition\":{\"reference\":\"Condition/").append(jsonEscapeSatuSehat(rsDiagnosis.getString("id_condition"))).append("\"},");
+                diagnosis.append("\"use\":{\"coding\":[{");
+                diagnosis.append("\"system\":\"http://terminology.hl7.org/CodeSystem/diagnosis-role\",");
+                diagnosis.append("\"code\":\"DD\",");
+                diagnosis.append("\"display\":\"Discharge diagnosis\"");
+                diagnosis.append("}]},");
+                diagnosis.append("\"rank\":").append(rank);
+                diagnosis.append("}");
+                rank++;
+            }
+        }catch(Exception e){
+            System.out.println("Notifikasi Ambil Diagnosis Encounter : "+e);
+        }finally{
+            try{
+                if(rsDiagnosis!=null){
+                    rsDiagnosis.close();
+                }
+                if(psDiagnosis!=null){
+                    psDiagnosis.close();
+                }
+            }catch(Exception e){
+                System.out.println("Notifikasi Tutup Diagnosis Encounter : "+e);
+            }
+        }
+
+        if(rank==1){
+            return "";
+        }
+        return "["+diagnosis.toString()+"]";
+    }
+
+    private String getNilaiTable(int row,int col){
+        if(tbObat.getValueAt(row,col)==null){
+            return "";
+        }
+        return tbObat.getValueAt(row,col).toString();
+    }
+
+    private String jsonEscapeSatuSehat(String value){
+        if(value==null){
+            return "";
+        }
+        StringBuilder escaped=new StringBuilder();
+        for(int idx=0;idx<value.length();idx++){
+            char c=value.charAt(idx);
+            switch(c){
+                case '"':
+                    escaped.append("\\\"");
+                    break;
+                case '\\':
+                    escaped.append("\\\\");
+                    break;
+                case '\b':
+                    escaped.append("\\b");
+                    break;
+                case '\f':
+                    escaped.append("\\f");
+                    break;
+                case '\n':
+                    escaped.append("\\n");
+                    break;
+                case '\r':
+                    escaped.append("\\r");
+                    break;
+                case '\t':
+                    escaped.append("\\t");
+                    break;
+                default:
+                    if(c<32){
+                        escaped.append(String.format("\\u%04x",(int)c));
+                    }else{
+                        escaped.append(c);
+                    }
+                    break;
+            }
+        }
+        return escaped.toString();
+    }
+
     private String[] ambilDataPasienUntukSatuSehat(String noRkmMedis){
         String[] data=new String[]{"",""};
         PreparedStatement psPasien=null;
@@ -903,15 +992,166 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
         return data;
     }
 
-    private String cariIDPasienSatuSehat(String nikPasien,String namaPasien,String tglLahir,String jk){
-        String idCari="";
+    /**
+     * Mengambil token SATUSEHAT dan menyimpannya untuk dipakai bersama dalam
+     * satu proses Kirim/Update. Dengan cara ini token tidak diminta ulang untuk
+     * setiap pencarian Practitioner, Patient dan POST/PUT Encounter.
+     */
+    private boolean siapkanTokenSatuSehat(){
         try{
-            idCari=cekViaSatuSehat.tampilIDPasien(nikPasien);
+            tokenSatuSehatAktif=api.TokenSatuSehat();
+            if(tokenSatuSehatAktif==null||tokenSatuSehatAktif.trim().equals("")){
+                tokenSatuSehatAktif="";
+                return false;
+            }
+            tokenSatuSehatAktif=tokenSatuSehatAktif.trim();
+            return true;
+        }catch(IllegalArgumentException e){
+            if(isHttp429SatuSehat(e)){
+                hentikanRequestSatuSehat=true;
+                System.out.println("Notifikasi Bridging : HTTP 429 Too Many Requests saat mengambil token SATUSEHAT. Jangan meminta token berulang-ulang, coba kembali setelah rate limit selesai.");
+            }else{
+                System.out.println("Notifikasi Token SATUSEHAT : "+e);
+            }
         }catch(Exception e){
-            System.out.println("Notifikasi Cek Patient By NIK : "+e);
+            System.out.println("Notifikasi Token SATUSEHAT : "+e);
         }
+        tokenSatuSehatAktif="";
+        return false;
+    }
 
-        if(idCari!=null&&!idCari.trim().equals("")){
+    /** Refresh token hanya bila server benar-benar mengembalikan 401. */
+    private boolean refreshTokenSatuSehat(){
+        System.out.println("Notifikasi Bridging : HTTP 401 Unauthorized, mencoba memperbarui token SATUSEHAT satu kali...");
+        tokenSatuSehatAktif="";
+        return siapkanTokenSatuSehat();
+    }
+
+    private HttpHeaders buatHeadersSatuSehat(){
+        HttpHeaders headerBaru=new HttpHeaders();
+        headerBaru.setContentType(MediaType.APPLICATION_JSON);
+        headerBaru.add("Authorization","Bearer "+tokenSatuSehatAktif);
+        return headerBaru;
+    }
+
+    private boolean isHttp429SatuSehat(Exception e){
+        if(e==null||e.getMessage()==null){
+            return false;
+        }
+        String pesan=e.getMessage();
+        return pesan.contains("[429]")||pesan.contains("429 Too Many Requests")||pesan.contains("429");
+    }
+
+    /**
+     * GET resource SATUSEHAT menggunakan token aktif. Jika 401, token direfresh
+     * satu kali lalu request diulang. HTTP 429 ditangani sebagai rate limit,
+     * bukan sebagai "resource tidak ditemukan".
+     */
+    private void jedaAntarDataSatuSehat(){
+        try{
+            Thread.sleep(350L);
+        }catch(InterruptedException e){
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void tungguRetry429SatuSehat(int percobaan,String konteks){
+        long jeda=JEDA_RETRY_429_MS*percobaan;
+        System.out.println("Notifikasi Bridging : HTTP 429 pada "+konteks+", menunggu "+(jeda/1000)+" detik sebelum retry ke-"+percobaan+".");
+        try{
+            Thread.sleep(jeda);
+        }catch(InterruptedException e){
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private String getSatuSehat(URI uri,boolean bolehRefresh,String konteks){
+        return getSatuSehat(uri,bolehRefresh,konteks,0);
+    }
+
+    private String getSatuSehat(URI uri,boolean bolehRefresh,String konteks,int retry429){
+        try{
+            requestEntity=new HttpEntity(buatHeadersSatuSehat());
+            return api.getRest().exchange(uri,HttpMethod.GET,requestEntity,String.class).getBody();
+        }catch(HttpClientErrorException e){
+            int status=e.getStatusCode().value();
+            System.out.println("Notifikasi "+konteks+" : HTTP "+status+" - "+e);
+            System.out.println("Response Body "+konteks+" : "+e.getResponseBodyAsString());
+            if(status==401&&bolehRefresh){
+                if(refreshTokenSatuSehat()){
+                    return getSatuSehat(uri,false,konteks,retry429);
+                }
+                hentikanRequestSatuSehat=true;
+            }
+            if(status==429){
+                if(retry429<MAKS_RETRY_429){
+                    int percobaan=retry429+1;
+                    tungguRetry429SatuSehat(percobaan,konteks);
+                    return getSatuSehat(uri,bolehRefresh,konteks,percobaan);
+                }
+                System.out.println("Notifikasi Bridging : HTTP 429 masih terjadi setelah "+MAKS_RETRY_429+" retry pada "+konteks+". Data ini dilewati, batch dilanjutkan ke data berikutnya.");
+            }
+        }catch(IllegalArgumentException e){
+            if(isHttp429SatuSehat(e)){
+                if(retry429<MAKS_RETRY_429){
+                    int percobaan=retry429+1;
+                    tungguRetry429SatuSehat(percobaan,konteks);
+                    return getSatuSehat(uri,bolehRefresh,konteks,percobaan);
+                }
+                System.out.println("Notifikasi Bridging : HTTP 429 masih terjadi setelah "+MAKS_RETRY_429+" retry pada "+konteks+". Spring lama menampilkan 'No matching constant for [429]'. Data ini dilewati.");
+            }else{
+                System.out.println("Notifikasi "+konteks+" : "+e);
+            }
+        }catch(Exception e){
+            System.out.println("Notifikasi "+konteks+" : "+e);
+        }
+        return null;
+    }
+
+    private String cariIDIHSSatuSehat(String resourceType,String nik,String label){
+        if(nik==null||nik.trim().equals("")){
+            return "";
+        }
+        try{
+            String identifier="https://fhir.kemkes.go.id/id/nik|"+nik.trim();
+            URI uri=URI.create(link+"/"+resourceType+"?identifier="+urlEncodeSatuSehat(identifier));
+            System.out.println("URL : "+uri.toString());
+            String hasil=getSatuSehat(uri,true,"Cek "+label+" By NIK");
+            if(hasil==null){
+                return null;
+            }
+            if(hasil.trim().equals("")){
+                return "";
+            }
+
+            JsonNode rootCari=mapper.readTree(hasil);
+            if(rootCari.path("total").asInt()>0&&rootCari.path("entry").isArray()){
+                for(int idx=0;idx<rootCari.path("entry").size();idx++){
+                    String id=rootCari.path("entry").get(idx).path("resource").path("id").asText();
+                    if(id!=null&&!id.trim().equals("")){
+                        System.out.println(label+" ditemukan via NIK : "+id);
+                        return id.trim();
+                    }
+                }
+            }
+            System.out.println("Notifikasi Bridging : "+label+" tidak ditemukan berdasarkan NIK "+nik+" (HTTP berhasil, total=0).");
+        }catch(Exception e){
+            System.out.println("Notifikasi Cek "+label+" By NIK : "+e);
+            return null;
+        }
+        return "";
+    }
+
+    private String cariIDPractitionerSatuSehat(String nikDokter){
+        return cariIDIHSSatuSehat("Practitioner",nikDokter,"Practitioner");
+    }
+
+    private String cariIDPasienSatuSehat(String nikPasien,String namaPasien,String tglLahir,String jk){
+        String idCari=cariIDIHSSatuSehat("Patient",nikPasien,"Patient");
+        if(idCari==null){
+            return null;
+        }
+        if(!idCari.trim().equals("")){
             return idCari.trim();
         }
 
@@ -922,16 +1162,14 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
                 return "";
             }
 
-            headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.add("Authorization", "Bearer "+api.TokenSatuSehat());
-
             String urlFallback=link+"/Patient?name="+urlEncodeSatuSehat(namaPasien.trim())+"&birthdate="+urlEncodeSatuSehat(tglLahir.trim())+"&gender="+urlEncodeSatuSehat(gender);
             URI uriFallback=URI.create(urlFallback);
             System.out.println("URL Fallback Patient : "+uriFallback.toString());
 
-            requestEntity = new HttpEntity(headers);
-            String hasilFallback=api.getRest().exchange(uriFallback, HttpMethod.GET, requestEntity, String.class).getBody();
+            String hasilFallback=getSatuSehat(uriFallback,true,"Fallback Patient");
+            if(hasilFallback==null||hasilFallback.trim().equals("")){
+                return "";
+            }
             System.out.println("JSON Fallback Patient : "+hasilFallback);
 
             JsonNode rootFallback=mapper.readTree(hasilFallback);
@@ -944,14 +1182,58 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
                     }
                 }
             }
-        }catch(HttpClientErrorException e){
-            System.out.println("Notifikasi Fallback Patient : "+e);
-            System.out.println("Response Body Fallback Patient : "+e.getResponseBodyAsString());
+            System.out.println("Notifikasi Bridging : Patient tidak ditemukan juga melalui fallback name+birthdate+gender.");
         }catch(Exception e){
             System.out.println("Notifikasi Fallback Patient : "+e);
         }
 
         return "";
+    }
+
+    /**
+     * POST/PUT ke SATUSEHAT dengan token bersama dan retry 401 maksimal satu kali.
+     */
+    private String kirimRequestSatuSehat(String url,HttpMethod method,String body,boolean bolehRefresh,String konteks){
+        return kirimRequestSatuSehat(url,method,body,bolehRefresh,konteks,0);
+    }
+
+    private String kirimRequestSatuSehat(String url,HttpMethod method,String body,boolean bolehRefresh,String konteks,int retry429){
+        try{
+            requestEntity=new HttpEntity(body,buatHeadersSatuSehat());
+            return api.getRest().exchange(url,method,requestEntity,String.class).getBody();
+        }catch(HttpClientErrorException e){
+            int status=e.getStatusCode().value();
+            System.out.println("Notifikasi Bridging "+konteks+" : HTTP "+status+" - "+e);
+            System.out.println("Response Body : "+e.getResponseBodyAsString());
+            if(status==401&&bolehRefresh){
+                if(refreshTokenSatuSehat()){
+                    return kirimRequestSatuSehat(url,method,body,false,konteks,retry429);
+                }
+                hentikanRequestSatuSehat=true;
+            }
+            if(status==429){
+                if(retry429<MAKS_RETRY_429){
+                    int percobaan=retry429+1;
+                    tungguRetry429SatuSehat(percobaan,konteks);
+                    return kirimRequestSatuSehat(url,method,body,bolehRefresh,konteks,percobaan);
+                }
+                System.out.println("Notifikasi Bridging : HTTP 429 masih terjadi setelah "+MAKS_RETRY_429+" retry pada "+konteks+". Data ini dilewati, batch dilanjutkan.");
+            }
+        }catch(IllegalArgumentException e){
+            if(isHttp429SatuSehat(e)){
+                if(retry429<MAKS_RETRY_429){
+                    int percobaan=retry429+1;
+                    tungguRetry429SatuSehat(percobaan,konteks);
+                    return kirimRequestSatuSehat(url,method,body,bolehRefresh,konteks,percobaan);
+                }
+                System.out.println("Notifikasi Bridging : HTTP 429 masih terjadi setelah "+MAKS_RETRY_429+" retry pada "+konteks+". Spring lama menampilkan 'No matching constant for [429]'. Data ini dilewati.");
+            }else{
+                System.out.println("Notifikasi Bridging "+konteks+" : "+e);
+            }
+        }catch(Exception e){
+            System.out.println("Notifikasi Bridging "+konteks+" : "+e);
+        }
+        return null;
     }
 
     private String konversiGenderSatuSehat(String jk){
@@ -991,7 +1273,7 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
             ps=koneksi.prepareStatement(
                    "select reg_periksa.tgl_registrasi,reg_periksa.jam_reg,reg_periksa.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.no_ktp,reg_periksa.kd_dokter,"+
                    "pegawai.nama,pegawai.no_ktp as ktpdokter,reg_periksa.kd_poli,poliklinik.nm_poli,satu_sehat_mapping_lokasi_ralan.id_lokasi_satusehat,reg_periksa.stts,"+
-                   "reg_periksa.status_lanjut,concat(nota_jalan.tanggal,'T',nota_jalan.jam,'+07:00') as pulang,ifnull(satu_sehat_encounter.id_encounter,'') as id_encounter "+
+                   "reg_periksa.status_lanjut,concat(nota_jalan.tanggal,'T',nota_jalan.jam,'+08:00') as pulang,ifnull(satu_sehat_encounter.id_encounter,'') as id_encounter "+
                    "from reg_periksa inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis inner join pegawai on pegawai.nik=reg_periksa.kd_dokter "+
                    "inner join poliklinik on reg_periksa.kd_poli=poliklinik.kd_poli inner join satu_sehat_mapping_lokasi_ralan on satu_sehat_mapping_lokasi_ralan.kd_poli=poliklinik.kd_poli "+
                    "inner join nota_jalan on nota_jalan.no_rawat=reg_periksa.no_rawat left join satu_sehat_encounter on satu_sehat_encounter.no_rawat=reg_periksa.no_rawat "+
@@ -1015,7 +1297,7 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
                 rs=ps.executeQuery();
                 while(rs.next()){
                     tabMode.addRow(new Object[]{
-                        false,rs.getString("tgl_registrasi")+"T"+rs.getString("jam_reg")+"+07:00",rs.getString("no_rawat"),rs.getString("no_rkm_medis"),rs.getString("nm_pasien"),
+                        false,rs.getString("tgl_registrasi")+"T"+rs.getString("jam_reg")+"+08:00",rs.getString("no_rawat"),rs.getString("no_rkm_medis"),rs.getString("nm_pasien"),
                         rs.getString("no_ktp"),rs.getString("kd_dokter"),rs.getString("nama"),rs.getString("ktpdokter"),rs.getString("kd_poli"),rs.getString("nm_poli"),
                         rs.getString("id_lokasi_satusehat"),rs.getString("stts"),rs.getString("status_lanjut"),rs.getString("pulang"),rs.getString("id_encounter")
                     });
@@ -1034,7 +1316,7 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
             ps=koneksi.prepareStatement(
                    "select reg_periksa.tgl_registrasi,reg_periksa.jam_reg,reg_periksa.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.no_ktp,reg_periksa.kd_dokter,"+
                    "pegawai.nama,pegawai.no_ktp as ktpdokter,reg_periksa.kd_poli,poliklinik.nm_poli,satu_sehat_mapping_lokasi_ralan.id_lokasi_satusehat,reg_periksa.stts,"+
-                   "reg_periksa.status_lanjut,concat(nota_inap.tanggal,'T',nota_inap.jam,'+07:00') as pulang,ifnull(satu_sehat_encounter.id_encounter,'') as id_encounter "+
+                   "reg_periksa.status_lanjut,concat(nota_inap.tanggal,'T',nota_inap.jam,'+08:00') as pulang,ifnull(satu_sehat_encounter.id_encounter,'') as id_encounter "+
                    "from reg_periksa inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis inner join pegawai on pegawai.nik=reg_periksa.kd_dokter "+
                    "inner join poliklinik on reg_periksa.kd_poli=poliklinik.kd_poli inner join satu_sehat_mapping_lokasi_ralan on satu_sehat_mapping_lokasi_ralan.kd_poli=poliklinik.kd_poli "+
                    "inner join nota_inap on nota_inap.no_rawat=reg_periksa.no_rawat left join satu_sehat_encounter on satu_sehat_encounter.no_rawat=reg_periksa.no_rawat "+
@@ -1058,7 +1340,7 @@ public final class SatuSehatKirimEncounter extends javax.swing.JDialog {
                 rs=ps.executeQuery();
                 while(rs.next()){
                     tabMode.addRow(new Object[]{
-                        false,rs.getString("tgl_registrasi")+"T"+rs.getString("jam_reg")+"+07:00",rs.getString("no_rawat"),rs.getString("no_rkm_medis"),rs.getString("nm_pasien"),
+                        false,rs.getString("tgl_registrasi")+"T"+rs.getString("jam_reg")+"+08:00",rs.getString("no_rawat"),rs.getString("no_rkm_medis"),rs.getString("nm_pasien"),
                         rs.getString("no_ktp"),rs.getString("kd_dokter"),rs.getString("nama"),rs.getString("ktpdokter"),rs.getString("kd_poli"),rs.getString("nm_poli"),
                         rs.getString("id_lokasi_satusehat"),rs.getString("stts"),rs.getString("status_lanjut"),rs.getString("pulang"),rs.getString("id_encounter")
                     });
