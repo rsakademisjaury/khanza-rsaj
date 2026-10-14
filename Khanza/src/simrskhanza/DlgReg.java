@@ -20224,7 +20224,153 @@ private void MnSudahTerbitSEPActionPerformed(java.awt.event.ActionEvent evt) {
         return false;
     }
 
+    /**
+     * PATCH RSAJ: peringatan tanggal kontrol sebelum insert registrasi baru.
+     * Tidak mengubah surat kontrol, booking, SEP, atau koneksi bersama.
+     */
+    private boolean validasiTanggalKontrolSebelumSimpan() {
+        String kodeBayar = kdpnj.getText().trim();
+        String namaBayar = nmpnj.getText().trim().toUpperCase(java.util.Locale.ROOT);
+        boolean pasienBPJS = "BPJ".equalsIgnoreCase(kodeBayar)
+                || "BPJS".equalsIgnoreCase(kodeBayar)
+                || (namaBayar.contains("BPJS") && !namaBayar.contains("KETENAGAKERJAAN"));
+        if (!pasienBPJS || "IGDK".equalsIgnoreCase(kdpoli.getText().trim())) {
+            return true;
+        }
+
+        String tanggalRegistrasi = Valid.SetTgl(DTPReg.getSelectedItem() + "");
+        String tanggalKontrol = "";
+        String nomorSurat = "";
+        String sumberSurat = "Surat Kontrol BPJS";
+        try {
+            String kodePoliBPJS = "";
+            try (PreparedStatement psMap = koneksi.prepareStatement(
+                    "select kd_poli_bpjs from maping_poli_bpjs where kd_poli_rs=?")) {
+                psMap.setString(1, kdpoli.getText().trim());
+                try (ResultSet rsMap = psMap.executeQuery()) {
+                    if (rsMap.next()) {
+                        kodePoliBPJS = rsMap.getString("kd_poli_bpjs");
+                    }
+                }
+            }
+
+            // Hanya surat terbit pada/sebelum tanggal registrasi, belum dipakai
+            // pada SEP. Cocok tanggal didahulukan, lalu kontrol terdekat ke depan,
+            // lalu kontrol terakhir yang terlewat. Tidak menyamakan kode poli RS/BPJS.
+            String sqlKontrol = "select bsk.no_surat,bsk.tgl_rencana "
+                    + "from bridging_surat_kontrol_bpjs bsk "
+                    + "inner join bridging_sep bs on bs.no_sep=bsk.no_sep "
+                    + "where bs.nomr=? and bsk.tgl_surat<=? "
+                    + "and bsk.tgl_rencana>='1900-01-01' "
+                    + "and not exists (select 1 from bridging_sep terpakai "
+                    + "where terpakai.noskdp=bsk.no_surat) ";
+            if (kodePoliBPJS == null || kodePoliBPJS.trim().isEmpty()) {
+                // Tanpa surat, kunjungan pertama tetap boleh diregistrasi.
+                // Bila ada surat, mapping yang kosong tidak boleh dianggap cocok.
+                try (PreparedStatement psCek = koneksi.prepareStatement(sqlKontrol + "limit 1")) {
+                    psCek.setString(1, TNoRM.getText().trim());
+                    psCek.setString(2, tanggalRegistrasi);
+                    try (ResultSet rsCek = psCek.executeQuery()) {
+                        if (rsCek.next()) {
+                            throw new java.sql.SQLException("Poliklinik tujuan belum memiliki mapping poli BPJS.");
+                        }
+                    }
+                }
+            } else {
+                sqlKontrol += "and bsk.kd_poli_bpjs=? "
+                        + "order by case when bsk.tgl_rencana=? then 0 "
+                        + "when bsk.tgl_rencana>? then 1 else 2 end, "
+                        + "case when bsk.tgl_rencana>=? then bsk.tgl_rencana end asc, "
+                        + "case when bsk.tgl_rencana<? then bsk.tgl_rencana end desc, "
+                        + "bsk.tgl_surat desc,bsk.no_surat desc limit 1";
+                try (PreparedStatement psKontrol = koneksi.prepareStatement(sqlKontrol)) {
+                    psKontrol.setString(1, TNoRM.getText().trim());
+                    psKontrol.setString(2, tanggalRegistrasi);
+                    psKontrol.setString(3, kodePoliBPJS.trim());
+                    for (int i = 4; i <= 7; i++) {
+                        psKontrol.setString(i, tanggalRegistrasi);
+                    }
+                    try (ResultSet rsKontrol = psKontrol.executeQuery()) {
+                        if (rsKontrol.next()) {
+                            tanggalKontrol = rsKontrol.getString("tgl_rencana");
+                            nomorSurat = rsKontrol.getString("no_surat");
+                        }
+                    }
+                }
+            }
+
+            // Kompatibilitas SKDP lokal: hanya yang Menunggu dan memiliki
+            // booking untuk pasien, dokter, tanggal kontrol, serta poli tujuan.
+            if (tanggalKontrol.isEmpty()) {
+                String sqlSKDP = "select s.no_antrian,date(s.tanggal_datang) as tgl_kontrol "
+                        + "from skdp_bpjs s where s.no_rkm_medis=? "
+                        + "and s.status='Menunggu' and date(s.tanggal_rujukan)<=? "
+                        + "and s.tanggal_datang>='1900-01-01' "
+                        + "and exists (select 1 from booking_registrasi br "
+                        + "where br.no_rkm_medis=s.no_rkm_medis and br.kd_dokter=s.kd_dokter "
+                        + "and br.tanggal_periksa=date(s.tanggal_datang) and br.kd_poli=?) "
+                        + "order by case when date(s.tanggal_datang)=? then 0 "
+                        + "when date(s.tanggal_datang)>? then 1 else 2 end, "
+                        + "case when date(s.tanggal_datang)>=? then s.tanggal_datang end asc, "
+                        + "case when date(s.tanggal_datang)<? then s.tanggal_datang end desc, "
+                        + "s.tanggal_rujukan desc,s.tahun desc,s.no_antrian desc limit 1";
+                try (PreparedStatement psSKDP = koneksi.prepareStatement(sqlSKDP)) {
+                    psSKDP.setString(1, TNoRM.getText().trim());
+                    psSKDP.setString(2, tanggalRegistrasi);
+                    psSKDP.setString(3, kdpoli.getText().trim());
+                    for (int i = 4; i <= 7; i++) {
+                        psSKDP.setString(i, tanggalRegistrasi);
+                    }
+                    try (ResultSet rsSKDP = psSKDP.executeQuery()) {
+                        if (rsSKDP.next()) {
+                            tanggalKontrol = rsSKDP.getString("tgl_kontrol");
+                            nomorSurat = rsSKDP.getString("no_antrian");
+                            sumberSurat = "SKDP Lokal";
+                        }
+                    }
+                }
+            }
+
+            if (tanggalKontrol.isEmpty() || tanggalRegistrasi.equals(tanggalKontrol)) {
+                return true;
+            }
+            String tanggalTampil = java.time.LocalDate.parse(tanggalKontrol).format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            String tanggalRegistrasiTampil = java.time.LocalDate.parse(tanggalRegistrasi).format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            return konfirmasiPeringatanTanggalKontrol(
+                    "Tanggal registrasi pasien tidak sesuai dengan tanggal SKDP / surat kontrol.\n\n"
+                    + "Pasien : " + TPasien.getText() + " (No. RM " + TNoRM.getText() + ")\n"
+                    + "Poliklinik : " + TPoli.getText() + "\n"
+                    + "Tanggal registrasi : " + tanggalRegistrasiTampil + "\n"
+                    + sumberSurat + " : " + nomorSurat + "\n\n"
+                    + "Sampaikan kepada pasien bahwa tanggal kontrolnya " + tanggalTampil + ".",
+                    "Tanggal Kontrol Tidak Sesuai");
+        } catch (Exception e) {
+            System.out.println("Notifikasi Validasi Tanggal Kontrol Registrasi : " + e);
+            return konfirmasiPeringatanTanggalKontrol(
+                    "Tanggal SKDP / surat kontrol pasien belum dapat diperiksa.\n"
+                    + "Tanggal registrasi belum dapat dinyatakan sesuai.\n\n"
+                    + "Periksa surat kontrol pasien secara manual sebelum melanjutkan.\n"
+                    + "Keterangan : " + e.getMessage(),
+                    "Validasi Tanggal Kontrol Belum Berhasil");
+        }
+    }
+
+    private boolean konfirmasiPeringatanTanggalKontrol(String pesan, String judul) {
+        Object[] pilihan = {"Tetap Simpan Registrasi", "Batalkan Registrasi"};
+        int keputusan = JOptionPane.showOptionDialog(rootPane, pesan, judul,
+                JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
+                null, pilihan, pilihan[1]);
+        // Escape/tutup dialog diperlakukan sama dengan batal, isian dipertahankan.
+        return keputusan == 0;
+    }
+
     private void isRegistrasi() {
+        if (!validasiTanggalKontrolSebelumSimpan()) {
+            DTPReg.requestFocus();
+            return;
+        }
         terapkanBiayaRegistrasiPoliKhusus();
         ceksukses=false;
         status="Baru";

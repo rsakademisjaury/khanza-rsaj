@@ -241,7 +241,7 @@ public class DlgFormulirHemodialisa extends JDialog {
         hdKe.setPreferredSize(new Dimension(hdWidth,30));hdKe.putClientProperty("hdCompactWidth",hdWidth);
         hdKe.setToolTipText("Jumlah kunjungan pasien ke poli 53 sampai registrasi ini, tanpa kunjungan batal");
         addControl(session,"Tanggal",tanggal);
-        // Tanggal formulir berasal dari registrasi No. Rawat dan tidak diubah di layar.
+        // Diaktifkan hanya setelah pasien rawat inap dimuat.
         tanggal.setEnabled(false);
         addControl(session,"Hemodialisa ke",hdKe); inputs.add(hdKe);
         addField(session,"ruangan","Ruang / bangsal",false);fields.get("ruangan").setEditable(false);
@@ -342,8 +342,27 @@ public class DlgFormulirHemodialisa extends JDialog {
         tanggal.addActionListener(e->markDirty());
         DocumentListener listener=new DocumentListener(){public void insertUpdate(DocumentEvent e){changed();}public void removeUpdate(DocumentEvent e){changed();}public void changedUpdate(DocumentEvent e){changed();}private void changed(){markDirty();updateHeparin();}};
         for(javax.swing.text.JTextComponent f:fields.values())f.getDocument().addDocumentListener(listener);
-        obsModel.addTableModelListener(e->markDirty());
+        obsModel.addTableModelListener(e->{
+            if(!loading && e.getType()==javax.swing.event.TableModelEvent.UPDATE && e.getColumn()==0){
+                int row=e.getFirstRow();
+                if(row>=0 && row<obsModel.getRowCount()){
+                    Object jam=obsModel.getValueAt(row,0);
+                    if(jam!=null && !jam.toString().trim().isEmpty())applyObservationDefaults(obsModel,row);
+                }
+            }
+            markDirty();
+        });
         refreshActionState();
+    }
+    static void applyObservationDefaults(DefaultTableModel model,int row) {
+        setObservationDefaultIfBlank(model,row,3,"500");
+        setObservationDefaultIfBlank(model,row,4,"14");
+        setObservationDefaultIfBlank(model,row,5,"36");
+        setObservationDefaultIfBlank(model,row,7,"1000");
+    }
+    private static void setObservationDefaultIfBlank(DefaultTableModel model,int row,int column,String value) {
+        Object existing=model.getValueAt(row,column);
+        if(existing==null || existing.toString().trim().isEmpty())model.setValueAt(value,row,column);
     }
     private JPanel section(String title,int cols) {
         JPanel p=new RoundPanel();p.setLayout(new GridBagLayout());p.setBorder(BorderFactory.createEmptyBorder(13,14,13,14));p.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -655,6 +674,16 @@ public class DlgFormulirHemodialisa extends JDialog {
         } catch(IllegalArgumentException e){totalHeparin.setText("Periksa nilai dosis");}
     }
     private String text(String key){return fields.get(key).getText().trim();}
+    private static java.util.Date withSelectedDay(java.util.Date original,java.util.Date selected) {
+        Calendar time=Calendar.getInstance(),day=Calendar.getInstance();
+        time.setTime(original);day.setTime(selected);
+        time.set(day.get(Calendar.YEAR),day.get(Calendar.MONTH),day.get(Calendar.DAY_OF_MONTH));
+        return time.getTime();
+    }
+    private boolean hasUnsavedDate() {
+        return current!=null && current.inpatient && tanggal.getDate()!=null &&
+            !withSelectedDay(current.date,tanggal.getDate()).equals(current.date);
+    }
     private void resetFields() {
         loading=true;
         for(javax.swing.text.JTextComponent f:fields.values())f.setText("");
@@ -664,7 +693,7 @@ public class DlgFormulirHemodialisa extends JDialog {
     }
     private boolean mayDiscard() {
         if(observasi.isEditing())observasi.getCellEditor().stopCellEditing();
-        return !dirty || JOptionPane.showConfirmDialog(this,"Ada perubahan belum disimpan. Abaikan perubahan?","Konfirmasi",JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION;
+        return !(dirty||hasUnsavedDate()) || JOptionPane.showConfirmDialog(this,"Ada perubahan belum disimpan. Abaikan perubahan?","Konfirmasi",JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION;
     }
     /** Dipanggil dari popup Kasir Ralan/Kamar Inap. */
     public void setNoRm(String noRawat) { rawat.setText(noRawat==null?"":noRawat.trim());fetchPatient(); }
@@ -689,7 +718,9 @@ public class DlgFormulirHemodialisa extends JDialog {
     private void fill(Session s) {
         rawat.setText(s.rawat);
         refreshIdentity(s);
-        tanggal.setDate(s.date);hdKe.setText(String.valueOf(s.hdKe));
+        tanggal.setDate(s.date);tanggal.setEnabled(s.inpatient);
+        tanggal.setToolTipText(s.inpatient?"Tanggal tindakan hemodialisa rawat inap dapat dipilih":"Tanggal registrasi rawat jalan");
+        hdKe.setText(String.valueOf(s.hdKe));
         for(String key:KEYS)fields.get(key).setText(s.data.getOrDefault(key,""));
         clinicalNavigator.reset(s.clinicalSources,s.data);vitalNavigator.reset(s.vitalSources,s.data);
         if(s.id!=null){obsModel.setRowCount(0);for(String[] row:s.rows)obsModel.addRow(row);}
@@ -748,7 +779,7 @@ public class DlgFormulirHemodialisa extends JDialog {
         if(picked==null)throw new IllegalArgumentException("Pilih tanggal formulir.");
         if(observasi.isEditing()&&!observasi.getCellEditor().stopCellEditing())throw new IllegalArgumentException("Selesaikan isian observasi.");
         Session s=current.copy();
-        s.date=new java.util.Date(current.date.getTime());s.hdKe=current.hdKe;
+        s.date=current.inpatient?withSelectedDay(current.date,picked):new java.util.Date(current.date.getTime());s.hdKe=current.hdKe;
         for(String key:KEYS){String value=text(key);int max=key.endsWith("nama")?150:30;
             if(Arrays.asList("ruangan").contains(key))max=150;
             boolean longText=Arrays.asList("alamat","anamnesis","pemeriksaan_fisik","laboratorium","diagnosa","terapi","elektrolit").contains(key);
@@ -848,7 +879,7 @@ public class DlgFormulirHemodialisa extends JDialog {
     }
     private void printForm() {
         if(observasi.isEditing())observasi.getCellEditor().stopCellEditing();
-        if(current==null||current.id==null||dirty){info("Simpan perubahan formulir sebelum mencetak.");return;}
+        if(current==null||current.id==null||dirty||hasUnsavedDate()){info("Simpan perubahan formulir sebelum mencetak.");return;}
         // Snapshot sesi tersimpan: QR memakai pelaksana sesi, bukan akun pencetak.
         final Session saved=current.copy();
         job(()->{
@@ -866,7 +897,7 @@ public class DlgFormulirHemodialisa extends JDialog {
     private void uploadForm() {
         if(observasi.isEditing())observasi.getCellEditor().stopCellEditing();
         String selected=tabs.getSelectedIndex()==2?selectedSessionId():null;
-        if(selected==null&&(current==null||current.id==null||dirty)){
+        if(selected==null&&(current==null||current.id==null||dirty||hasUnsavedDate())){
             info("Simpan perubahan formulir sebelum upload.");return;
         }
         final String id=selected!=null?selected:current.id;
@@ -1053,12 +1084,12 @@ public class DlgFormulirHemodialisa extends JDialog {
     }
 
     static final class Session {
-        String id,rawat,rm,name,sex,age;int version,hdKe=1;boolean needsResave;
+        String id,rawat,rm,name,sex,age;int version,hdKe=1;boolean needsResave,inpatient;
         java.util.Date date=new java.util.Date();
         Map<String,String> data=new LinkedHashMap<>();List<String[]> rows=new ArrayList<>();
         List<SoapChoice> clinicalSources,vitalSources;
         Session(){for(String key:KEYS)data.put(key,"");}
-        Session copy(){Session s=new Session();s.id=id;s.rawat=rawat;s.rm=rm;s.name=name;s.sex=sex;s.age=age;s.version=version;s.hdKe=hdKe;s.needsResave=needsResave;s.date=new java.util.Date(date.getTime());s.data.putAll(data);s.clinicalSources=clinicalSources;s.vitalSources=vitalSources;for(String[] row:rows)s.rows.add(row.clone());return s;}
+        Session copy(){Session s=new Session();s.id=id;s.rawat=rawat;s.rm=rm;s.name=name;s.sex=sex;s.age=age;s.version=version;s.hdKe=hdKe;s.needsResave=needsResave;s.inpatient=inpatient;s.date=new java.util.Date(date.getTime());s.data.putAll(data);s.clinicalSources=clinicalSources;s.vitalSources=vitalSources;for(String[] row:rows)s.rows.add(row.clone());return s;}
     }
     static final class SoapChoice {
         final String source,when,writer;final Map<String,String> values;
@@ -1111,9 +1142,10 @@ public class DlgFormulirHemodialisa extends JDialog {
                     }
                 }
                 if(registrationDate==null||registrationTime==null)throw new SQLException("Tanggal/jam registrasi pasien belum tersedia.");
-                s.date=Timestamp.valueOf(registrationDate.toString()+" "+registrationTime.toString());
-                s.data.put("diagnosa","CKD Stage V");
                 boolean inpatient="Ranap".equalsIgnoreCase(status);
+                s.inpatient=inpatient;
+                s.date=inpatient?new java.util.Date():Timestamp.valueOf(registrationDate.toString()+" "+registrationTime.toString());
+                s.data.put("diagnosa","CKD Stage V");
                 s.data.put("pelaksana_nip",actor==null?"":actor);
                 try(PreparedStatement p=c.prepareStatement("SELECT nama FROM pegawai WHERE nik=?")){
                     p.setString(1,actor==null?"":actor);try(ResultSet r=p.executeQuery()){if(r.next())s.data.put("pelaksana_nama",safe(r.getString(1)));}
@@ -1262,14 +1294,17 @@ public class DlgFormulirHemodialisa extends JDialog {
             try(PreparedStatement p=c.prepareStatement("SELECT * FROM rsaj_formulir_hemodialisa_observasi WHERE id_hd=? ORDER BY urutan")){
                 p.setString(1,id);try(ResultSet r=p.executeQuery()){while(r.next()){String[] row=new String[12];for(int i=0;i<12;i++)row[i]=safe(r.getString(OBS_KEYS[i]));s.rows.add(row);}}
             }});
-            // Tanggal sesi lama disesuaikan dengan registrasi sebelum dicetak.
-            try(PreparedStatement p=c.prepareStatement("SELECT tgl_registrasi FROM reg_periksa WHERE no_rawat=?")){
-                p.setString(1,s.rawat);try(ResultSet r=p.executeQuery()){if(r.next()&&r.getDate(1)!=null){
-                    Calendar registration=Calendar.getInstance(),saved=Calendar.getInstance();
-                    registration.setTime(r.getDate(1));saved.setTime(s.date);
-                    if(saved.get(Calendar.YEAR)!=registration.get(Calendar.YEAR)||saved.get(Calendar.MONTH)!=registration.get(Calendar.MONTH)||saved.get(Calendar.DAY_OF_MONTH)!=registration.get(Calendar.DAY_OF_MONTH)){
-                        saved.set(registration.get(Calendar.YEAR),registration.get(Calendar.MONTH),registration.get(Calendar.DAY_OF_MONTH));
-                        s.date=saved.getTime();s.needsResave=true;
+            // Rawat inap mempertahankan tanggal tindakan HD; rawat jalan mengikuti registrasi.
+            try(PreparedStatement p=c.prepareStatement("SELECT status_lanjut,tgl_registrasi FROM reg_periksa WHERE no_rawat=?")){
+                p.setString(1,s.rawat);try(ResultSet r=p.executeQuery()){if(r.next()){
+                    s.inpatient="Ranap".equalsIgnoreCase(safe(r.getString(1)));
+                    if(!s.inpatient && r.getDate(2)!=null){
+                        Calendar registration=Calendar.getInstance(),saved=Calendar.getInstance();
+                        registration.setTime(r.getDate(2));saved.setTime(s.date);
+                        if(saved.get(Calendar.YEAR)!=registration.get(Calendar.YEAR)||saved.get(Calendar.MONTH)!=registration.get(Calendar.MONTH)||saved.get(Calendar.DAY_OF_MONTH)!=registration.get(Calendar.DAY_OF_MONTH)){
+                            saved.set(registration.get(Calendar.YEAR),registration.get(Calendar.MONTH),registration.get(Calendar.DAY_OF_MONTH));
+                            s.date=saved.getTime();s.needsResave=true;
+                        }
                     }
                 }}
             }

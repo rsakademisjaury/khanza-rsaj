@@ -33,7 +33,7 @@ import java.awt.image.BufferedImage;
  * Seluruh metode pengendali dijalankan di EDT.
  */
 final class SessionIdleLock implements AutoCloseable {
-    static final long DEFAULT_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(5);
+    static final long DEFAULT_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(15);
     static final Color LOCK_BACKGROUND = new Color(224, 233, 240);
 
     private final JDialog initialLogin;

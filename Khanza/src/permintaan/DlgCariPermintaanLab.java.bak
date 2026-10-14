@@ -4698,7 +4698,10 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
 //        new Timer(1000, taskPerformer).start();
 
     ActionListener taskPerformer = (ActionEvent e) -> {
-        if (aktif) {
+        // Alarm adalah pemantauan standby, bukan aktivitas pengguna. Login
+        // timeout/Alt+Tab mengambil fokus, tetapi form lab tetap terbuka.
+        // isShowing() juga menghentikan pengecekan ketika logout menutup form.
+        if (isShowing()) {
             permintaanbaru = 0;
 
             if (formalarm.contains("ralan")) {
@@ -4723,7 +4726,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                 }
             }
 
-            // Alarm bunyi setiap 2 detik jika ada permintaan CITO
+            // Alarm tetap berbunyi jika ada CITO yang belum diambil sampelnya.
             if (permintaanbaru > 0) {
                 try {
                     music = new BackgroundMusic("./suara/alarm.mp3");
@@ -4735,7 +4738,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
         }
     };
 
-    // Timer diset 2000ms = 2 detik
+    // Interval yang sudah dipakai: 10000ms = 10 detik.
     new Timer(10000, taskPerformer).start();
     }
     

@@ -17138,6 +17138,7 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
     }
 
     private void tampilkanLoginTimeout() {
+        koneksiDB.kunciSesiDatabase();
         // Form/draft dan akses akun lama tetap hidup di balik penutup polos.
         dialogLoginDiperlukan = true;
         hentikanAnimasiWallpaperLogin();
@@ -17182,6 +17183,7 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         // lalu menampilkan login awal di kanan dengan username editable.
         BtnLogActionPerformed(new java.awt.event.ActionEvent(
                 BtnLog, java.awt.event.ActionEvent.ACTION_PERFORMED, "Log Out"));
+        koneksiDB.bukaSesiDatabase();
         edAdmin.requestFocusInWindow();
     }
 
@@ -17220,7 +17222,7 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
                               + "and password=AES_ENCRYPT(?,'windi') limit 1";
                     // Koneksi khusus agar query password tidak menahan koneksi
                     // bersama yang digunakan refresh/alarm lab di EDT.
-                    try (Connection koneksiVerifikasi = koneksiDB.condbTransaksi();
+                    try (Connection koneksiVerifikasi = koneksiDB.condbVerifikasiSesi();
                          PreparedStatement verifikasi = koneksiVerifikasi.prepareStatement(sql)) {
                         verifikasi.setQueryTimeout(10);
                         verifikasi.setString(1, userTerkunci);
@@ -17261,6 +17263,7 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
                 dialogLoginDiperlukan = false;
                 dialog.clearPassword();
                 dialogKunciSesi = null;
+                koneksiDB.bukaSesiDatabase();
                 kunciSesi.unlock();
                 logTracker(akses.getkode());
             }
@@ -52093,6 +52096,7 @@ private void initBtnNotif() {
 }
 
 private void refreshBtnNotif() {
+    if (koneksiDB.sesiDatabaseTerkunci()) return;
     String kd = akses.getkode();
     if (kd == null || kd.trim().isEmpty()) return;
 
@@ -52240,6 +52244,7 @@ private AudioInputStream openSound(String fileName) {
 }
 
 private void showPendingToast(boolean fromLogin) {
+    if (koneksiDB.sesiDatabaseTerkunci()) return;
     String kd = akses.getkode();
     if (kd == null || kd.trim().isEmpty()) return;
 
@@ -52338,6 +52343,7 @@ private void openInboxJawaban() {
 }
 
 private void refreshBtnJawaban() {
+    if (koneksiDB.sesiDatabaseTerkunci()) return;
     String kd = akses.getkode();
     if (kd == null || kd.trim().isEmpty()) return;
 
@@ -52407,6 +52413,7 @@ private CountTs getJawabanCountAndLastTs(java.sql.Connection conn, String kdDokt
 }
 
 private void showPendingJawabanToast(boolean fromLogin) {
+    if (koneksiDB.sesiDatabaseTerkunci()) return;
     String kd = akses.getkode();
     if (kd == null || kd.trim().isEmpty()) return;
 
@@ -52468,37 +52475,55 @@ private boolean isRanapNotifAllowed() {
     }
 }
 
+private javax.swing.SwingWorker<java.util.Map<String,String[]>,Void> workerPemantauanRanap;
+private final java.util.Map<String,String[]> ranapIdentitasAlarm = new java.util.HashMap<>();
+
 private void pollPermintaanRanap() {
-    final java.util.List<String> current = new java.util.ArrayList<>();
+    if (workerPemantauanRanap != null || ranapPollTimer == null || !ranapPollTimer.isRunning()) return;
+    final String account = akses.getkode();
+    final long epoch = koneksiDB.versiSesiDatabase();
+    workerPemantauanRanap = new javax.swing.SwingWorker<java.util.Map<String,String[]>,Void>() {
+        @Override protected java.util.Map<String,String[]> doInBackground() throws Exception {
+    final java.util.Map<String,String[]> found = new java.util.LinkedHashMap<>();
     final String sql =
 //            "SELECT no_rawat " +
 //            "FROM permintaan_rawat_inap " +
 //            "WHERE status='Baru' AND tanggal = ? " +   // <— filter tanggal hari ini
 //            "ORDER BY waktu ASC";                       // tetap urut waktu naik
-        "SELECT pri.no_rawat " +
+        "SELECT pri.no_rawat, r.no_rkm_medis, p.nm_pasien " +
         "FROM permintaan_rawat_inap pri " +
         "JOIN reg_periksa r ON r.no_rawat = pri.no_rawat " +
+        "LEFT JOIN pasien p ON p.no_rkm_medis = r.no_rkm_medis " +
         "WHERE pri.status = 'Baru' " +
         "  AND pri.tanggal = ? " + // filter tanggal (DATE) dari tabel permintaan_rawat_inap
         "  AND ( r.kd_poli = 'IGDK' " +
         "        OR (r.kd_poli = '7' AND r.kd_dokter = '19951209') ) " +
         "ORDER BY pri.waktu ASC";
 
-        try (java.sql.PreparedStatement ps = koneksi.prepareStatement(sql)) {
+        try (java.sql.Connection monitor = koneksiDB.condbPemantauan();
+         java.sql.PreparedStatement ps = monitor.prepareStatement(sql)) {
+        ps.setQueryTimeout(5);
             java.time.LocalDate today = java.time.LocalDate.now(); // zona sesuai JVM
             ps.setDate(1, java.sql.Date.valueOf(today));
 
             try (java.sql.ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String nr = rs.getString(1);
-                    if (nr != null && !nr.trim().isEmpty()) current.add(nr.trim());
+                    if (nr != null && !nr.trim().isEmpty()) found.put(nr.trim(), new String[]{rs.getString(2),rs.getString(3)});
                 }
             }
-        } catch (Exception ex) {
-            System.out.println("pollPermintaanRanap err: " + ex.getMessage());
-            return;
         }
-
+        return found;
+        }
+        @Override protected void done() {
+            if (workerPemantauanRanap != this) return;
+            workerPemantauanRanap = null;
+            if (ranapPollTimer == null || !ranapPollTimer.isRunning()
+                    || epoch != koneksiDB.versiSesiDatabase() || !java.util.Objects.equals(account,akses.getkode())) return;
+            try {
+                java.util.Map<String,String[]> found = get();
+                java.util.List<String> current = new java.util.ArrayList<>(found.keySet());
+                ranapIdentitasAlarm.clear(); ranapIdentitasAlarm.putAll(found);
     // Item baru → tampilkan toast pertama + catat waktu tampil
     long now = System.currentTimeMillis();
     for (String nr : current) {
@@ -52515,6 +52540,10 @@ private void pollPermintaanRanap() {
     ranapPendingAtLastPoll.keySet().retainAll(currentSet);
     ranapLastAlertAt.keySet().retainAll(currentSet);
     ranapAck.retainAll(currentSet);
+            } catch (Exception e) { System.out.println("Pemantauan ranap belum berhasil; akan dicoba pada interval berikutnya."); }
+        }
+    };
+    workerPemantauanRanap.execute();
 }
 
 // ==== helper kecil: escape HTML di Swing JLabel ====
@@ -52523,25 +52552,10 @@ private static String htmlEscape(String s) {
     return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;");
 }
 
-// ==== ambil no_rkm_medis + nama pasien dari no_rawat (tanpa menutup koneksi global) ====
+// Identitas sudah diambil oleh worker polling; tidak menambah koneksi per toast.
 private String[] getNoRMAndNamaByNoRawat(String no_rawat) {
-    String noRM = "", nama = "";
-    final String sql = "SELECT rp.no_rkm_medis, p.nm_pasien " +
-                       "FROM reg_periksa rp " +
-                       "JOIN pasien p ON p.no_rkm_medis = rp.no_rkm_medis " +
-                       "WHERE rp.no_rawat = ? LIMIT 1";
-    try (java.sql.PreparedStatement ps = koneksi.prepareStatement(sql)) {
-        ps.setString(1, no_rawat);
-        try (java.sql.ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                noRM = rs.getString(1);
-                nama = rs.getString(2);
-            }
-        }
-    } catch (Exception ex) {
-        System.out.println("getNoRMAndNamaByNoRawat err: " + ex.getMessage());
-    }
-    return new String[]{ noRM != null ? noRM : "", nama != null ? nama : "" };
+    String[] found = ranapIdentitasAlarm.get(no_rawat);
+    return found == null ? new String[]{"", ""} : new String[]{found[0] == null ? "" : found[0], found[1] == null ? "" : found[1]};
 }
 
 // ==== ubah showRanapToast: isi sesuai format + teks kanan ====
@@ -52622,6 +52636,10 @@ private void startRanapToasts() {
 }
 
 private void stopRanapToasts() {
+    javax.swing.SwingWorker<java.util.Map<String,String[]>,Void> oldWorker = workerPemantauanRanap;
+    workerPemantauanRanap = null;
+    if (oldWorker != null) oldWorker.cancel(false);
+    ranapIdentitasAlarm.clear();
     if (ranapPollTimer  != null) { ranapPollTimer.stop();  ranapPollTimer  = null; }
     if (ranapAlarmTimer != null) { ranapAlarmTimer.stop(); ranapAlarmTimer = null; }
     ranapPendingAtLastPoll.clear();

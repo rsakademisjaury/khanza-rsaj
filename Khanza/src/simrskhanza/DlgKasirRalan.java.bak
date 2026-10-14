@@ -22,8 +22,7 @@ import inventory.DlgResepObat;
 import inventory.DlgPemberianObat;
 import laporan.DlgDiagnosaPenyakit;
 import keuangan.DlgBilingRalan;
-import fungsi.WarnaTable;
-import fungsi.WarnaTableKasirRalan;
+import fungsi.KasirRalanFrozenColumns;
 import fungsi.WarnaTableKasirRalan2;
 import fungsi.batasInput;
 import fungsi.koneksiDB;
@@ -291,6 +290,12 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
     private widget.Button BtnHasilRadKasir;
 
 
+
+    // RSAJ: penanda frozen khusus Registrasi Awal; indeks lama 0..28 tidak berubah.
+    private KasirRalanFrozenColumns kolomFrozenKasirRSAJ;
+    private boolean sedangRefreshPenandaRSAJ = false;
+    private long versiDaftarFrozenRSAJ = 0;
+
     // RSAJ HEADER V7 - layout identitas dibangun ulang di luar generated code NetBeans.
     // No. Reg dan No. Kartu tetap dipertahankan sebagai komponen internal karena masih
     // dipakai fungsi lain, tetapi tidak lagi ditampilkan pada header.
@@ -344,7 +349,9 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             "Jam SEP",//25
             "Tgl Rujukan Terbaru",//26
             "Info Habis Rujukan",//27 
-            "No. Kartu BPJS"//28     
+            "No. Kartu BPJS",//28
+            "Status SKDP",//29 - internal, tidak ditampilkan di tabel utama
+            "Geriatri JK"//30 - internal, menggantikan query pada renderer
         }){
               @Override public boolean isCellEditable(int rowIndex, int colIndex){return false;}
         };
@@ -353,11 +360,6 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
 
         tbKasirRalan.setPreferredScrollableViewportSize(new Dimension(800,800));
         tbKasirRalan.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-
-        // Pastikan baris yang dipilih tetap terlihat biru,
-        // walaupun renderer WarnaTableKasirRalan sedang aktif.
-        tbKasirRalan.setSelectionBackground(new java.awt.Color(0, 120, 215));
-        tbKasirRalan.setSelectionForeground(java.awt.Color.WHITE);
 
         for (i = 0; i < 28; i++) {
             TableColumn column = tbKasirRalan.getColumnModel().getColumn(i);
@@ -425,46 +427,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
                 column.setPreferredWidth(200); // Lebar untuk Info Habis Rujukan            
             }
         }
-        try {
-            if(koneksiDB.AKTIFKANWARNARALAN().equals("yes")){
-//                tbKasirRalan.setDefaultRenderer(Object.class, new WarnaTableKasirRalan());
-
-                // Renderer warna rawat jalan sebelumnya menimpa warna selection JTable.
-                // Wrapper ini mempertahankan warna status pasien saat tidak dipilih,
-                // lalu memaksa baris aktif tampil biru ketika dipilih.
-                final javax.swing.table.TableCellRenderer rendererKasirRalan =
-                        new WarnaTableKasirRalan(koneksi);
-
-                tbKasirRalan.setDefaultRenderer(Object.class,
-                    new javax.swing.table.TableCellRenderer() {
-                        @Override
-                        public java.awt.Component getTableCellRendererComponent(
-                                JTable table, Object value, boolean isSelected,
-                                boolean hasFocus, int row, int column) {
-
-                            java.awt.Component komponen =
-                                    rendererKasirRalan.getTableCellRendererComponent(
-                                            table, value, isSelected, hasFocus, row, column);
-
-                            if (isSelected && komponen != null) {
-                                komponen.setBackground(table.getSelectionBackground());
-                                komponen.setForeground(table.getSelectionForeground());
-
-                                if (komponen instanceof javax.swing.JComponent) {
-                                    ((javax.swing.JComponent) komponen).setOpaque(true);
-                                }
-                            }
-
-                            return komponen;
-                        }
-                    }
-                );
-            }else{
-                tbKasirRalan.setDefaultRenderer(Object.class, new WarnaTable());
-            }
-        } catch (Exception e) {
-            tbKasirRalan.setDefaultRenderer(Object.class, new WarnaTable());
-        }
+        initKolomFrozenKasirRSAJ();
         
         tabModekasir2 = new DefaultTableModel(null, new String[]{
             "Kode Dokter",//0
@@ -1593,6 +1556,87 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
 
     
 
+
+    private void initKolomFrozenKasirRSAJ() {
+        // Lepaskan Scroll1 sambil mempertahankan ketiga tab dan judulnya.
+        TabRawat.setComponentAt(0, new javax.swing.JPanel());
+        kolomFrozenKasirRSAJ = new KasirRalanFrozenColumns(tbKasirRalan, Scroll1, () -> {
+            getDatakasir();
+            refreshTombolHasilLabRadKasir();
+        });
+        // Scroll1/tbKasirRalan tetap instance yang sama, agar semua handler lama berjalan.
+        TabRawat.setComponentAt(0, kolomFrozenKasirRSAJ);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowActivated(java.awt.event.WindowEvent evt) {
+                refreshPenandaKasirRSAJ();
+            }
+        });
+    }
+
+    /** Cocokkan no_sep yang ditampilkan di daftar, tanpa syarat tambahan no_surat. */
+    private String sqlStatusSkdpKasirRSAJ() {
+        return "IF(reg_periksa.kd_pj='BPJ',IF(EXISTS("
+                + "SELECT 1 FROM bridging_surat_kontrol_bpjs kontrol_skdp "
+                + "WHERE kontrol_skdp.no_sep=(SELECT MAX(sep_skdp.no_sep) FROM bridging_sep sep_skdp "
+                + "WHERE sep_skdp.no_rawat=reg_periksa.no_rawat "
+                + "AND sep_skdp.jnspelayanan='2') "
+                + "AND COALESCE(kontrol_skdp.no_sep,'')<>''"
+                + "),'Ada','Tidak Ada'),'-') AS status_skdp ";
+    }
+
+    /** Refresh satu pasien setelah kembali dari billing/resume/SKDP, tanpa polling. */
+    private void refreshPenandaKasirRSAJ() {
+        if (kolomFrozenKasirRSAJ == null || !isShowing() || sedangMemuatData
+                || sedangRefreshPenandaRSAJ || TabRawat.getSelectedIndex() != 0) return;
+        int viewRow = tbKasirRalan.getSelectedRow();
+        if (viewRow < 0) return;
+        int modelRow = tbKasirRalan.convertRowIndexToModel(viewRow);
+        final String noRawat = String.valueOf(tabModekasir.getValueAt(modelRow, 11));
+        final String kdDokter = String.valueOf(tabModekasir.getValueAt(modelRow, 0));
+        final long versi = versiDaftarFrozenRSAJ;
+        sedangRefreshPenandaRSAJ = true;
+        new javax.swing.SwingWorker<String[], Void>() {
+            @Override protected String[] doInBackground() throws Exception {
+                String sql = "SELECT reg_periksa.stts,reg_periksa.status_bayar,"
+                        + "IF(EXISTS(SELECT 1 FROM resume_pasien rs "
+                        + "WHERE rs.no_rawat=reg_periksa.no_rawat),"
+                        + "'Ada','Tidak Ada') AS status_resume,"
+                        + sqlStatusSkdpKasirRSAJ()
+                        + "FROM reg_periksa WHERE reg_periksa.no_rawat=? AND reg_periksa.kd_dokter=?";
+                try (java.sql.PreparedStatement ps = koneksi.prepareStatement(sql)) {
+                    ps.setString(1, noRawat);
+                    ps.setString(2, kdDokter);
+                    try (java.sql.ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) return new String[]{rs.getString("stts"),
+                            rs.getString("status_bayar"), rs.getString("status_resume"), rs.getString("status_skdp")};
+                    }
+                }
+                return null;
+            }
+            @Override protected void done() {
+                sedangRefreshPenandaRSAJ = false;
+                try {
+                    String[] data = get();
+                    if (data == null || versi != versiDaftarFrozenRSAJ || sedangMemuatData || !isShowing()) return;
+                    // Cari kembali berdasar kunci pasien, karena urutan/filter dapat berubah.
+                    for (int row = 0; row < tabModekasir.getRowCount(); row++) {
+                        if (noRawat.equals(String.valueOf(tabModekasir.getValueAt(row, 11)))
+                                && kdDokter.equals(String.valueOf(tabModekasir.getValueAt(row, 0)))) {
+                            int[] columns = {10, 15, 23, 29};
+                            for (int j = 0; j < columns.length; j++) {
+                                if (!java.util.Objects.equals(data[j], tabModekasir.getValueAt(row, columns[j])))
+                                    tabModekasir.setValueAt(data[j], row, columns[j]);
+                            }
+                            break;
+                        }
+                    }
+                } catch (Exception ex) {
+                    System.out.println("Notifikasi refresh penanda rawat jalan : " + ex);
+                }
+            }
+        }.execute();
+    }
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -1682,6 +1726,8 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         MnPenilaianFisioterapi = new javax.swing.JMenuItem();
         MnPenilaianPsikolog = new javax.swing.JMenuItem();
         MnPenilaianMCU = new javax.swing.JMenuItem();
+        MnFormulirHemodialisa = new javax.swing.JMenuItem();
+        MnFormulirHemodialisa1 = new javax.swing.JMenuItem();
         MnHemodialisa = new javax.swing.JMenuItem();
         MnRMFarmasi = new javax.swing.JMenu();
         MnKonselingFarmasi = new javax.swing.JMenuItem();
@@ -3842,6 +3888,22 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             }
         });
         MnTindakanRalan.add(MnPeriksaRadiologi);
+
+        MnFormulirHemodialisa.setBackground(new java.awt.Color(255, 255, 254));
+        MnFormulirHemodialisa.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
+        MnFormulirHemodialisa.setForeground(new java.awt.Color(50, 50, 50));
+        MnFormulirHemodialisa.setIcon(IKON_CATEGORY_KASIR); // NOI18N
+        MnFormulirHemodialisa.setText("Formulir Hemodialisa");
+        MnFormulirHemodialisa.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        MnFormulirHemodialisa.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        MnFormulirHemodialisa.setName("MnFormulirHemodialisa"); // NOI18N
+        MnFormulirHemodialisa.setPreferredSize(new java.awt.Dimension(220, 26));
+        MnFormulirHemodialisa.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                MnFormulirHemodialisaActionPerformed(evt);
+            }
+        });
+        MnTindakanRalan.add(MnFormulirHemodialisa);
 
         MnOperasi.setBackground(new java.awt.Color(255, 255, 254));
         MnOperasi.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
@@ -6405,6 +6467,22 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             }
         });
         MnTindakan1.add(MnPeriksaRadiologi1);
+
+        MnFormulirHemodialisa1.setBackground(new java.awt.Color(255, 255, 254));
+        MnFormulirHemodialisa1.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
+        MnFormulirHemodialisa1.setForeground(new java.awt.Color(50, 50, 50));
+        MnFormulirHemodialisa1.setIcon(IKON_CATEGORY_KASIR); // NOI18N
+        MnFormulirHemodialisa1.setText("Formulir Hemodialisa");
+        MnFormulirHemodialisa1.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        MnFormulirHemodialisa1.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        MnFormulirHemodialisa1.setName("MnFormulirHemodialisa1"); // NOI18N
+        MnFormulirHemodialisa1.setPreferredSize(new java.awt.Dimension(240, 26));
+        MnFormulirHemodialisa1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                MnFormulirHemodialisa1ActionPerformed(evt);
+            }
+        });
+        MnTindakan1.add(MnFormulirHemodialisa1);
 
         MnOperasi1.setBackground(new java.awt.Color(255, 255, 254));
         MnOperasi1.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
@@ -12937,6 +13015,50 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
         }
     }//GEN-LAST:event_MnBarcode2ActionPerformed
 
+    private void MnFormulirHemodialisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnFormulirHemodialisaActionPerformed
+        bukaFormulirHemodialisaRSAJ(tbKasirRalan, 11);
+    }//GEN-LAST:event_MnFormulirHemodialisaActionPerformed
+
+    private void MnFormulirHemodialisa1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnFormulirHemodialisa1ActionPerformed
+        bukaFormulirHemodialisaRSAJ(tbKasirRalan2, 10);
+    }//GEN-LAST:event_MnFormulirHemodialisa1ActionPerformed
+
+    // No. Rawat diambil langsung dari model baris terpilih, termasuk popup konsultasi.
+    private void bukaFormulirHemodialisaRSAJ(javax.swing.JTable tabel, int kolomNoRawat) {
+        if (!akses.gethemodialisa()) {
+            JOptionPane.showMessageDialog(this, "Akun ini tidak memiliki hak akses Hemodialisa.");
+            return;
+        }
+        int baris = tabel.getSelectedRow();
+        if (baris < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih pasien pada tabel terlebih dahulu.");
+            tabel.requestFocus();
+            return;
+        }
+        Object nilai = tabel.getModel().getValueAt(tabel.convertRowIndexToModel(baris), kolomNoRawat);
+        String noRawat = nilai == null ? "" : nilai.toString().trim();
+        if (noRawat.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No. Rawat pada baris terpilih belum tersedia. Pilih baris pasien dengan No. Rawat.");
+            return;
+        }
+        rekammedis.DlgFormulirHemodialisa form = null;
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        try {
+            form = new rekammedis.DlgFormulirHemodialisa(null, true);
+            form.setNoRawat(noRawat);
+            form.setLocationRelativeTo(internalFrame1);
+            this.setCursor(Cursor.getDefaultCursor());
+            form.setVisible(true);
+        } catch (Exception ex) {
+            if (form != null) {
+                form.dispose();
+            }
+            JOptionPane.showMessageDialog(this, "Formulir Hemodialisa gagal dibuka: " + ex.getMessage());
+        } finally {
+            this.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
     private void MnHemodialisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnHemodialisaActionPerformed
         if(tabModekasir.getRowCount()==0){
             JOptionPane.showMessageDialog(null,"Maaf, data pasien sudah habis...!!!!");
@@ -17403,6 +17525,8 @@ private void MnFormulirKFRActionPerformed(java.awt.event.ActionEvent evt) {//GEN
     private javax.swing.JMenuItem MnHasilEcho;
     private javax.swing.JMenuItem MnHasilPemeriksaanUSG;
     private javax.swing.JMenuItem MnHasilTindakanUroflowmetri;
+    private javax.swing.JMenuItem MnFormulirHemodialisa;
+    private javax.swing.JMenuItem MnFormulirHemodialisa1;
     private javax.swing.JMenuItem MnHemodialisa;
     private javax.swing.JMenuItem MnJadwalOperasi;
     private javax.swing.JMenuItem MnJadwalOperasi1;
@@ -17871,6 +17995,7 @@ private void tampilkasir() {
     if(sedangMemuatData){
         return;
     }
+    versiDaftarFrozenRSAJ++;
 
     sedangMemuatData=true;
     DlgHasilPenunjang.batalkanRefreshTombol(BtnHasilLabKasir, BtnHasilRadKasir, panelGlass8);
@@ -17937,7 +18062,9 @@ private void tampilkasir() {
                     + "latest_rujukan.tglrujukan_terbaru AS tgl_rujukan,"
                     + "CONCAT(DATEDIFF(DATE_SUB(DATE_ADD(latest_rujukan.tglrujukan_terbaru,INTERVAL 3 MONTH),INTERVAL 3 DAY),CURDATE()),"
                     + "' Hari - ',DATE_FORMAT(DATE_SUB(DATE_ADD(latest_rujukan.tglrujukan_terbaru,INTERVAL 3 MONTH),INTERVAL 3 DAY),'%d/%m/%Y')) AS info_habis_rujukan,"
-                    + "pasien.no_peserta "
+                    + "pasien.no_peserta,"
+                    + sqlStatusSkdpKasirRSAJ() + ","
+                    + "IF(reg_periksa.umurdaftar>=60,pasien.jk,'') AS geriatri_jk "
                     + "FROM reg_periksa "
                     + "inner join dokter on reg_periksa.kd_dokter=dokter.kd_dokter "
                     + "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "
@@ -17949,8 +18076,8 @@ private void tampilkasir() {
                     + "WHERE status NOT IN ('Batal','Gagal') AND tanggalperiksa BETWEEN ? and ? "
                     + "GROUP BY no_rawat,norm) rmb ON reg_periksa.no_rawat=rmb.no_rawat "
                     + "AND reg_periksa.no_rkm_medis=rmb.norm "
-                    + "LEFT JOIN (SELECT rs.no_rawat,rs.kd_dokter FROM resume_pasien rs) rsm "
-                    + "ON reg_periksa.no_rawat=rsm.no_rawat and reg_periksa.kd_dokter=rsm.kd_dokter "
+                    + "LEFT JOIN (SELECT DISTINCT rs.no_rawat FROM resume_pasien rs) rsm "
+                    + "ON reg_periksa.no_rawat=rsm.no_rawat "
                     + "LEFT JOIN (SELECT sj.no_rawat,MAX(sj.validasi) AS jam_val FROM sidik_jari_bpjs sj "
                     + "WHERE sj.validasi>=? AND sj.validasi<DATE_ADD(?,INTERVAL 1 DAY) GROUP BY sj.no_rawat) sdk "
                     + "ON reg_periksa.no_rawat=sdk.no_rawat "
@@ -18029,7 +18156,9 @@ private void tampilkasir() {
                         hasil.getString("jam_sep"),
                         hasil.getString("tgl_rujukan"),
                         hasil.getString("info_habis_rujukan"),
-                        hasil.getString("no_peserta")
+                        hasil.getString("no_peserta"),
+                        hasil.getString("status_skdp"),
+                        hasil.getString("geriatri_jk")
                     });
                 }
             } catch(Exception e){
@@ -18333,6 +18462,8 @@ private void tampilkasir() {
         MnBillingParsial.setEnabled(akses.getbilling_parsial());
         MnBilling.setEnabled(akses.getbilling_ralan());
         MnHemodialisa.setEnabled(akses.gethemodialisa());
+        MnFormulirHemodialisa1.setEnabled(akses.gethemodialisa());
+        MnFormulirHemodialisa.setEnabled(akses.gethemodialisa());
         MnDataRalan.setEnabled(akses.gettindakan_ralan());
         MnDataRalan1.setEnabled(akses.gettindakan_ralan());
         MnDataPemberianObat.setEnabled(akses.getberi_obat());

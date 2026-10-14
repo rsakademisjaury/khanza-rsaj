@@ -64,6 +64,8 @@ public class DlgCariPermintaanLab extends javax.swing.JDialog {
     private final DefaultTableModel tabMode,tabMode2,tabMode3,tabMode4;
     private sekuel Sequel=new sekuel();
     private validasi Valid=new validasi();
+    private final fungsi.SessionAlarmPoller alarmSaatTerkunci = new fungsi.SessionAlarmPoller(
+            this::isShowing, this::bunyiAlarmSaatTerkunci);
     private Connection koneksi=koneksiDB.condb();
     private Connection koneksisysmex;
     private Connection koneksielims;
@@ -4054,6 +4056,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     // End of variables declaration//GEN-END:variables
 
     private void tampil() {
+        if (koneksiDB.sesiDatabaseTerkunci()) return;
         Valid.tabelKosong(tabMode);
         try {
             semua=CrDokter.getText().trim().equals("")&&CrPoli.getText().trim().equals("")&&TCari.getText().trim().equals("");
@@ -4165,6 +4168,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     }
     
     private void tampil2() {
+        if (koneksiDB.sesiDatabaseTerkunci()) return;
         Valid.tabelKosong(tabMode2);  
         try {
             semua=CrDokter.getText().trim().equals("")&&CrPoli.getText().trim().equals("")&&TCari.getText().trim().equals("");
@@ -4398,6 +4402,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     }
     
     private void tampil3() {
+        if (koneksiDB.sesiDatabaseTerkunci()) return;
         Valid.tabelKosong(tabMode3);
         try {
             semua=CrDokter2.getText().trim().equals("")&&Kamar.getText().trim().equals("")&&TCari.getText().trim().equals("");
@@ -4533,6 +4538,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     }
  
     private void tampil4() {
+        if (koneksiDB.sesiDatabaseTerkunci()) return;
         Valid.tabelKosong(tabMode4);  
         try {
             semua=CrDokter2.getText().trim().equals("")&&Kamar.getText().trim().equals("")&&TCari.getText().trim().equals("");
@@ -4702,6 +4708,10 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
         // timeout/Alt+Tab mengambil fokus, tetapi form lab tetap terbuka.
         // isShowing() juga menghentikan pengecekan ketika logout menutup form.
         if (isShowing()) {
+            if (koneksiDB.sesiDatabaseTerkunci()) {
+                cekAlarmSaatTerkunci();
+                return;
+            }
             permintaanbaru = 0;
 
             if (formalarm.contains("ralan")) {
@@ -4852,5 +4862,126 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
             ChkAccor.setVisible(true);
         }
     }  
+
+    private fungsi.SessionAlarmQuery snapshotAlarmTampil() {
+        fungsi.SessionAlarmQuery query;
+        boolean semua=CrDokter.getText().trim().equals("")&&CrPoli.getText().trim().equals("")&&TCari.getText().trim().equals("");
+            query=new fungsi.SessionAlarmQuery(
+                    "select permintaan_lab.noorder,permintaan_lab.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.tgl_lahir,permintaan_lab.tgl_permintaan,"+
+                    "if(permintaan_lab.jam_permintaan='00:00:00','',permintaan_lab.jam_permintaan) as jam_permintaan,reg_periksa.kd_pj,penjab.png_jawab,"+
+                    "if(permintaan_lab.tgl_sampel='0000-00-00','',permintaan_lab.tgl_sampel) as tgl_sampel,if(permintaan_lab.jam_sampel='00:00:00','',permintaan_lab.jam_sampel) as jam_sampel,"+
+                    "if(permintaan_lab.tgl_hasil='0000-00-00','',permintaan_lab.tgl_hasil) as tgl_hasil,if(permintaan_lab.jam_hasil='00:00:00','',permintaan_lab.jam_hasil) as jam_hasil,"+
+                    "permintaan_lab.dokter_perujuk,dokter.nm_dokter,poliklinik.nm_poli,permintaan_lab.informasi_tambahan,permintaan_lab.diagnosa_klinis "+
+                    "from permintaan_lab inner join reg_periksa on permintaan_lab.no_rawat=reg_periksa.no_rawat "+
+                    "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
+                    "inner join dokter on permintaan_lab.dokter_perujuk=dokter.kd_dokter "+
+                    "inner join poliklinik on reg_periksa.kd_poli=poliklinik.kd_poli "+
+                    "inner join penjab on reg_periksa.kd_pj=penjab.kd_pj "+
+                    "where permintaan_lab.status='ralan' and permintaan_lab.tgl_permintaan between ? and ? "+
+                    (semua?"":"and dokter.nm_dokter like ? and poliklinik.nm_poli like ? and "+
+                    "(permintaan_lab.noorder like ? or permintaan_lab.no_rawat like ? or reg_periksa.no_rkm_medis like ? or "+
+                    "pasien.nm_pasien like ? or permintaan_lab.diagnosa_klinis like ? or dokter.nm_dokter like ? or penjab.png_jawab like ?)")+
+                    "order by permintaan_lab.tgl_permintaan,permintaan_lab.jam_permintaan desc");
+
+        query.setString(1,Valid.SetTgl(Tgl1.getSelectedItem()+""));
+                query.setString(2,Valid.SetTgl(Tgl2.getSelectedItem()+""));
+                if(!semua){
+                    query.setString(3,"%"+CrDokter.getText().trim()+"%");
+                    query.setString(4,"%"+CrPoli.getText().trim()+"%");
+                    query.setString(5,"%"+TCari.getText()+"%");
+                    query.setString(6,"%"+TCari.getText()+"%");
+                    query.setString(7,"%"+TCari.getText()+"%");
+                    query.setString(8,"%"+TCari.getText()+"%");
+                    query.setString(9,"%"+TCari.getText()+"%");
+                    query.setString(10,"%"+TCari.getText()+"%");
+                    query.setString(11,"%"+TCari.getText()+"%");
+                }
+
+
+        return query;
+    }
+
+    private fungsi.SessionAlarmQuery snapshotAlarmTampil3() {
+        fungsi.SessionAlarmQuery query;
+        boolean semua=CrDokter2.getText().trim().equals("")&&Kamar.getText().trim().equals("")&&TCari.getText().trim().equals("");
+            if(cmbStatus.getSelectedIndex()==0){
+                query=new fungsi.SessionAlarmQuery(
+                    "select permintaan_lab.noorder,permintaan_lab.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.tgl_lahir,permintaan_lab.tgl_permintaan,"+
+                    "if(permintaan_lab.jam_permintaan='00:00:00','',permintaan_lab.jam_permintaan) as jam_permintaan,reg_periksa.kd_pj,penjab.png_jawab,"+
+                    "if(permintaan_lab.tgl_sampel='0000-00-00','',permintaan_lab.tgl_sampel) as tgl_sampel,if(permintaan_lab.jam_sampel='00:00:00','',permintaan_lab.jam_sampel) as jam_sampel,"+
+                    "if(permintaan_lab.tgl_hasil='0000-00-00','',permintaan_lab.tgl_hasil) as tgl_hasil,if(permintaan_lab.jam_hasil='00:00:00','',permintaan_lab.jam_hasil) as jam_hasil,"+
+                    "permintaan_lab.dokter_perujuk,dokter.nm_dokter,ifnull(bangsal.nm_bangsal,'Ranap Gabung') as nm_bangsal,permintaan_lab.informasi_tambahan,permintaan_lab.diagnosa_klinis "+
+                    "from permintaan_lab inner join reg_periksa on permintaan_lab.no_rawat=reg_periksa.no_rawat "+
+                    "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
+                    "inner join dokter on permintaan_lab.dokter_perujuk=dokter.kd_dokter "+
+                    "left join kamar_inap on reg_periksa.no_rawat=kamar_inap.no_rawat "+
+                    "left join kamar on kamar_inap.kd_kamar=kamar.kd_kamar "+
+                    "left join bangsal on kamar.kd_bangsal=bangsal.kd_bangsal "+
+                    "inner join penjab on reg_periksa.kd_pj=penjab.kd_pj "+
+                    "where permintaan_lab.status='ranap' and permintaan_lab.tgl_permintaan between ? and ? "+
+                    (semua?"":"and dokter.nm_dokter like ? and bangsal.nm_bangsal like ? and "+
+                    "(permintaan_lab.noorder like ? or permintaan_lab.no_rawat like ? or reg_periksa.no_rkm_medis like ? or "+
+                    "pasien.nm_pasien like ? or permintaan_lab.diagnosa_klinis like ? or dokter.nm_dokter like ? or penjab.png_jawab like ? )")+
+                    "group by permintaan_lab.noorder order by permintaan_lab.tgl_permintaan,permintaan_lab.jam_permintaan desc,kamar_inap.tgl_masuk desc");
+            }else{
+                query=new fungsi.SessionAlarmQuery(
+                    "select permintaan_lab.noorder,permintaan_lab.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,permintaan_lab.tgl_permintaan,"+
+                    "if(permintaan_lab.jam_permintaan='00:00:00','',permintaan_lab.jam_permintaan) as jam_permintaan,reg_periksa.kd_pj,penjab.png_jawab,"+
+                    "if(permintaan_lab.tgl_sampel='0000-00-00','',permintaan_lab.tgl_sampel) as tgl_sampel,if(permintaan_lab.jam_sampel='00:00:00','',permintaan_lab.jam_sampel) as jam_sampel,"+
+                    "if(permintaan_lab.tgl_hasil='0000-00-00','',permintaan_lab.tgl_hasil) as tgl_hasil,if(permintaan_lab.jam_hasil='00:00:00','',permintaan_lab.jam_hasil) as jam_hasil,"+
+                    "permintaan_lab.dokter_perujuk,dokter.nm_dokter,ifnull(bangsal.nm_bangsal,'Ranap Gabung') as nm_bangsal,permintaan_lab.informasi_tambahan,permintaan_lab.diagnosa_klinis "+
+                    "from permintaan_lab inner join reg_periksa on permintaan_lab.no_rawat=reg_periksa.no_rawat "+
+                    "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
+                    "inner join dokter on permintaan_lab.dokter_perujuk=dokter.kd_dokter "+
+                    "left join kamar_inap on reg_periksa.no_rawat=kamar_inap.no_rawat "+
+                    "left join kamar on kamar_inap.kd_kamar=kamar.kd_kamar "+
+                    "left join bangsal on kamar.kd_bangsal=bangsal.kd_bangsal "+
+                    "inner join penjab on reg_periksa.kd_pj=penjab.kd_pj "+
+                    "where permintaan_lab.status='ranap' and kamar_inap.stts_pulang='-' and permintaan_lab.tgl_permintaan between ? and ? "+
+                    (semua?"":"and dokter.nm_dokter like ? and bangsal.nm_bangsal like ? and "+
+                    "(permintaan_lab.noorder like ? or permintaan_lab.no_rawat like ? or reg_periksa.no_rkm_medis like ? or "+
+                    "pasien.nm_pasien like ? or permintaan_lab.diagnosa_klinis like ? or dokter.nm_dokter like ? or penjab.png_jawab like ? )")+
+                    "group by permintaan_lab.noorder order by permintaan_lab.tgl_permintaan,permintaan_lab.jam_permintaan desc,kamar_inap.tgl_masuk desc");
+            }
+
+
+        query.setString(1,Valid.SetTgl(Tgl1.getSelectedItem()+""));
+                query.setString(2,Valid.SetTgl(Tgl2.getSelectedItem()+""));
+                if(!semua){
+                    query.setString(3,"%"+CrDokter2.getText().trim()+"%");
+                    query.setString(4,"%"+Kamar.getText().trim()+"%");
+                    query.setString(5,"%"+TCari.getText()+"%");
+                    query.setString(6,"%"+TCari.getText()+"%");
+                    query.setString(7,"%"+TCari.getText()+"%");
+                    query.setString(8,"%"+TCari.getText()+"%");
+                    query.setString(9,"%"+TCari.getText()+"%");
+                    query.setString(10,"%"+TCari.getText()+"%");
+                    query.setString(11,"%"+TCari.getText()+"%");
+                }
+
+
+        return query;
+    }
+
+    private void bunyiAlarmSaatTerkunci() {
+        try {
+            music = new BackgroundMusic("./suara/alarm.mp3");
+            music.start();
+        } catch (Exception e) { System.out.println("Alarm timeout tidak dapat diputar."); }
+    }
+
+    private void cekAlarmSaatTerkunci() {
+        java.util.List<fungsi.SessionAlarmQuery> queries = new java.util.ArrayList<>();
+        java.util.List<String> predicates = new java.util.ArrayList<>();
+        if (formalarm.contains("ralan")) {
+            queries.add(snapshotAlarmTampil());
+            predicates.add("permintaan_lab.tgl_sampel='0000-00-00' AND LOWER(permintaan_lab.informasi_tambahan) LIKE '%cito%'");
+        }
+        if (formalarm.contains("ranap")) {
+            queries.add(snapshotAlarmTampil3());
+            predicates.add("permintaan_lab.tgl_sampel='0000-00-00' AND LOWER(permintaan_lab.informasi_tambahan) LIKE '%cito%'");
+        }
+        alarmSaatTerkunci.check(queries,predicates);
+    }
 
 }

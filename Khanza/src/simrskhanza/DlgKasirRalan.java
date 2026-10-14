@@ -22,8 +22,7 @@ import inventory.DlgResepObat;
 import inventory.DlgPemberianObat;
 import laporan.DlgDiagnosaPenyakit;
 import keuangan.DlgBilingRalan;
-import fungsi.WarnaTable;
-import fungsi.WarnaTableKasirRalan;
+import fungsi.KasirRalanFrozenColumns;
 import fungsi.WarnaTableKasirRalan2;
 import fungsi.batasInput;
 import fungsi.koneksiDB;
@@ -291,6 +290,13 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
     private widget.Button BtnHasilRadKasir;
 
 
+
+    // RSAJ: penanda frozen khusus Registrasi Awal; indeks lama 0..28 tidak berubah.
+    private KasirRalanFrozenColumns kolomFrozenKasirRSAJ;
+    private boolean sedangRefreshPenandaRSAJ = false;
+    private volatile long versiDaftarFrozenRSAJ = 0;
+    private boolean muatUlangKasirRSAJ = false;
+
     // RSAJ HEADER V7 - layout identitas dibangun ulang di luar generated code NetBeans.
     // No. Reg dan No. Kartu tetap dipertahankan sebagai komponen internal karena masih
     // dipakai fungsi lain, tetapi tidak lagi ditampilkan pada header.
@@ -344,7 +350,9 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             "Jam SEP",//25
             "Tgl Rujukan Terbaru",//26
             "Info Habis Rujukan",//27 
-            "No. Kartu BPJS"//28     
+            "No. Kartu BPJS",//28
+            "Status SKDP",//29 - internal, tidak ditampilkan di tabel utama
+            "Geriatri JK"//30 - internal, menggantikan query pada renderer
         }){
               @Override public boolean isCellEditable(int rowIndex, int colIndex){return false;}
         };
@@ -353,11 +361,6 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
 
         tbKasirRalan.setPreferredScrollableViewportSize(new Dimension(800,800));
         tbKasirRalan.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-
-        // Pastikan baris yang dipilih tetap terlihat biru,
-        // walaupun renderer WarnaTableKasirRalan sedang aktif.
-        tbKasirRalan.setSelectionBackground(new java.awt.Color(0, 120, 215));
-        tbKasirRalan.setSelectionForeground(java.awt.Color.WHITE);
 
         for (i = 0; i < 28; i++) {
             TableColumn column = tbKasirRalan.getColumnModel().getColumn(i);
@@ -425,46 +428,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
                 column.setPreferredWidth(200); // Lebar untuk Info Habis Rujukan            
             }
         }
-        try {
-            if(koneksiDB.AKTIFKANWARNARALAN().equals("yes")){
-//                tbKasirRalan.setDefaultRenderer(Object.class, new WarnaTableKasirRalan());
-
-                // Renderer warna rawat jalan sebelumnya menimpa warna selection JTable.
-                // Wrapper ini mempertahankan warna status pasien saat tidak dipilih,
-                // lalu memaksa baris aktif tampil biru ketika dipilih.
-                final javax.swing.table.TableCellRenderer rendererKasirRalan =
-                        new WarnaTableKasirRalan(koneksi);
-
-                tbKasirRalan.setDefaultRenderer(Object.class,
-                    new javax.swing.table.TableCellRenderer() {
-                        @Override
-                        public java.awt.Component getTableCellRendererComponent(
-                                JTable table, Object value, boolean isSelected,
-                                boolean hasFocus, int row, int column) {
-
-                            java.awt.Component komponen =
-                                    rendererKasirRalan.getTableCellRendererComponent(
-                                            table, value, isSelected, hasFocus, row, column);
-
-                            if (isSelected && komponen != null) {
-                                komponen.setBackground(table.getSelectionBackground());
-                                komponen.setForeground(table.getSelectionForeground());
-
-                                if (komponen instanceof javax.swing.JComponent) {
-                                    ((javax.swing.JComponent) komponen).setOpaque(true);
-                                }
-                            }
-
-                            return komponen;
-                        }
-                    }
-                );
-            }else{
-                tbKasirRalan.setDefaultRenderer(Object.class, new WarnaTable());
-            }
-        } catch (Exception e) {
-            tbKasirRalan.setDefaultRenderer(Object.class, new WarnaTable());
-        }
+        initKolomFrozenKasirRSAJ();
         
         tabModekasir2 = new DefaultTableModel(null, new String[]{
             "Kode Dokter",//0
@@ -1592,6 +1556,160 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
     }
 
     
+
+
+    private void initKolomFrozenKasirRSAJ() {
+        // Lepaskan Scroll1 sambil mempertahankan ketiga tab dan judulnya.
+        TabRawat.setComponentAt(0, new javax.swing.JPanel());
+        kolomFrozenKasirRSAJ = new KasirRalanFrozenColumns(tbKasirRalan, Scroll1, () -> {
+            getDatakasir();
+            refreshTombolHasilLabRadKasir();
+        });
+        // Scroll1/tbKasirRalan tetap instance yang sama, agar semua handler lama berjalan.
+        TabRawat.setComponentAt(0, kolomFrozenKasirRSAJ);
+        // Klik/drag mouse dan keyboard sama-sama mengikuti pilihan baris final.
+        // Tunda satu putaran EDT agar handler lama lebih dulu mengisi header;
+        // hindari query nomor antrean ulang bila pasiennya sudah sinkron.
+        final boolean[] updateHeaderTerjadwal = {false};
+        tbKasirRalan.getSelectionModel().addListSelectionListener(evt -> {
+            if (evt.getValueIsAdjusting() || updateHeaderTerjadwal[0]) return;
+            updateHeaderTerjadwal[0] = true;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                updateHeaderTerjadwal[0] = false;
+                int baris = tbKasirRalan.getSelectedRow();
+                if (baris < 0) return;
+                String noRawat = nilaiTabelHeaderRSAJ(tbKasirRalan, baris, 11);
+                if (!noRawat.equals(TNoRwCari.getText())) getDatakasir();
+            });
+        });
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowActivated(java.awt.event.WindowEvent evt) {
+                refreshPenandaKasirRSAJ();
+            }
+        });
+    }
+
+    /** Cocokkan no_sep yang ditampilkan di daftar, tanpa syarat tambahan no_surat. */
+    private String sqlStatusSkdpKasirRSAJ() {
+        return "IF(reg_periksa.kd_pj='BPJ' AND reg_periksa.stts<>'Batal' AND EXISTS("
+                + "SELECT 1 FROM pemeriksaan_ralan rencana_skdp "
+                + "WHERE rencana_skdp.no_rawat=reg_periksa.no_rawat "
+                + "AND LOWER(COALESCE(rencana_skdp.rtl,'')) LIKE '%kontrol%'"
+                + "),IF(EXISTS("
+                + "SELECT 1 FROM bridging_surat_kontrol_bpjs kontrol_skdp "
+                + "WHERE kontrol_skdp.no_sep=(SELECT MAX(sep_skdp.no_sep) FROM bridging_sep sep_skdp "
+                + "WHERE sep_skdp.no_rawat=reg_periksa.no_rawat "
+                + "AND sep_skdp.jnspelayanan='2') "
+                + "AND COALESCE(kontrol_skdp.no_sep,'')<>''"
+                + "),'Ada','Tidak Ada'),'-') AS status_skdp ";
+    }
+
+    /** Pengecekan batch setelah daftar tersedia; hanya no_rawat/SEP pada daftar ini. */
+    private java.util.Map<String,String> muatStatusSkdpKontrolKasirRSAJ(
+            java.util.Map<String,String> nomorSep, long versi) throws Exception {
+        java.util.Map<String,String> status = new java.util.LinkedHashMap<>();
+        java.util.List<String> noRawat = new java.util.ArrayList<>(nomorSep.keySet());
+        for (String key : noRawat) status.put(key, "-");
+        java.util.Set<String> kontrol = new java.util.LinkedHashSet<>();
+        for (int awal = 0; awal < noRawat.size(); awal += 250) {
+            if (versi != versiDaftarFrozenRSAJ) return java.util.Collections.emptyMap();
+            int akhir = Math.min(awal + 250, noRawat.size());
+            String sql = "SELECT DISTINCT no_rawat FROM pemeriksaan_ralan WHERE no_rawat IN ("
+                    + String.join(",", java.util.Collections.nCopies(akhir - awal, "?"))
+                    + ") AND LOWER(COALESCE(rtl,'')) LIKE '%kontrol%'";
+            try (java.sql.PreparedStatement ps = koneksi.prepareStatement(sql)) {
+                for (int j = awal; j < akhir; j++) ps.setString(j - awal + 1, noRawat.get(j));
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    while (versi == versiDaftarFrozenRSAJ && rs.next()) {
+                        String key = rs.getString("no_rawat");
+                        if (nomorSep.containsKey(key)) kontrol.add(key);
+                    }
+                }
+            }
+        }
+        java.util.Set<String> sepKontrol = new java.util.LinkedHashSet<>();
+        for (String key : kontrol) {
+            status.put(key, "Tidak Ada");
+            String sep = nomorSep.get(key);
+            if (sep != null && !sep.trim().isEmpty()) sepKontrol.add(sep.trim());
+        }
+        java.util.List<String> daftarSep = new java.util.ArrayList<>(sepKontrol);
+        java.util.Set<String> tersedia = new java.util.HashSet<>();
+        for (int awal = 0; awal < daftarSep.size(); awal += 250) {
+            if (versi != versiDaftarFrozenRSAJ) return java.util.Collections.emptyMap();
+            int akhir = Math.min(awal + 250, daftarSep.size());
+            String sql = "SELECT DISTINCT no_sep FROM bridging_surat_kontrol_bpjs WHERE no_sep IN ("
+                    + String.join(",", java.util.Collections.nCopies(akhir - awal, "?")) + ")";
+            try (java.sql.PreparedStatement ps = koneksi.prepareStatement(sql)) {
+                for (int j = awal; j < akhir; j++) ps.setString(j - awal + 1, daftarSep.get(j));
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    while (versi == versiDaftarFrozenRSAJ && rs.next()) {
+                        String sep = rs.getString("no_sep");
+                        if (sep != null) tersedia.add(sep.trim());
+                    }
+                }
+            }
+        }
+        if (versi != versiDaftarFrozenRSAJ) return java.util.Collections.emptyMap();
+        for (String key : kontrol) {
+            String sep = nomorSep.get(key);
+            if (sep != null && tersedia.contains(sep.trim())) status.put(key, "Ada");
+        }
+        return status;
+    }
+
+    /** Refresh satu pasien setelah kembali dari billing/resume/SKDP, tanpa polling. */
+    private void refreshPenandaKasirRSAJ() {
+        if (kolomFrozenKasirRSAJ == null || !isShowing() || sedangMemuatData
+                || sedangRefreshPenandaRSAJ || TabRawat.getSelectedIndex() != 0) return;
+        int viewRow = tbKasirRalan.getSelectedRow();
+        if (viewRow < 0) return;
+        int modelRow = tbKasirRalan.convertRowIndexToModel(viewRow);
+        final String noRawat = String.valueOf(tabModekasir.getValueAt(modelRow, 11));
+        final String kdDokter = String.valueOf(tabModekasir.getValueAt(modelRow, 0));
+        final long versi = versiDaftarFrozenRSAJ;
+        sedangRefreshPenandaRSAJ = true;
+        new javax.swing.SwingWorker<String[], Void>() {
+            @Override protected String[] doInBackground() throws Exception {
+                String sql = "SELECT reg_periksa.stts,reg_periksa.status_bayar,"
+                        + "IF(EXISTS(SELECT 1 FROM resume_pasien rs "
+                        + "WHERE rs.no_rawat=reg_periksa.no_rawat),"
+                        + "'Ada','Tidak Ada') AS status_resume,"
+                        + sqlStatusSkdpKasirRSAJ()
+                        + "FROM reg_periksa WHERE reg_periksa.no_rawat=? AND reg_periksa.kd_dokter=?";
+                try (java.sql.PreparedStatement ps = koneksi.prepareStatement(sql)) {
+                    ps.setString(1, noRawat);
+                    ps.setString(2, kdDokter);
+                    try (java.sql.ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) return new String[]{rs.getString("stts"),
+                            rs.getString("status_bayar"), rs.getString("status_resume"), rs.getString("status_skdp")};
+                    }
+                }
+                return null;
+            }
+            @Override protected void done() {
+                sedangRefreshPenandaRSAJ = false;
+                try {
+                    String[] data = get();
+                    if (data == null || versi != versiDaftarFrozenRSAJ || sedangMemuatData || !isShowing()) return;
+                    // Cari kembali berdasar kunci pasien, karena urutan/filter dapat berubah.
+                    for (int row = 0; row < tabModekasir.getRowCount(); row++) {
+                        if (noRawat.equals(String.valueOf(tabModekasir.getValueAt(row, 11)))
+                                && kdDokter.equals(String.valueOf(tabModekasir.getValueAt(row, 0)))) {
+                            int[] columns = {10, 15, 23, 29};
+                            for (int j = 0; j < columns.length; j++) {
+                                if (!java.util.Objects.equals(data[j], tabModekasir.getValueAt(row, columns[j])))
+                                    tabModekasir.setValueAt(data[j], row, columns[j]);
+                            }
+                            break;
+                        }
+                    }
+                } catch (Exception ex) {
+                    System.out.println("Notifikasi refresh penanda rawat jalan : " + ex);
+                }
+            }
+        }.execute();
+    }
 
     /** This method is called from within the constructor to
      * initialize the form.
@@ -17948,9 +18066,18 @@ private javax.swing.JMenu MnHasilUSG,MnHasilEndoskopi,MnRMSkrining;
 //    }
 
 private void tampilkasir() {
+    // Klik Cari selama query berjalan tidak boleh hilang. Abaikan hasil versi
+    // lama dan jalankan filter terbaru setelah query tersebut ditutup.
+    versiDaftarFrozenRSAJ++;
     if(sedangMemuatData){
+        muatUlangKasirRSAJ=true;
+        Valid.tabelKosong(tabModekasir);
+        LCount.setText("0");
+        DlgHasilPenunjang.batalkanRefreshTombol(BtnHasilLabKasir, BtnHasilRadKasir, panelGlass8);
         return;
     }
+    final long versiMuat=versiDaftarFrozenRSAJ;
+    muatUlangKasirRSAJ=false;
 
     sedangMemuatData=true;
     DlgHasilPenunjang.batalkanRefreshTombol(BtnHasilLabKasir, BtnHasilRadKasir, panelGlass8);
@@ -17978,12 +18105,17 @@ private void tampilkasir() {
 
     new SwingWorker<Void,Object[]>() {
         private int jumlahBaris=0;
+        private long waktuQueryMs=0, waktuBacaMs=0, waktuPenandaMs=0;
+        private boolean barisPertamaTampil=false;
+        private final java.util.Map<String,java.util.List<Integer>> barisPasien=new java.util.HashMap<>();
 
         @Override
         protected Void doInBackground() {
             PreparedStatement perintah=null;
             ResultSet hasil=null;
+            java.util.Map<String,String> pasienSkdp=new java.util.LinkedHashMap<>();
             try {
+                final long mulaiQuery=System.nanoTime();
                 perintah=koneksi.prepareStatement(
                     "select DISTINCT reg_periksa.no_reg,"
                     + "reg_periksa.no_rawat,"
@@ -18017,7 +18149,10 @@ private void tampilkasir() {
                     + "latest_rujukan.tglrujukan_terbaru AS tgl_rujukan,"
                     + "CONCAT(DATEDIFF(DATE_SUB(DATE_ADD(latest_rujukan.tglrujukan_terbaru,INTERVAL 3 MONTH),INTERVAL 3 DAY),CURDATE()),"
                     + "' Hari - ',DATE_FORMAT(DATE_SUB(DATE_ADD(latest_rujukan.tglrujukan_terbaru,INTERVAL 3 MONTH),INTERVAL 3 DAY),'%d/%m/%Y')) AS info_habis_rujukan,"
-                    + "pasien.no_peserta "
+                    + "pasien.no_peserta,"
+                    // SKDP menyusul melalui batch setelah baris pasien dipublish.
+                    + "IF(reg_periksa.kd_pj='BPJ' AND reg_periksa.stts<>'Batal','Menunggu','-') AS status_skdp,"
+                    + "IF(reg_periksa.umurdaftar>=60,pasien.jk,'') AS geriatri_jk "
                     + "FROM reg_periksa "
                     + "inner join dokter on reg_periksa.kd_dokter=dokter.kd_dokter "
                     + "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "
@@ -18029,8 +18164,8 @@ private void tampilkasir() {
                     + "WHERE status NOT IN ('Batal','Gagal') AND tanggalperiksa BETWEEN ? and ? "
                     + "GROUP BY no_rawat,norm) rmb ON reg_periksa.no_rawat=rmb.no_rawat "
                     + "AND reg_periksa.no_rkm_medis=rmb.norm "
-                    + "LEFT JOIN (SELECT rs.no_rawat,rs.kd_dokter FROM resume_pasien rs) rsm "
-                    + "ON reg_periksa.no_rawat=rsm.no_rawat and reg_periksa.kd_dokter=rsm.kd_dokter "
+                    + "LEFT JOIN (SELECT DISTINCT rs.no_rawat FROM resume_pasien rs) rsm "
+                    + "ON reg_periksa.no_rawat=rsm.no_rawat "
                     + "LEFT JOIN (SELECT sj.no_rawat,MAX(sj.validasi) AS jam_val FROM sidik_jari_bpjs sj "
                     + "WHERE sj.validasi>=? AND sj.validasi<DATE_ADD(?,INTERVAL 1 DAY) GROUP BY sj.no_rawat) sdk "
                     + "ON reg_periksa.no_rawat=sdk.no_rawat "
@@ -18078,8 +18213,15 @@ private void tampilkasir() {
                 }
 
                 hasil=perintah.executeQuery();
-                while(hasil.next()){
+                waktuQueryMs=(System.nanoTime()-mulaiQuery)/1_000_000L;
+                final long mulaiBaca=System.nanoTime();
+                while(versiMuat==versiDaftarFrozenRSAJ && hasil.next()){
                     jumlahBaris++;
+                    if ("BPJ".equalsIgnoreCase(hasil.getString("kd_pj"))
+                            && !"Batal".equalsIgnoreCase(hasil.getString(14))) {
+                        String sep=hasil.getString("no_sep");
+                        pasienSkdp.put(hasil.getString("no_rawat"), sep == null ? "" : sep.trim());
+                    }
                     publish(new Object[]{
                         hasil.getString(5),
                         hasil.getString(6),
@@ -18109,9 +18251,12 @@ private void tampilkasir() {
                         hasil.getString("jam_sep"),
                         hasil.getString("tgl_rujukan"),
                         hasil.getString("info_habis_rujukan"),
-                        hasil.getString("no_peserta")
+                        hasil.getString("no_peserta"),
+                        hasil.getString("status_skdp"),
+                        hasil.getString("geriatri_jk")
                     });
                 }
+                waktuBacaMs=(System.nanoTime()-mulaiBaca)/1_000_000L;
             } catch(Exception e){
                 System.out.println("Notifikasi muat Rawat Jalan : "+e);
             } finally {
@@ -18126,13 +18271,52 @@ private void tampilkasir() {
                     System.out.println("Notifikasi tutup query Rawat Jalan : "+e);
                 }
             }
+            if (versiMuat==versiDaftarFrozenRSAJ && !pasienSkdp.isEmpty()) {
+                long mulaiPenanda=System.nanoTime();
+                try {
+                    java.util.Map<String,String> penanda=muatStatusSkdpKontrolKasirRSAJ(pasienSkdp,versiMuat);
+                    for (java.util.Map.Entry<String,String> item : penanda.entrySet()) {
+                        if (versiMuat!=versiDaftarFrozenRSAJ) break;
+                        publish(new Object[]{item.getKey(),pasienSkdp.get(item.getKey()),item.getValue()});
+                    }
+                } catch (Exception ex) {
+                    System.out.println("Notifikasi muat penanda kontrol/SKDP Rawat Jalan : "+ex);
+                    if (versiMuat==versiDaftarFrozenRSAJ) {
+                        for (java.util.Map.Entry<String,String> item : pasienSkdp.entrySet())
+                            publish(new Object[]{item.getKey(),item.getValue(),"Gagal"});
+                    }
+                } finally {
+                    waktuPenandaMs=(System.nanoTime()-mulaiPenanda)/1_000_000L;
+                }
+            }
             return null;
         }
 
         @Override
         protected void process(List<Object[]> data) {
+            if(versiMuat!=versiDaftarFrozenRSAJ) return;
             for(Object[] baris:data){
-                tabModekasir.addRow(baris);
+                if (baris.length==3) {
+                    java.util.List<Integer> rows=barisPasien.get(String.valueOf(baris[0]));
+                    if (rows==null) continue;
+                    for (int row : rows) {
+                        if (row>=tabModekasir.getRowCount()
+                                || !java.util.Objects.equals(baris[0],tabModekasir.getValueAt(row,11))) continue;
+                        Object nilaiSep=tabModekasir.getValueAt(row,20);
+                        String sep=nilaiSep==null?"":nilaiSep.toString().trim();
+                        if (sep.equals(baris[1]) && !java.util.Objects.equals(baris[2],tabModekasir.getValueAt(row,29)))
+                            tabModekasir.setValueAt(baris[2],row,29);
+                    }
+                } else {
+                    int row=tabModekasir.getRowCount();
+                    tabModekasir.addRow(baris);
+                    barisPasien.computeIfAbsent(String.valueOf(baris[11]), key -> new java.util.ArrayList<>()).add(row);
+                    if (!barisPertamaTampil) {
+                        barisPertamaTampil=true;
+                        System.out.println("[PERFORMA MODUL] Data pasien mulai ditampilkan dalam "+
+                                ((System.nanoTime()-mulaiMuat)/1_000_000L)+" ms");
+                    }
+                }
             }
             LCount.setText(""+tabModekasir.getRowCount());
         }
@@ -18140,10 +18324,17 @@ private void tampilkasir() {
         @Override
         protected void done() {
             sedangMemuatData=false;
+            if(muatUlangKasirRSAJ){
+                muatUlangKasirRSAJ=false;
+                tampilkasir();
+                return;
+            }
+            if(versiMuat!=versiDaftarFrozenRSAJ) return;
             LCount.setText(""+jumlahBaris);
             refreshTombolHasilLabRadKasir();
             System.out.println("[PERFORMA MODUL] Data Rawat Jalan selesai dalam "+
-                    ((System.nanoTime()-mulaiMuat)/1_000_000L)+" ms ("+jumlahBaris+" baris)");
+                    ((System.nanoTime()-mulaiMuat)/1_000_000L)+" ms ("+jumlahBaris+" baris)"+
+                    " [query="+waktuQueryMs+" ms, baca="+waktuBacaMs+" ms, penanda="+waktuPenandaMs+" ms]");
         }
     }.execute();
 }

@@ -17151,6 +17151,10 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
                 cekBox1.getIcon(), cekBox1.getSelectedIcon(),
                 this::loginUlangSesi, this::gantiUserSaatTimeout);
         dialogKunciSesi.prepare(usernameSesi);
+        // Ambil wallpaper yang sudah ada di cache login, bukan snapshot form.
+        ImageIcon latarTimeout = daftarWallpaper.isEmpty() ? wallpaperFallbackPanel
+                : daftarWallpaper.get(Math.max(0, Math.min(indeksWallpaper, daftarWallpaper.size() - 1)));
+        kunciSesi.prepareBackdrop(latarTimeout);
         kunciSesi.showLockedLogin(dialogKunciSesi);
     }
 

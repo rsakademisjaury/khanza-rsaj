@@ -2216,47 +2216,10 @@ public String cariIsi(String sql, String p1, String p2){
         }
     }
 
+/** Koneksi milik caller, ikut admission lock; caller tetap wajib close(). */
 public static Connection getConnection() throws SQLException {
- try {
-            // Lokasi file database.xml
-            File xmlFile = new File("setting/database.xml");
-            
-            // Cek apakah file XML ada
-            if (!xmlFile.exists()) {
-                throw new SQLException("File database.xml tidak ditemukan pada path: " + xmlFile.getAbsolutePath());
-            }
-
-            // Buat DocumentBuilder untuk membaca file XML
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-            Document doc = dBuilder.parse(xmlFile);
-
-            // Normalisasi struktur XML
-            doc.getDocumentElement().normalize();
-
-            // Ambil elemen root <database>
-            Element root = (Element) doc.getElementsByTagName("database").item(0);
-
-            // Ambil elemen <url>, <username>, dan <password>
-            String url = root.getElementsByTagName("url").item(0).getTextContent();
-            String username = root.getElementsByTagName("username").item(0).getTextContent();
-            String password = root.getElementsByTagName("password").item(0).getTextContent();
-
-            // Debug output (opsional)
-            System.out.println("URL: " + url);
-            System.out.println("Username: " + username);
-            System.out.println("Password: " + password);
-
-            // Menggunakan informasi dari XML untuk koneksi database
-            Connection conn = DriverManager.getConnection(url, username, password);
-            
-            return conn;
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new SQLException("Gagal membaca file database.xml atau membuat koneksi database: " + e.getMessage());
-        }
-    }
+    return koneksiDB.condbTransaksi();
+}
 
 public String cariIsi3(String sql, String data1, String data2,String data3) {
     String dicari = "";

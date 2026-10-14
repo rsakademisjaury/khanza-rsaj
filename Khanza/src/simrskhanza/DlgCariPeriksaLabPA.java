@@ -1,5 +1,31 @@
 package simrskhanza;
 import fungsi.WarnaTable;
+import fungsi.LampiranFotoLabPA;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import javax.imageio.ImageIO;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.util.JRLoader;
+import net.sf.jasperreports.view.JasperViewer;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.util.EntityUtils;
+
 import kepegawaian.DlgCariPetugas;
 import keuangan.Jurnal;
 import fungsi.WarnaTable4;
@@ -39,6 +65,8 @@ import laporan.DlgBerkasRawat;
 import rekammedis.RMRiwayatPerawatan;
 
 public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
+    private File targetJPGUploadPA;
+    private boolean jpgUploadPABerhasil;
     private final DefaultTableModel tabMode;
     private sekuel Sequel=new sekuel();
     private validasi Valid=new validasi();
@@ -383,6 +411,7 @@ public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
         LTotal = new widget.Label();
         BtnHapus = new widget.Button();
         BtnPrint = new widget.Button();
+        BtnUpload = new widget.Button();
         BtnKeluar = new widget.Button();
         TabRawat = new javax.swing.JTabbedPane();
         panelisi2 = new widget.panelisi();
@@ -861,6 +890,18 @@ public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
             }
         });
         panelisi1.add(BtnPrint);
+        BtnUpload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/email.png")));
+        BtnUpload.setText("Upload");
+        BtnUpload.setName("BtnUpload");
+        BtnUpload.setToolTipText("Upload JPG hasil PA lengkap ke Berkas Lab");
+        BtnUpload.setPreferredSize(new java.awt.Dimension(100, 30));
+        BtnUpload.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnUploadActionPerformed(evt);
+            }
+        });
+        panelisi1.add(BtnUpload);
+
 
         BtnKeluar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/exit.png"))); // NOI18N
         BtnKeluar.setMnemonic('K');
@@ -1389,9 +1430,9 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                                 param.put("jampermintaan",rspermintaan.getString("jam_permintaan"));
                                 param.put("tanggalsampel",rspermintaan.getString("tgl_sampel"));  
                                 param.put("jamsampel",rspermintaan.getString("jam_sampel"));
-                                Valid.MyReport("rptPeriksaLabPermintaanPA.jasper","report","::[ Pemeriksaan Laboratorium ]::",param);   
+                                cetakReportPALengkap("rptPeriksaLabPermintaanPA.jasper",param,false);   
                             }else{
-                                Valid.MyReport("rptPeriksaLabPA.jasper","report","::[ Pemeriksaan Laboratorium ]::",param);   
+                                cetakReportPALengkap("rptPeriksaLabPA.jasper",param,false);   
                             }
                         } catch (Exception e) {
                             System.out.println("Notif : "+e);
@@ -1627,9 +1668,9 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                                 param.put("jampermintaan",rspermintaan.getString("jam_permintaan"));
                                 param.put("tanggalsampel",rspermintaan.getString("tgl_sampel"));  
                                 param.put("jamsampel",rspermintaan.getString("jam_sampel"));
-                                Valid.MyReportPDF("rptPeriksaLabPermintaanPA.jasper","report","::[ Pemeriksaan Laboratorium ]::",param);   
+                                cetakReportPALengkap("rptPeriksaLabPermintaanPA.jasper",param,true);   
                             }else{
-                                Valid.MyReportPDF("rptPeriksaLabPA.jasper","report","::[ Pemeriksaan Laboratorium ]::",param);   
+                                cetakReportPALengkap("rptPeriksaLabPA.jasper",param,true);   
                             }
                         } catch (Exception e) {
                             System.out.println("Notif : "+e);
@@ -2152,6 +2193,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
     private widget.Button BtnHapus;
     private widget.Button BtnKeluar;
     private widget.Button BtnPrint;
+    private widget.Button BtnUpload;
     private widget.Button BtnRefreshPhoto;
     private widget.CekBox ChkAccor;
     private widget.TextArea DiagnosaKlinis;
@@ -2632,7 +2674,8 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         BtnHapus.setVisible(allowedUsers.contains(akses.getkode()));                    
         MnCetakHasilLab.setEnabled(allowedUsers.contains(akses.getkode())); 
         MnCetakNota.setEnabled(allowedUsers.contains(akses.getkode()));       
-        BtnPrint.setEnabled(allowedUsers.contains(akses.getkode())); 
+        BtnPrint.setEnabled(allowedUsers.contains(akses.getkode()));
+        BtnUpload.setEnabled(allowedUsers.contains(akses.getkode()) && akses.getberkas_digital_perawatan()); 
         ppRiwayat.setEnabled(akses.getresume_pasien());   
         ppBerkasDigital.setEnabled(akses.getberkas_digital_perawatan());     
     }
@@ -2655,41 +2698,204 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         }
     }
     
-    private void panggilPhoto() {
-        if(ScrollMenu.isVisible()==true){
-            if(tbDokter.getSelectedRow()!= -1){
-                try {
-                    ps=koneksi.prepareStatement("select detail_periksa_labpa_gambar.photo from detail_periksa_labpa_gambar where detail_periksa_labpa_gambar.no_rawat=? and detail_periksa_labpa_gambar.tgl_periksa=? and detail_periksa_labpa_gambar.jam=? and detail_periksa_labpa_gambar.kd_jenis_prw=?");
-                    try {
-                        ps.setString(1,tbDokter.getValueAt(tbDokter.getSelectedRow(),0).toString());
-                        ps.setString(2,tbDokter.getValueAt(tbDokter.getSelectedRow(),3).toString());
-                        ps.setString(3,tbDokter.getValueAt(tbDokter.getSelectedRow(),4).toString());
-                        ps.setString(4,tbDokter.getValueAt(tbDokter.getSelectedRow(),14).toString());
-                        rs=ps.executeQuery();
-                        if(rs.next()){
-                            if(rs.getString("photo").equals("")||rs.getString("photo").equals("-")){
-                                LoadHTML.setText("<html><body><center><br><br><font face='tahoma' size='2' color='#434343'>Kosong</font></center></body></html>");
-                            }else{
-                                LoadHTML.setText("<html><body><center><a href='http://"+koneksiDB.HOSTHYBRIDWEB()+":"+koneksiDB.PORTWEB()+"/"+koneksiDB.HYBRIDWEB()+"/labpa/"+rs.getString("photo")+"'><img src='http://"+koneksiDB.HOSTHYBRIDWEB()+":"+koneksiDB.PORTWEB()+"/"+koneksiDB.HYBRIDWEB()+"/labpa/"+rs.getString("photo")+"' alt='photo' width='375' height='335'/></a></center></body></html>");
-                            }  
-                        }else{
-                            LoadHTML.setText("<html><body><center><br><br><font face='tahoma' size='2' color='#434343'>Kosong</font></center></body></html>");
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Notif : "+e);
-                    } finally{
-                        if(rs!=null){
-                            rs.close();
-                        }
-                        if(ps!=null){
-                            ps.close();
-                        }
-                    }
-                } catch (Exception e) {
-                    System.out.println("Notif : "+e);
-                } 
+    private String escapeHTMLPA(String nilai) {
+        return nilai.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
+    }
+
+    private String urlFotoPA(String path) throws IOException {
+        String bersih = path.replace('\\', '/');
+        if (!bersih.startsWith("pages/upload/") || bersih.contains("..")) {
+            throw new IOException("Lokasi foto PA tidak valid: " + path);
+        }
+        StringBuilder encoded = new StringBuilder();
+        for (String bagian : bersih.split("/")) {
+            if (encoded.length() > 0) encoded.append('/');
+            encoded.append(URLEncoder.encode(bagian, "UTF-8").replace("+", "%20"));
+        }
+        return "http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB()
+                + "/" + koneksiDB.HYBRIDWEB() + "/labpa/" + encoded;
+    }
+
+    private List<LampiranFotoLabPA.Foto> ambilFotoReportPA(Map<String, Object> param) throws Exception {
+        List<LampiranFotoLabPA.Foto> foto = new ArrayList<>();
+        String sql = "select g.photo,j.nm_perawatan from detail_periksa_labpa_gambar g "
+                + "inner join jns_perawatan_lab j on j.kd_jenis_prw=g.kd_jenis_prw "
+                + "where g.no_rawat=? and g.tgl_periksa=? and g.jam=? "
+                + "and exists (select 1 from periksa_lab p where p.no_rawat=g.no_rawat "
+                + "and p.kd_jenis_prw=g.kd_jenis_prw and p.tgl_periksa=g.tgl_periksa "
+                + "and p.jam=g.jam and p.kategori='PA') order by g.id_gambar";
+        // Statement/ResultSet lokal: tidak menimpa rs/ps milik proses cetak yang sedang berjalan.
+        try (PreparedStatement fotoPS = koneksi.prepareStatement(sql)) {
+            fotoPS.setString(1, param.get("noperiksa").toString());
+            fotoPS.setString(2, Valid.SetTgl(param.get("tanggal").toString()));
+            fotoPS.setString(3, param.get("jam").toString());
+            try (ResultSet fotoRS = fotoPS.executeQuery()) {
+                while (fotoRS.next()) {
+                    String path = fotoRS.getString("photo");
+                    if (path == null || path.trim().isEmpty() || "-".equals(path)) continue;
+                    URLConnection sumber = new URL(urlFotoPA(path)).openConnection();
+                    sumber.setConnectTimeout(10000);
+                    sumber.setReadTimeout(15000);
+                    BufferedImage data;
+                    try (InputStream input = sumber.getInputStream()) { data = ImageIO.read(input); }
+                    if (data == null) throw new IOException("Foto PA tidak dapat dibaca: " + path);
+                    foto.add(new LampiranFotoLabPA.Foto(data, fotoRS.getString("nm_perawatan")));
+                }
             }
         }
+        return foto;
     }
- 
+
+    private void cetakReportPALengkap(String namaReport, Map<String, Object> param, boolean pdf) {
+        try {
+            JasperReport report = (JasperReport) JRLoader.loadObject(new File("report", namaReport));
+            List<LampiranFotoLabPA.Foto> foto = ambilFotoReportPA(param);
+            JasperPrint hasil = JasperFillManager.fillReport(report, param, koneksi);
+            String xFoto = report.getPropertiesMap().getProperty("rsaj.pa.foto.x");
+            String wFoto = report.getPropertiesMap().getProperty("rsaj.pa.foto.width");
+            int x = xFoto == null ? (namaReport.contains("Permintaan") ? -20 : 0) : Integer.parseInt(xFoto);
+            int lebar = wFoto == null ? (namaReport.contains("Permintaan") ? 532 : 522) : Integer.parseInt(wFoto);
+            LampiranFotoLabPA.tambahkan(hasil, foto, param, report.getLeftMargin() + x, lebar,
+                    report.getTopMargin(), report.getBottomMargin());
+            if (targetJPGUploadPA != null) {
+                LampiranFotoLabPA.simpanJPG(hasil, targetJPGUploadPA);
+                jpgUploadPABerhasil = true;
+            } else if (pdf) {
+                File tujuan = new File("report", namaReport.replace(".jasper", ".pdf"));
+                JasperExportManager.exportReportToPdfFile(hasil, tujuan.getAbsolutePath());
+                Desktop.getDesktop().open(tujuan);
+            } else {
+                JasperViewer viewer = new JasperViewer(hasil, false);
+                viewer.setTitle("::[ Pemeriksaan Laboratorium PA ]::");
+                Dimension layar = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
+                viewer.setSize(layar.width - 50, layar.height - 50);
+                viewer.setModalExclusionType(java.awt.Dialog.ModalExclusionType.TOOLKIT_EXCLUDE);
+                viewer.setLocationRelativeTo(null);
+                viewer.setVisible(true);
+            }
+        } catch (Exception ex) {
+            System.out.println("Notif report PA lengkap: " + ex);
+            JOptionPane.showMessageDialog(this, "Hasil PA belum dapat dibuat lengkap.\n"
+                    + "Periksa migrasi SQL, file report, dan akses foto di server.\n" + ex.getMessage(),
+                    "Hasil PA", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void BtnUploadActionPerformed(java.awt.event.ActionEvent evt) {
+        if (tbDokter.getSelectedRow() < 0 || Kd2.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Pilih pemeriksaan PA yang akan di-upload terlebih dahulu.");
+            return;
+        }
+        File jpg = null;
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        BtnUpload.setEnabled(false);
+        try {
+            String noRawat = tbDokter.getValueAt(tbDokter.getSelectedRow(), 0).toString();
+            String tanggal = tbDokter.getValueAt(tbDokter.getSelectedRow(), 3).toString();
+            String jam = tbDokter.getValueAt(tbDokter.getSelectedRow(), 4).toString();
+            String kode = Sequel.cariIsi("select kode from master_berkas_digital where kode='005'");
+            if (kode.isEmpty()) throw new IOException("Kategori 005 — Berkas Lab belum tersedia.");
+            File folder = new File("tmpJPG");
+            if (!folder.isDirectory() && !folder.mkdirs()) throw new IOException("Folder tmpJPG tidak dapat dibuat.");
+            String nama = (noRawat + "_" + tanggal + "_" + jam).replaceAll("[^A-Za-z0-9_-]", "")
+                    + "_HasilPA_" + new SimpleDateFormat("yyyyMMdd_HHmmss_SSS").format(new Date())
+                    + "_" + java.util.UUID.randomUUID().toString().substring(0,8) + ".jpg";
+            jpg = new File(folder, nama);
+            targetJPGUploadPA = jpg;
+            jpgUploadPABerhasil = false;
+            MnCetakHasilLab11ActionPerformed(null);
+            if (!jpgUploadPABerhasil || !jpg.isFile() || jpg.length() <= 0) throw new IOException("JPG hasil PA lengkap gagal dibuat. Upload dibatalkan.");
+            uploadJPGHasilPA(jpg, noRawat, kode);
+            JOptionPane.showMessageDialog(this, "JPG hasil PA lengkap berhasil di-upload ke Berkas Lab.");
+            ppBerkasDigitalBtnPrintActionPerformed(evt);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Upload hasil PA gagal:\n" + ex.getMessage(),
+                    "Upload Hasil PA", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            targetJPGUploadPA = null;
+            jpgUploadPABerhasil = false;
+            if (jpg != null && jpg.isFile()) jpg.delete();
+            isCek();
+            this.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
+    private void uploadJPGHasilPA(File file, String noRawat, String kode) throws Exception {
+        HttpClient client = new DefaultHttpClient();
+        client.getParams().setIntParameter("http.connection.timeout", 10000);
+        client.getParams().setIntParameter("http.socket.timeout", 30000);
+        HttpPost request = new HttpPost("http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB()
+                + "/" + koneksiDB.HYBRIDWEB() + "/upload.php?doc=berkasrawat/pages/upload/");
+        try {
+            MultipartEntity body = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
+            body.addPart("file", new FileBody(file, "image/jpeg"));
+            request.setEntity(body);
+            HttpResponse response = client.execute(request);
+            int status = response.getStatusLine().getStatusCode();
+            EntityUtils.consume(response.getEntity());
+            if (status < 200 || status >= 300) throw new IOException("Server upload mengembalikan HTTP " + status);
+            // Endpoint lama dapat merespons HTTP 200 meskipun file gagal dipindahkan.
+            URLConnection cek = new URL("http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB()
+                    + "/" + koneksiDB.HYBRIDWEB() + "/berkasrawat/pages/upload/" + file.getName()).openConnection();
+            cek.setConnectTimeout(10000); cek.setReadTimeout(10000);
+            try (InputStream input = cek.getInputStream()) {
+                byte[] awalan = new byte[3]; int terisi = 0, dibaca;
+                while (terisi < awalan.length && (dibaca = input.read(awalan, terisi, awalan.length - terisi)) > 0) terisi += dibaca;
+                if (terisi != 3 || (awalan[0] & 255) != 255 || (awalan[1] & 255) != 216 || (awalan[2] & 255) != 255)
+                    throw new IOException("JPG belum tersimpan dengan benar pada server upload.");
+            }
+            String lokasi = "pages/upload/" + file.getName();
+            if (!Sequel.menyimpantf("berkas_digital_perawatan", "?,?,?", "Berkas Lab PA", 3,
+                    new String[]{noRawat, kode, lokasi})) {
+                throw new IOException("JPG berhasil dikirim, tetapi pencatatan Berkas Lab gagal. File: " + file.getName());
+            }
+            // Metadata opsional mengikuti viewer berkasrawat; tidak membuat tabel modul lain.
+            try (PreparedStatement meta = koneksi.prepareStatement(
+                    "insert into berkas_digital_perawatan_meta "
+                    + "(no_rawat,kode,lokasi_file,nama_file_asli,ukuran_file,tipe_file,uploaded_at,uploaded_by) "
+                    + "values (?,?,?,?,?,?,now(),?)")) {
+                meta.setString(1,noRawat); meta.setString(2,kode); meta.setString(3,lokasi);
+                meta.setString(4,file.getName()); meta.setLong(5,file.length());
+                meta.setString(6,"image/jpeg"); meta.setString(7,akses.getkode()); meta.executeUpdate();
+            } catch (SQLException ex) { System.out.println("Metadata berkas PA opsional: " + ex.getMessage()); }
+        } finally {
+            request.abort();
+            client.getConnectionManager().shutdown();
+        }
+    }
+
+    private void panggilPhoto() {
+        if (!ScrollMenu.isVisible()) return;
+        LoadHTML.setText("<html><body><center>Belum ada foto hasil PA.</center></body></html>");
+        if (tbDokter.getSelectedRow() == -1) return;
+        StringBuilder fotoHTML = new StringBuilder("<html><body>");
+        int jumlah = 0;
+        try (PreparedStatement fotoPS = koneksi.prepareStatement(
+                "select photo from detail_periksa_labpa_gambar where no_rawat=? and tgl_periksa=? and jam=? and kd_jenis_prw=? order by id_gambar")) {
+            fotoPS.setString(1, tbDokter.getValueAt(tbDokter.getSelectedRow(),0).toString());
+            fotoPS.setString(2, tbDokter.getValueAt(tbDokter.getSelectedRow(),3).toString());
+            fotoPS.setString(3, tbDokter.getValueAt(tbDokter.getSelectedRow(),4).toString());
+            fotoPS.setString(4, tbDokter.getValueAt(tbDokter.getSelectedRow(),14).toString());
+            try (ResultSet fotoRS = fotoPS.executeQuery()) {
+                while (fotoRS.next()) {
+                    String path = fotoRS.getString("photo");
+                    if (path == null || path.trim().isEmpty() || path.equals("-")) continue;
+                    String url = urlFotoPA(path);
+                    fotoHTML.append("<p align='center'>Foto ").append(++jumlah)
+                            .append("<br><a href='").append(escapeHTMLPA(url))
+                            .append("'><img src='").append(escapeHTMLPA(url))
+                            .append("' width='375' alt='Foto hasil PA'></a></p>");
+                }
+            }
+            if (jumlah > 0) {
+                LoadHTML.setText(fotoHTML.append("</body></html>").toString());
+                LoadHTML.setCaretPosition(0);
+            }
+        } catch (Exception ex) {
+            LoadHTML.setText("<html><body>Foto belum dapat ditampilkan. Pastikan migrasi SQL foto PA sudah dijalankan.</body></html>");
+            System.out.println("Notif foto PA: " + ex);
+        }
+    }
+
 }

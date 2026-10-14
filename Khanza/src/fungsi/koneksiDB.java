@@ -22,19 +22,25 @@ public class koneksiDB {
     private static final Properties prop = new Properties(); 
     private static final Properties propVer = new Properties();
     private static final MysqlDataSource dataSource=new MysqlDataSource();
+    private static final MysqlDataSource monitorSource=new MysqlDataSource();
+    private static final IdleDatabaseSession sesiDatabase = new IdleDatabaseSession(() -> dataSource.getConnection());
     private static String var="";
     
     public koneksiDB(){} 
-    public static Connection condb(){ 
+    public static synchronized Connection condb(){
         if(connection == null){
             try{
                 prop.loadFromXML(new FileInputStream("setting/database.xml"));
 //                propVer.loadFromXML(new FileInputStream("setting/version.xml"));
-                dataSource.setURL("jdbc:mysql://"+EnkripsiAES.decrypt(prop.getProperty("HOST"))+":"+EnkripsiAES.decrypt(prop.getProperty("PORT"))+"/"+EnkripsiAES.decrypt(prop.getProperty("DATABASE"))+"?zeroDateTimeBehavior=convertToNull&autoReconnect=true&useCompression=true");
+                String jdbcUrl="jdbc:mysql://"+EnkripsiAES.decrypt(prop.getProperty("HOST"))+":"+EnkripsiAES.decrypt(prop.getProperty("PORT"))+"/"+EnkripsiAES.decrypt(prop.getProperty("DATABASE"))+"?zeroDateTimeBehavior=convertToNull&autoReconnect=true&useCompression=true";
+                dataSource.setURL(jdbcUrl);
+                monitorSource.setURL(jdbcUrl.replace("&autoReconnect=true", "")+"&connectTimeout=5000&socketTimeout=8000");
+                monitorSource.setUser(EnkripsiAES.decrypt(prop.getProperty("USER")));
+                monitorSource.setPassword(EnkripsiAES.decrypt(prop.getProperty("PAS")));
 //                dataSource.setURL("jdbc:mysql://"+EnkripsiAES.decrypt(prop.getProperty("HOST"))+":"+EnkripsiAES.decrypt(prop.getProperty("PORT"))+"/"+EnkripsiAES.decrypt(prop.getProperty("DATABASE"))+"?zeroDateTimeBehavior=convertToNull&autoReconnect=true&useCompression=true");
                 dataSource.setUser(EnkripsiAES.decrypt(prop.getProperty("USER")));
                 dataSource.setPassword(EnkripsiAES.decrypt(prop.getProperty("PAS")));
-                connection=dataSource.getConnection();       
+                connection=sesiDatabase.connection();
                 System.out.println(""+                        
                         "      _                            _             _                _     \n"+
                         "  ___(_)_ __ ___  _ __ ___    __ _| | ____ _  __| | ___ _ __ ___ (_)___ \n"+
@@ -54,7 +60,7 @@ public class koneksiDB {
                         dataSource.setURL("jdbc:mysql://"+EnkripsiAES.decrypt(prop.getProperty("HOST"))+":"+EnkripsiAES.decrypt(prop.getProperty("PORT"))+"/"+EnkripsiAES.decrypt(prop.getProperty("DATABASE"))+"?zeroDateTimeBehavior=convertToNull&amp;autoReconnect=true&amp;cachePrepStmts=true");
                         dataSource.setUser(EnkripsiAES.decrypt(prop.getProperty("USER")));
                         dataSource.setPassword(EnkripsiAES.decrypt(prop.getProperty("PAS")));
-                        connection=dataSource.getConnection();  
+                        connection=sesiDatabase.connection();
                     }
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null,"Koneksi Putus : "+e);
@@ -64,12 +70,36 @@ public class koneksiDB {
         return connection;        
     }
 
-    /** Koneksi tersendiri untuk operasi yang memerlukan transaksi dan rollback. */
+    /** Koneksi terpisah yang dibuat sebelum lock boleh menyelesaikan pekerjaan. */
     public static Connection condbTransaksi() throws SQLException {
-        if(condb()==null) throw new SQLException("Koneksi database tidak tersedia.");
+        if (condb() == null) throw new SQLException("Konfigurasi database tidak tersedia.");
+        return sesiDatabase.openWorkConnection();
+    }
+
+    /** Hanya untuk verifikasi password; tidak menghidupkan koneksi pekerjaan. */
+    public static Connection condbVerifikasiSesi() throws SQLException {
+        return bukaKoneksiKhusus();
+    }
+
+    /** Alarm membuka koneksi singkat; caller WAJIB try-with-resources. */
+    public static Connection condbPemantauan() throws SQLException {
+        if (condb() == null) throw new SQLException("Konfigurasi database tidak tersedia.");
+        Connection monitor = monitorSource.getConnection();
+        try { monitor.setReadOnly(true); return monitor; }
+        catch (SQLException e) { monitor.close(); throw e; }
+    }
+
+    private static Connection bukaKoneksiKhusus() throws SQLException {
+        if (condb() == null) throw new SQLException("Konfigurasi database tidak tersedia.");
         return dataSource.getConnection();
     }
-    
+
+    public static void kunciSesiDatabase() { sesiDatabase.suspend(); }
+    public static void bukaSesiDatabase() { sesiDatabase.resume(); }
+    public static boolean sesiDatabaseTerkunci() { return sesiDatabase.isSuspended(); }
+    public static long versiSesiDatabase() { return sesiDatabase.epoch(); }
+    public static String statusSesiDatabase() { return sesiDatabase.diagnostics(); }
+
     public static String HOST(){
         try{
             prop.loadFromXML(new FileInputStream("setting/database.xml"));
