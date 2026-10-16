@@ -18,13 +18,11 @@ import java.awt.event.MouseWheelEvent;
 import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
-import javax.swing.JLayer;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.event.TableModelEvent;
-import javax.swing.plaf.LayerUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.TableCellRenderer;
@@ -32,7 +30,7 @@ import javax.swing.table.TableColumn;
 
 /**
  * Tampilan lokal DlgKasirRalan, tanpa query database di renderer.
- * Kolom model/view tabel utama 0..28 tetap utuh (Status hanya disembunyikan).
+ * Indeks model tetap; urutan kolom tampilan dapat berubah tanpa mengubah data.
  * Data tambahan di akhir model: 29=Status SKDP, 30=penanda geriatri L/P.
  */
 public final class KasirRalanFrozenColumns extends JPanel {
@@ -45,13 +43,16 @@ public final class KasirRalanFrozenColumns extends JPanel {
     private static final Color SELANG = new Color(249, 250, 252);
     private static final Color TEKS = new Color(45, 52, 60);
     private static final Color PILIH = new Color(226, 240, 254);
-    private static final Color GARIS = new Color(32, 112, 190);
-    private static final Color GRID = new Color(228, 233, 239);
+    private static final Color GRID = new Color(235, 237, 240);
+    private static final Color BATAS_HEADER = new Color(203, 213, 225);
 
     private final JTable utama;
     private final JTable frozen;
     private final JScrollPane scrollFrozen;
-    private final JLayer<JScrollPane> layerUtama;
+    private final StatusGutter garisStatus;
+    private final TableColumn kolomStatus;
+    private final JPanel sisiKanan;
+    private boolean lebarStatusTerjadwal;
 
     public KasirRalanFrozenColumns(final JTable utama, final JScrollPane scrollUtama,
             final Runnable saatPasienDipilih) {
@@ -64,18 +65,28 @@ public final class KasirRalanFrozenColumns extends JPanel {
         utama.setSelectionBackground(PILIH);
         utama.setSelectionForeground(TEKS);
         utama.setGridColor(GRID);
-        utama.setShowVerticalLines(false);
+        utama.setShowVerticalLines(true);
         utama.setDefaultRenderer(Object.class, new NeutralRenderer());
-        // Handler lama menggunakan nomor kolom view tetap.
+        // Handler membaca indeks model melalui nilaiModel, bukan posisi tampilan.
         utama.getTableHeader().setReorderingAllowed(false);
         utama.getTableHeader().setFont(utama.getFont());
         sembunyikanKolom(utama, KOLOM_STATUS);
         sembunyikanKolom(utama, KOLOM_RESUME);
         sembunyikanKolom(utama, KOLOM_SKDP);
         sembunyikanKolom(utama, KOLOM_GERIATRI);
+        susunKolom(utama);
+        // Tambahan ruang 5 px hanya untuk No.SEP sampai Status Bayar.
+        for (int model : new int[]{20, 9, 11, 12, 13, 14, 15}) {
+            int view = utama.convertColumnIndexToView(model);
+            if (view < 0) continue;
+            TableColumn c = utama.getColumnModel().getColumn(view);
+            c.setPreferredWidth(c.getPreferredWidth() + 5);
+            c.setWidth(c.getWidth() + 5);
+        }
 
         DefaultTableColumnModel kolom = new DefaultTableColumnModel();
         TableColumn status = new TableColumn(KOLOM_STATUS);
+        kolomStatus = status;
         status.setHeaderValue("Status");
         status.setCellRenderer(new BadgeRenderer());
         kolom.addColumn(status);
@@ -89,7 +100,7 @@ public final class KasirRalanFrozenColumns extends JPanel {
         frozen.setSelectionForeground(TEKS);
         frozen.setBackground(NORMAL);
         frozen.setGridColor(GRID);
-        frozen.setShowVerticalLines(false);
+        frozen.setShowVerticalLines(true);
         frozen.setFocusable(false);
         frozen.setComponentPopupMenu(utama.getComponentPopupMenu());
         frozen.getTableHeader().setReorderingAllowed(false);
@@ -97,14 +108,6 @@ public final class KasirRalanFrozenColumns extends JPanel {
         frozen.getTableHeader().setFont(utama.getTableHeader().getFont());
         frozen.getTableHeader().setBackground(utama.getTableHeader().getBackground());
         frozen.getTableHeader().setForeground(utama.getTableHeader().getForeground());
-
-        FontMetrics fm = frozen.getFontMetrics(frozen.getFont());
-        int lebarStatus = Math.max(126,
-                Math.max(fm.stringWidth("Berkas Diterima"), fm.stringWidth("Batal Pelayanan")) + 40)
-                + Math.max(148, fm.stringWidth("SKDP") + fm.stringWidth("Resume") + 76);
-        aturLebar(status, lebarStatus);
-        frozen.getTableHeader().setPreferredSize(new Dimension(lebarStatus,
-                utama.getTableHeader().getPreferredSize().height));
 
         scrollUtama.setBorder(BorderFactory.createEmptyBorder());
         scrollUtama.setColumnHeaderView(utama.getTableHeader());
@@ -138,11 +141,9 @@ public final class KasirRalanFrozenColumns extends JPanel {
             e.consume();
         });
 
-        JPanel sisiKanan = new JPanel(new BorderLayout());
+        sisiKanan = new JPanel(new BorderLayout());
         sisiKanan.setBackground(NORMAL);
         sisiKanan.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, GRID));
-        sisiKanan.setPreferredSize(new Dimension(lebarStatus + 1
-                + scrollFrozen.getVerticalScrollBar().getPreferredSize().width, 0));
         JPanel ruangScrollbar = new JPanel();
         ruangScrollbar.setBackground(new Color(245, 247, 250));
         ruangScrollbar.setPreferredSize(new Dimension(0,
@@ -150,39 +151,115 @@ public final class KasirRalanFrozenColumns extends JPanel {
         sisiKanan.add(scrollFrozen, BorderLayout.CENTER);
         sisiKanan.add(ruangScrollbar, BorderLayout.SOUTH);
 
-        layerUtama = new JLayer<JScrollPane>(scrollUtama, new SelectionLineUI(utama));
-        add(layerUtama, BorderLayout.CENTER);
+        // Row header adalah gutter tetap: tidak menutup tulisan pada kolom data
+        // dan mengikuti scroll vertikal secara native, tanpa ikut scroll horizontal.
+        garisStatus = new StatusGutter(utama);
+        scrollUtama.setRowHeaderView(garisStatus);
+        JPanel sudut = new JPanel();
+        sudut.setBackground(utama.getTableHeader().getBackground());
+        sudut.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BATAS_HEADER));
+        scrollUtama.setCorner(JScrollPane.UPPER_LEFT_CORNER, sudut);
+        garisStatus.setComponentPopupMenu(utama.getComponentPopupMenu());
+        garisStatus.addMouseListener(new MouseAdapter() {
+            @Override public void mousePressed(MouseEvent e) {
+                int row = utama.rowAtPoint(new Point(0, e.getY()));
+                if (row < 0) return;
+                utama.setRowSelectionInterval(row, row);
+                utama.requestFocusInWindow();
+                if (saatPasienDipilih != null) saatPasienDipilih.run();
+            }
+        });
+        add(scrollUtama, BorderLayout.CENTER);
         add(sisiKanan, BorderLayout.EAST);
         utama.getSelectionModel().addListSelectionListener(e -> {
-            layerUtama.repaint();
+            garisStatus.repaint();
             frozen.repaint();
         });
-        scrollUtama.getViewport().addChangeListener(e -> layerUtama.repaint());
+        scrollUtama.getViewport().addChangeListener(e -> garisStatus.repaint());
+        new AlignedColumns(utama, scrollUtama);
+        utama.getModel().addTableModelListener(listenerModel);
         // Tabel frozen mengikuti urutan/filter tabel utama, tanpa menggandakan
         // rowsInserted/rowsDeleted pada RowSorter yang sama.
         ikutiSorter();
-        utama.addPropertyChangeListener("rowSorter", e -> { ikutiSorter(); frozen.revalidate(); frozen.repaint(); });
+        utama.addPropertyChangeListener("rowSorter", e -> { ikutiSorter(); refreshFrozen(); });
         utama.addPropertyChangeListener("selectionModel", e -> frozen.setSelectionModel(utama.getSelectionModel()));
-        utama.addPropertyChangeListener("model", e -> frozen.setModel(utama.getModel()));
-        utama.addPropertyChangeListener("rowHeight", e -> frozen.setRowHeight(utama.getRowHeight()));
+        utama.addPropertyChangeListener("model", e -> {
+            if (e.getOldValue() instanceof javax.swing.table.TableModel)
+                ((javax.swing.table.TableModel) e.getOldValue()).removeTableModelListener(listenerModel);
+            utama.getModel().addTableModelListener(listenerModel);
+            frozen.setModel(utama.getModel()); refreshFrozen();
+        });
+        utama.addPropertyChangeListener("rowHeight", e -> {
+            frozen.setRowHeight(utama.getRowHeight()); refreshFrozen();
+        });
+        utama.addPropertyChangeListener("font", e -> {
+            frozen.setFont(utama.getFont()); refreshFrozen();
+            scrollUtama.getRowHeader().revalidate(); scrollUtama.revalidate();
+        });
         frozen.addMouseListener(new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) {
                 int row = frozen.rowAtPoint(e.getPoint());
                 if (row < 0) return;
                 // Pilih baris sebelum menu klik kanan dibuka; jangan scroll horizontal.
                 utama.setRowSelectionInterval(row, row);
-                utama.setColumnSelectionInterval(KOLOM_STATUS, KOLOM_STATUS);
+                int view = utama.convertColumnIndexToView(KOLOM_STATUS);
+                if (view >= 0) utama.setColumnSelectionInterval(view, view);
                 utama.requestFocusInWindow();
                 if (saatPasienDipilih != null) saatPasienDipilih.run();
             }
         });
+        garisBatasHeader(utama);
+        garisBatasHeader(frozen);
+        sesuaikanLebarStatus();
+    }
+
+    private static void garisBatasHeader(JTable table) {
+        table.getTableHeader().setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BATAS_HEADER),
+                table.getTableHeader().getBorder()));
     }
 
     private javax.swing.RowSorter<?> sorterDiikuti;
     private final javax.swing.event.RowSorterListener listenerSorter = e -> refreshFrozen();
+    private final javax.swing.event.TableModelListener listenerModel = e -> refreshFrozen();
 
     private void refreshFrozen() {
         if (frozen != null) { frozen.revalidate(); frozen.repaint(); }
+        if (garisStatus != null) { garisStatus.revalidate(); garisStatus.repaint(); }
+        // Banyak baris dipublish sekaligus: ukur satu kali setelah batch EDT,
+        // bukan per baris atau setiap paint. Tidak mengakses database.
+        if (!lebarStatusTerjadwal) {
+            lebarStatusTerjadwal = true;
+            SwingUtilities.invokeLater(() -> {
+                lebarStatusTerjadwal = false;
+                sesuaikanLebarStatus();
+            });
+        }
+    }
+
+    private void sesuaikanLebarStatus() {
+        Font font = frozen.getFont();
+        FontMetrics biasa = frozen.getFontMetrics(font);
+        FontMetrics bold = frozen.getFontMetrics(font.deriveFont(Font.BOLD));
+        int width = frozen.getTableHeader().getFontMetrics(frozen.getTableHeader().getFont())
+                .stringWidth("Status") + 12;
+        // Satu kolom memiliki lebar seragam: gunakan baris badge terlebar pada
+        // seluruh hasil/filter, agar tidak berubah ketika digulir vertikal.
+        for (int row = 0; row < frozen.getRowCount(); row++) {
+            Badge[] badges = badgesBaris(frozen, row);
+            int needed = 12 + Math.max(0, badges.length - 1) * 4;
+            for (Badge badge : badges)
+                needed += (badge.bold ? bold : biasa).stringWidth(badge.text) + 32;
+            width = Math.max(width, needed);
+        }
+        int lebarPanel = width + 1 + scrollFrozen.getVerticalScrollBar().getPreferredSize().width;
+        if (kolomStatus.getWidth() == width && sisiKanan.getPreferredSize().width == lebarPanel) return;
+        aturLebar(kolomStatus, width);
+        frozen.getTableHeader().setPreferredSize(new Dimension(width,
+                utama.getTableHeader().getPreferredSize().height));
+        sisiKanan.setPreferredSize(new Dimension(lebarPanel, 0));
+        frozen.revalidate(); frozen.getTableHeader().revalidate();
+        revalidate(); repaint();
     }
 
     private void ikutiSorter() {
@@ -193,6 +270,20 @@ public final class KasirRalanFrozenColumns extends JPanel {
 
     public JTable getFrozenTable() { return frozen; }
     public JScrollPane getFrozenScrollPane() { return scrollFrozen; }
+
+    /** Nomor kolom lama adalah indeks model; baris tetap mengikuti urutan layar. */
+    public static Object nilaiModel(JTable tabel, int baris, int kolom) {
+        return tabel.getModel().getValueAt(tabel.convertRowIndexToModel(baris), kolom);
+    }
+
+    private static void susunKolom(JTable tabel) {
+        int[] depan = {0, 1, 2, 3, 4, 20, 9, 11, 12, 13, 14, 15};
+        int tujuan = 0;
+        for (int model : depan) {
+            int view = tabel.convertColumnIndexToView(model);
+            if (view >= 0) tabel.moveColumn(view, tujuan++);
+        }
+    }
 
     private static void sembunyikanKolom(JTable tabel, int modelIndex) {
         int view = tabel.convertColumnIndexToView(modelIndex);
@@ -251,25 +342,197 @@ public final class KasirRalanFrozenColumns extends JPanel {
         }
     }
 
-    private static final class SelectionLineUI extends LayerUI<JScrollPane> {
+    private static final class StatusGutter extends JComponent {
         private final JTable tabel;
-        SelectionLineUI(JTable tabel) { this.tabel = tabel; }
-        @Override public void paint(Graphics g, JComponent c) {
-            super.paint(g, c);
-            @SuppressWarnings("unchecked") JLayer<JScrollPane> layer = (JLayer<JScrollPane>) c;
-            JScrollPane scroll = layer.getView();
-            Point p = SwingUtilities.convertPoint(scroll.getViewport(), 0, 0, layer);
-            Rectangle area = new Rectangle(p.x, p.y, scroll.getViewport().getWidth(), scroll.getViewport().getHeight());
-            Graphics copy = g.create(); copy.clipRect(area.x, area.y, area.width, area.height); copy.setColor(GARIS);
-            for (int row : tabel.getSelectedRows()) {
-                if (row >= tabel.getRowCount()) continue;
-                Rectangle r = tabel.getCellRect(row, 0, true);
-                int y = p.y + r.y - scroll.getViewport().getViewPosition().y;
-                // Tetap di tepi viewport, sekalipun kolom pertama sudah di-scroll keluar.
-                copy.fillRect(p.x, y, 4, r.height);
-            }
-            copy.dispose();
+        StatusGutter(JTable tabel) {
+            this.tabel = tabel;
+            setOpaque(true);
+            setToolTipText("Bulatan warna: status pelayanan; latar biru muda: pasien terpilih");
         }
+        private int diameter() {
+            // Ukuran penanda status: 80% tinggi huruf, proporsional pada HiDPI.
+            return Math.max(6, Math.round(tabel.getFontMetrics(tabel.getFont()).getAscent() * 0.80f));
+        }
+        @Override public Dimension getPreferredSize() {
+            return new Dimension(diameter() + 4, tabel.getPreferredSize().height);
+        }
+        @Override protected void paintComponent(Graphics g) {
+            Rectangle clip = g.getClipBounds();
+            g.setColor(NORMAL); g.fillRect(clip.x, clip.y, clip.width, clip.height);
+            int count = tabel.getRowCount();
+            if (count == 0) return;
+            int awal = tabel.rowAtPoint(new Point(0, Math.max(0, clip.y)));
+            if (awal < 0) return;
+            int akhir = tabel.rowAtPoint(new Point(0, clip.y + clip.height - 1));
+            if (akhir < 0) akhir = count - 1;
+            for (int row = awal; row <= akhir; row++) {
+                Rectangle r = tabel.getCellRect(row, 0, true);
+                boolean selected = tabel.isRowSelected(row);
+                g.setColor(latar(row, selected));
+                g.fillRect(0, r.y, getWidth(), r.height);
+                Graphics2D copy = (Graphics2D) g.create();
+                copy.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                copy.setColor(warnaStatus(tabel, row));
+                int d = Math.min(diameter(), Math.max(1, r.height - 4));
+                copy.fillOval((getWidth() - d) / 2, r.y + (r.height - d) / 2, d, d);
+                copy.dispose();
+                // Pemisah putih antarbaris tetap dipertahankan.
+                g.setColor(NORMAL);
+                g.fillRect(0, r.y + r.height - 1, getWidth(), 1);
+            }
+        }
+    }
+
+    /** Meratakan ujung kolom terhadap viewport tanpa mengubah indeks/model. */
+    private static final class AlignedColumns implements javax.swing.event.TableColumnModelListener {
+        private final JTable table;
+        private final JScrollPane scroll;
+        private final java.util.Map<TableColumn, UkuranKolom> dasar = new java.util.IdentityHashMap<>();
+        private boolean applying, scheduled, dirty = true;
+        private int lastX = -1, lastWidth = -1;
+
+        private final class UkuranKolom {
+            int width, min;
+            final java.beans.PropertyChangeListener listener;
+            UkuranKolom(TableColumn column) {
+                width = column.getPreferredWidth(); min = column.getMinWidth();
+                listener = e -> {
+                    if (applying) return;
+                    if (e.getPropertyName().equals("preferredWidth")) width = column.getPreferredWidth();
+                    else if (e.getPropertyName().equals("minWidth")) min = column.getMinWidth();
+                    else return;
+                    request(true);
+                };
+                column.addPropertyChangeListener(listener);
+            }
+        }
+
+        AlignedColumns(JTable table, JScrollPane scroll) {
+            this.table = table; this.scroll = scroll;
+            capture(); table.getColumnModel().addColumnModelListener(this);
+            scroll.getViewport().addChangeListener(e -> request(false));
+            table.getTableHeader().addMouseListener(new MouseAdapter() {
+                @Override public void mouseReleased(MouseEvent e) { request(true); }
+            });
+            request(true);
+        }
+
+        private void capture() {
+            java.util.Set<TableColumn> current = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+            java.util.Enumeration<TableColumn> columns = table.getColumnModel().getColumns();
+            while (columns.hasMoreElements()) {
+                TableColumn column = columns.nextElement(); current.add(column);
+                if (!dasar.containsKey(column)) dasar.put(column, new UkuranKolom(column));
+            }
+            java.util.Iterator<java.util.Map.Entry<TableColumn, UkuranKolom>> it = dasar.entrySet().iterator();
+            while (it.hasNext()) {
+                java.util.Map.Entry<TableColumn, UkuranKolom> entry = it.next();
+                if (!current.contains(entry.getKey())) {
+                    entry.getKey().removePropertyChangeListener(entry.getValue().listener); it.remove();
+                }
+            }
+        }
+
+        private void request(boolean changed) {
+            if (applying) return;
+            dirty |= changed;
+            int x = scroll.getViewport().getViewPosition().x, width = scroll.getViewport().getWidth();
+            if (scheduled || (!dirty && lastX == x && lastWidth == width)) return;
+            scheduled = true;
+            SwingUtilities.invokeLater(() -> { scheduled = false; fit(); });
+        }
+
+        private void setWidth(TableColumn column, int width) {
+            // Penyempitan sementara hanya pada kolom di luar viewport. Lebar/min
+            // aslinya disimpan dan dipulihkan sebelum perhitungan berikutnya.
+            column.setMinWidth(Math.min(dasar.get(column).min, width));
+            column.setPreferredWidth(width); column.setWidth(width);
+        }
+
+        private void fit() {
+            int x = scroll.getViewport().getViewPosition().x, width = scroll.getViewport().getWidth();
+            if (width <= 0 || table.getTableHeader().getResizingColumn() != null) return;
+            if (!dirty && lastX == x && lastWidth == width) return;
+            applying = true;
+            try {
+                capture();
+                int count = table.getColumnCount(), right = x + width, end = 0, last = -1, lastEnd = 0, crossing = -1;
+                for (int i = 0; i < count; i++) {
+                    TableColumn column = table.getColumnModel().getColumn(i);
+                    UkuranKolom original = dasar.get(column);
+                    column.setMinWidth(original.min);
+                    column.setPreferredWidth(original.width); column.setWidth(original.width);
+                }
+                for (int i = 0; i < count; i++) {
+                    TableColumn column = table.getColumnModel().getColumn(i);
+                    int size = column.getWidth(); if (size == 0) continue;
+                    end += size;
+                    if (end <= right) { if (end > x) { last = i; lastEnd = end; } }
+                    else { crossing = i; break; }
+                }
+                if (last >= 0 && lastEnd < right) {
+                    TableColumn column = table.getColumnModel().getColumn(last);
+                    int extra = Math.min(right - lastEnd, column.getMaxWidth() - column.getWidth());
+                    setWidth(column, column.getWidth() + extra);
+                    // Pindahkan ruang dari kolom sesudahnya yang berada di luar
+                    // viewport. Total lebar/range scrollbar tetap, tanpa loop
+                    // resize. Kolom tersebut pulih ketika digulir ke arahnya.
+                    for (int i = last + 1; i < count && extra > 0; i++) {
+                        TableColumn next = table.getColumnModel().getColumn(i);
+                        int taken = Math.min(extra, next.getWidth());
+                        if (taken > 0) { setWidth(next, next.getWidth() - taken); extra -= taken; }
+                    }
+                } else if (last < 0 && crossing >= 0) {
+                    // Viewport sangat kecil: hanya satu kolom yang muat. Tepatkan
+                    // ujungnya dan kembalikan ruang ke kolom di luar layar.
+                    TableColumn column = table.getColumnModel().getColumn(crossing);
+                    int removed = end - right;
+                    setWidth(column, column.getWidth() - removed);
+                    for (int i = crossing + 1; i < count && removed > 0; i++) {
+                        TableColumn next = table.getColumnModel().getColumn(i);
+                        if (next.getMaxWidth() == 0) continue;
+                        int added = Math.min(removed, next.getMaxWidth() - next.getWidth());
+                        setWidth(next, next.getWidth() + added); removed -= added;
+                    }
+                }
+                dirty = false; lastX = x; lastWidth = width;
+                table.revalidate(); table.getTableHeader().revalidate();
+                table.repaint(); table.getTableHeader().repaint();
+            } finally { applying = false; }
+        }
+
+        @Override public void columnAdded(javax.swing.event.TableColumnModelEvent e) { request(true); }
+        @Override public void columnRemoved(javax.swing.event.TableColumnModelEvent e) { request(true); }
+        @Override public void columnMoved(javax.swing.event.TableColumnModelEvent e) { request(true); }
+        @Override public void columnMarginChanged(javax.swing.event.ChangeEvent e) { request(true); }
+        @Override public void columnSelectionChanged(javax.swing.event.ListSelectionEvent e) {
+            if (applying || e.getValueIsAdjusting()) return;
+            // Navigasi keyboard juga harus dapat membuka kolom berikutnya,
+            // termasuk kolom yang sementara tidak mendapat ruang di viewport.
+            SwingUtilities.invokeLater(() -> {
+                int selected = table.getSelectedColumn();
+                if (selected < 0 || selected >= table.getColumnCount()) return;
+                TableColumn column = table.getColumnModel().getColumn(selected);
+                UkuranKolom original = dasar.get(column);
+                if (original == null || original.width == 0) return;
+                int x = scroll.getViewport().getViewPosition().x, width = scroll.getViewport().getWidth();
+                Rectangle cell = table.getCellRect(Math.max(0, table.getSelectedRow()), selected, true);
+                boolean sementaraDipersempit = column.getWidth() < original.width;
+                if (width <= 0 || (!sementaraDipersempit && cell.x + cell.width <= x + width)) return;
+                int end = 0;
+                for (int i = 0; i <= selected; i++) end += dasar.get(table.getColumnModel().getColumn(i)).width;
+                scroll.getHorizontalScrollBar().setValue(Math.max(0, end - width));
+            });
+        }
+    }
+
+    private static Color warnaStatus(JTable tabel, int row) {
+        String status = nilai(tabel, row, KOLOM_STATUS);
+        if (status.equalsIgnoreCase("Sudah")) return nilai(tabel, row, KOLOM_BAYAR)
+                .equalsIgnoreCase("Sudah Bayar") ? new Color(38, 43, 49) : new Color(200, 43, 52);
+        if (status.equalsIgnoreCase("Berkas Diterima")) return new Color(37, 109, 61);
+        if (status.equalsIgnoreCase("Batal")) return new Color(232, 179, 35);
+        return new Color(134, 144, 156);
     }
 
     private static final class Badge {
@@ -291,10 +554,7 @@ public final class KasirRalanFrozenColumns extends JPanel {
         @Override public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean selected, boolean focus, int row, int column) {
             setFont(table.getFont()); setBackground(latar(row, selected));
-            Badge[] dokumen = badgesPelayanan(table, row);
-            badges = new Badge[dokumen.length + 1];
-            badges[0] = badgeStatus(table, row);
-            System.arraycopy(dokumen, 0, badges, 1, dokumen.length);
+            badges = badgesBaris(table, row);
             StringBuilder tooltip = new StringBuilder();
             for (Badge badge : badges) {
                 if (tooltip.length() > 0) tooltip.append("; ");
@@ -336,6 +596,14 @@ public final class KasirRalanFrozenColumns extends JPanel {
             }
             g.dispose();
         }
+    }
+
+    private static Badge[] badgesBaris(JTable table, int row) {
+        Badge[] dokumen = badgesPelayanan(table, row);
+        Badge[] result = new Badge[dokumen.length + 1];
+        result[0] = badgeStatus(table, row);
+        System.arraycopy(dokumen, 0, result, 1, dokumen.length);
+        return result;
     }
 
     private static Badge badgeStatus(JTable table, int row) {

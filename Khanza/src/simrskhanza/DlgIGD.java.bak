@@ -6075,6 +6075,12 @@ public final class DlgIGD extends javax.swing.JDialog {
     }
 
     private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpanActionPerformed
+        // Berlaku hanya ketika form dibuka melalui detail Rujukan Masuk SATUSEHAT.
+        if (rujukanMasukSatuSehat != null && !menyimpanRujukanMasukSatuSehat) {
+            simpanRujukanMasukSatuSehat(evt);
+            return;
+        }
+
 ////    
 ////        // ✅ Tambahan: Cek apakah pasien diblokir (blacklist)
 ////            String noRM = TNoRM.getText();
@@ -6304,6 +6310,7 @@ public final class DlgIGD extends javax.swing.JDialog {
         }
 
         // ======== Lanjut proses simpan seperti existing ========
+        if (rujukanMasukSatuSehat != null) insertRujukanMasukSatuSehatDimulai = true;
         ceksukses=false;
         switch (TStatus.getText()) {
             case "Baru":
@@ -6372,6 +6379,7 @@ public final class DlgIGD extends javax.swing.JDialog {
             } 
         } 
         if(ceksukses==true){
+            if (rujukanMasukSatuSehat != null) noRawatRujukanMasukSatuSehat = TNoRw.getText();
             UpdateUmur(); 
             if(!AsalRujukan.getText().equals("")){
                 Valid.autoNomer3("select ifnull(MAX(CONVERT(RIGHT(rujuk_masuk.no_rawat,4),signed)),0) from reg_periksa inner join rujuk_masuk on reg_periksa.no_rawat=rujuk_masuk.no_rawat where reg_periksa.tgl_registrasi='"+Valid.SetTgl(DTPReg.getSelectedItem()+"")+"' ","BR/"+dateformat.format(DTPReg.getDate())+"/",4,NoBalasan);
@@ -6479,6 +6487,7 @@ public final class DlgIGD extends javax.swing.JDialog {
 }//GEN-LAST:event_BtnPrintKeyPressed
 
     private void BtnKeluarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnKeluarActionPerformed
+        if (rujukanMasukSatuSehat != null && timerJamRujukanMasukSatuSehat != null) timerJamRujukanMasukSatuSehat.stop();
         if(pasien!=null){
             pasien.dispose();
             pasien.bahasa.dispose();
@@ -13582,7 +13591,8 @@ private void MnLaporanRekapKunjunganBulananPoliActionPerformed(java.awt.event.Ac
             }
         };
         // Timer
-        new Timer(1000, taskPerformer).start();
+        timerJamRujukanMasukSatuSehat = new Timer(1000, taskPerformer);
+        timerJamRujukanMasukSatuSehat.start();
     }
 
     private void isPas(){
@@ -15186,5 +15196,99 @@ private void MnLaporanRekapKunjunganBulananPoliActionPerformed(java.awt.event.Ac
                 "IGD", noRawat, kodeFaskesSatuSehat, idPasien, namaPasien, idPraktisi, TDokter.getText().trim(),
                 idOrganisasi, namaOrganisasi, "", "", idEncounter, kodeDiagnosa, namaDiagnosa,
                 waktu, rencanaCarePlan, dataPendukung, idCarePlan);
+    }
+
+    // Konteks ini hanya diisi oleh pembuka rujukan masuk; registrasi IGD biasa tetap lewat alur asli.
+    private bridging.SatuSehatRujukanMasukRegistrasi.Context rujukanMasukSatuSehat;
+    private boolean menyimpanRujukanMasukSatuSehat, insertRujukanMasukSatuSehatDimulai;
+    private String noRawatRujukanMasukSatuSehat = "";
+    private Timer timerJamRujukanMasukSatuSehat;
+
+    /** Kompatibilitas pemanggil lama yang dikompilasi dengan parameter Object. */
+    public void konfigurasiRujukanMasukSatuSehat(final Object context) {
+        if (!(context instanceof bridging.SatuSehatRujukanMasukRegistrasi.Context)) {
+            throw new IllegalArgumentException("Konteks rujukan masuk tidak valid. Perbarui modul registrasi rujukan.");
+        }
+        konfigurasiRujukanMasukSatuSehat((bridging.SatuSehatRujukanMasukRegistrasi.Context) context);
+    }
+
+    public void konfigurasiRujukanMasukSatuSehat(final bridging.SatuSehatRujukanMasukRegistrasi.Context context) {
+        if (context == null) throw new IllegalArgumentException("Konteks rujukan masuk wajib tersedia.");
+        if (!javax.swing.SwingUtilities.isEventDispatchThread()) throw new IllegalStateException("Buka registrasi pada EDT.");
+        if (!bridging.SatuSehatRujukanMasukRegistrasi.allowed()) throw new IllegalStateException("Akses pendaftaran IGD belum tersedia.");
+        rujukanMasukSatuSehat = context;
+        setTitle("Pendaftaran IGD - Rujukan Masuk SATUSEHAT");
+        BtnSimpan.setEnabled(true);
+        BtnEdit.setEnabled(false);
+        BtnHapus.setEnabled(false);
+        isiPerujukOtomatisIgd(context.referrer, "-");
+        if (!context.noRm.isEmpty()) {
+            SetPasien(context.noRm);
+        } else if (context.nik.isEmpty() || !context.birth.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}") || context.gender.isEmpty()) {
+            ChkInput.setSelected(true);
+            isForm();
+            // Jangan menganggap pasien baru hanya karena NIK/tanggal lahir dari pengirim belum lengkap.
+            TNoRM.requestFocusInWindow();
+            javax.swing.JOptionPane.showMessageDialog(this,
+                "Identitas rujukan belum lengkap untuk pencocokan otomatis.\nCari pasien pada master terlebih dahulu, atau lengkapi pasien baru sesuai alur registrasi biasa.",
+                "Verifikasi pasien rujukan", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override public void windowOpened(java.awt.event.WindowEvent e) {
+                    removeWindowListener(this);
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        // Pasien baru menggunakan master pasien Khanza yang sudah ada.
+                        // Nomor nasional SATUSEHAT tidak dimasukkan ke kolom nomor Sisrute.
+                        setPasien(context.name, context.contact, context.address, "", context.birth,
+                                context.gender, context.insurance, context.nik, "", context.referrer);
+                    });
+                }
+            });
+        }
+    }
+    /** Menutup instance registrasi rujukan, termasuk bila pembukaan belum selesai. */
+    public void tutupRujukanMasukSatuSehat() {
+        if (timerJamRujukanMasukSatuSehat != null) timerJamRujukanMasukSatuSehat.stop();
+        BtnKeluar.doClick();
+    }
+
+    private void simpanRujukanMasukSatuSehat(java.awt.event.ActionEvent evt) {
+        final bridging.SatuSehatRujukanMasukRegistrasi.Context context = rujukanMasukSatuSehat;
+        if (context == null || menyimpanRujukanMasukSatuSehat) return;
+        menyimpanRujukanMasukSatuSehat = true;
+        insertRujukanMasukSatuSehatDimulai = false;
+        noRawatRujukanMasukSatuSehat = "";
+        boolean claimed = false;
+        try {
+            bridging.SatuSehatRujukanMasukRegistrasi.claim(context, TNoRM.getText());
+            claimed = true;
+            // Jalankan handler yang sama: dokter/penjamin, nomor rawat, biaya, umur, status dan kd_poli IGDK.
+            BtnSimpanActionPerformed(evt);
+        } catch (Exception ex) {
+            javax.swing.JOptionPane.showMessageDialog(this, ex.getMessage(), "Pendaftaran rujukan masuk", javax.swing.JOptionPane.WARNING_MESSAGE);
+        } finally {
+            if (claimed) {
+                try {
+                    if (!noRawatRujukanMasukSatuSehat.isEmpty()) {
+                        bridging.SatuSehatRujukanMasukRegistrasi.saved(context, noRawatRujukanMasukSatuSehat);
+                        javax.swing.JOptionPane.showMessageDialog(this, "Pasien berhasil didaftarkan ke IGD.\nNo. Rawat: " + noRawatRujukanMasukSatuSehat);
+                        BtnKeluar.doClick();
+                    } else if (!insertRujukanMasukSatuSehatDimulai) {
+                        bridging.SatuSehatRujukanMasukRegistrasi.releaseBeforeInsert(context);
+                    } else {
+                        bridging.SatuSehatRujukanMasukRegistrasi.uncertain(context);
+                        BtnSimpan.setEnabled(false);
+                        javax.swing.JOptionPane.showMessageDialog(this, "Hasil penyimpanan belum dapat dipastikan. Periksa reg_periksa dan pengaitan Task sebelum mencoba lagi.");
+                    }
+                } catch (Exception ex) {
+                    BtnSimpan.setEnabled(false);
+                    javax.swing.JOptionPane.showMessageDialog(this,
+                        "Pengaitan Task perlu diperiksa petugas.\n" +
+                        (noRawatRujukanMasukSatuSehat.isEmpty() ? "" : "No. Rawat tersimpan: " + noRawatRujukanMasukSatuSehat + "\n") +
+                        "Jangan membuat kunjungan baru untuk Task yang sama.", "Status pendaftaran", javax.swing.JOptionPane.WARNING_MESSAGE);
+                }
+            }
+            menyimpanRujukanMasukSatuSehat = false;
+        }
     }
 }

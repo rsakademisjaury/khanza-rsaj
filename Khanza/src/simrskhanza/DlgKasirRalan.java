@@ -291,7 +291,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
 
 
 
-    // RSAJ: penanda frozen khusus Registrasi Awal; indeks lama 0..28 tidak berubah.
+    // RSAJ: penanda frozen khusus Registrasi Awal; indeks model lama tetap.
     private KasirRalanFrozenColumns kolomFrozenKasirRSAJ;
     private boolean sedangRefreshPenandaRSAJ = false;
     private volatile long versiDaftarFrozenRSAJ = 0;
@@ -1364,7 +1364,9 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             if (tabel == null || baris < 0 || kolom < 0 || kolom >= tabel.getColumnCount()) {
                 return "";
             }
-            Object nilai = tabel.getValueAt(baris, kolom);
+            Object nilai = tabel == tbKasirRalan
+                    ? KasirRalanFrozenColumns.nilaiModel(tabel, baris, kolom)
+                    : tabel.getValueAt(baris, kolom);
             if (nilai == null) {
                 return "";
             }
@@ -1530,7 +1532,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
     private String getNoRawatHasilKasir() {
         try {
             if (tbKasirRalan.getSelectedRow() > -1) {
-                Object nilai = tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 11);
+                Object nilai = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 11);
                 if (nilai != null) return nilai.toString().trim();
             }
         } catch (Exception ex) {
@@ -8341,7 +8343,7 @@ private void initMenuKFR() {
             }
             if(evt.getClickCount()==1){
                 if(norawatdipilih.equals("")){
-                    i=tbKasirRalan.getSelectedColumn();
+                    i=tbKasirRalan.convertColumnIndexToModel(tbKasirRalan.getSelectedColumn());
                     if(i==3){
                         if(validasicatatan.equals("Yes")){
                             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -8360,799 +8362,799 @@ private void initMenuKFR() {
                         if(Sequel.cariRegistrasi(TNoRw.getText())>0){
                             JOptionPane.showMessageDialog(rootPane,"Data billing sudah terverifikasi..!!");
                         }else{
-                            if(normdipilih.equals(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString())){
+                            if(normdipilih.equals(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString())){
                                 Sequel.queryu2("update asuhan_gizi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update aturan_pakai set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_detail_periksa_lab set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_detail_periksa_lab_perujuk set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_operasi_dokter_anak set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_operasi_dokter_anestesi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_operasi_dokter_pjanak set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_operasi_dokter_umum set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_operasi_operator1 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_operasi_operator2 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_operasi_operator3 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_periksa_lab set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_periksa_lab_perujuk set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_periksa_radiologi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_periksa_radiologi_perujuk set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_rawat_inap_dr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_rawat_inap_drpr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_rawat_jl_dr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bayar_rawat_jl_drpr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update beri_bhp_radiologi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update beri_obat_operasi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update berkas_digital_perawatan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update billing set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update booking_operasi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bridging_inhealth set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bridging_sep set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bridging_sep_internal set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update bridging_surat_pri_bpjs set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update catatan_perawatan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_HAIs set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_klasifikasi_pasien_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_tb set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_triase_igd set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_triase_igddetail_skala1 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_triase_igddetail_skala2 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_triase_igddetail_skala3 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_triase_igddetail_skala4 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_triase_igddetail_skala5 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_triase_igdprimer set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update data_triase_igdsekunder set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update deposit set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_beri_diet set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_nota_inap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_nota_jalan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_obat_racikan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_pemberian_obat set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_penagihan_piutang set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_periksa_lab set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_periksa_labpa set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_periksa_labpa_gambar set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update detail_piutang_pasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update deteksi_dini_corona set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update diagnosa_pasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update dpjp_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update gambar_radiologi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update hasil_radiologi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update hemodialisa set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update inacbg_klaim_baru2 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update inacbg_noklaim_corona set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update insiden_keselamatan_pasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update kamar_inap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update laporan_operasi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update monitoring_asuhan_gizi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update mutasi_berkas set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update nota_inap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update nota_jalan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update obat_racikan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update operasi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pcare_kunjungan_umum set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pcare_obat_diberikan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pcare_pendaftaran set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pcare_tindakan_ralan_diberikan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pcare_tindakan_ranap_diberikan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pemeriksaan_ginekologi_ralan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pemeriksaan_ginekologi_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pemeriksaan_obstetri_ralan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pemeriksaan_obstetri_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pemeriksaan_ralan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pemeriksaan_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pengembalian_deposit set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update pengurangan_biaya set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_gigi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_gigi_masalah set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_igd set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_igd_masalah set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_kebidanan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_kebidanan_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_mata set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_mata_masalah set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_ralan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_ralan_bayi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_ralan_bayi_masalah set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_ralan_masalah set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_awal_keperawatan_ralan_rencana set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_fisioterapi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_mcu set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_medis_igd set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_medis_ralan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_medis_ralan_anak set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_medis_ralan_kandungan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_medis_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update penilaian_medis_ranap_kandungan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update perawatan_corona set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update periksa_lab set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update periksa_radiologi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update perkiraan_biaya_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update permintaan_lab set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update permintaan_labpa set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update permintaan_obat set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update permintaan_radiologi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update permintaan_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update permintaan_registrasi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update permintaan_resep_pulang set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update permintaan_stok_obat_pasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update piutang_pasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update prosedur_pasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update ranap_gabung set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update rawat_inap_dr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update rawat_inap_drpr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update rawat_inap_pr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update rawat_jl_dr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update rawat_jl_drpr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update rawat_jl_pr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update referensi_mobilejkn_bpjs_taskid set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update resep_luar set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update resep_obat set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update resep_pulang set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update resume_pasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update resume_pasien_ranap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update returpasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 if(Sequel.queryu2tf("update rujuk set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 )==false){
                                     Sequel.meghapus("rujuk","no_rawat", norawatdipilih);
                                 }
                                 if(Sequel.queryu2tf("update rujuk_masuk set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 )==false){
                                     Sequel.meghapus("rujuk_masuk","no_rawat", norawatdipilih);
                                 }
                                 Sequel.queryu2("update rujukan_internal_poli set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update rvp_klaim_bpjs set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update saran_kesan_lab set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update sisrute_rujukan_keluar set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update skrining_gizi set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update stok_obat_pasien set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_cuti_hamil set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_bebas_tato set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_bebas_tbc set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_hamil set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_buta_warna set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_keterangan_covid set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_keterangan_rawat_inap set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_keterangan_sehat set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_kewaspadaan_kesehatan set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_skbn set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update suratsakit set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update suratsakitpihak2 set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update tagihan_obat_langsung set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update resep_luar set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_bebas_tbc set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_buta_warna set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update surat_bebas_tato set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update tambahan_biaya set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update ubah_penjab set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("update uji_fungsi_kfr set no_rawat=? where no_rawat=?",2,
                                     new String[]{
-                                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
+                                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString(),norawatdipilih
                                     }
                                 );
                                 Sequel.queryu2("delete from reg_periksa where no_rawat=?",1,
@@ -9170,9 +9172,9 @@ private void initMenuKFR() {
                     }
                 }               
             }else if(evt.getClickCount()==2){
-                i=tbKasirRalan.getSelectedColumn();
+                i=tbKasirRalan.convertColumnIndexToModel(tbKasirRalan.getSelectedColumn());
                 if(i==0){
-                    boolean isBPJ = tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
+                    boolean isBPJ = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
                     boolean isAdminUtama = akses.getkode().equals("Admin Utama");                    
                     
                     if(akses.gettindakan_ralan()==true){
@@ -9210,9 +9212,9 @@ private void initMenuKFR() {
             }
             
             if(evt.getKeyCode()==KeyEvent.VK_SPACE){
-                i=tbKasirRalan.getSelectedColumn();
+                i=tbKasirRalan.convertColumnIndexToModel(tbKasirRalan.getSelectedColumn());
                 if(i==0){
-                    boolean isBPJ = tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
+                    boolean isBPJ = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
                     boolean isAdminUtama = akses.getkode().equals("Admin Utama");                    
                     
                     if(akses.gettindakan_ralan()==true){
@@ -9271,7 +9273,7 @@ private void MnPemberianObatActionPerformed(java.awt.event.ActionEvent evt) {//G
             }else {
                 jmlparsial=0;
                 if(aktifkanparsial.equals("yes")){
-                    jmlparsial=Sequel.cariInteger("select count(set_input_parsial.kd_pj) from set_input_parsial where set_input_parsial.kd_pj=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),17).toString());
+                    jmlparsial=Sequel.cariInteger("select count(set_input_parsial.kd_pj) from set_input_parsial where set_input_parsial.kd_pj=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),17).toString());
                 }
                 if(jmlparsial>0){
                     panggilformobat();
@@ -9307,13 +9309,13 @@ private void MnBillingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
                     sudah=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.no_rawat=?",TNoRw.getText());
                     pscaripiutang=koneksi.prepareStatement("select tgl_piutang from piutang_pasien where no_rkm_medis=? and status='Belum Lunas' order by tgl_piutang asc limit 1");
                     try{                                                
-                        pscaripiutang.setString(1,tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString());
+                        pscaripiutang.setString(1,KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString());
                         rskasir=pscaripiutang.executeQuery();
                         if(rskasir.next()){
                             i=JOptionPane.showConfirmDialog(null, "Masih ada tunggakan pembayaran, apa mau bayar sekarang ?","Konfirmasi",JOptionPane.YES_NO_OPTION);
                             if(i==JOptionPane.YES_OPTION){
                                  DlgLhtPiutang piutang=new DlgLhtPiutang(null,false);
-                                 piutang.setNoRm(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString(),rskasir.getDate(1));
+                                 piutang.setNoRm(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString(),rskasir.getDate(1));
                                  piutang.tampil();
                                  piutang.isCek();
                                  piutang.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
@@ -9374,10 +9376,10 @@ private void MnSudahActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST
         return;
     }
 
-    String noRawat = tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 11).toString();
+    String noRawat = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 11).toString();
 
     boolean isAdminUtama = akses.getkode().equals("Admin Utama");
-    boolean isBPJ = tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
+    boolean isBPJ = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
                     
     // Validasi jika bukan admin utama dan pasien BPJS, cek apakah SEP sudah diterbitkan
     if (!isAdminUtama && isBPJ) {
@@ -9472,11 +9474,11 @@ private void MnDataRalanActionPerformed(java.awt.event.ActionEvent evt) {
             
             if (Sequel.cariInteger("SELECT COUNT(rs.id) FROM rsaj_setting rs WHERE rs.id = '1' AND rs.status = '1'") > 0) {
                 boolean isAdminUtama = akses.getkode().equals("Admin Utama");
-                boolean isBPJ = tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
+                boolean isBPJ = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
 
                 // Melakukan pengecekan lainnya
                 if (!isAdminUtama && isBPJ) {
-                    if (Sequel.cariInteger("SELECT COUNT(bs.no_sep) FROM bridging_sep bs WHERE bs.no_rawat = '" + tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 11).toString() + "'") == 0) {
+                    if (Sequel.cariInteger("SELECT COUNT(bs.no_sep) FROM bridging_sep bs WHERE bs.no_rawat = '" + KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 11).toString() + "'") == 0) {
                         JOptionPane.showMessageDialog(rootPane, "Maaf, SEP belum diterbitkan, mohon hubungi Admisi ..!!");
                         return;
                     }
@@ -9516,8 +9518,8 @@ private void MnDataRalanActionPerformed(java.awt.event.ActionEvent evt) {
                         ((System.nanoTime()-perfTahapRawatJalan)/1_000_000L)+" ms");
 
                 perfTahapRawatJalan = System.nanoTime();
-                rawatJalan.SetPoli(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 18).toString());
-                rawatJalan.SetPj(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 17).toString());
+                rawatJalan.SetPoli(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 18).toString());
+                rawatJalan.SetPj(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 17).toString());
                 System.out.println("[PERFORMA BUKA RAWAT JALAN] SetPoli/SetPj: "+
                         ((System.nanoTime()-perfTahapRawatJalan)/1_000_000L)+" ms");
 
@@ -9554,7 +9556,7 @@ private void bukaRiwayatICare() {
         }else{
             if(tbKasirRalan.getSelectedRow()!= -1){
                 this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                variabel=Sequel.cariIsi("select maping_dokter_dpjpvclaim.kd_dokter_bpjs from maping_dokter_dpjpvclaim where maping_dokter_dpjpvclaim.kd_dokter=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                variabel=Sequel.cariIsi("select maping_dokter_dpjpvclaim.kd_dokter_bpjs from maping_dokter_dpjpvclaim where maping_dokter_dpjpvclaim.kd_dokter=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                 if(!variabel.equals("")){
                     akses.setform("DlgReg");
                     ICareRiwayatPerawatan dlgki=new ICareRiwayatPerawatan(null,false);
@@ -9753,7 +9755,7 @@ private void MnKamarInapActionPerformed(java.awt.event.ActionEvent evt) {//GEN-F
             tbKasirRalan.requestFocus();
         }else{
             if(tbKasirRalan.getSelectedRow()!= -1){
-                if(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),10).toString().equals("Batal")){
+                if(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),10).toString().equals("Batal")){
                     JOptionPane.showMessageDialog(null,"Pasien berstatus batal periksa...!");
                 }else{
                     if(Sequel.cariRegistrasi(TNoRw.getText())>0){
@@ -10003,7 +10005,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 DlgTagihanOperasi dlgro=new DlgTagihanOperasi(null,false);
                 dlgro.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                 dlgro.setLocationRelativeTo(internalFrame1);
-                dlgro.setNoRm(TNoRw.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString()+", "+tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),3).toString(),"Ralan");
+                dlgro.setNoRm(TNoRw.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString()+", "+KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),3).toString(),"Ralan");
                 dlgro.setVisible(true);
             }                
         }
@@ -10606,7 +10608,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
             if(tbKasirRalan.getSelectedRow()!= -1){
                 this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                 DlgCatatan catatan=new DlgCatatan(null,true);
-                catatan.setNoRm(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString());
+                catatan.setNoRm(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString());
                 catatan.setSize(720,330);
                 catatan.setLocationRelativeTo(internalFrame1);
                 catatan.setVisible(true);
@@ -10685,7 +10687,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 }else {
                     jmlparsial=0;
                     if(aktifkanparsial.equals("yes")){
-                        jmlparsial=Sequel.cariInteger("select count(set_input_parsial.kd_pj) from set_input_parsial where set_input_parsial.kd_pj=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),17).toString());
+                        jmlparsial=Sequel.cariInteger("select count(set_input_parsial.kd_pj) from set_input_parsial where set_input_parsial.kd_pj=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),17).toString());
                     }
                     if (Sequel.cariInteger("select count(pemeriksaan_ralan.no_rawat) from pemeriksaan_ralan where no_rawat='"+TNoRw.getText()+"'")==0){
                     JOptionPane.showMessageDialog(null,"Maaf, SOAP belum diisi, silahkan menyelesaikan SOAP terlebih dahulu.");
@@ -10695,7 +10697,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                         resep.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                         resep.setLocationRelativeTo(internalFrame1);
                         resep.setNoRm(TNoRw.getText(),new Date(),Jam.getText().substring(0,2),Jam.getText().substring(3,5),Jam.getText().substring(6,8),
-                                tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),1).toString(),"ralan");
+                                KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),1).toString(),"ralan");
                         resep.isCek();
                         resep.tampilobat();
                         resep.setVisible(true);
@@ -10707,7 +10709,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                             resep.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                             resep.setLocationRelativeTo(internalFrame1);
                             resep.setNoRm(TNoRw.getText(),new Date(),Jam.getText().substring(0,2),Jam.getText().substring(3,5),Jam.getText().substring(6,8),
-                                    tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),1).toString(),"ralan");
+                                    KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),1).toString(),"ralan");
                             resep.isCek();
                             resep.tampilobat();
                             resep.setVisible(true);
@@ -10808,8 +10810,8 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 DRujukInternal dlgrjk=new DRujukInternal(null,false);
                 dlgrjk.setLocationRelativeTo(internalFrame1);
                 dlgrjk.isCek();
-                dlgrjk.setNoRm(TNoRw.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString(),
-                        tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),3).toString(),internalFrame1.getWidth(),internalFrame1.getHeight());
+                dlgrjk.setNoRm(TNoRw.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString(),
+                        KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),3).toString(),internalFrame1.getWidth(),internalFrame1.getHeight());
                 dlgrjk.setVisible(true);
                 this.setCursor(Cursor.getDefaultCursor());
             }else{
@@ -11383,13 +11385,13 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                     sudah=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.no_rawat=?",TNoRw.getText());
                     pscaripiutang=koneksi.prepareStatement("select tgl_piutang from piutang_pasien where no_rkm_medis=? and status='Belum Lunas' order by tgl_piutang asc limit 1");
                     try{                                                
-                        pscaripiutang.setString(1,tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString());
+                        pscaripiutang.setString(1,KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString());
                         rskasir=pscaripiutang.executeQuery();
                         if(rskasir.next()){
                             i=JOptionPane.showConfirmDialog(null, "Masih ada tunggakan pembayaran, apa mau bayar sekarang ?","Konfirmasi",JOptionPane.YES_NO_OPTION);
                             if(i==JOptionPane.YES_OPTION){
                                  DlgLhtPiutang piutang=new DlgLhtPiutang(null,false);
-                                 piutang.setNoRm(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString(),rskasir.getDate(1));
+                                 piutang.setNoRm(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString(),rskasir.getDate(1));
                                  piutang.tampil();
                                  piutang.isCek();
                                  piutang.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
@@ -11525,7 +11527,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
             aplikasi.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
             aplikasi.setLocationRelativeTo(internalFrame1);
             aplikasi.isCek();
-            aplikasi.setNoRm(TNoRw.getText(),DTPCari1.getDate(),DTPCari2.getDate(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),4).toString());
+            aplikasi.setNoRm(TNoRw.getText(),DTPCari1.getDate(),DTPCari2.getDate(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),4).toString());
             aplikasi.tampil();
             aplikasi.setVisible(true);
             this.setCursor(Cursor.getDefaultCursor());
@@ -11585,7 +11587,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                     form.isCek();
                     form.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                     form.setLocationRelativeTo(internalFrame1);            
-                    form.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),4).toString(),"Ralan"); 
+                    form.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),4).toString(),"Ralan"); 
                     form.setVisible(true);
                 } 
             }               
@@ -12253,9 +12255,9 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
             // Cek SEP wajib (opsional sesuai setting)
             if (Sequel.cariInteger("SELECT COUNT(1) FROM rsaj_setting WHERE id='1' AND status='1'") > 0) {
                 boolean isAdminUtama = akses.getkode().equals("Admin Utama");
-                boolean isBPJ = tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
+                boolean isBPJ = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 17).toString().equals("BPJ");
                 if (!isAdminUtama && isBPJ) {
-                    String noRawatGrid = tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(), 11).toString();
+                    String noRawatGrid = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(), 11).toString();
                     if (Sequel.cariInteger(
                             "SELECT COUNT(1) FROM bridging_sep WHERE no_rawat=?", noRawatGrid) == 0) {
                         JOptionPane.showMessageDialog(rootPane, "Maaf, SEP belum diterbitkan, mohon hubungi Admisi ..!!");
@@ -12451,7 +12453,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 resume.emptTeks();
                 resume.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                 resume.setLocationRelativeTo(internalFrame1);
-                resume.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),1).toString(),DTPCari1.getDate(),DTPCari2.getDate());
+                resume.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),1).toString(),DTPCari1.getDate(),DTPCari2.getDate());
                 resume.tampil();
                 resume.setVisible(true);
                 this.setCursor(Cursor.getDefaultCursor());
@@ -12760,7 +12762,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 dlgki.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                 dlgki.setLocationRelativeTo(internalFrame1);
                 dlgki.isCek();
-                dlgki.setNoRm2(TNoRw.getText(),Valid.SetTgl2(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),12).toString()),"2. Ralan",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),18).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),4).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),14).toString());   
+                dlgki.setNoRm2(TNoRw.getText(),Valid.SetTgl2(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),12).toString()),"2. Ralan",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),18).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),4).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),14).toString());   
                 dlgki.setVisible(true);
                 this.setCursor(Cursor.getDefaultCursor());
             }
@@ -13241,7 +13243,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                     form.isCek();
                     form.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                     form.setLocationRelativeTo(internalFrame1);               
-                    form.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),1).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),9).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),4).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),19).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString()); 
+                    form.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),1).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),9).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),4).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),19).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString()); 
                     form.setVisible(true);
                 } 
             }               
@@ -13347,7 +13349,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 resume.emptTeks();
                 resume.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                 resume.setLocationRelativeTo(internalFrame1);
-                resume.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),1).toString(),DTPCari1.getDate(),DTPCari2.getDate());
+                resume.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),1).toString(),DTPCari1.getDate(),DTPCari2.getDate());
                 resume.tampil();
                 resume.setVisible(true);
                 this.setCursor(Cursor.getDefaultCursor());
@@ -13755,8 +13757,8 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 if(Sequel.cariRegistrasi(TNoRw.getText())>0){
                     JOptionPane.showMessageDialog(rootPane,"Data billing sudah terverifikasi..!!");
                 }else{
-                    norawatdipilih=tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),11).toString();
-                    normdipilih=tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString();
+                    norawatdipilih=KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),11).toString();
+                    normdipilih=KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString();
                     JOptionPane.showMessageDialog(rootPane,"Silahkan pilih No.Rawat yang mau digabung...!");
                 }
             }
@@ -13797,13 +13799,13 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 }else {
                     jmlparsial=0;
                     if(aktifkanparsial.equals("yes")){
-                        jmlparsial=Sequel.cariInteger("select count(set_input_parsial.kd_pj) from set_input_parsial where set_input_parsial.kd_pj=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),17).toString());
+                        jmlparsial=Sequel.cariInteger("select count(set_input_parsial.kd_pj) from set_input_parsial where set_input_parsial.kd_pj=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),17).toString());
                     }
                     if(jmlparsial>0){
                         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                         DlgCopyResep daftar=new DlgCopyResep(null,false);
                         daftar.isCek();
-                        daftar.setRM(TNoRwCari.getText(),TNoRMCari.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),17).toString(),"ralan");
+                        daftar.setRM(TNoRwCari.getText(),TNoRMCari.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),17).toString(),"ralan");
                         daftar.tampil();
                         daftar.setSize(internalFrame1.getWidth(),internalFrame1.getHeight());
                         daftar.setLocationRelativeTo(internalFrame1);
@@ -13816,7 +13818,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                             DlgCopyResep daftar=new DlgCopyResep(null,false);
                             daftar.isCek();
-                            daftar.setRM(TNoRwCari.getText(),TNoRMCari.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),17).toString(),"ralan");
+                            daftar.setRM(TNoRwCari.getText(),TNoRMCari.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),17).toString(),"ralan");
                             daftar.tampil();
                             daftar.setSize(internalFrame1.getWidth(),internalFrame1.getHeight());
                             daftar.setLocationRelativeTo(internalFrame1);
@@ -13988,7 +13990,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 dlgki.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                 dlgki.setLocationRelativeTo(internalFrame1);
                 dlgki.isCek();
-                dlgki.setNoRm3(TNoRw.getText(),Valid.SetTgl2(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),12).toString()));   
+                dlgki.setNoRm3(TNoRw.getText(),Valid.SetTgl2(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),12).toString()));   
                 dlgki.setVisible(true);
                 this.setCursor(Cursor.getDefaultCursor());
             }
@@ -15388,7 +15390,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                     form.isCek();
                     form.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                     form.setLocationRelativeTo(internalFrame1);               
-                    form.setNoRm(TNoRwCari.getText(),TNoRMCari.getText(),TPasienCari.getText(),tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),1).toString(),tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),8).toString(),tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),4).toString(),tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),15).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString()); 
+                    form.setNoRm(TNoRwCari.getText(),TNoRMCari.getText(),TPasienCari.getText(),tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),1).toString(),tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),8).toString(),tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),4).toString(),tbKasirRalan2.getValueAt(tbKasirRalan2.getSelectedRow(),15).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString()); 
                     form.setVisible(true);
                 } 
             }               
@@ -16020,7 +16022,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
         }else{
             if(tbKasirRalan.getSelectedRow()!= -1){
                 this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                variabel=Sequel.cariIsi("select maping_dokter_dpjpvclaim.kd_dokter_bpjs from maping_dokter_dpjpvclaim where maping_dokter_dpjpvclaim.kd_dokter=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                variabel=Sequel.cariIsi("select maping_dokter_dpjpvclaim.kd_dokter_bpjs from maping_dokter_dpjpvclaim where maping_dokter_dpjpvclaim.kd_dokter=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                 if(!variabel.equals("")){
                     akses.setform("DlgReg");
                     ICareRiwayatPerawatan dlgki=new ICareRiwayatPerawatan(null,false);
@@ -16048,7 +16050,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
         }else{
             if(tbKasirRalan.getSelectedRow()!= -1){
                 this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                variabel=Sequel.cariIsi("select maping_dokter_dpjpvclaim.kd_dokter_bpjs from maping_dokter_dpjpvclaim where maping_dokter_dpjpvclaim.kd_dokter=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                variabel=Sequel.cariIsi("select maping_dokter_dpjpvclaim.kd_dokter_bpjs from maping_dokter_dpjpvclaim where maping_dokter_dpjpvclaim.kd_dokter=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                 if(!variabel.equals("")){
                   akses.setform("DlgReg");
                     ICareRiwayatPerawatan dlgki=new ICareRiwayatPerawatan(null,false);
@@ -16099,7 +16101,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
         }else{
             if(tbKasirRalan.getSelectedRow()!= -1){
                 this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                variabel=Sequel.cariIsi("select maping_dokter_pcare.kd_dokter_pcare from maping_dokter_pcare where maping_dokter_pcare.kd_dokter=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                variabel=Sequel.cariIsi("select maping_dokter_pcare.kd_dokter_pcare from maping_dokter_pcare where maping_dokter_pcare.kd_dokter=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                 if(!variabel.equals("")){
                     akses.setform("DlgReg");
                     ICareRiwayatPerawatanFKTP dlgki=new ICareRiwayatPerawatanFKTP(null,false);
@@ -16125,7 +16127,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
         }else{
             if(tbKasirRalan.getSelectedRow()!= -1){
                 this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                variabel=Sequel.cariIsi("select maping_dokter_pcare.kd_dokter_pcare from maping_dokter_pcare where maping_dokter_pcare.kd_dokter=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                variabel=Sequel.cariIsi("select maping_dokter_pcare.kd_dokter_pcare from maping_dokter_pcare where maping_dokter_pcare.kd_dokter=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                 if(!variabel.equals("")){
                     akses.setform("DlgReg");
                     ICareRiwayatPerawatanFKTP dlgki=new ICareRiwayatPerawatanFKTP(null,false);
@@ -16157,7 +16159,7 @@ private void MnDataPemberianObatActionPerformed(java.awt.event.ActionEvent evt) 
                 form.setLocationRelativeTo(internalFrame1);
                 form.setVisible(true);
                 form.emptTeks();
-                form.setNoRm(TNoRw.getText(),DTPCari2.getDate(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),4).toString());
+                form.setNoRm(TNoRw.getText(),DTPCari2.getDate(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),4).toString());
                 this.setCursor(Cursor.getDefaultCursor());
             }
         }
@@ -16480,13 +16482,13 @@ if(tabModekasir.getRowCount()==0){
                     sudah=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.no_rawat=?",TNoRw.getText());
                     pscaripiutang=koneksi.prepareStatement("select tgl_piutang from piutang_pasien where no_rkm_medis=? and status='Belum Lunas' order by tgl_piutang asc limit 1");
                     try{                                                
-                        pscaripiutang.setString(1,tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString());
+                        pscaripiutang.setString(1,KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString());
                         rskasir=pscaripiutang.executeQuery();
                         if(rskasir.next()){
                             i=JOptionPane.showConfirmDialog(null, "Masih ada tunggakan pembayaran, apa mau bayar sekarang ?","Konfirmasi",JOptionPane.YES_NO_OPTION);
                             if(i==JOptionPane.YES_OPTION){
                                  DlgLhtPiutang piutang=new DlgLhtPiutang(null,false);
-                                 piutang.setNoRm(tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),2).toString(),rskasir.getDate(1));
+                                 piutang.setNoRm(KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),2).toString(),rskasir.getDate(1));
                                  piutang.tampil();
                                  piutang.isCek();
                                  piutang.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
@@ -17202,7 +17204,7 @@ if(tabModekasir.getRowCount()==0){
                     form.setSize(internalFrame1.getWidth()-20,internalFrame1.getHeight()-20);
                     form.setLocationRelativeTo(internalFrame1);               
                     try { 
-                        form.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),1).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),9).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),4).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),19).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                        form.setNoRm(TNoRw.getText(),TNoRMCari.getText(),TPasienCari.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),1).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),9).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),4).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),19).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                     } catch (SQLException ex) {
                         Logger.getLogger(DlgKasirRalan.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -17459,7 +17461,9 @@ private void MnFormulirKFRActionPerformed(java.awt.event.ActionEvent evt) {//GEN
 
     private String nilaiTabel(javax.swing.JTable tabel, int row, int col) {
         try {
-            Object nilai = tabel.getValueAt(row, col);
+            Object nilai = tabel == tbKasirRalan
+                    ? KasirRalanFrozenColumns.nilaiModel(tabel, row, col)
+                    : tabel.getValueAt(row, col);
             return nilai == null ? "" : nilai.toString();
         } catch (Exception e) {
             return "";
@@ -18870,18 +18874,18 @@ private void tampilkasir() {
                 ttljmdokter=0;ttljmperawat=0;ttlkso=0;ttlpendapatan=0;ttljasasarana=0;ttlbhp=0;ttlmenejemen=0;
                 psotomatis=koneksi.prepareStatement(sqlpsotomatis);
                 try {
-                    psotomatis.setString(1,tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                    psotomatis.setString(1,KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                     psotomatis.setString(2,Sequel.cariIsi("select reg_periksa.kd_pj from reg_periksa where reg_periksa.no_rawat=?",TNoRw.getText()));
                     rskasir=psotomatis.executeQuery();
                     while(rskasir.next()){    
                         if(Sequel.cariIsiAngka("select count(rawat_jl_dr.no_rawat) from rawat_jl_dr where "+
                            "rawat_jl_dr.no_rawat='"+TNoRw.getText()+"' and rawat_jl_dr.kd_jenis_prw='"+rskasir.getString(1)+"' "+
-                           "and rawat_jl_dr.kd_dokter='"+tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString()+"'")==0){
+                           "and rawat_jl_dr.kd_dokter='"+KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString()+"'")==0){
                             psotomatis2=koneksi.prepareStatement(sqlpsotomatis2);
                             try {
                                 psotomatis2.setString(1,TNoRw.getText()); 
                                 psotomatis2.setString(2,rskasir.getString(1));
-                                psotomatis2.setString(3,tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                                psotomatis2.setString(3,KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                                 psotomatis2.setString(4,Sequel.cariIsi("select current_date()"));
                                 psotomatis2.setString(5,Sequel.cariIsi("select current_time()"));
                                 psotomatis2.setDouble(6,rskasir.getDouble("material"));
@@ -18976,18 +18980,18 @@ private void tampilkasir() {
                 if(!akses.getkode().equals("Admin Utama")){
                     psotomatis=koneksi.prepareStatement(sqlpsotomatisdokterpetugas);
                     try {
-                        psotomatis.setString(1,tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                        psotomatis.setString(1,KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                         psotomatis.setString(2,Sequel.cariIsi("select reg_periksa.kd_pj from reg_periksa where reg_periksa.no_rawat=?",TNoRw.getText()));
                         rskasir=psotomatis.executeQuery();
                         while(rskasir.next()){    
                             if(Sequel.cariIsiAngka("select count(rawat_jl_drpr.no_rawat) from rawat_jl_drpr where "+
                                "rawat_jl_drpr.no_rawat='"+TNoRw.getText()+"' and rawat_jl_drpr.kd_jenis_prw='"+rskasir.getString(1)+"' "+
-                               "and rawat_jl_drpr.kd_dokter='"+tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString()+"'")==0){
+                               "and rawat_jl_drpr.kd_dokter='"+KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString()+"'")==0){
                                 psotomatis2=koneksi.prepareStatement(sqlpsotomatis2dokterpetugas);
                                 try {
                                     psotomatis2.setString(1,TNoRw.getText()); 
                                     psotomatis2.setString(2,rskasir.getString(1));
-                                    psotomatis2.setString(3,tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString());
+                                    psotomatis2.setString(3,KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString());
                                     psotomatis2.setString(4,akses.getkode());
                                     psotomatis2.setString(5,Sequel.cariIsi("select current_date()"));
                                     psotomatis2.setString(6,Sequel.cariIsi("select current_time()"));
@@ -19346,7 +19350,7 @@ private void tampilkasir() {
         if (row != -1) {
             try {
                 // Ambil dan parse tanggal dari kolom 12 (format: yyyy-MM-dd)
-                String tglStr = tbKasirRalan.getValueAt(row, 12).toString();
+                String tglStr = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, row, 12).toString();
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                 Date tanggal = sdf.parse(tglStr);  // <- ini jadi Date
 
@@ -19366,8 +19370,8 @@ private void tampilkasir() {
                     jam,
                     menit,
                     detik,
-                    tbKasirRalan.getValueAt(row, 0).toString(),
-                    tbKasirRalan.getValueAt(row, 1).toString(),
+                    KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, row, 0).toString(),
+                    KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, row, 1).toString(),
                     "ralan"
                 );
                 resep.isCek();
@@ -19384,7 +19388,7 @@ private void tampilkasir() {
         if(tbKasirRalan.getSelectedRow()!= -1){
             jmlparsial=0;
             if(aktifkanparsial.equals("yes")){
-                jmlparsial=Sequel.cariInteger("select count(set_input_parsial.kd_pj) from set_input_parsial where set_input_parsial.kd_pj=?",tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),17).toString());
+                jmlparsial=Sequel.cariInteger("select count(set_input_parsial.kd_pj) from set_input_parsial where set_input_parsial.kd_pj=?",KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),17).toString());
             }
             if(jmlparsial>0){
                 DlgBilingParsialRalan parsialralan=new DlgBilingParsialRalan(null,false);
@@ -19392,10 +19396,10 @@ private void tampilkasir() {
                 parsialralan.setLocationRelativeTo(internalFrame1);
                 //parsialralan.emptTeks();
                 parsialralan.isCek();
-                parsialralan.setNoRm(TNoRw.getText(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),0).toString(),tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),1).toString(),Sequel.cariIsi("select reg_periksa.kd_poli from reg_periksa where reg_periksa.no_rawat=?",TNoRw.getText()));   
+                parsialralan.setNoRm(TNoRw.getText(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),0).toString(),KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),1).toString(),Sequel.cariIsi("select reg_periksa.kd_poli from reg_periksa where reg_periksa.no_rawat=?",TNoRw.getText()));   
                 parsialralan.setVisible(true);
             }else{
-                JOptionPane.showMessageDialog(null,"Maaf, Cara bayar "+tbKasirRalan.getValueAt(tbKasirRalan.getSelectedRow(),9).toString()+" tidak diijinkan menggunakan Billing Parsial...!!!");
+                JOptionPane.showMessageDialog(null,"Maaf, Cara bayar "+KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, tbKasirRalan.getSelectedRow(),9).toString()+" tidak diijinkan menggunakan Billing Parsial...!!!");
             }
         }else{
             JOptionPane.showMessageDialog(null,"Maaf, Silahkan anda pilih dulu dengan menklik data pada table...!!!");
@@ -19994,7 +19998,7 @@ private void sinkronAntripoliLama(String kdDokter, String kdPoli, String noRawat
 
 private String ambilValueTable(int row, int col) {
     try {
-        Object value = tbKasirRalan.getValueAt(row, col);
+        Object value = KasirRalanFrozenColumns.nilaiModel(tbKasirRalan, row, col);
         return value == null ? "" : value.toString().trim();
     } catch (Exception e) {
         return "";

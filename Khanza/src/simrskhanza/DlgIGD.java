@@ -5541,6 +5541,46 @@ public final class DlgIGD extends javax.swing.JDialog {
         return hasil.replaceAll("\\s+,", ",").replaceAll(",\\s*$", "").trim();
     }
 
+    /** Memeriksa blokir dari identitas master sebelum membuat pendaftaran. */
+    private boolean validasiBlokirPasienSebelumSimpan(){
+        String noRM = TNoRM.getText().trim();
+        if(noRM.isEmpty()){
+            Valid.textKosong(TNoRM, "pasien");
+            return false;
+        }
+
+        // Identitas kosong atau tanda '-' bukan identitas yang dapat dicocokkan.
+        // Gunakan master pasien, bukan nomor kartu yang mungkin sedang diedit di form.
+        String sql = "SELECT 1 FROM blokir_pasien b " +
+                "LEFT JOIN pasien p ON p.no_rkm_medis=? " +
+                "WHERE b.no_rkm_medis=? " +
+                "OR (TRIM(IFNULL(p.no_ktp,'')) NOT IN ('','-') AND b.nik=TRIM(p.no_ktp)) " +
+                "OR (TRIM(IFNULL(p.no_peserta,'')) NOT IN ('','-') AND b.no_peserta=TRIM(p.no_peserta)) " +
+                "LIMIT 1";
+        try(PreparedStatement psBlokir = koneksi.prepareStatement(sql)){
+            psBlokir.setString(1, noRM);
+            psBlokir.setString(2, noRM);
+            try(ResultSet rsBlokir = psBlokir.executeQuery()){
+                if(rsBlokir.next()){
+                    JOptionPane.showMessageDialog(rootPane,
+                            "Pasien tercatat dalam daftar blokir.\n" +
+                            "Hubungi petugas berwenang untuk verifikasi sebelum pendaftaran dilanjutkan.",
+                            "Verifikasi Pasien", JOptionPane.WARNING_MESSAGE);
+                    TNoRM.requestFocus();
+                    return false;
+                }
+            }
+        }catch(Exception e){
+            System.out.println("Notifikasi Validasi Blokir Pasien : " + e);
+            JOptionPane.showMessageDialog(rootPane,
+                    "Status blokir pasien belum dapat diperiksa.\n" +
+                    "Silakan ulangi proses simpan. Jika tetap gagal, hubungi petugas IT.",
+                    "Verifikasi Pasien", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+
     private boolean validasiNamaPasienSebelumSimpan(){
         /*
          * Setelah Edit Nama Manual berhasil, proses simpan dipanggil ulang
@@ -6081,21 +6121,6 @@ public final class DlgIGD extends javax.swing.JDialog {
             return;
         }
 
-////    
-////        // ✅ Tambahan: Cek apakah pasien diblokir (blacklist)
-////            String noRM = TNoRM.getText();
-////            String nik = Sequel.cariIsi("SELECT no_ktp FROM pasien WHERE no_rkm_medis=?", noRM);
-////            String noPeserta = Sequel.cariIsi("SELECT no_peserta FROM pasien WHERE no_rkm_medis=?", noRM);
-////            boolean isBlokir = Sequel.cariInteger(
-////                "SELECT COUNT(*) FROM blokir_pasien WHERE no_rkm_medis=? OR nik=? OR no_peserta=?", 
-////                noRM, nik, noPeserta
-////            ) > 0;
-////
-////            if (isBlokir) {
-////                JOptionPane.showMessageDialog(null, "Maaf, pasien blacklist karena alasan tertentu. Silakan rujuk ke rumah sakit lain.");
-////                return; // batalkan proses simpan
-////            }                    
-////        
 //        if(TNoReg.getText().trim().equals("")){
 //            Valid.textKosong(TNoReg,"No.Regristrasi");
 //        }else if(TNoRw.getText().trim().equals("")){
@@ -6204,21 +6229,6 @@ public final class DlgIGD extends javax.swing.JDialog {
 //            
 //        }
 
-//    
-//        // ✅ Tambahan: Cek apakah pasien diblokir (blacklist)
-//            String noRM = TNoRM.getText();
-//            String nik = Sequel.cariIsi("SELECT no_ktp FROM pasien WHERE no_rkm_medis=?", noRM);
-//            String noPeserta = Sequel.cariIsi("SELECT no_peserta FROM pasien WHERE no_rkm_medis=?", noRM);
-//            boolean isBlokir = Sequel.cariInteger(
-//                "SELECT COUNT(*) FROM blokir_pasien WHERE no_rkm_medis=? OR nik=? OR no_peserta=?", 
-//                noRM, nik, noPeserta
-//            ) > 0;
-//
-//            if (isBlokir) {
-//                JOptionPane.showMessageDialog(null, "Maaf, pasien blacklist karena alasan tertentu. Silakan rujuk ke rumah sakit lain.");
-//                return; // batalkan proses simpan
-//            }                    
-
     if(TNoReg.getText().trim().equals("")){
         Valid.textKosong(TNoReg,"No.Regristrasi");
     }else if(TNoRw.getText().trim().equals("")){
@@ -6234,6 +6244,8 @@ public final class DlgIGD extends javax.swing.JDialog {
     }else if(!validasiJenisBayarAutocompleteIgd()){
         return;
     }else if(!validasiNamaPasienSebelumSimpan()){
+        return;
+    }else if(!validasiBlokirPasienSebelumSimpan()){
         return;
     }else if(Sequel.cariInteger("select count(pasien.no_rkm_medis) from pasien inner join reg_periksa inner join kamar_inap "+
              "on reg_periksa.no_rkm_medis=pasien.no_rkm_medis and reg_periksa.no_rawat=kamar_inap.no_rawat "+
