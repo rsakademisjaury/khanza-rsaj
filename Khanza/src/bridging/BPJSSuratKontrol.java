@@ -112,6 +112,13 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
     private String link="",requestJson="",URL="",user="",URUTNOREG="",utc="",JADIKANBOOKINGSURATKONTROLAPIBPJS="no",kodedokter="",kodepoli="",noreg="",FileName="",kodeberkas="";
     private ApiBPJS api=new ApiBPJS();
     private boolean status=false;
+    private BPJSStatusPulang layananPulang;
+    private BPJSStatusPulang.Hasil hasilPulang = new BPJSStatusPulang.Hasil(BPJSStatusPulang.Status.KOSONG, "");
+    private javax.swing.Timer timerPulang;
+    private long versiPulang = 0;
+    private String identitasPulang = "|";
+    private boolean kirimPulang = false;
+
     
 
     /** Creates new form DlgPemberianInfus
@@ -295,7 +302,8 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             JADIKANBOOKINGSURATKONTROLAPIBPJS=koneksiDB.JADIKANBOOKINGSURATKONTROLAPIBPJS();
         } catch (Exception ex) {
             JADIKANBOOKINGSURATKONTROLAPIBPJS="no";
-        }      
+        }
+        inisialisasiPulangBPJS();
     }
     
     /** This method is called from within the constructor to
@@ -328,6 +336,30 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         BtnTarikVClaim = new widget.Button();
         BtnKirimPesan = new widget.Button();
         BtnUpload = new widget.Button();
+        BtnUpdatePulangBPJS = new widget.Button();
+        LblStatusPulangBPJS = new widget.Label();
+        WindowUpdatePulang = new javax.swing.JDialog(this, true);
+        PulangJudul = new javax.swing.JLabel();
+        PulangSubjudul = new javax.swing.JLabel();
+        PulangIkonJudul = new javax.swing.JLabel();
+        PulangCatatan = new javax.swing.JLabel();
+        PulangGarisAtas = new javax.swing.JSeparator();
+        PulangGarisBawah = new javax.swing.JSeparator();
+        PulanginternalFrame5 = new BPJSPulangUI.PanelDialog();
+        PulangPanelStatus = new BPJSPulangUI.KotakInput();
+        PulangPanelLP = new BPJSPulangUI.KotakInput();
+        PulangBtnCloseIn4 = new BPJSPulangUI.Tombol();
+        PulangBtnSimpan4 = new BPJSPulangUI.Tombol();
+        PulangjLabel26 = new widget.Label();
+        PulangTanggalPulang = new BPJSPulangUI.Tanggal();
+        PulangjLabel46 = new widget.Label();
+        PulangStatusPulang = new widget.ComboBox();
+        PulangjLabel47 = new widget.Label();
+        PulangNoSuratKematian = new widget.TextBox();
+        PulangjLabel48 = new widget.Label();
+        PulangTanggalKematian = new widget.Tanggal();
+        PulangjLabel49 = new widget.Label();
+        PulangNoLPManual = new javax.swing.JTextField();
         BtnUploadLepasRawat = new widget.Button();
         BtnKeluar = new widget.Button();
         panelGlass10 = new widget.panelisi();
@@ -658,6 +690,19 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             }
         });
         panelGlass8.add(BtnUpload);
+
+        BtnUpdatePulangBPJS.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/save-16x16.png")));
+        BtnUpdatePulangBPJS.setText("Update Pulang BPJS");
+        BtnUpdatePulangBPJS.setName("BtnUpdatePulangBPJS");
+        BtnUpdatePulangBPJS.setPreferredSize(new java.awt.Dimension(175, 30));
+        BtnUpdatePulangBPJS.setEnabled(false);
+        BtnUpdatePulangBPJS.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnUpdatePulangBPJSActionPerformed(evt);
+            }
+        });
+        panelGlass8.add(BtnUpdatePulangBPJS);
+
 
         BtnUploadLepasRawat.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/email.png"))); // NOI18N
         BtnUploadLepasRawat.setMnemonic('L');
@@ -1193,9 +1238,157 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
 
         PanelInput.add(FormInput, java.awt.BorderLayout.CENTER);
 
+
+        LblStatusPulangBPJS.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        LblStatusPulangBPJS.setText("Pilih pasien/SEP untuk melihat data SKDP lokal.");
+        LblStatusPulangBPJS.setName("LblStatusPulangBPJS");
+        FormInput.add(LblStatusPulangBPJS);
+        LblStatusPulangBPJS.setBounds(15, 282, 620, 25);
+
         internalFrame1.add(PanelInput, java.awt.BorderLayout.PAGE_START);
 
         getContentPane().add(internalFrame1, java.awt.BorderLayout.CENTER);
+
+        WindowUpdatePulang.setTitle("Update Tanggal Pulang");
+        WindowUpdatePulang.setMinimumSize(new java.awt.Dimension(548, 362));
+        WindowUpdatePulang.setModal(true);
+        WindowUpdatePulang.setName("WindowUpdatePulang"); // NOI18N
+        WindowUpdatePulang.setResizable(false);
+        WindowUpdatePulang.setSize(new java.awt.Dimension(548, 362));
+        WindowUpdatePulang.setUndecorated(true);
+        WindowUpdatePulang.setType(java.awt.Window.Type.POPUP);
+
+        PulanginternalFrame5.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(37, 99, 193), 2, true));
+        PulanginternalFrame5.setMinimumSize(new java.awt.Dimension(548, 362));
+        PulanginternalFrame5.setName("PulanginternalFrame5"); // NOI18N
+        PulanginternalFrame5.setLayout(null);
+
+        PulangBtnCloseIn4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/cross.png"))); // NOI18N
+        PulangBtnCloseIn4.setMnemonic('U');
+        PulangBtnCloseIn4.setText("Tutup");
+        PulangBtnCloseIn4.setToolTipText("Alt+U");
+        PulangBtnCloseIn4.setName("PulangBtnCloseIn4"); // NOI18N
+        PulangBtnCloseIn4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                PulangBtnCloseIn4ActionPerformed(evt);
+            }
+        });
+        PulanginternalFrame5.add(PulangBtnCloseIn4);
+        PulangBtnCloseIn4.setBounds(420, 310, 104, 36);
+
+        PulangBtnSimpan4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/save-16x16.png"))); // NOI18N
+        PulangBtnSimpan4.setMnemonic('S');
+        PulangBtnSimpan4.setText("Simpan");
+        PulangBtnSimpan4.setToolTipText("Alt+S");
+        PulangBtnSimpan4.setName("PulangBtnSimpan4"); // NOI18N
+        PulangBtnSimpan4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                PulangBtnSimpan4ActionPerformed(evt);
+            }
+        });
+        PulanginternalFrame5.add(PulangBtnSimpan4);
+        PulangBtnSimpan4.setBounds(304, 310, 104, 36);
+
+        PulangjLabel26.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        PulangjLabel26.setText("Tanggal Pulang");
+        PulangjLabel26.setName("PulangjLabel26"); // NOI18N
+        PulanginternalFrame5.add(PulangjLabel26);
+        PulangjLabel26.setBounds(24, 100, 212, 24);
+
+        PulangTanggalPulang.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "20-05-2026 10:29:42" }));
+        PulangTanggalPulang.setDisplayFormat("dd-MM-yyyy HH:mm:ss");
+        PulangTanggalPulang.setName("PulangTanggalPulang"); // NOI18N
+        PulangTanggalPulang.setOpaque(false);
+        PulangTanggalPulang.setPreferredSize(new java.awt.Dimension(95, 23));
+        PulanginternalFrame5.add(PulangTanggalPulang);
+        PulangTanggalPulang.setBounds(24, 132, 212, 36);
+
+        PulangjLabel46.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        PulangjLabel46.setText("Status Pulang ");
+        PulangjLabel46.setName("PulangjLabel46"); // NOI18N
+        PulanginternalFrame5.add(PulangjLabel46);
+        PulangjLabel46.setBounds(252, 100, 272, 24);
+
+        PulangStatusPulang.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "1. Atas Persetujuan Dokter", "3. Atas Permintaan Sendiri", "5. Lain-lain" }));
+        PulangStatusPulang.setName("PulangStatusPulang"); // NOI18N
+        PulangStatusPulang.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                PulangStatusPulangItemStateChanged(evt);
+            }
+        });
+        PulangPanelStatus.add(PulangStatusPulang, java.awt.BorderLayout.CENTER);
+        PulanginternalFrame5.add(PulangPanelStatus);
+        PulangPanelStatus.setBounds(252, 132, 272, 36);
+
+        PulangjLabel47.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        PulangjLabel47.setText("Nomor Surat Kematian :");
+        PulangjLabel47.setName("PulangjLabel47"); // NOI18N
+        PulangjLabel47.setVisible(false);
+        PulangjLabel47.setPreferredSize(new java.awt.Dimension(68, 23));
+        PulanginternalFrame5.add(PulangjLabel47);
+        PulangjLabel47.setBounds(20, 87, 135, 26);
+
+        PulangNoSuratKematian.setEditable(false);
+        PulangNoSuratKematian.setHighlighter(null);
+        PulangNoSuratKematian.setName("PulangNoSuratKematian"); // NOI18N
+        PulangNoSuratKematian.setVisible(false);
+        PulangNoSuratKematian.setPreferredSize(new java.awt.Dimension(130, 23));
+        PulanginternalFrame5.add(PulangNoSuratKematian);
+        PulangNoSuratKematian.setBounds(160, 87, 190, 26);
+
+        PulangjLabel48.setText("Tanggal Kematian :");
+        PulangjLabel48.setName("PulangjLabel48"); // NOI18N
+        PulangjLabel48.setVisible(false);
+        PulanginternalFrame5.add(PulangjLabel48);
+        PulangjLabel48.setBounds(360, 53, 110, 26);
+
+        PulangTanggalKematian.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "20-05-2026" }));
+        PulangTanggalKematian.setDisplayFormat("dd-MM-yyyy");
+        PulangTanggalKematian.setEnabled(false);
+        PulangTanggalKematian.setName("PulangTanggalKematian"); // NOI18N
+        PulangTanggalKematian.setVisible(false);
+        PulangTanggalKematian.setOpaque(false);
+        PulangTanggalKematian.setPreferredSize(new java.awt.Dimension(95, 23));
+        PulanginternalFrame5.add(PulangTanggalKematian);
+        PulangTanggalKematian.setBounds(480, 53, 90, 26);
+
+        PulangjLabel49.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        PulangjLabel49.setText("Nomor LP Manual :");
+        PulangjLabel49.setName("PulangjLabel49"); // NOI18N
+        PulangjLabel49.setPreferredSize(new java.awt.Dimension(68, 23));
+        PulanginternalFrame5.add(PulangjLabel49);
+        PulangjLabel49.setBounds(24, 188, 500, 24);
+
+        PulangNoLPManual.setHighlighter(null);
+        PulangNoLPManual.setName("PulangNoLPManual"); // NOI18N
+        PulangNoLPManual.setPreferredSize(new java.awt.Dimension(130, 23));
+        PulangPanelLP.add(PulangNoLPManual, java.awt.BorderLayout.CENTER);
+        PulanginternalFrame5.add(PulangPanelLP);
+        PulangPanelLP.setBounds(24, 220, 500, 36);
+
+        PulangJudul.setName("PulangJudul");
+        PulangJudul.setText("Update Pulang BPJS");
+        PulanginternalFrame5.add(PulangJudul);
+        PulangJudul.setBounds(76, 21, 448, 24);
+        PulangSubjudul.setName("PulangSubjudul");
+        PulangSubjudul.setText("Lengkapi tanggal dan status pulang pasien");
+        PulanginternalFrame5.add(PulangSubjudul);
+        PulangSubjudul.setBounds(76, 46, 448, 20);
+        PulangIkonJudul.setName("PulangIkonJudul");
+        PulanginternalFrame5.add(PulangIkonJudul);
+        PulangIkonJudul.setBounds(24, 20, 40, 40);
+        PulangCatatan.setName("PulangCatatan");
+        PulangCatatan.setText("Khusus kasus kecelakaan lalu lintas.");
+        PulanginternalFrame5.add(PulangCatatan);
+        PulangCatatan.setBounds(24, 262, 500, 20);
+        PulangGarisAtas.setName("PulangGarisAtas");
+        PulanginternalFrame5.add(PulangGarisAtas);
+        PulangGarisAtas.setBounds(24, 84, 500, 1);
+        PulangGarisBawah.setName("PulangGarisBawah");
+        PulanginternalFrame5.add(PulangGarisBawah);
+        PulangGarisBawah.setBounds(24, 298, 500, 1);
+
+        WindowUpdatePulang.getContentPane().add(PulanginternalFrame5, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -2424,6 +2617,30 @@ private File findFolderRecursively(File dir, String folderName) {
     private widget.Button BtnSimpanAlasan;
     private widget.Button BtnTarikVClaim;
     private widget.Button BtnUpload;
+    private widget.Button BtnUpdatePulangBPJS;
+    private widget.Label LblStatusPulangBPJS;
+    private javax.swing.JDialog WindowUpdatePulang;
+    private javax.swing.JLabel PulangJudul;
+    private javax.swing.JLabel PulangSubjudul;
+    private javax.swing.JLabel PulangIkonJudul;
+    private javax.swing.JLabel PulangCatatan;
+    private javax.swing.JSeparator PulangGarisAtas;
+    private javax.swing.JSeparator PulangGarisBawah;
+    private BPJSPulangUI.PanelDialog PulanginternalFrame5;
+    private BPJSPulangUI.KotakInput PulangPanelStatus;
+    private BPJSPulangUI.KotakInput PulangPanelLP;
+    private BPJSPulangUI.Tombol PulangBtnCloseIn4;
+    private BPJSPulangUI.Tombol PulangBtnSimpan4;
+    private widget.Label PulangjLabel26;
+    private BPJSPulangUI.Tanggal PulangTanggalPulang;
+    private widget.Label PulangjLabel46;
+    private widget.ComboBox PulangStatusPulang;
+    private widget.Label PulangjLabel47;
+    private widget.TextBox PulangNoSuratKematian;
+    private widget.Label PulangjLabel48;
+    private widget.Tanggal PulangTanggalKematian;
+    private widget.Label PulangjLabel49;
+    private javax.swing.JTextField PulangNoLPManual;
     private widget.Button BtnUploadLepasRawat;
     private widget.CekBox ChkInput;
     private widget.Tanggal DTPTanggalKontrol1;
@@ -2489,6 +2706,387 @@ private File findFolderRecursively(File dir, String folderName) {
     private javax.swing.JMenuItem ppBerkasDigital;
     private widget.Table tbObat;
     // End of variables declaration//GEN-END:variables
+
+    private void aturTampilanDialogPulang() {
+        java.awt.Color biru = new java.awt.Color(37, 99, 193);
+        java.awt.Color teks = new java.awt.Color(35, 52, 74);
+        java.awt.Color abu = new java.awt.Color(104, 120, 139);
+        java.awt.Font normal = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13);
+        java.awt.Font label = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12);
+        PulanginternalFrame5.setWarnaAtas(java.awt.Color.WHITE);
+        PulanginternalFrame5.setWarnaBawah(java.awt.Color.WHITE);
+        PulanginternalFrame5.setBorder(new BPJSPulangUI.Bingkai(biru, 1.6f, 22));
+        PulangJudul.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 15));
+        PulangJudul.setForeground(teks);
+        PulangSubjudul.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        PulangSubjudul.setForeground(abu);
+        PulangIkonJudul.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        PulangIkonJudul.setIcon(BPJSPulangUI.ikon("header.png"));
+        PulangIkonJudul.setOpaque(false);
+        PulangIkonJudul.setBackground(new java.awt.Color(235, 243, 255));
+        PulangIkonJudul.setBorder(null);
+        javax.swing.JLabel[] labels = {PulangjLabel26, PulangjLabel46, PulangjLabel49};
+        String[] icons = {"calendar.png", "patient.png", "document.png"};
+        for (int n = 0; n < labels.length; n++) {
+            labels[n].setFont(label);
+            labels[n].setForeground(teks);
+            labels[n].setIcon(BPJSPulangUI.ikon(icons[n]));
+            labels[n].setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            labels[n].setIconTextGap(8);
+        }
+        PulangjLabel26.setText("Tanggal dan jam pulang");
+        PulangjLabel46.setText("Status pulang");
+        PulangjLabel49.setText("Nomor LP manual");
+        PulangStatusPulang.setUI(new BPJSPulangUI.ComboStatus());
+        javax.swing.JComponent[] inputs = {PulangTanggalPulang, PulangStatusPulang, PulangNoLPManual};
+        for (javax.swing.JComponent input : inputs) {
+            input.setFont(normal);
+            input.setForeground(teks);
+            input.setBackground(java.awt.Color.WHITE);
+            input.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+            input.setOpaque(false);
+        }
+        BPJSPulangUI.rapikanTanggal(PulangTanggalPulang);
+        PulangTanggalPulang.setDisplayFormat("dd-MM-yyyy HH:mm:ss");
+        PulangCatatan.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        PulangCatatan.setForeground(abu);
+        PulangGarisAtas.setForeground(new java.awt.Color(225, 233, 244));
+        PulangGarisBawah.setForeground(new java.awt.Color(225, 233, 244));
+        javax.swing.JButton[] buttons = {PulangBtnSimpan4, PulangBtnCloseIn4};
+        for (javax.swing.JButton button : buttons) {
+            button.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+            button.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+            button.setOpaque(false);
+            button.setBorderPainted(false);
+            button.setFocusPainted(false);
+            button.setIconTextGap(8);
+            button.setMargin(new java.awt.Insets(0, 10, 0, 10));
+            button.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        }
+        PulangBtnSimpan4.setText("Simpan");
+        PulangBtnSimpan4.setBackground(biru);
+        PulangBtnSimpan4.setForeground(java.awt.Color.WHITE);
+        PulangBtnSimpan4.setIcon(BPJSPulangUI.ikon("save_white.png"));
+        PulangBtnCloseIn4.setBackground(new java.awt.Color(237, 243, 252));
+        PulangBtnCloseIn4.setForeground(biru);
+        PulangBtnCloseIn4.setIcon(BPJSPulangUI.ikon("close_blue.png"));
+        WindowUpdatePulang.getRootPane().setDefaultButton(PulangBtnSimpan4);
+        WindowUpdatePulang.getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0), "tutupPulang");
+        WindowUpdatePulang.getRootPane().getActionMap().put("tutupPulang", new javax.swing.AbstractAction() {
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (!kirimPulang) { WindowUpdatePulang.dispose(); }
+            }
+        });
+        java.awt.event.MouseAdapter geser = new java.awt.event.MouseAdapter() {
+            private java.awt.Point awal;
+            public void mousePressed(java.awt.event.MouseEvent e) { awal = e.getLocationOnScreen(); }
+            public void mouseDragged(java.awt.event.MouseEvent e) {
+                if (awal == null) { return; }
+                java.awt.Point baru = e.getLocationOnScreen();
+                WindowUpdatePulang.setLocation(WindowUpdatePulang.getX() + baru.x - awal.x,
+                        WindowUpdatePulang.getY() + baru.y - awal.y);
+                awal = baru;
+            }
+        };
+        for (javax.swing.JLabel kepala : new javax.swing.JLabel[]{PulangJudul, PulangSubjudul, PulangIkonJudul}) {
+            kepala.addMouseListener(geser);
+            kepala.addMouseMotionListener(geser);
+        }
+        aturUkuranDialogPulang();
+    }
+
+    private void aturUkuranDialogPulang() {
+        java.awt.FontMetrics tanggal = PulangTanggalPulang.getFontMetrics(PulangTanggalPulang.getFont());
+        // Ukur tanggal terlebar dalam format angka, termasuk ruang panah dan padding.
+        char angka = '0';
+        for (char n = '1'; n <= '9'; n++) {
+            if (tanggal.charWidth(n) > tanggal.charWidth(angka)) { angka = n; }
+        }
+        String contoh = "00-00-0000 00:00:00".replace('0', angka);
+        int lebarTanggal = Math.max(tanggal.stringWidth(contoh) + 50,
+                PulangjLabel26.getPreferredSize().width);
+        java.awt.FontMetrics status = PulangStatusPulang.getFontMetrics(PulangStatusPulang.getFont());
+        int lebarStatus = 0;
+        for (int n = 0; n < PulangStatusPulang.getItemCount(); n++) {
+            lebarStatus = Math.max(lebarStatus, status.stringWidth(
+                    String.valueOf(PulangStatusPulang.getItemAt(n))));
+        }
+        lebarStatus = Math.max(lebarStatus + 62, PulangjLabel46.getPreferredSize().width);
+        int posisiStatus = 24 + lebarTanggal + 16;
+        int lebarInput = lebarTanggal + 16 + lebarStatus;
+        int lebarForm = lebarInput + 48;
+        java.awt.Dimension ukuran = new java.awt.Dimension(lebarForm, 362);
+        PulanginternalFrame5.setMinimumSize(ukuran);
+        PulanginternalFrame5.setPreferredSize(ukuran);
+        WindowUpdatePulang.setMinimumSize(ukuran);
+        WindowUpdatePulang.setSize(ukuran);
+        PulangIkonJudul.setBounds(24, 20, 40, 40);
+        PulangJudul.setBounds(76, 21, lebarForm - 100, 24);
+        PulangSubjudul.setBounds(76, 46, lebarForm - 100, 20);
+        PulangGarisAtas.setBounds(24, 84, lebarInput, 1);
+        PulangjLabel26.setBounds(24, 100, lebarTanggal, 24);
+        PulangTanggalPulang.setBounds(24, 132, lebarTanggal, 36);
+        PulangjLabel46.setBounds(posisiStatus, 100, lebarStatus, 24);
+        PulangPanelStatus.setBounds(posisiStatus, 132, lebarStatus, 36);
+        PulangjLabel49.setBounds(24, 188, lebarInput, 24);
+        PulangPanelLP.setBounds(24, 220, lebarInput, 36);
+        PulangCatatan.setBounds(24, 262, lebarInput, 20);
+        PulangGarisBawah.setBounds(24, 298, lebarInput, 1);
+        PulangBtnSimpan4.setBounds(lebarForm - 244, 310, 104, 36);
+        PulangBtnCloseIn4.setBounds(lebarForm - 128, 310, 104, 36);
+    }
+
+    private void terapkanSudutDialogPulang() {
+        java.awt.GraphicsConfiguration konfigurasi = WindowUpdatePulang.getGraphicsConfiguration();
+        if (konfigurasi != null && konfigurasi.getDevice().isWindowTranslucencySupported(
+                java.awt.GraphicsDevice.WindowTranslucency.PERPIXEL_TRANSPARENT)) {
+            try {
+                WindowUpdatePulang.setShape(new java.awt.geom.RoundRectangle2D.Double(
+                        0, 0, WindowUpdatePulang.getWidth(), WindowUpdatePulang.getHeight(), 22, 22));
+            } catch (UnsupportedOperationException ex) {
+                // Border panel tetap melengkung pada platform tanpa shaped window.
+            }
+        }
+    }
+
+    private void inisialisasiPulangBPJS() {
+        aturTampilanDialogPulang();
+        layananPulang = new BPJSStatusPulang(koneksi);
+        timerPulang = new javax.swing.Timer(180, new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                jalankanCekPulangBPJS(false, false);
+            }
+        });
+        timerPulang.setRepeats(false);
+        javax.swing.event.DocumentListener listener = new javax.swing.event.DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { jadwalkanCekPulangBPJS(); }
+            public void removeUpdate(DocumentEvent e) { jadwalkanCekPulangBPJS(); }
+            public void changedUpdate(DocumentEvent e) { jadwalkanCekPulangBPJS(); }
+        };
+        NoSEP.getDocument().addDocumentListener(listener);
+        NoRawat.getDocument().addDocumentListener(listener);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                timerPulang.stop();
+                versiPulang++;
+            }
+        });
+        WindowUpdatePulang.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+        WindowUpdatePulang.addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                if (!kirimPulang) { WindowUpdatePulang.dispose(); }
+            }
+        });
+        // Tombol tambahan dapat membentuk baris kedua pada layar kecil.
+        panelGlass8.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent e) { sesuaikanBarisTombolPulang(); }
+        });
+        isCek();
+        terapkanKunciPulangBPJS();
+    }
+
+    private void sesuaikanBarisTombolPulang() {
+        int lebar = panelGlass8.getWidth() - 10;
+        if (lebar <= 0) { return; }
+        int baris = 1, terpakai = 0;
+        for (java.awt.Component c : panelGlass8.getComponents()) {
+            if (!c.isVisible()) { continue; }
+            int ukuran = c.getPreferredSize().width + 5;
+            if (terpakai > 0 && terpakai + ukuran > lebar) { baris++; terpakai = 0; }
+            terpakai += ukuran;
+        }
+        int tinggi = baris * 39 + 16;
+        if (panelGlass8.getPreferredSize().height != tinggi) {
+            panelGlass8.setPreferredSize(new Dimension(55, tinggi));
+            jPanel3.setPreferredSize(new Dimension(44, 89 + tinggi));
+            jPanel3.revalidate();
+        }
+    }
+
+    private String kunciIdentitasPulang() {
+        return NoRawat.getText().trim() + "|" + NoSEP.getText().trim();
+    }
+
+    private void jadwalkanCekPulangBPJS() {
+        versiPulang++;
+        hasilPulang = null; // Hanya tombol update yang menunggu hasil pembacaan SKDP lokal.
+        LblStatusPulangBPJS.setText("Memeriksa data SKDP lokal...");
+        LblStatusPulangBPJS.setToolTipText(null);
+        terapkanKunciPulangBPJS();
+        timerPulang.restart();
+    }
+
+    private void terapkanKunciPulangBPJS() {
+        boolean sesuai = hasilPulang != null && identitasPulang.equals(kunciIdentitasPulang());
+        BtnUpdatePulangBPJS.setEnabled(sesuai
+                && hasilPulang.status == BPJSStatusPulang.Status.TANPA_SKDP
+                && !kirimPulang && akses.getbpjs_sep());
+    }
+
+    private void tampilkanHasilPulang(BPJSStatusPulang.Hasil hasil) {
+        hasilPulang = hasil;
+        identitasPulang = kunciIdentitasPulang();
+        String teks;
+        switch (hasil.status) {
+            case BERHASIL: teks = "Update pulang BPJS berhasil - " + hasil.tanggal; break;
+            case ADA_SKDP: teks = "SKDP untuk SEP ini sudah tersimpan. Update Pulang BPJS dinonaktifkan."; break;
+            case TANPA_SKDP: teks = "Belum ada SKDP tersimpan untuk SEP ini. Update Pulang BPJS tersedia sesuai hak akses."; break;
+            case RALAN: teks = "SEP rawat jalan - tidak memerlukan update pulang rawat inap."; break;
+            default: teks = "Pilih pasien/SEP untuk melihat data SKDP lokal.";
+        }
+        LblStatusPulangBPJS.setText(teks);
+        LblStatusPulangBPJS.setToolTipText(teks);
+        terapkanKunciPulangBPJS();
+    }
+
+    private String pesanPulang(Exception e) {
+        Throwable penyebab = e;
+        if (e instanceof java.util.concurrent.ExecutionException && e.getCause() != null) {
+            penyebab = e.getCause();
+        }
+        String detail = penyebab.getMessage();
+        return penyebab.getClass().getSimpleName() + ": "
+                + (detail == null || detail.trim().isEmpty()
+                ? "Tidak ada rincian pesan. Periksa Output NetBeans/log aplikasi." : detail);
+    }
+
+    private void jalankanCekPulangBPJS(final boolean bukaDialog, final boolean tampilkanError) {
+        timerPulang.stop();
+        if (kirimPulang) { return; }
+        final long versi = ++versiPulang;
+        final String noSEP = NoSEP.getText().trim(), noRawat = NoRawat.getText().trim();
+        hasilPulang = null;
+        LblStatusPulangBPJS.setText("Memeriksa data SKDP lokal...");
+        terapkanKunciPulangBPJS();
+        new SwingWorker<BPJSStatusPulang.Hasil, Void>() {
+            protected BPJSStatusPulang.Hasil doInBackground() throws Exception {
+                return layananPulang.periksa(noSEP, noRawat);
+            }
+            protected void done() {
+                if (versi != versiPulang || !(noRawat + "|" + noSEP).equals(kunciIdentitasPulang())) { return; }
+                try {
+                    BPJSStatusPulang.Hasil hasil = get();
+                    tampilkanHasilPulang(hasil);
+                    if (bukaDialog && hasil.status == BPJSStatusPulang.Status.TANPA_SKDP && akses.getbpjs_sep()) {
+                        bukaDialogPulangBPJS();
+                    }
+                } catch (Exception e) {
+                    hasilPulang = null;
+                    LblStatusPulangBPJS.setText("Data SKDP lokal belum dapat dibaca. Pilih ulang pasien/SEP.");
+                    LblStatusPulangBPJS.setToolTipText(pesanPulang(e));
+                    terapkanKunciPulangBPJS();
+                    if (tampilkanError) {
+                        JOptionPane.showMessageDialog(BPJSSuratKontrol.this,
+                                "Pembacaan data SKDP lokal gagal.\n\n" + pesanPulang(e),
+                                "Detail Data SKDP Lokal", JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            }
+        }.execute();
+    }
+
+    private void BtnUpdatePulangBPJSActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnUpdatePulangBPJSActionPerformed
+        if (BtnUpdatePulangBPJS.isEnabled() && akses.getbpjs_sep()) {
+            jalankanCekPulangBPJS(true, true);
+        }
+    }//GEN-LAST:event_BtnUpdatePulangBPJSActionPerformed
+
+    private void bukaDialogPulangBPJS() throws Exception {
+        BPJSStatusPulang.DataSEP d = layananPulang.data(NoSEP.getText().trim(), NoRawat.getText().trim());
+        PulangTanggalPulang.setDate(new Date());
+        PulangStatusPulang.setSelectedItem("1. Atas Persetujuan Dokter");
+        PulangNoLPManual.setText("");
+        PulangNoLPManual.setEditable(d.laka != null && !"0".equals(d.laka));
+        PulangNoSuratKematian.setText("");
+        try (PreparedStatement p = koneksi.prepareStatement(
+                "select tgl_keluar,jam_keluar,stts_pulang from kamar_inap where no_rawat=? "
+                + "and stts_pulang<>'Pindah Kamar' order by tgl_masuk desc,jam_masuk desc limit 1")) {
+            p.setString(1, d.noRawat);
+            try (ResultSet r = p.executeQuery()) {
+                if (r.next()) {
+                    String tanggal = r.getString("tgl_keluar");
+                    if (tanggal != null && !tanggal.startsWith("0000")) {
+                        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        format.setLenient(false);
+                        PulangTanggalPulang.setDate(format.parse(tanggal + " " + r.getString("jam_keluar")));
+                    }
+                    String status = r.getString("stts_pulang");
+                    if ("Atas Permintaan Sendiri".equalsIgnoreCase(status) || "APS".equalsIgnoreCase(status)) {
+                        PulangStatusPulang.setSelectedItem("3. Atas Permintaan Sendiri");
+                    } else if ("Meninggal".equalsIgnoreCase(status)) {
+                        JOptionPane.showMessageDialog(this,
+                                "Pembaruan pulang pasien meninggal dilakukan melalui aplikasi VClaim.",
+                                "Update Pulang BPJS", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                }
+            }
+        }
+        PulangStatusPulangItemStateChanged(null);
+        WindowUpdatePulang.setTitle("Update Pulang BPJS - " + d.noSEP);
+        BPJSPulangUI.rapikanTanggal(PulangTanggalPulang);
+        aturUkuranDialogPulang();
+        terapkanSudutDialogPulang();
+        WindowUpdatePulang.setLocationRelativeTo(this);
+        PulangBtnSimpan4.setEnabled(true);
+        WindowUpdatePulang.setVisible(true);
+    }
+
+    private void PulangStatusPulangItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_PulangStatusPulangItemStateChanged
+        PulangNoSuratKematian.setEditable(false);
+        PulangTanggalKematian.setEnabled(false);
+    }//GEN-LAST:event_PulangStatusPulangItemStateChanged
+
+    private void PulangBtnCloseIn4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PulangBtnCloseIn4ActionPerformed
+        if (!kirimPulang) { WindowUpdatePulang.dispose(); }
+    }//GEN-LAST:event_PulangBtnCloseIn4ActionPerformed
+
+    private void PulangBtnSimpan4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PulangBtnSimpan4ActionPerformed
+        if (kirimPulang || !PulangBtnSimpan4.isEnabled() || !akses.getbpjs_sep()) { return; }
+        final String noSEP = NoSEP.getText().trim(), noRawat = NoRawat.getText().trim();
+        final String status = PulangStatusPulang.getSelectedItem().toString().substring(0, 1);
+        final String tanggal = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(PulangTanggalPulang.getDate());
+        final String noLP = PulangNoLPManual.getText().trim();
+        kirimPulang = true;
+        hasilPulang = null;
+        PulangBtnSimpan4.setEnabled(false);
+        PulangBtnCloseIn4.setEnabled(false);
+        PulangStatusPulang.setEnabled(false);
+        PulangTanggalPulang.setEnabled(false);
+        terapkanKunciPulangBPJS();
+        LblStatusPulangBPJS.setText("Mengirim update pulang BPJS...");
+        new SwingWorker<BPJSStatusPulang.Hasil, Void>() {
+            protected BPJSStatusPulang.Hasil doInBackground() throws Exception {
+                return layananPulang.update(noSEP, noRawat, status, tanggal, noLP, user);
+            }
+            protected void done() {
+                kirimPulang = false;
+                PulangBtnCloseIn4.setEnabled(true);
+                PulangStatusPulang.setEnabled(true);
+                PulangTanggalPulang.setEnabled(true);
+                WindowUpdatePulang.dispose();
+                if (!(noRawat + "|" + noSEP).equals(kunciIdentitasPulang())) {
+                    jadwalkanCekPulangBPJS();
+                    return;
+                }
+                try {
+                    BPJSStatusPulang.Hasil hasil = get();
+                    tampilkanHasilPulang(hasil);
+                    JOptionPane.showMessageDialog(BPJSSuratKontrol.this,
+                            "Tanggal pulang sudah tercatat di BPJS. Silakan lanjutkan proses SKDP."
+                            + (hasil.catatan.isEmpty() ? "" : "\n" + hasil.catatan));
+                } catch (Exception e) {
+                    hasilPulang = null;
+                    LblStatusPulangBPJS.setText("Update pulang gagal atau hasilnya belum pasti. Periksa pesan error yang ditampilkan.");
+                    LblStatusPulangBPJS.setToolTipText(pesanPulang(e));
+                    terapkanKunciPulangBPJS();
+                    JOptionPane.showMessageDialog(BPJSSuratKontrol.this, pesanPulang(e)
+                            + "\nJika terjadi timeout, pastikan hasilnya melalui BPJSDataSEP/VClaim sebelum mencoba lagi.");
+                }
+            }
+        }.execute();
+    }//GEN-LAST:event_PulangBtnSimpan4ActionPerformed
 
     private void aturTombolSetSEP() {
         BtnSetSEPRanap.setVisible(false);
@@ -3038,6 +3636,7 @@ private void tampil() {
 
     // Tombol ini diaktifkan jika pengguna memiliki level akses Admin Utama
     BtnHapus.setEnabled(akses.getadmin());
+    terapkanKunciPulangBPJS();
     }
 
     public JTable getTable(){
