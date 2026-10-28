@@ -13,6 +13,8 @@
 
 package setting;
 import fungsi.WarnaTable;
+import fungsi.PasswordPolicy;
+import fungsi.AccountPasswordService;
 import fungsi.akses;
 import fungsi.batasInput;
 import fungsi.koneksiDB;
@@ -3431,7 +3433,9 @@ public class DlgUser extends javax.swing.JDialog {
         tbUser.setDefaultRenderer(Object.class, new WarnaTable());
 
         TKd.setDocument(new batasInput((byte)30).getKata(TKd));
-        TPass.setDocument(new batasInput((byte)50).getKata(TPass));
+        PasswordPolicy.configure(TPass);
+        TPass.setToolTipText(PasswordPolicy.HINT + " Kosongkan saat edit untuk mempertahankan password.");
+        pasangResetPassword();
         TCari.setDocument(new batasInput((byte)100).getKata(TCari));       
         
         dlgdokter.addWindowListener(new WindowListener() {
@@ -3444,7 +3448,7 @@ public class DlgUser extends javax.swing.JDialog {
                 if(dlgdokter.getTable().getSelectedRow()!= -1){
                     TKd.setText(dlgdokter.getTable().getValueAt(dlgdokter.getTable().getSelectedRow(),0).toString());
                     TNmUser.setText(dlgdokter.getTable().getValueAt(dlgdokter.getTable().getSelectedRow(),1).toString());
-                    TPass.setText(dlgdokter.getTable().getValueAt(dlgdokter.getTable().getSelectedRow(),0).toString());
+                    TPass.setText("");
                     Jabatan.setText(dlgdokter.getTable().getValueAt(dlgdokter.getTable().getSelectedRow(),10).toString());
                 }  
                 TKd.requestFocus();
@@ -3469,7 +3473,7 @@ public class DlgUser extends javax.swing.JDialog {
                 if(dlgpetugas.getTable().getSelectedRow()!= -1){                   
                     TKd.setText(dlgpetugas.getTable().getValueAt(dlgpetugas.getTable().getSelectedRow(),0).toString());
                     TNmUser.setText(dlgpetugas.getTable().getValueAt(dlgpetugas.getTable().getSelectedRow(),1).toString());
-                    TPass.setText(dlgpetugas.getTable().getValueAt(dlgpetugas.getTable().getSelectedRow(),0).toString());
+                    TPass.setText("");
                     Jabatan.setText(dlgpetugas.getTable().getValueAt(dlgpetugas.getTable().getSelectedRow(),9).toString());
                 }            
                 TKd.requestFocus();
@@ -3508,7 +3512,7 @@ public class DlgUser extends javax.swing.JDialog {
         jLabel3 = new widget.Label();
         jLabel4 = new widget.Label();
         TKd = new widget.TextBox();
-        TPass = new widget.TextBox();
+        TPass = new javax.swing.JPasswordField();
         BtnSeek = new widget.Button();
         BtnSeek1 = new widget.Button();
         TNmUser = new widget.TextBox();
@@ -3877,8 +3881,8 @@ public class DlgUser extends javax.swing.JDialog {
             Valid.textKosong(TKd,"User");
         }else if(TPass.getText().trim().equals("")){
             Valid.textKosong(TPass,"Password");
-        }else{
-            if(Sequel.menyimpantf("user","AES_ENCRYPT('"+TKd.getText()+"','nur'),AES_ENCRYPT('"+TPass.getText()+"','windi'),'false','false','false','false','false','false','false','false',"+
+        }else if(PasswordDialogs.confirm(this, TPass)){
+            if(simpanAkunBaru("'false','false','false','false','false','false','false','false',"+
                     "'false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false',"+
                     "'false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false',"+
                     "'false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false',"+
@@ -3905,9 +3909,9 @@ public class DlgUser extends javax.swing.JDialog {
                     "'false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false',"+
                     "'false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false',"+
                     "'false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false',"+
-                    "'false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false'","User")==true){
+                    "'false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false','false'")==true){
                 tabMode.addRow(new Object[]{
-                    TKd.getText(),TNmUser.getText(),Jabatan.getText(),TPass.getText(),false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,
+                    TKd.getText(),TNmUser.getText(),Jabatan.getText(),PasswordPolicy.MASK,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,
                     false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,
                     false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,
                     false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,
@@ -3954,9 +3958,9 @@ public class DlgUser extends javax.swing.JDialog {
         if(tabMode.getRowCount()==0){
             JOptionPane.showMessageDialog(null,"Maaf, data sudah habis...!!!!");
             TKd.requestFocus();
-        }else if(TPass.getText().trim().equals("")){
+        }else if(tbUser.getSelectedRow() == -1){
             JOptionPane.showMessageDialog(null,"Maaf, Gagal menghapus. Pilih dulu data yang mau dihapus.\nKlik data pada table untuk memilih...!!!!");
-        }else if(! TPass.getText().trim().equals("")){
+        }else if(tbUser.getSelectedRow() != -1){
             if(Sequel.queryutf("delete from user where id_user=AES_ENCRYPT('"+TKd.getText()+"','nur')")==true){
                 if(tbUser.getSelectedRow()!= -1){
                     tabMode.removeRow(tbUser.getSelectedRow());
@@ -3978,14 +3982,12 @@ public class DlgUser extends javax.swing.JDialog {
     private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnEditActionPerformed
         if(TKd.getText().trim().equals("")||TNmUser.getText().trim().equals("")){
             Valid.textKosong(TKd,"User");
-        }else if(TPass.getText().trim().equals("")){
-            Valid.textKosong(TPass,"Password");
+        }else if(TPass.getDocument().getLength() > 0 && !PasswordDialogs.confirm(this, TPass)){
+            return;
         }else{
             i=tbUser.getSelectedRow();
             if(i!= -1){
-                if(Sequel.mengedittf("user","id_user=AES_ENCRYPT('"+tbUser.getValueAt(i,0).toString()+"','nur')",
-                    "id_user=AES_ENCRYPT('"+TKd.getText()+"','nur'),"+
-                    "password=AES_ENCRYPT('"+TPass.getText()+"','windi'),"+
+                if(simpanPerubahanAkun(tbUser.getValueAt(i,0).toString(),
                     "penyakit='"+tbUser.getValueAt(i,4).toString()+"', "+
                     "obat_penyakit='"+tbUser.getValueAt(i,5).toString()+"',"+
                     "dokter='"+tbUser.getValueAt(i,6).toString()+"',"+
@@ -5298,7 +5300,7 @@ private void BtnPrintKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                 @Override
                 public void windowDeactivated(WindowEvent e) {}
             });
-            personal.isUser(TKd.getText(),TNmUser.getText(),TPass.getText());
+            personal.isUser(TKd.getText(),TNmUser.getText(),"");
             personal.setSize(460,this.getHeight()-50);
             personal.setLocationRelativeTo(internalFrame1);
             personal.setAlwaysOnTop(false);
@@ -5331,7 +5333,6 @@ private void BtnPrintKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                                 if(i!= -1){
                                     Sequel.mengedit("user","id_user=AES_ENCRYPT('"+tbUser.getValueAt(i,0).toString()+"','nur')",
                                         "id_user=AES_ENCRYPT('"+TKd.getText()+"','nur'),"+
-                                        "password=AES_ENCRYPT('"+TPass.getText()+"','windi'),"+
                                         "penyakit='"+tbUser.getValueAt(barisdicopy,4).toString()+"', "+
                                         "obat_penyakit='"+tbUser.getValueAt(barisdicopy,5).toString()+"',"+
                                         "dokter='"+tbUser.getValueAt(barisdicopy,6).toString()+"',"+
@@ -6539,7 +6540,7 @@ private void BtnPrintKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
     private widget.TextBox TCari;
     private widget.TextBox TKd;
     private widget.TextBox TNmUser;
-    private widget.TextBox TPass;
+    private javax.swing.JPasswordField TPass;
     private widget.InternalFrame internalFrame1;
     private widget.Label jLabel3;
     private widget.Label jLabel4;
@@ -6557,7 +6558,7 @@ private void BtnPrintKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         try{    
             Valid.tabelKosong(tabMode);
             ps=koneksi.prepareStatement(
-                "select AES_DECRYPT(user.id_user,'nur'),AES_DECRYPT(user.password,'windi'),user.penyakit,user.obat_penyakit,user.dokter,"+
+                "select AES_DECRYPT(user.id_user,'nur'),'********' as password_hidden,user.penyakit,user.obat_penyakit,user.dokter,"+
                 "user.jadwal_praktek,user.petugas,user.pasien,user.registrasi,user.tindakan_ralan,user.kamar_inap,user.tindakan_ranap,user.operasi,"+
                 "user.rujukan_keluar,user.rujukan_masuk,user.beri_obat,user.resep_pulang,user.pasien_meninggal,user.diet_pasien,user.kelahiran_bayi,"+
                 "user.periksa_lab,user.periksa_radiologi,user.kasir_ralan,user.deposit_pasien,user.piutang_pasien,user.peminjaman_berkas,user.barcode,"+
@@ -9076,8 +9077,57 @@ private void BtnPrintKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         if(i!= -1){
             TKd.setText(tbUser.getValueAt(i,0).toString());
             TNmUser.setText(tbUser.getValueAt(i,1).toString());
-            TPass.setText(tbUser.getValueAt(i,3).toString());            
+            TPass.setText("");
         }
     }
 
+
+    private final AccountPasswordService passwordService =
+            new AccountPasswordService(koneksiDB::condbVerifikasiSesi);
+
+    private boolean simpanAkunBaru(String defaults) {
+        char[] password = TPass.getPassword();
+        try {
+            boolean saved = passwordService.createUser(TKd.getText(), password, defaults);
+            if (saved) Sequel.SimpanTrack("CREATE USER akun=" + TKd.getText() + " [PASSWORD DISEMBUNYIKAN]");
+            return saved;
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage()); return false;
+        } catch (java.sql.SQLException e) {
+            PasswordDialogs.failure(this); return false;
+        } finally { java.util.Arrays.fill(password, '\0'); }
+    }
+
+    private boolean simpanPerubahanAkun(String original, String permissions) {
+        char[] password = TPass.getPassword();
+        try {
+            boolean saved = passwordService.editUser(original, TKd.getText(), password, permissions);
+            if (saved) Sequel.SimpanTrack("EDIT USER akun=" + original + " username_baru=" + TKd.getText() + " hak_akses=" + permissions + " [PASSWORD DISEMBUNYIKAN]");
+            else JOptionPane.showMessageDialog(this, "Akun tidak ditemukan. Muat ulang daftar akun.");
+            return saved;
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage()); return false;
+        } catch (java.sql.SQLException e) {
+            PasswordDialogs.failure(this); return false;
+        } finally { java.util.Arrays.fill(password, '\0'); }
+    }
+
+    private void pasangResetPassword() {
+        javax.swing.JMenuItem reset = new javax.swing.JMenuItem("Reset Password...");
+        reset.addActionListener(event -> {
+            int selected = tbUser.getSelectedRow();
+            if (selected < 0) { JOptionPane.showMessageDialog(this, "Pilih akun yang akan direset terlebih dahulu."); return; }
+            String username = tbUser.getValueAt(selected, 0).toString();
+            if (PasswordDialogs.reset(this, username, AccountPasswordService.Account.USER)) {
+                TPass.setText(""); tampil();
+            }
+        });
+        jPopupMenu1.addSeparator(); jPopupMenu1.add(reset);
+    }
+
+    @Override
+    public void dispose() {
+        TPass.setText("");
+        super.dispose();
+    }
 }

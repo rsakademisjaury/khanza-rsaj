@@ -98,7 +98,7 @@ public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
         super(parent, modal);
         initComponents();
 
-        Object[] row={"No.Rawat","Pasien","Petugas","Tgl.Periksa","Jam Periksa","Dokter Perujuk","Penanggung Jawab","Pemeriksaan","Biaya","Diagnosa Klinis","Makroskopik","Mikroskopik","Kesimpulan","Kesan","Kode Periksa","Cara Bayar"};
+        Object[] row={"No.Rawat","Pasien","Petugas","Tgl.Periksa","Jam Periksa","Dokter Perujuk","Penanggung Jawab","Pemeriksaan","Biaya","Diagnosa Klinis","Makroskopik","Mikroskopik","Kesimpulan","Catatan","Kode Periksa","Cara Bayar"};
         tabMode=new DefaultTableModel(null,row){
               @Override public boolean isCellEditable(int rowIndex, int colIndex){return false;}
         };
@@ -358,6 +358,7 @@ public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
         Document doc2 = kit2.createDefaultDocument();
         LoadHTML.setDocument(doc2);
      
+        siapkanPanelPA();
         ChkAccor.setSelected(false);
         isPhoto();
     }
@@ -1008,7 +1009,7 @@ public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
         FormPhoto.setBackground(new java.awt.Color(255, 255, 255));
         FormPhoto.setBorder(javax.swing.BorderFactory.createTitledBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(239, 244, 234)), " Photo : ", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Tahoma", 0, 11), new java.awt.Color(50, 50, 50))); // NOI18N
         FormPhoto.setName("FormPhoto"); // NOI18N
-        FormPhoto.setPreferredSize(new java.awt.Dimension(400, 400));
+        FormPhoto.setPreferredSize(new java.awt.Dimension(400, 150));
         FormPhoto.setLayout(new java.awt.BorderLayout());
 
         FormPass2.setBackground(new java.awt.Color(255, 255, 255));
@@ -1047,7 +1048,7 @@ public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
         Scroll4.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255)));
         Scroll4.setName("Scroll4"); // NOI18N
         Scroll4.setOpaque(true);
-        Scroll4.setPreferredSize(new java.awt.Dimension(400, 400));
+        Scroll4.setPreferredSize(new java.awt.Dimension(400, 150));
 
         LoadHTML.setBorder(null);
         LoadHTML.setName("LoadHTML"); // NOI18N
@@ -1174,7 +1175,7 @@ public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
         scrollPane5.setBounds(15, 475, 385, 50);
 
         label21.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        label21.setText("Kesan :");
+        label21.setText("Catatan :");
         label21.setName("label21"); // NOI18N
         label21.setPreferredSize(new java.awt.Dimension(60, 23));
         FormPass.add(label21);
@@ -1740,11 +1741,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
     }//GEN-LAST:event_ChkAccorActionPerformed
 
     private void btnAmbilPhotoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAmbilPhotoActionPerformed
-        if(tbDokter.getSelectedRow()!= -1){
-            this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-            Valid.panggilUrl("labpa/login.php?act=login&usere="+koneksiDB.USERHYBRIDWEB()+"&passwordte="+koneksiDB.PASHYBRIDWEB()+"&no_rawat="+tbDokter.getValueAt(tbDokter.getSelectedRow(),0).toString()+"&tanggal="+tbDokter.getValueAt(tbDokter.getSelectedRow(),3).toString()+"&jam="+tbDokter.getValueAt(tbDokter.getSelectedRow(),4).toString()+"&kd_jenis_prw="+tbDokter.getValueAt(tbDokter.getSelectedRow(),14).toString());
-            this.setCursor(Cursor.getDefaultCursor());
-        }
+        pilihDanUploadFotoPA();
     }//GEN-LAST:event_btnAmbilPhotoActionPerformed
 
     private void BtnRefreshPhotoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnRefreshPhotoActionPerformed
@@ -1752,19 +1749,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
     }//GEN-LAST:event_BtnRefreshPhotoActionPerformed
 
     private void btnUbahPasswordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUbahPasswordActionPerformed
-        if(tbDokter.getSelectedRow()!= -1){
-            if(Sequel.mengedittf("detail_periksa_labpa","no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?","diagnosa_klinik=?,makroskopik=?,mikroskopik=?,kesimpulan=?,kesan=?",9,new String[]{
-                DiagnosaKlinis.getText(),Makroskopis.getText(),Mikroskopis.getText(),Kesimpulan.getText(),Kesan.getText(),tbDokter.getValueAt(tbDokter.getSelectedRow(),0).toString(),
-                tbDokter.getValueAt(tbDokter.getSelectedRow(),14).toString(),tbDokter.getValueAt(tbDokter.getSelectedRow(),3).toString(),tbDokter.getValueAt(tbDokter.getSelectedRow(),4).toString()
-            })==true){
-                tampil();
-                JOptionPane.showMessageDialog(null,"Proses update berhasil.....!"); 
-            }else{
-                JOptionPane.showMessageDialog(null,"Proses update gagal.....!"); 
-            }
-        }else{
-           JOptionPane.showMessageDialog(null,"Maaf, silahkan pilih data pasien terlebih dahulu...!!!!"); 
-        }
+        simpanHasilPATambahan();
     }//GEN-LAST:event_btnUbahPasswordActionPerformed
 
     private void BtnKeluarKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnKeluarKeyPressed
@@ -2659,6 +2644,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
             Mikroskopis.setText(tbDokter.getValueAt(tbDokter.getSelectedRow(),11).toString());
             Kesimpulan.setText(tbDokter.getValueAt(tbDokter.getSelectedRow(),12).toString());
             Kesan.setText(tbDokter.getValueAt(tbDokter.getSelectedRow(),13).toString());
+            muatTambahanHasilPA();
         }
     }
     
@@ -2685,19 +2671,10 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
     }
  
     private void isPhoto(){
-        if(ChkAccor.isSelected()==true){
-            ChkAccor.setVisible(false);
-            PanelAccor.setPreferredSize(new Dimension(445,HEIGHT));
-            ScrollMenu.setVisible(true);  
-            ChkAccor.setVisible(true);
-        }else if(ChkAccor.isSelected()==false){    
-            ChkAccor.setVisible(false);
-            PanelAccor.setPreferredSize(new Dimension(15,HEIGHT));
-            ScrollMenu.setVisible(false);
-            ChkAccor.setVisible(true);
-        }
+        ScrollMenu.setVisible(ChkAccor.isSelected());
+        sesuaikanLebarPanelPA();
     }
-    
+
     private String escapeHTMLPA(String nilai) {
         return nilai.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("\"", "&quot;").replace("'", "&#39;");
@@ -2721,7 +2698,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         List<LampiranFotoLabPA.Foto> foto = new ArrayList<>();
         String sql = "select g.photo,j.nm_perawatan from detail_periksa_labpa_gambar g "
                 + "inner join jns_perawatan_lab j on j.kd_jenis_prw=g.kd_jenis_prw "
-                + "where g.no_rawat=? and g.tgl_periksa=? and g.jam=? "
+                + "where g.no_rawat=? and g.tgl_periksa=? and g.jam=? and g.kd_jenis_prw=? "
                 + "and exists (select 1 from periksa_lab p where p.no_rawat=g.no_rawat "
                 + "and p.kd_jenis_prw=g.kd_jenis_prw and p.tgl_periksa=g.tgl_periksa "
                 + "and p.jam=g.jam and p.kategori='PA') order by g.id_gambar";
@@ -2730,6 +2707,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
             fotoPS.setString(1, param.get("noperiksa").toString());
             fotoPS.setString(2, Valid.SetTgl(param.get("tanggal").toString()));
             fotoPS.setString(3, param.get("jam").toString());
+            fotoPS.setString(4, param.get("kodeperiksa").toString());
             try (ResultSet fotoRS = fotoPS.executeQuery()) {
                 while (fotoRS.next()) {
                     String path = fotoRS.getString("photo");
@@ -2749,15 +2727,9 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
 
     private void cetakReportPALengkap(String namaReport, Map<String, Object> param, boolean pdf) {
         try {
-            JasperReport report = (JasperReport) JRLoader.loadObject(new File("report", namaReport));
+            JasperPrint hasil = siapkanReportJenisPA(param);
             List<LampiranFotoLabPA.Foto> foto = ambilFotoReportPA(param);
-            JasperPrint hasil = JasperFillManager.fillReport(report, param, koneksi);
-            String xFoto = report.getPropertiesMap().getProperty("rsaj.pa.foto.x");
-            String wFoto = report.getPropertiesMap().getProperty("rsaj.pa.foto.width");
-            int x = xFoto == null ? (namaReport.contains("Permintaan") ? -20 : 0) : Integer.parseInt(xFoto);
-            int lebar = wFoto == null ? (namaReport.contains("Permintaan") ? 532 : 522) : Integer.parseInt(wFoto);
-            LampiranFotoLabPA.tambahkan(hasil, foto, param, report.getLeftMargin() + x, lebar,
-                    report.getTopMargin(), report.getBottomMargin());
+            LampiranFotoLabPA.tambahkan(hasil, foto, param, 36, 523, 26, 26);
             if (targetJPGUploadPA != null) {
                 LampiranFotoLabPA.simpanJPG(hasil, targetJPGUploadPA);
                 jpgUploadPABerhasil = true;
@@ -2865,14 +2837,319 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         }
     }
 
+    // Revisi panel PA terisolasi dari generated layout dan alur cetak/hasil.
+    private final javax.swing.JPanel galeriFotoPA = new javax.swing.JPanel();
+    private int versiGaleriPA;
+    private javax.swing.SwingWorker<?, ?> pemuatFotoPA;
+    private boolean sedangUploadFotoPA;
+    private boolean sedangHapusFotoPA;
+
+    // Border dan clipping berada pada input, bukan PanelAccor.
+    private static class InputBulatPA extends javax.swing.JPanel {
+        private final javax.swing.JTextArea teks;
+        private final javax.swing.JScrollPane scroll;
+        private boolean ukuranTerjadwal;
+
+        InputBulatPA(javax.swing.JTextArea teks, javax.swing.JScrollPane scroll) {
+            super(new java.awt.BorderLayout());
+            this.teks = teks;
+            this.scroll = scroll;
+            setBackground(java.awt.Color.WHITE);
+            setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 2, 2, 2));
+            setPreferredSize(new Dimension(150, 30));
+            setMinimumSize(new Dimension(80, 30));
+            scroll.setBorder(null);
+            scroll.setViewportBorder(null);
+            scroll.setPreferredSize(null);
+            scroll.setMinimumSize(new Dimension(0, 0));
+            scroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            scroll.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+            scroll.getViewport().setBackground(java.awt.Color.WHITE);
+            teks.setRows(1);
+            teks.setColumns(1);
+            teks.setLineWrap(true);
+            teks.setWrapStyleWord(true);
+            teks.setBackground(java.awt.Color.WHITE);
+            teks.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8));
+            add(scroll, java.awt.BorderLayout.CENTER);
+            teks.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override public void focusGained(java.awt.event.FocusEvent e) { repaint(); }
+                @Override public void focusLost(java.awt.event.FocusEvent e) { repaint(); }
+            });
+            teks.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                @Override public void insertUpdate(DocumentEvent e) { jadwalkanUkuran(); }
+                @Override public void removeUpdate(DocumentEvent e) { jadwalkanUkuran(); }
+                @Override public void changedUpdate(DocumentEvent e) { jadwalkanUkuran(); }
+            });
+            addComponentListener(new java.awt.event.ComponentAdapter() {
+                @Override public void componentResized(java.awt.event.ComponentEvent e) { jadwalkanUkuran(); }
+                @Override public void componentShown(java.awt.event.ComponentEvent e) { jadwalkanUkuran(); }
+            });
+            jadwalkanUkuran();
+        }
+
+        private void jadwalkanUkuran() {
+            if (ukuranTerjadwal) return;
+            ukuranTerjadwal = true;
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                ukuranTerjadwal = false;
+                sesuaikanTinggi();
+            });
+        }
+
+        private void sesuaikanTinggi() {
+            java.awt.Insets padding = teks.getInsets();
+            int lebar = scroll.getViewport().getExtentSize().width;
+            if (lebar <= 0) lebar = getWidth() - getInsets().left - getInsets().right;
+            if (lebar <= padding.left + padding.right) return;
+            // Ukur baris visual setelah word-wrap, termasuk newline dan isi lama dari database.
+            javax.swing.text.View view = teks.getUI().getRootView(teks);
+            view.setSize(lebar - padding.left - padding.right, Integer.MAX_VALUE);
+            int tinggi = Math.max(30, (int)Math.ceil(view.getPreferredSpan(javax.swing.text.View.Y_AXIS))
+                    + padding.top + padding.bottom + getInsets().top + getInsets().bottom);
+            if (getPreferredSize().height != tinggi) {
+                setPreferredSize(new Dimension(150, tinggi));
+                setMinimumSize(new Dimension(80, tinggi));
+                revalidate();
+                repaint();
+            }
+        }
+
+        @Override public void paint(java.awt.Graphics graphics) {
+            java.awt.Graphics2D g = (java.awt.Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                java.awt.Shape sudut = new java.awt.geom.RoundRectangle2D.Double(
+                        0.75, 0.75, getWidth() - 1.5, getHeight() - 1.5, 12, 12);
+                g.clip(sudut);
+                super.paint(g);
+                g.setClip(graphics.getClip());
+                g.setColor(teks.isFocusOwner() ? new java.awt.Color(39, 119, 205)
+                        : new java.awt.Color(182, 190, 200));
+                g.setStroke(new java.awt.BasicStroke(1.2f));
+                g.draw(sudut);
+            } finally { g.dispose(); }
+        }
+    }
+
+    private static class FotoDataPA {
+        final long id;
+        final String noRawat, tanggal, jam, jenis, path, url;
+        FotoDataPA(long id, String noRawat, String tanggal, String jam, String jenis, String path, String url) {
+            this.id = id; this.noRawat = noRawat; this.tanggal = tanggal; this.jam = jam;
+            this.jenis = jenis; this.path = path; this.url = url;
+        }
+    }
+
+    private static class FotoBernomorPA extends javax.swing.JLabel {
+        private int nomor;
+        private boolean hoverHapus;
+        private Runnable aksiBuka, aksiHapus;
+
+        FotoBernomorPA(int nomor) {
+            this.nomor = nomor;
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setToolTipText("Tunjuk badge nomor untuk menghapus foto");
+            addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+                @Override public void mouseMoved(java.awt.event.MouseEvent e) {
+                    boolean hover = isEnabled() && diBadge(e.getPoint());
+                    if (hoverHapus != hover) { hoverHapus = hover; repaint(); }
+                }
+            });
+            addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mouseExited(java.awt.event.MouseEvent e) { hoverHapus = false; repaint(); }
+                @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                    if (!isEnabled() || !javax.swing.SwingUtilities.isLeftMouseButton(e) || e.getClickCount() != 1) return;
+                    // Area badge hanya menghapus; tidak meneruskan klik ke pembuka foto.
+                    if (diBadge(e.getPoint())) { if (aksiHapus != null) aksiHapus.run(); }
+                    else if (aksiBuka != null) aksiBuka.run();
+                }
+            });
+        }
+
+        private int diameterBadge() {
+            java.awt.Font font = new java.awt.Font("Segoe UI Semibold", java.awt.Font.BOLD, 12);
+            return Math.max(28, getFontMetrics(font).stringWidth(Integer.toString(nomor)) + 12);
+        }
+
+        private boolean diBadge(java.awt.Point point) {
+            return new java.awt.geom.Ellipse2D.Double(6, 6, diameterBadge(), diameterBadge()).contains(point);
+        }
+
+        @Override public String getToolTipText(java.awt.event.MouseEvent e) {
+            return diBadge(e.getPoint()) ? "Hapus foto " + nomor
+                    : "Foto " + nomor + (getIcon() == null ? " - gagal dimuat" : " - klik untuk membuka ukuran asli");
+        }
+
+        @Override protected void paintComponent(java.awt.Graphics graphics) {
+            super.paintComponent(graphics);
+            java.awt.Graphics2D g = (java.awt.Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.BOLD, 12));
+                String angka = Integer.toString(nomor);
+                java.awt.FontMetrics fm = g.getFontMetrics();
+                int diameter = diameterBadge(), x = 6, y = 6;
+                g.setColor(java.awt.Color.WHITE);
+                g.fillOval(x - 1, y - 1, diameter + 2, diameter + 2);
+                g.setColor(hoverHapus ? new java.awt.Color(215, 59, 66) : new java.awt.Color(39, 119, 205));
+                g.fillOval(x, y, diameter, diameter);
+                g.setColor(java.awt.Color.WHITE);
+                if (hoverHapus) {
+                    // Ikon tempat sampah pada badge; tidak mengubah bitmap foto asli.
+                    int cx = x + diameter / 2, cy = y + diameter / 2;
+                    g.setStroke(new java.awt.BasicStroke(1.6f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+                    g.drawLine(cx - 6, cy - 5, cx + 6, cy - 5);
+                    g.drawLine(cx - 2, cy - 8, cx + 2, cy - 8);
+                    g.drawLine(cx - 2, cy - 8, cx - 2, cy - 5);
+                    g.drawLine(cx + 2, cy - 8, cx + 2, cy - 5);
+                    g.drawRoundRect(cx - 5, cy - 3, 10, 11, 2, 2);
+                    g.drawLine(cx - 2, cy, cx - 2, cy + 5);
+                    g.drawLine(cx + 2, cy, cx + 2, cy + 5);
+                } else {
+                    g.drawString(angka, x + (diameter - fm.stringWidth(angka)) / 2,
+                            y + (diameter - fm.getHeight()) / 2 + fm.getAscent());
+                }
+            } finally { g.dispose(); }
+        }
+    }
+
+    private void siapkanPanelPA() {
+        java.awt.Color biru = new java.awt.Color(39, 119, 205);
+        java.awt.Font font = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12);
+        PanelAccor.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 4, 8, 8));
+        ChkAccor.setBackground(java.awt.Color.WHITE);
+        ChkAccor.setPreferredSize(new Dimension(20, 20));
+        ChkAccor.setToolTipText("Buka / tutup foto dan hasil PA");
+        ScrollMenu.setBorder(null);
+        ScrollMenu.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        ScrollMenu.getViewport().setBackground(java.awt.Color.WHITE);
+        ScrollMenu.getVerticalScrollBar().setUnitIncrement(20);
+        FormPhotoPass.setPreferredSize(null);
+
+        // FormPhoto tepat 150 px. Tombol dan scrollbar di luar area foto.
+        FormPhoto.remove(FormPass2);
+        FormPhoto.setBorder(null);
+        FormPhoto.setPreferredSize(new Dimension(400, 150));
+        Scroll4.setBorder(null);
+        Scroll4.setViewportBorder(null);
+        Scroll4.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        Scroll4.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        galeriFotoPA.setBackground(java.awt.Color.WHITE);
+        galeriFotoPA.setLayout(new javax.swing.BoxLayout(galeriFotoPA, javax.swing.BoxLayout.X_AXIS));
+        Scroll4.setViewportView(galeriFotoPA);
+        javax.swing.JPanel bagianFoto = new javax.swing.JPanel(new java.awt.BorderLayout(0, 6));
+        bagianFoto.setBackground(java.awt.Color.WHITE);
+        javax.swing.JLabel judul = new javax.swing.JLabel("FOTO HASIL PA");
+        judul.setFont(new java.awt.Font("Segoe UI Semibold", java.awt.Font.BOLD, 13));
+        judul.setForeground(biru);
+        judul.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 4, 3, 4));
+        bagianFoto.add(judul, java.awt.BorderLayout.NORTH);
+        bagianFoto.add(FormPhoto, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel aksiFoto = new javax.swing.JPanel(new java.awt.BorderLayout());
+        aksiFoto.setBackground(java.awt.Color.WHITE);
+        javax.swing.JScrollBar geser = new javax.swing.JScrollBar(javax.swing.JScrollBar.HORIZONTAL);
+        geser.setModel(Scroll4.getHorizontalScrollBar().getModel());
+        geser.setUnitIncrement(35);
+        geser.setPreferredSize(new Dimension(100, 14));
+        geser.getAccessibleContext().setAccessibleName("Geser foto PA ke samping");
+        aksiFoto.add(geser, java.awt.BorderLayout.NORTH);
+        FormPass2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 5));
+        aksiFoto.add(FormPass2, java.awt.BorderLayout.CENTER);
+        bagianFoto.add(aksiFoto, java.awt.BorderLayout.SOUTH);
+        FormPhotoPass.add(bagianFoto, java.awt.BorderLayout.NORTH);
+        Scroll4.addMouseWheelListener(e -> {
+            geser.setValue(geser.getValue() + e.getWheelRotation() * 45);
+            e.consume();
+        });
+        btnAmbilPhoto.setToolTipText("Alt+U - pilih satu atau beberapa foto JPG/PNG dari komputer");
+        BtnRefreshPhoto.setMnemonic('R');
+        BtnRefreshPhoto.setToolTipText("Alt+R - muat ulang foto");
+
+        // Isian mengikuti lebar panel, mengganti koordinat tetap khusus panel PA.
+        FormPass.removeAll();
+        FormPass.setLayout(new java.awt.GridBagLayout());
+        FormPass.setBorder(javax.swing.BorderFactory.createTitledBorder(
+                javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0, new java.awt.Color(217, 232, 248)),
+                " Hasil Pemeriksaan ", 0, 0,
+                new java.awt.Font("Segoe UI Semibold", java.awt.Font.BOLD, 13), biru));
+        FormPass.setPreferredSize(null);
+        javax.swing.JLabel[] label = {label14, label17, label19, label20, label21};
+        javax.swing.JScrollPane[] isian = {scrollPane2, scrollPane3, scrollPane4, scrollPane5, scrollPane6};
+        javax.swing.JTextArea[] teks = {DiagnosaKlinis, Makroskopis, Mikroskopis, Kesimpulan, Kesan};
+        for (int n = 0; n < label.length; n++) {
+            java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
+            c.gridx = 0; c.gridy = n * 2 + 2; c.weightx = 1;
+            c.fill = java.awt.GridBagConstraints.HORIZONTAL;
+            c.insets = new java.awt.Insets(7, 10, 3, 10);
+            label[n].setFont(font);
+            label[n].setForeground(new java.awt.Color(53, 74, 96));
+            FormPass.add(label[n], c);
+            c.gridy++;
+            c.insets = new java.awt.Insets(0, 10, 2, 10);
+            teks[n].setFont(font);
+            FormPass.add(new InputBulatPA(teks[n], isian[n]), c);
+        }
+        java.awt.GridBagConstraints tombol = new java.awt.GridBagConstraints();
+        tombol.gridx = 0; tombol.gridy = 12; tombol.weightx = 1;
+        tombol.anchor = java.awt.GridBagConstraints.EAST;
+        tombol.insets = new java.awt.Insets(8, 10, 10, 10);
+        FormPass.add(btnUbahPassword, tombol);
+        // Jaga isian tetap di atas ketika kelima input masih satu baris.
+        javax.swing.JPanel areaHasil = new javax.swing.JPanel(new java.awt.BorderLayout());
+        areaHasil.setBackground(java.awt.Color.WHITE);
+        areaHasil.add(FormPass, java.awt.BorderLayout.NORTH);
+        FormPhotoPass.add(areaHasil, java.awt.BorderLayout.CENTER);
+        for (javax.swing.JButton button : new javax.swing.JButton[]{btnAmbilPhoto, BtnRefreshPhoto, btnUbahPassword}) {
+            button.setFont(font);
+        }
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) { sesuaikanLebarPanelPA(); }
+            @Override public void componentMoved(java.awt.event.ComponentEvent e) { sesuaikanLebarPanelPA(); }
+            @Override public void componentShown(java.awt.event.ComponentEvent e) { sesuaikanLebarPanelPA(); }
+        });
+        siapkanHasilPATambahan();
+        pesanGaleriPA("Pilih pemeriksaan untuk melihat foto hasil PA.");
+    }
+
+    private void sesuaikanLebarPanelPA() {
+        java.awt.GraphicsConfiguration monitor = getGraphicsConfiguration();
+        int lebarMonitor = monitor == null ? java.awt.Toolkit.getDefaultToolkit().getScreenSize().width
+                : monitor.getBounds().width;
+        int lebar = ChkAccor.isSelected() ? lebarMonitor / 2 : 34;
+        if (PanelAccor.getPreferredSize().width != lebar) {
+            PanelAccor.setPreferredSize(new Dimension(lebar, 43));
+            panelisi2.revalidate();
+            panelisi2.repaint();
+        }
+    }
+
+    private void pesanGaleriPA(String pesan) {
+        galeriFotoPA.removeAll();
+        javax.swing.JLabel label = new javax.swing.JLabel(pesan);
+        label.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        label.setForeground(new java.awt.Color(93, 117, 143));
+        label.setPreferredSize(new Dimension(350, 150));
+        galeriFotoPA.add(label);
+        galeriFotoPA.revalidate();
+        galeriFotoPA.repaint();
+    }
+
     private void panggilPhoto() {
+        final int versi = ++versiGaleriPA;
+        if (pemuatFotoPA != null) pemuatFotoPA.cancel(true);
         if (!ScrollMenu.isVisible()) return;
-        LoadHTML.setText("<html><body><center>Belum ada foto hasil PA.</center></body></html>");
+        pesanGaleriPA("Belum ada foto hasil PA.");
         if (tbDokter.getSelectedRow() == -1) return;
-        StringBuilder fotoHTML = new StringBuilder("<html><body>");
-        int jumlah = 0;
+        final String noRawat = tbDokter.getValueAt(tbDokter.getSelectedRow(), 0).toString();
+        final String tanggal = tbDokter.getValueAt(tbDokter.getSelectedRow(), 3).toString();
+        final String jam = tbDokter.getValueAt(tbDokter.getSelectedRow(), 4).toString();
+        final String jenis = tbDokter.getValueAt(tbDokter.getSelectedRow(), 14).toString();
+        final List<FotoDataPA> daftarFoto = new ArrayList<>();
         try (PreparedStatement fotoPS = koneksi.prepareStatement(
-                "select photo from detail_periksa_labpa_gambar where no_rawat=? and tgl_periksa=? and jam=? and kd_jenis_prw=? order by id_gambar")) {
+                "select id_gambar,photo from detail_periksa_labpa_gambar where no_rawat=? and tgl_periksa=? and jam=? and kd_jenis_prw=? order by id_gambar")) {
             fotoPS.setString(1, tbDokter.getValueAt(tbDokter.getSelectedRow(),0).toString());
             fotoPS.setString(2, tbDokter.getValueAt(tbDokter.getSelectedRow(),3).toString());
             fotoPS.setString(3, tbDokter.getValueAt(tbDokter.getSelectedRow(),4).toString());
@@ -2880,22 +3157,446 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
             try (ResultSet fotoRS = fotoPS.executeQuery()) {
                 while (fotoRS.next()) {
                     String path = fotoRS.getString("photo");
-                    if (path == null || path.trim().isEmpty() || path.equals("-")) continue;
-                    String url = urlFotoPA(path);
-                    fotoHTML.append("<p align='center'>Foto ").append(++jumlah)
-                            .append("<br><a href='").append(escapeHTMLPA(url))
-                            .append("'><img src='").append(escapeHTMLPA(url))
-                            .append("' width='375' alt='Foto hasil PA'></a></p>");
+                    if (path != null && !path.trim().isEmpty() && !"-".equals(path)) {
+                        daftarFoto.add(new FotoDataPA(fotoRS.getLong("id_gambar"), noRawat, tanggal, jam, jenis, path, urlFotoPA(path)));
+                    }
                 }
             }
-            if (jumlah > 0) {
-                LoadHTML.setText(fotoHTML.append("</body></html>").toString());
-                LoadHTML.setCaretPosition(0);
-            }
         } catch (Exception ex) {
-            LoadHTML.setText("<html><body>Foto belum dapat ditampilkan. Pastikan migrasi SQL foto PA sudah dijalankan.</body></html>");
-            System.out.println("Notif foto PA: " + ex);
+            pesanGaleriPA("Foto belum dapat dibaca. Periksa tabel foto PA.");
+            System.out.println("Notif foto PA: " + ex.getMessage());
+            return;
         }
+        if (daftarFoto.isEmpty()) return;
+        pesanGaleriPA("Memuat " + daftarFoto.size() + " foto hasil PA...");
+        galeriFotoPA.removeAll();
+        pemuatFotoPA = new javax.swing.SwingWorker<Void, javax.swing.JLabel>() {
+            @Override protected Void doInBackground() {
+                for (int n = 0; n < daftarFoto.size() && !isCancelled(); n++) {
+                    final FotoDataPA data = daftarFoto.get(n);
+                    final String url = data.url;
+                    javax.swing.JLabel foto = new FotoBernomorPA(n + 1);
+                    foto.putClientProperty("fotoPA", data);
+                    int lebar = 180;
+                    try {
+                        URLConnection sumber = new URL(url).openConnection();
+                        sumber.setConnectTimeout(10000); sumber.setReadTimeout(15000);
+                        try (InputStream input = sumber.getInputStream();
+                                javax.imageio.stream.ImageInputStream gambar = ImageIO.createImageInputStream(input)) {
+                            java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(gambar);
+                            if (!readers.hasNext()) throw new IOException("Format foto tidak terbaca");
+                            javax.imageio.ImageReader reader = readers.next();
+                            try {
+                                reader.setInput(gambar, true, true);
+                                lebar = Math.max(1, (int)Math.round(reader.getWidth(0) * 150.0 / reader.getHeight(0)));
+                                javax.imageio.ImageReadParam param = reader.getDefaultReadParam();
+                                int sample = Math.max(1, reader.getHeight(0) / 300);
+                                param.setSourceSubsampling(sample, sample, 0, 0);
+                                BufferedImage gambarFoto = reader.read(0, param);
+                                foto.setIcon(new javax.swing.ImageIcon(gambarFoto.getScaledInstance(lebar, 150, java.awt.Image.SCALE_SMOOTH)));
+                            } finally { reader.dispose(); }
+                        }
+                        foto.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                        foto.setToolTipText("Foto " + (n + 1) + " - klik untuk membuka ukuran asli");
+                    } catch (Exception ex) {
+                        foto.setText("Foto " + (n + 1) + " gagal dimuat");
+                        foto.setToolTipText("Klik Refresh untuk mencoba lagi");
+                        foto.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                        foto.setOpaque(true);
+                        foto.setBackground(new java.awt.Color(239, 247, 255));
+                    }
+                    foto.setPreferredSize(new Dimension(lebar, 150));
+                    foto.setMinimumSize(new Dimension(lebar, 150));
+                    foto.setMaximumSize(new Dimension(lebar, 150));
+                    foto.setAlignmentY(0.0f);
+                    publish(foto);
+                }
+                return null;
+            }
+            @Override protected void process(List<javax.swing.JLabel> foto) {
+                if (versi != versiGaleriPA || isCancelled()) return;
+                for (javax.swing.JLabel item : foto) {
+                    FotoBernomorPA kartu = (FotoBernomorPA)item;
+                    FotoDataPA data = (FotoDataPA)item.getClientProperty("fotoPA");
+                    kartu.aksiHapus = () -> konfirmasiHapusFotoPA(kartu, data, versi);
+                    if (item.getIcon() != null) kartu.aksiBuka = () -> {
+                        try { Desktop.getDesktop().browse(new URL(data.url).toURI()); }
+                        catch (Exception ex) { JOptionPane.showMessageDialog(DlgCariPeriksaLabPA.this, "Foto tidak dapat dibuka."); }
+                    };
+                    if (galeriFotoPA.getComponentCount() > 0) galeriFotoPA.add(javax.swing.Box.createHorizontalStrut(8));
+                    galeriFotoPA.add(item);
+                }
+                nomorUlangGaleriPA();
+                galeriFotoPA.revalidate();
+                galeriFotoPA.repaint();
+            }
+        };
+        pemuatFotoPA.execute();
+    }
+
+    private void nomorUlangGaleriPA(){
+        int nomor=1;
+        for(java.awt.Component c:galeriFotoPA.getComponents())if(c instanceof FotoBernomorPA){
+            ((FotoBernomorPA)c).nomor=nomor++;c.repaint();
+        }
+    }
+    private void hapusSatuKartuFotoPA(FotoDataPA target){
+        java.util.List<FotoBernomorPA> sisa=new java.util.ArrayList<>();
+        for(java.awt.Component c:galeriFotoPA.getComponents())if(c instanceof FotoBernomorPA){
+            FotoBernomorPA kartu=(FotoBernomorPA)c;FotoDataPA data=(FotoDataPA)kartu.getClientProperty("fotoPA");
+            boolean sama=data!=null&&data.id==target.id&&data.path.equals(target.path)&&data.noRawat.equals(target.noRawat)
+                    &&data.tanggal.equals(target.tanggal)&&data.jam.equals(target.jam)&&data.jenis.equals(target.jenis);
+            if(!sama)sisa.add(kartu);
+        }
+        // Pertahankan objek thumbnail lain; jangan kosongkan/muat ulang seluruh galeri.
+        galeriFotoPA.removeAll();
+        for(FotoBernomorPA kartu:sisa){if(galeriFotoPA.getComponentCount()>0)galeriFotoPA.add(javax.swing.Box.createHorizontalStrut(8));galeriFotoPA.add(kartu);}
+        nomorUlangGaleriPA();galeriFotoPA.revalidate();galeriFotoPA.repaint();
+    }
+    private void konfirmasiHapusFotoPA(FotoBernomorPA foto, FotoDataPA data, int versi) {
+        if (versi != versiGaleriPA) return;
+        if (sedangUploadFotoPA || sedangHapusFotoPA) {
+            JOptionPane.showMessageDialog(this, "Tunggu proses foto yang sedang berjalan selesai.");
+            return;
+        }
+        int pilihan = JOptionPane.showOptionDialog(this, "Yakin ingin menghapus foto ini?",
+                "Hapus Foto " + foto.nomor, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
+                null, new String[]{"Yes", "No"}, "No");
+        if (pilihan != JOptionPane.YES_OPTION) return;
+        sedangHapusFotoPA = true;
+        btnAmbilPhoto.setEnabled(false);
+        foto.setEnabled(false);
+        new javax.swing.SwingWorker<String, Void>() {
+            @Override protected String doInBackground() throws Exception { return hapusFotoDiServerPA(data); }
+            @Override protected void done() {
+                sedangHapusFotoPA = false;
+                btnAmbilPhoto.setEnabled(true);
+                foto.setEnabled(true);
+                try {
+                    String hasil = get();
+                    if(versi==versiGaleriPA)hapusSatuKartuFotoPA(data);
+                    if (hasil.startsWith("WARN: ")) JOptionPane.showMessageDialog(DlgCariPeriksaLabPA.this,
+                            hasil.substring(6), "Hapus Foto PA", JOptionPane.WARNING_MESSAGE);
+                } catch (Exception ex) {
+                    Throwable sebab = ex.getCause() == null ? ex : ex.getCause();
+                    JOptionPane.showMessageDialog(DlgCariPeriksaLabPA.this,
+                            "Penghapusan belum dapat dikonfirmasi: " + sebab.getMessage()
+                            + "\nPeriksa Refresh sebelum mengulang.", "Hapus Foto PA", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        }.execute();
+    }
+
+    private String hapusFotoDiServerPA(FotoDataPA data) throws Exception {
+        Map<String, String> fields = new java.util.LinkedHashMap<>();
+        fields.put("usere", koneksiDB.USERHYBRIDWEB()); fields.put("passwordte", koneksiDB.PASHYBRIDWEB());
+        fields.put("no_rawat", data.noRawat); fields.put("tanggal", data.tanggal);
+        fields.put("jam", data.jam); fields.put("kd_jenis_prw", data.jenis);
+        fields.put("id_gambar", Long.toString(data.id)); fields.put("photo", data.path);
+        StringBuilder form = new StringBuilder();
+        for (Map.Entry<String, String> field : fields.entrySet()) {
+            if (form.length() > 0) form.append('&');
+            form.append(URLEncoder.encode(field.getKey(), "UTF-8")).append('=')
+                    .append(URLEncoder.encode(field.getValue(), "UTF-8"));
+        }
+        byte[] body = form.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        java.net.HttpURLConnection request = (java.net.HttpURLConnection) new URL(
+                "http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB() + "/"
+                + koneksiDB.HYBRIDWEB() + "/labpa/hapus_foto.php").openConnection();
+        try {
+            request.setConnectTimeout(10000); request.setReadTimeout(30000);
+            request.setInstanceFollowRedirects(false);
+            request.setRequestMethod("POST"); request.setDoOutput(true);
+            request.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            request.setFixedLengthStreamingMode(body.length);
+            try (java.io.OutputStream out = request.getOutputStream()) { out.write(body); }
+            int status = request.getResponseCode();
+            InputStream response = status < 400 ? request.getInputStream() : request.getErrorStream();
+            StringBuilder pesan = new StringBuilder();
+            if (response != null) {
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(response, java.nio.charset.StandardCharsets.UTF_8))) {
+                    String baris;
+                    while (pesan.length() < 4096 && (baris = reader.readLine()) != null) pesan.append(baris).append('\n');
+                }
+            }
+            String hasil = pesan.toString().trim();
+            if (status == 200 && ("OK".equals(hasil) || hasil.startsWith("WARN: "))) return hasil;
+            if (hasil.startsWith("ERROR: ")) throw new IOException(hasil.substring(7));
+            if (status == 401 || status == 403) throw new IOException("Autentikasi hybrid web gagal.");
+            if (status == 404) throw new IOException("Pasang webapps/labpa/hapus_foto.php pada server.");
+            throw new IOException("Server belum mengonfirmasi penghapusan (HTTP " + status + ").");
+        } finally { request.disconnect(); }
+    }
+
+    private void pilihDanUploadFotoPA() {
+        if (sedangUploadFotoPA || sedangHapusFotoPA) return;
+        final int row = tbDokter.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih pemeriksaan PA terlebih dahulu.");
+            return;
+        }
+        // Identitas ditangkap sebelum chooser/worker, tidak mengikuti baris lain saat upload berlangsung.
+        final String noRawat = tbDokter.getValueAt(row, 0).toString();
+        final String tanggal = tbDokter.getValueAt(row, 3).toString();
+        final String jam = tbDokter.getValueAt(row, 4).toString();
+        final String jenis = tbDokter.getValueAt(row, 14).toString();
+        javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
+        chooser.setDialogTitle("Pilih foto hasil PA - " + noRawat);
+        chooser.setMultiSelectionEnabled(true);
+        chooser.setAcceptAllFileFilterUsed(false);
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Foto PA (JPG, JPEG, PNG)", "jpg", "jpeg", "png"));
+        if (chooser.showOpenDialog(this) != javax.swing.JFileChooser.APPROVE_OPTION) return;
+        final File[] files = chooser.getSelectedFiles();
+        if (files.length == 0) return;
+        sedangUploadFotoPA = true;
+        btnAmbilPhoto.setEnabled(false);
+        btnAmbilPhoto.setText("Mengirim...");
+        new javax.swing.SwingWorker<String, Void>() {
+            @Override protected String doInBackground() {
+                int berhasil = 0;
+                StringBuilder gagal = new StringBuilder();
+                for (File file : files) {
+                    try {
+                        uploadFotoAsliPA(file, noRawat, tanggal, jam, jenis);
+                        berhasil++;
+                    } catch (Exception ex) {
+                        gagal.append("\n- ").append(file.getName()).append(": ").append(ex.getMessage());
+                    }
+                }
+                return berhasil + " dari " + files.length + " foto berhasil disimpan."
+                        + (gagal.length() == 0 ? "" : "\nFoto yang belum dikonfirmasi:" + gagal
+                        + "\nJika koneksi terputus, periksa Refresh sebelum mengunggah ulang.");
+            }
+            @Override protected void done() {
+                sedangUploadFotoPA = false;
+                btnAmbilPhoto.setEnabled(true);
+                btnAmbilPhoto.setText("Ambil");
+                panggilPhoto();
+                try { JOptionPane.showMessageDialog(DlgCariPeriksaLabPA.this, get()); }
+                catch (Exception ex) { JOptionPane.showMessageDialog(DlgCariPeriksaLabPA.this, "Upload belum dapat dikonfirmasi. Periksa Refresh."); }
+            }
+        }.execute();
+    }
+
+    private void uploadFotoAsliPA(File file, String noRawat, String tanggal, String jam, String jenis) throws Exception {
+        String ext = file.getName().toLowerCase(java.util.Locale.ROOT);
+        if (!file.isFile() || file.length() == 0 || !(ext.endsWith(".jpg") || ext.endsWith(".jpeg") || ext.endsWith(".png")))
+            throw new IOException("Gunakan foto JPG, JPEG, atau PNG yang valid.");
+        String format;
+        try (javax.imageio.stream.ImageInputStream input = ImageIO.createImageInputStream(file)) {
+            if (input == null) throw new IOException("File foto tidak dapat dibaca.");
+            java.util.Iterator<javax.imageio.ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) throw new IOException("Isi file bukan foto JPG/PNG.");
+            javax.imageio.ImageReader reader = readers.next();
+            try { format = reader.getFormatName(); } finally { reader.dispose(); }
+        }
+        boolean png = "png".equalsIgnoreCase(format);
+        if (!png && !"jpeg".equalsIgnoreCase(format) && !"jpg".equalsIgnoreCase(format))
+            throw new IOException("Isi file bukan foto JPG/PNG.");
+        String boundary = "----LabPA" + java.util.UUID.randomUUID().toString().replace("-", "");
+        Map<String, String> field = new java.util.LinkedHashMap<>();
+        field.put("usere", koneksiDB.USERHYBRIDWEB());
+        field.put("passwordte", koneksiDB.PASHYBRIDWEB());
+        field.put("no_rawat", noRawat); field.put("tanggal", tanggal);
+        field.put("jam", jam); field.put("kd_jenis_prw", jenis);
+        field.put("nama_file_asli", file.getName());
+        StringBuilder header = new StringBuilder();
+        for (Map.Entry<String, String> item : field.entrySet()) {
+            header.append("--").append(boundary).append("\r\nContent-Disposition: form-data; name=\"")
+                    .append(item.getKey()).append("\"\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n")
+                    .append(item.getValue()).append("\r\n");
+        }
+        header.append("--").append(boundary)
+                .append("\r\nContent-Disposition: form-data; name=\"gambar\"; filename=\"foto.")
+                .append(png ? "png" : "jpg").append("\"\r\nContent-Type: ")
+                .append(png ? "image/png" : "image/jpeg").append("\r\n\r\n");
+        byte[] awal = header.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] akhir = ("\r\n--" + boundary + "--\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        java.net.HttpURLConnection request = (java.net.HttpURLConnection) new URL(
+                "http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB() + "/"
+                + koneksiDB.HYBRIDWEB() + "/labpa/upload_foto.php").openConnection();
+        try {
+            request.setConnectTimeout(10000); request.setReadTimeout(60000);
+            request.setInstanceFollowRedirects(false);
+            request.setRequestMethod("POST"); request.setDoOutput(true);
+            request.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+            request.setFixedLengthStreamingMode((long)awal.length + file.length() + akhir.length);
+            try (java.io.OutputStream out = request.getOutputStream(); InputStream input = new java.io.FileInputStream(file)) {
+                out.write(awal);
+                byte[] buffer = new byte[8192]; int n;
+                while ((n = input.read(buffer)) != -1) out.write(buffer, 0, n);
+                out.write(akhir);
+            }
+            int status = request.getResponseCode();
+            InputStream response = status < 400 ? request.getInputStream() : request.getErrorStream();
+            StringBuilder pesan = new StringBuilder();
+            if (response != null) {
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(response, java.nio.charset.StandardCharsets.UTF_8))) {
+                    String baris;
+                    while (pesan.length() < 4096 && (baris = reader.readLine()) != null) pesan.append(baris).append('\n');
+                }
+            }
+            String hasil = pesan.toString().trim();
+            if (status != 200 || !"OK".equals(hasil)) {
+                if (hasil.startsWith("ERROR: ")) throw new IOException(hasil.substring(7));
+                if (status == 401 || status == 403) throw new IOException("Autentikasi hybrid web gagal. Periksa konfigurasi SIMRS dan server.");
+                if (status == 404) throw new IOException("Pasang webapps/labpa/upload_foto.php pada server.");
+                if (status == 413) throw new IOException("Ukuran foto melebihi batas upload server.");
+                throw new IOException("Server belum mengonfirmasi penyimpanan (HTTP " + status + ").");
+            }
+        } finally { request.disconnect(); }
+    }
+    private fungsi.LabPABahanPanel bahanHasilPA;
+    private javax.swing.JTextField noPATerbitField;
+    private widget.Button btnBuatNoPA;
+    private fungsi.LabPAData.Kunci kunciBahanHasilPA;
+    private String nomorTerbitPA="";
+    private boolean bahanHasilSiapPA;
+    private fungsi.LabPAData.Kunci kunciPilihanPA(){
+        int row=tbDokter.getSelectedRow();
+        if(row<0)return null;
+        return new fungsi.LabPAData.Kunci(tbDokter.getValueAt(row,0).toString(),tbDokter.getValueAt(row,14).toString(),
+                tbDokter.getValueAt(row,3).toString(),tbDokter.getValueAt(row,4).toString());
+    }
+    private void siapkanHasilPATambahan(){
+        bahanHasilPA=new fungsi.LabPABahanPanel(true);
+        noPATerbitField=new javax.swing.JTextField("Belum diterbitkan");noPATerbitField.setEditable(false);
+        noPATerbitField.setFont(new java.awt.Font("Segoe UI Semibold",java.awt.Font.BOLD,13));
+        noPATerbitField.setPreferredSize(new Dimension(120,30));
+        noPATerbitField.setMinimumSize(new Dimension(0,30));
+        bahanHasilPA.setNomorPAField(noPATerbitField);
+        javax.swing.JPanel tambahan=new javax.swing.JPanel(new java.awt.BorderLayout(0,8));tambahan.setBackground(java.awt.Color.WHITE);
+        tambahan.add(bahanHasilPA,java.awt.BorderLayout.CENTER);
+        java.awt.GridBagConstraints c=new java.awt.GridBagConstraints();c.gridx=0;c.gridy=0;c.weightx=1;
+        c.fill=java.awt.GridBagConstraints.HORIZONTAL;c.insets=new java.awt.Insets(8,10,5,10);FormPass.add(tambahan,c);
+        btnBuatNoPA=new widget.Button();btnBuatNoPA.setText("Buat No. PA");btnBuatNoPA.setName("btnBuatNoPA");
+        btnBuatNoPA.setFont(BtnUpload.getFont());btnBuatNoPA.setMargin(BtnUpload.getMargin());
+        btnBuatNoPA.setForeground(BtnUpload.getForeground());btnBuatNoPA.setBackground(BtnUpload.getBackground());
+        btnBuatNoPA.setIconTextGap(BtnUpload.getIconTextGap());
+        btnBuatNoPA.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/add-file-16x16.png")));
+        int lebarNomor=btnBuatNoPA.getFontMetrics(btnBuatNoPA.getFont()).stringWidth(btnBuatNoPA.getText())
+                +btnBuatNoPA.getIcon().getIconWidth()+btnBuatNoPA.getIconTextGap()
+                +btnBuatNoPA.getInsets().left+btnBuatNoPA.getInsets().right+12;
+        btnBuatNoPA.setPreferredSize(new Dimension(Math.max(BtnUpload.getPreferredSize().width,lebarNomor),30));
+        btnBuatNoPA.setToolTipText("Terbitkan nomor PA untuk pemeriksaan terpilih");btnBuatNoPA.setEnabled(false);
+        btnBuatNoPA.addActionListener(e->buatNoPATambahan());
+        int index=0;java.awt.Component[] tombol=panelisi1.getComponents();
+        for(int n=0;n<tombol.length;n++)if(tombol[n]==BtnUpload)index=n+1;
+        panelisi1.add(btnBuatNoPA,index);
+        panelisi1.addComponentListener(new java.awt.event.ComponentAdapter(){
+            @Override public void componentResized(java.awt.event.ComponentEvent e){sesuaikanTombolHasilPA();}
+            @Override public void componentShown(java.awt.event.ComponentEvent e){sesuaikanTombolHasilPA();}
+        });
+        bahanHasilPA.addTypeListener(e->aturJenisHasilPA());
+    }
+    private void sesuaikanTombolHasilPA(){
+        if(!(panelisi1.getLayout() instanceof java.awt.FlowLayout)||panelisi1.getWidth()<=0)return;
+        java.awt.FlowLayout flow=(java.awt.FlowLayout)panelisi1.getLayout();
+        java.awt.Insets in=panelisi1.getInsets();int available=panelisi1.getWidth()-in.left-in.right-flow.getHgap()*2;
+        int used=0,rowHeight=0,height=flow.getVgap();
+        for(java.awt.Component item:panelisi1.getComponents())if(item.isVisible()){
+            Dimension d=item.getPreferredSize();
+            if(used>0&&used+flow.getHgap()+d.width>available){height+=rowHeight+flow.getVgap();used=0;rowHeight=0;}
+            used+= (used==0?0:flow.getHgap())+d.width;rowHeight=Math.max(rowHeight,d.height);
+        }
+        height=Math.max(56,height+rowHeight+flow.getVgap()+in.top+in.bottom);
+        if(panelisi1.getPreferredSize().height!=height){panelisi1.setPreferredSize(new Dimension(100,height));panelisi1.revalidate();}
+    }
+    private void aturJenisHasilPA(){
+        if(bahanHasilPA==null)return;
+        boolean umum=!"IHC".equals(bahanHasilPA.getJenis());
+        label14.setVisible(umum);scrollPane2.getParent().setVisible(umum);
+        label17.setVisible(umum);scrollPane3.getParent().setVisible(umum);
+        label19.setVisible(umum);scrollPane4.getParent().setVisible(umum);
+        if(btnBuatNoPA!=null)btnBuatNoPA.setEnabled(bahanHasilSiapPA&&nomorTerbitPA.isEmpty()&&fungsi.LabPAData.validJenis(bahanHasilPA.getJenis()));
+        FormPass.revalidate();FormPass.repaint();
+    }
+    private void muatTambahanHasilPA(){
+        if(bahanHasilPA==null)return;bahanHasilSiapPA=false;nomorTerbitPA="";kunciBahanHasilPA=kunciPilihanPA();
+        if(kunciBahanHasilPA==null){bahanHasilPA.setValue(new fungsi.LabPAData.Bahan());noPATerbitField.setText("Pilih pemeriksaan");aturJenisHasilPA();return;}
+        try{
+            fungsi.LabPAData.Bahan b=fungsi.LabPAData.muat(koneksi,kunciBahanHasilPA,tbDokter.getValueAt(tbDokter.getSelectedRow(),7).toString());
+            nomorTerbitPA=fungsi.LabPAData.nomor(koneksi,kunciBahanHasilPA);
+            bahanHasilPA.setValue(b);bahanHasilPA.setTypeLocked(!nomorTerbitPA.isEmpty());
+            noPATerbitField.setText(nomorTerbitPA.isEmpty()?"Belum diterbitkan":nomorTerbitPA);bahanHasilSiapPA=true;
+        }catch(Exception ex){
+            bahanHasilPA.setValue(new fungsi.LabPAData.Bahan());noPATerbitField.setText("Data tambahan PA belum tersedia");
+            System.out.println("Data bahan PA: "+ex.getMessage());
+        }
+        aturJenisHasilPA();
+    }
+    private boolean cocokPilihanHasilPA(){
+        fungsi.LabPAData.Kunci sekarang=kunciPilihanPA();
+        if(sekarang==null||kunciBahanHasilPA==null||!sekarang.token().equals(kunciBahanHasilPA.token())){
+            JOptionPane.showMessageDialog(this,"Pilih kembali pemeriksaan PA yang akan diproses.");return false;
+        }
+        if(!bahanHasilSiapPA){JOptionPane.showMessageDialog(this,"Data tambahan PA belum tersedia. Pastikan pembaruan database PA sudah dipasang.");return false;}
+        return true;
+    }
+    private void simpanHasilPATambahan(){
+        if(!cocokPilihanHasilPA()||!bahanHasilPA.validasi(this))return;
+        fungsi.LabPAData.Kunci k=kunciBahanHasilPA;
+        try{
+            if(!koneksi.getAutoCommit())throw new java.sql.SQLException("Selesaikan transaksi aktif terlebih dahulu.");
+            koneksi.setAutoCommit(false);
+            try{
+                fungsi.LabPAData.simpanHasil(koneksi,k,bahanHasilPA.getValue(),akses.getkode());
+                try(java.sql.PreparedStatement p=koneksi.prepareStatement("update detail_periksa_labpa set diagnosa_klinik=?,makroskopik=?,mikroskopik=?,kesimpulan=?,kesan=? where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
+                    p.setString(1,DiagnosaKlinis.getText());p.setString(2,Makroskopis.getText());p.setString(3,Mikroskopis.getText());p.setString(4,Kesimpulan.getText());p.setString(5,Kesan.getText());k.bind(p,6);
+                    if(p.executeUpdate()==0){
+                        try(java.sql.PreparedStatement cek=koneksi.prepareStatement("select count(*) from detail_periksa_labpa where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
+                            k.bind(cek,1);try(java.sql.ResultSet r=cek.executeQuery()){if(!r.next()||r.getInt(1)==0)throw new java.sql.SQLException("Baris hasil pemeriksaan PA belum tersedia.");}
+                        }
+                    }
+                }
+                koneksi.commit();
+            }catch(Exception ex){koneksi.rollback();throw ex;}finally{koneksi.setAutoCommit(true);}
+            tampil();
+            for(int r=0;r<tbDokter.getRowCount();r++)if(k.noRawat.equals(tbDokter.getValueAt(r,0).toString())&&k.kode.equals(tbDokter.getValueAt(r,14).toString())&&k.tanggal.equals(tbDokter.getValueAt(r,3).toString())&&k.jam.equals(tbDokter.getValueAt(r,4).toString())){
+                tbDokter.setRowSelectionInterval(r,r);getData();break;
+            }
+            JOptionPane.showMessageDialog(this,"Proses update berhasil.....!");
+        }catch(Exception ex){JOptionPane.showMessageDialog(this,"Hasil PA gagal disimpan.\n"+ex.getMessage());}
+    }
+    private void buatNoPATambahan(){
+        if(!cocokPilihanHasilPA()||!bahanHasilPA.validasi(this))return;
+        if(!nomorTerbitPA.isEmpty()){JOptionPane.showMessageDialog(this,"No. PA sudah diterbitkan: "+nomorTerbitPA);return;}
+        int jawab=JOptionPane.showOptionDialog(this,"Yakin ingin menerbitkan no. PA untuk no. pemeriksaan ini?",
+                "Buat No. PA",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE,null,new String[]{"Ya","Tidak"},"Tidak");
+        if(jawab!=JOptionPane.YES_OPTION)return;
+        btnBuatNoPA.setEnabled(false);
+        try{
+            fungsi.LabPAData.Bahan b=bahanHasilPA.getValue();
+            fungsi.LabPAData.simpanHasil(koneksi,kunciBahanHasilPA,b,akses.getkode());
+            String nomor=fungsi.LabPAData.terbitkan(koneksi,kunciBahanHasilPA,b.jenis,akses.getkode());
+            muatTambahanHasilPA();JOptionPane.showMessageDialog(this,"No. PA berhasil diterbitkan: "+nomor);
+        }catch(Exception ex){aturJenisHasilPA();JOptionPane.showMessageDialog(this,"No. PA belum dapat diterbitkan.\n"+ex.getMessage());}
+    }
+    private net.sf.jasperreports.engine.JasperPrint siapkanReportJenisPA(java.util.Map<String,Object> param)throws Exception{
+        fungsi.LabPAData.Kunci k=kunciPilihanPA();if(k==null)throw new java.io.IOException("Pilih pemeriksaan PA terlebih dahulu.");
+        fungsi.LabPAData.Bahan b=fungsi.LabPAData.muat(koneksi,k,tbDokter.getValueAt(tbDokter.getSelectedRow(),7).toString());
+        if(!fungsi.LabPAData.validJenis(b.jenis))throw new java.io.IOException("Pilih jenis pemeriksaan pada data bahan dan simpan melalui tombol Ubah.");
+        java.util.Map<String,Object> klinis=new java.util.HashMap<>();
+        try(java.sql.PreparedStatement p=koneksi.prepareStatement("select diagnosa_klinik,makroskopik,mikroskopik,kesimpulan,kesan from detail_periksa_labpa where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
+            k.bind(p,1);try(java.sql.ResultSet r=p.executeQuery()){if(r.next()){
+                klinis.put("diagnosa_klinik",r.getString(1));klinis.put("makroskopik",r.getString(2));klinis.put("mikroskopik",r.getString(3));klinis.put("kesimpulan",r.getString(4));klinis.put("catatan",r.getString(5));
+            }}
+        }
+        param.put("jenis_jaringan",b.jenisJaringan);
+        param.put("kodeperiksa",k.kode);String no=fungsi.LabPAData.nomor(koneksi,k);param.put("no_pa",no.isEmpty()?"Belum diterbitkan":no);
+        param.put("nopermintaan",b.noorder);param.put("tanggal_terima",k.tanggal+" "+k.jam);param.put("tanggal_jawab",k.tanggal+" "+k.jam);
+        if(!b.noorder.isEmpty())try(java.sql.PreparedStatement p=koneksi.prepareStatement("select * from permintaan_labpa where noorder=?")){
+            p.setString(1,b.noorder);try(java.sql.ResultSet r=p.executeQuery()){if(r.next()){
+                klinis.put("keterangan_klinik",r.getString(11));
+                String tgl=fungsi.LabPAData.text(r.getString(5));String jam=fungsi.LabPAData.text(r.getString(6));
+                if(tgl.isEmpty()||tgl.startsWith("0000")){tgl=r.getString(3);jam=r.getString(4);}
+                param.put("tanggal_terima",tgl+" "+jam);
+            }}
+        }
+        param.put("logo",fungsi.LabPAReport.image(param.get("logo")));
+        return fungsi.LabPAReport.fill(b.jenis,false,param,fungsi.LabPAReport.rows(b,klinis,false));
     }
 
 }

@@ -141,7 +141,7 @@
                 </Constraint>
               </Constraints>
             </Component>
-            <Component class="widget.TextBox" name="TNm">
+            <Component class="javax.swing.JPasswordField" name="TNm">
               <Properties>
                 <Property name="name" type="java.lang.String" value="TNm" noResource="true"/>
               </Properties>

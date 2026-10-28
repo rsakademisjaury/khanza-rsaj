@@ -1,0 +1,349 @@
+package fungsi;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+/**
+ * RSAJ: penghitung login bersama untuk login awal dan buka sesi timeout.
+ * Menggunakan koneksi khusus, waktu database, dan row lock InnoDB. Tidak
+ * mengubah tabel akun, skema password, hak akses, atau koneksi pelayanan.
+ */
+public final class LoginAttemptGuard {
+    private static final int QUERY_TIMEOUT_SECONDS = 10;
+    private static final int CAPTCHA_AFTER_FAILURES = 2;
+    private static final int CAPTCHA_LIFETIME_SECONDS = 120;
+    public static final String FAILURE_MESSAGE =
+            "Gagal login. Username atau password tidak sesuai.";
+
+    public enum AccountType { ANY, ADMIN, USER }
+    public enum Status { SUCCESS, FAILED, LOCKED, CAPTCHA_REQUIRED, CAPTCHA_INVALID }
+
+    @FunctionalInterface
+    public interface ConnectionFactory {
+        Connection open() throws SQLException;
+    }
+
+    public static final class Result {
+        private final Status status;
+        private final int remainingAttempts;
+        private final long retryAfterSeconds;
+        private final LoginCaptcha.Challenge captcha;
+
+        private Result(Status status, int remainingAttempts, long retryAfterSeconds) {
+            this(status, remainingAttempts, retryAfterSeconds, null);
+        }
+
+        private Result(Status status, int remainingAttempts, long retryAfterSeconds,
+                LoginCaptcha.Challenge captcha) {
+            this.status = status;
+            this.remainingAttempts = remainingAttempts;
+            this.retryAfterSeconds = retryAfterSeconds;
+            this.captcha = captcha;
+        }
+
+        public boolean isSuccess() { return status == Status.SUCCESS; }
+        public boolean isLocked() { return status == Status.LOCKED; }
+        public Status getStatus() { return status; }
+        public int getRemainingAttempts() { return remainingAttempts; }
+        public long getRetryAfterSeconds() { return retryAfterSeconds; }
+        public LoginCaptcha.Challenge getCaptcha() { return captcha; }
+        public boolean isCaptchaProblem() {
+            return status == Status.CAPTCHA_REQUIRED || status == Status.CAPTCHA_INVALID;
+        }
+        public String getMessage() {
+            if (status == Status.CAPTCHA_REQUIRED) return "Ketik kode CAPTCHA sebelum mencoba lagi.";
+            if (status == Status.CAPTCHA_INVALID) return "Kode CAPTCHA salah atau sudah kedaluwarsa. Ketik kode baru.";
+            return isLocked()
+                    ? "Percobaan login dikunci sementara. Coba lagi dalam "
+                      + formatWait(retryAfterSeconds) + "."
+                    : FAILURE_MESSAGE + " Sisa percobaan: " + remainingAttempts + ".";
+        }
+    }
+
+    private final ConnectionFactory connections;
+
+    public LoginAttemptGuard(ConnectionFactory connections) {
+        if (connections == null) throw new IllegalArgumentException("Koneksi wajib tersedia.");
+        this.connections = connections;
+    }
+
+    /**
+     * Seluruh keputusan, reset counter, dan log dikomit sebagai satu transaksi.
+     * Jika konfigurasi/tabel/koneksi gagal, exception diteruskan: login tidak
+     * diteruskan tanpa pemeriksaan pengaman. Pemanggil menjalankan di worker.
+     */
+    public Result authenticate(String username, char[] password,
+            AccountType accountType, String loginSource) throws SQLException {
+        return authenticate(username, password, accountType, loginSource, "", "");
+    }
+
+    public Result authenticate(String username, char[] password, AccountType accountType,
+            String loginSource, String challengeId, String answer) throws SQLException {
+        return evaluate(username, password, accountType, loginSource, challengeId, answer, false);
+    }
+
+    public Result refreshCaptcha(String username, String loginSource, String previousId) throws SQLException {
+        return evaluate(username, null, null, loginSource, previousId, "", true);
+    }
+
+    private Result evaluate(String username, char[] password, AccountType accountType,
+            String loginSource, String challengeId, String answer, boolean refreshOnly) throws SQLException {
+        if (username == null || username.trim().isEmpty()
+                || (!refreshOnly && (password == null || password.length == 0 || accountType == null))) {
+            throw new IllegalArgumentException("Isian login belum lengkap.");
+        }
+        if (!"LOGIN_AWAL".equals(loginSource) && !"BUKA_SESI".equals(loginSource)) {
+            throw new IllegalArgumentException("Sumber login tidak dikenal.");
+        }
+        // Identitas persis sama dengan AES_ENCRYPT pada autentikasi lama.
+        // Tidak melakukan trim/lowercase yang dapat menggabungkan akun berbeda.
+        final String accountKey = accountKey(username);
+        try (Connection connection = connections.open()) {
+            if (connection == null) throw new SQLException("Koneksi pengaman login tidak tersedia.");
+            connection.setAutoCommit(false);
+            try {
+                int maximumAttempts;
+                int lockMinutes;
+                try (PreparedStatement query = prepare(connection,
+                        "select max_attempts, lock_minutes from rsaj_login_security_setting where id=1");
+                     ResultSet rows = query.executeQuery()) {
+                    if (!rows.next()) throw new SQLException("Pengaturan pengaman login belum dipasang.");
+                    maximumAttempts = rows.getInt(1);
+                    lockMinutes = rows.getInt(2);
+                    if (maximumAttempts < 1 || maximumAttempts > 20
+                            || lockMinutes < 1 || lockMinutes > 1440) {
+                        throw new SQLException("Pengaturan pengaman login tidak valid.");
+                    }
+                }
+                // INSERT ... ON DUPLICATE mengunci satu akun juga pada koneksi
+                // dari PC lain. SELECT FOR UPDATE mempertahankan lock hingga commit.
+                try (PreparedStatement insert = prepare(connection,
+                        "insert into rsaj_login_security "
+                        + "(account_key, failed_attempts, locked_until, updated_at) "
+                        + "values (?,0,null,current_timestamp) "
+                        + "on duplicate key update account_key=values(account_key)")) {
+                    insert.setString(1, accountKey);
+                    insert.executeUpdate();
+                }
+                int failures;
+                boolean locked;
+                boolean hadLock;
+                long wait;
+                try (PreparedStatement query = prepare(connection,
+                        "select failed_attempts, locked_until is not null, "
+                        + "coalesce(locked_until > current_timestamp,0), "
+                        + "greatest(0,coalesce(timestampdiff(second,current_timestamp,locked_until),0)) "
+                        + "from rsaj_login_security where account_key=? for update")) {
+                    query.setString(1, accountKey);
+                    try (ResultSet row = query.executeQuery()) {
+                        if (!row.next()) throw new SQLException("Status pengaman login tidak ditemukan.");
+                        failures = row.getInt(1);
+                        hadLock = row.getBoolean(2);
+                        locked = row.getBoolean(3);
+                        wait = row.getLong(4);
+                    }
+                }
+                if (locked) {
+                    audit(connection, accountKey, loginSource, "LOCKED");
+                    connection.commit();
+                    return new Result(Status.LOCKED, 0, Math.max(1, wait));
+                }
+                // Sesudah masa lock selesai, percobaan baru dimulai dari nol.
+                if (hadLock) {
+                    failures = 0;
+                    saveState(connection, accountKey, 0, 0);
+                    clearCaptcha(connection, accountKey);
+                }
+                removeExpiredCaptcha(connection, accountKey);
+                if (refreshOnly) {
+                    LoginCaptcha.Challenge captcha = issueCaptcha(connection, accountKey, loginSource, challengeId);
+                    audit(connection, accountKey, loginSource, "CAPTCHA_REFRESH");
+                    connection.commit();
+                    return new Result(Status.CAPTCHA_REQUIRED, Math.max(0, maximumAttempts - failures), 0, captcha);
+                }
+                boolean supplied = challengeId != null && !challengeId.isEmpty();
+                if (failures >= CAPTCHA_AFTER_FAILURES || supplied) {
+                    // Dilakukan sebelum query kredensial, dalam row lock akun
+                    // yang sama. API tanpa parameter CAPTCHA juga tidak bypass.
+                    if (!consumeCaptcha(connection, accountKey, loginSource, challengeId, answer)) {
+                        LoginCaptcha.Challenge captcha = issueCaptcha(connection, accountKey, loginSource, challengeId);
+                        Status status = supplied ? Status.CAPTCHA_INVALID : Status.CAPTCHA_REQUIRED;
+                        audit(connection, accountKey, loginSource, supplied ? "CAPTCHA_INVALID" : "CAPTCHA_REQUIRED");
+                        connection.commit();
+                        return new Result(status, Math.max(0, maximumAttempts - failures), 0, captcha);
+                    }
+                }
+                final boolean valid = verify(connection, username, password, accountType);
+                if (valid) {
+                    saveState(connection, accountKey, 0, 0);
+                    clearCaptcha(connection, accountKey);
+                    audit(connection, accountKey, loginSource, "SUCCESS");
+                    connection.commit();
+                    return new Result(Status.SUCCESS, maximumAttempts, 0);
+                }
+                failures++;
+                final boolean newLock = failures >= maximumAttempts;
+                saveState(connection, accountKey, failures, newLock ? lockMinutes : 0);
+                LoginCaptcha.Challenge captcha = null;
+                if (newLock) clearCaptcha(connection, accountKey);
+                else if (failures >= CAPTCHA_AFTER_FAILURES) {
+                    captcha = issueCaptcha(connection, accountKey, loginSource, "");
+                }
+                audit(connection, accountKey, loginSource, newLock ? "LOCKED" : "FAILED");
+                connection.commit();
+                return new Result(newLock ? Status.LOCKED : Status.FAILED,
+                        Math.max(0, maximumAttempts - failures), newLock ? lockMinutes * 60L : 0, captcha);
+            } catch (SQLException | RuntimeException exception) {
+                try { connection.rollback(); }
+                catch (SQLException rollbackFailure) { exception.addSuppressed(rollbackFailure); }
+                throw exception;
+            }
+        }
+    }
+
+    private static LoginCaptcha.Challenge issueCaptcha(Connection connection, String accountKey,
+            String source, String previousId) throws SQLException {
+        // Ganti hanya tantangan pemanggil. CAPTCHA aktif di PC lain tidak dihapus.
+        try (PreparedStatement remove = prepare(connection,
+                "delete from rsaj_login_captcha where challenge_id=? and account_key=? and login_source=?")) {
+            remove.setString(1, previousId == null ? "" : previousId);
+            remove.setString(2, accountKey);
+            remove.setString(3, source);
+            remove.executeUpdate();
+        }
+        LoginCaptcha.Challenge captcha = LoginCaptcha.generate();
+        try (PreparedStatement insert = prepare(connection,
+                "insert into rsaj_login_captcha "
+                + "(challenge_id,account_key,login_source,answer_hash,expires_at,created_at) "
+                + "values (?,?,?,?,timestampadd(second,?,current_timestamp),current_timestamp)")) {
+            insert.setString(1, captcha.getId());
+            insert.setString(2, accountKey);
+            insert.setString(3, source);
+            insert.setString(4, captcha.answerHash());
+            insert.setInt(5, CAPTCHA_LIFETIME_SECONDS);
+            insert.executeUpdate();
+        }
+        return captcha;
+    }
+
+    private static boolean consumeCaptcha(Connection connection, String accountKey,
+            String source, String id, String answer) throws SQLException {
+        if (id == null || !id.matches("[0-9a-f]{64}")) return false;
+        String expected = null;
+        boolean active = false;
+        try (PreparedStatement query = prepare(connection,
+                "select answer_hash,expires_at > current_timestamp from rsaj_login_captcha "
+                + "where challenge_id=? and account_key=? and login_source=? for update")) {
+            query.setString(1, id);
+            query.setString(2, accountKey);
+            query.setString(3, source);
+            try (ResultSet row = query.executeQuery()) {
+                if (row.next()) { expected = row.getString(1); active = row.getBoolean(2); }
+            }
+        }
+        if (expected == null) return false;
+        // Sekali pakai, termasuk ketika jawabannya salah.
+        try (PreparedStatement remove = prepare(connection,
+                "delete from rsaj_login_captcha where challenge_id=? and account_key=? and login_source=?")) {
+            remove.setString(1, id);
+            remove.setString(2, accountKey);
+            remove.setString(3, source);
+            remove.executeUpdate();
+        }
+        return active && answer != null && answer.trim().matches("[A-Za-z0-9]{5}")
+                && MessageDigest.isEqual(expected.getBytes(StandardCharsets.US_ASCII),
+                        LoginCaptcha.hashAnswer(id, answer).getBytes(StandardCharsets.US_ASCII));
+    }
+
+    private static void clearCaptcha(Connection connection, String accountKey) throws SQLException {
+        try (PreparedStatement remove = prepare(connection,
+                "delete from rsaj_login_captcha where account_key=?")) {
+            remove.setString(1, accountKey);
+            remove.executeUpdate();
+        }
+    }
+
+    private static void removeExpiredCaptcha(Connection connection, String accountKey) throws SQLException {
+        try (PreparedStatement remove = prepare(connection,
+                "delete from rsaj_login_captcha where account_key=? and expires_at<=current_timestamp")) {
+            remove.setString(1, accountKey);
+            remove.executeUpdate();
+        }
+    }
+
+    private static boolean verify(Connection connection, String username,
+            char[] password, AccountType type) throws SQLException {
+        String value = new String(password);
+        if (type != AccountType.USER && matches(connection,
+                "select 1 from admin where usere=AES_ENCRYPT(?,'nur') "
+                + "and passworde=AES_ENCRYPT(?,'windi') limit 1", username, value)) return true;
+        return type != AccountType.ADMIN && matches(connection,
+                "select 1 from user where id_user=AES_ENCRYPT(?,'nur') "
+                + "and password=AES_ENCRYPT(?,'windi') limit 1", username, value);
+    }
+
+    private static boolean matches(Connection connection, String sql,
+            String username, String password) throws SQLException {
+        try (PreparedStatement query = prepare(connection, sql)) {
+            query.setString(1, username);
+            query.setString(2, password);
+            try (ResultSet rows = query.executeQuery()) { return rows.next(); }
+        }
+    }
+
+    private static void saveState(Connection connection, String accountKey,
+            int failures, int lockMinutes) throws SQLException {
+        try (PreparedStatement update = prepare(connection,
+                "update rsaj_login_security set failed_attempts=?, "
+                + "locked_until=case when ? > 0 then timestampadd(minute,?,current_timestamp) "
+                + "else null end, updated_at=current_timestamp where account_key=?")) {
+            update.setInt(1, failures);
+            update.setInt(2, lockMinutes);
+            update.setInt(3, lockMinutes);
+            update.setString(4, accountKey);
+            // Row telah dikunci dan dipastikan ada; driver tertentu melaporkan
+            // nol affected rows bila login sukses berulang pada detik yang sama.
+            update.executeUpdate();
+        }
+    }
+
+    private static void audit(Connection connection, String accountKey,
+            String source, String outcome) throws SQLException {
+        try (PreparedStatement insert = prepare(connection,
+                "insert into rsaj_login_security_log "
+                + "(account_key,login_source,outcome,created_at) values (?,?,?,current_timestamp)")) {
+            insert.setString(1, accountKey);
+            insert.setString(2, source);
+            insert.setString(3, outcome);
+            insert.executeUpdate();
+        }
+    }
+
+    private static PreparedStatement prepare(Connection connection, String sql) throws SQLException {
+        PreparedStatement query = connection.prepareStatement(sql);
+        try { query.setQueryTimeout(QUERY_TIMEOUT_SECONDS); return query; }
+        catch (SQLException exception) { query.close(); throw exception; }
+    }
+
+    public static String accountKey(String username) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(username.getBytes(StandardCharsets.UTF_8));
+            StringBuilder key = new StringBuilder(64);
+            for (byte item : hash) key.append(String.format("%02x", item & 0xff));
+            return key.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 tidak tersedia.", exception);
+        }
+    }
+
+    public static String formatWait(long seconds) {
+        long value = Math.max(0, seconds);
+        return String.format(java.util.Locale.ROOT, "%02d:%02d", value / 60, value % 60);
+    }
+}

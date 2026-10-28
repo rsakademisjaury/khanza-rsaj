@@ -56,6 +56,14 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
     private String status="",bangsal="",lokasistok="",kamar="",diagnosa="",order="",kelas="",penjab="",norawatibu="",posisi="",norm="";
     private String noRawatTujuan="",noRmTujuan="",namaPasienTujuan="";
     private final widget.Button btnAlihkanJadwal = new widget.Button();
+    private BookingOperasiGuard.Data bookingTerpilih;
+    private boolean memprosesPerubahanBooking = false;
+    private boolean mengisiBooking = false, memuatBooking = false, mengaturFilterBooking = false;
+    private boolean cekBookingSelesai = false, duplikatBooking = false;
+    private long generasiCekBooking = 0;
+    private final javax.swing.JLabel infoBooking = new javax.swing.JLabel("Pilih jadwal untuk Ganti atau memperbarui status.");
+    private final javax.swing.JButton[] badgeBooking = new javax.swing.JButton[4];
+    private final javax.swing.Timer timerCekBooking = new javax.swing.Timer(250, e -> periksaBookingBaru());
     private DlgCariDokter dokter=new DlgCariDokter(null,false);
     private DlgCariRuangOperasi ruangok=new DlgCariRuangOperasi(null,false);
     private DlgCariDaftarOperasi operasi=new DlgCariDaftarOperasi(null,false);
@@ -78,7 +86,7 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
         tabMode=new DefaultTableModel(null,new Object[]{
                 "No.","No.Rawat","Nama Pasien","Umur","J.K.","Tanggal","Mulai",
                 "Selesai","Status","Rujukan Dari","Diagnosa","Kode Operasi","Operasi",
-                "Kode Operator","Operator","Order","Kode OK","Nama Ruang Operasi","Dokter Anastesi","Perawat"
+                "Kode Operator","Operator","Order","Kode OK","Nama Ruang Operasi","Dokter Anastesi","Perawat","ID Booking"
             }){
               @Override public boolean isCellEditable(int rowIndex, int colIndex){return false;}
         };
@@ -88,7 +96,7 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
         tbObat.setPreferredScrollableViewportSize(new Dimension(500,500));
         tbObat.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        for (i = 0; i < 20; i++) {
+        for (i = 0; i < 21; i++) {
             TableColumn column = tbObat.getColumnModel().getColumn(i);
             if(i==0){
                 column.setPreferredWidth(28);
@@ -112,7 +120,7 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
                 column.setPreferredWidth(120);
             }else if(i==10){
                 column.setPreferredWidth(150);
-            }else if(i==11){
+            }else if(i==11 || i==20){
                 column.setMinWidth(0);
                 column.setMaxWidth(0);
             }else if(i==12){
@@ -140,24 +148,24 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
 
         TNoRw.setDocument(new batasInput((byte)17).getKata(TNoRw));
         TCari.setDocument(new batasInput((byte)100).getKata(TCari));
-        KdDokter.setDocument(new batasInput((byte)3).getKata(KdDokter));
+        KdDokter.setDocument(new batasInput((byte)20).getKata(KdDokter));
         if(koneksiDB.CARICEPAT().equals("aktif")){
             TCari.getDocument().addDocumentListener(new javax.swing.event.DocumentListener(){
                 @Override
                 public void insertUpdate(DocumentEvent e) {
-                    if(TCari.getText().length()>2){
+                    if(!mengaturFilterBooking && TCari.getText().length()>2){
                         tampil();
                     }
                 }
                 @Override
                 public void removeUpdate(DocumentEvent e) {
-                    if(TCari.getText().length()>2){
+                    if(!mengaturFilterBooking && TCari.getText().length()>2){
                         tampil();
                     }
                 }
                 @Override
                 public void changedUpdate(DocumentEvent e) {
-                    if(TCari.getText().length()>2){
+                    if(!mengaturFilterBooking && TCari.getText().length()>2){
                         tampil();
                     }
                 }
@@ -235,6 +243,7 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
         
         ChkAccor.setSelected(true);
         isMenu();
+        pasangKontrolBooking();
         
     }
  
@@ -1552,6 +1561,11 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
 }//GEN-LAST:event_DTPTglKeyPressed
 
     private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpanActionPerformed
+        if(memprosesPerubahanBooking || !akses.getbooking_operasi()) return;
+        if(bookingTerpilih != null) {
+            JOptionPane.showMessageDialog(this,"Jadwal sudah dipilih. Gunakan Ganti untuk memperbarui data, atau Baru untuk jadwal baru.");
+            return;
+        }
         if(TNoRw.getText().trim().equals("")||TPasien.getText().trim().equals("")){
             Valid.textKosong(TNoRw,"pasien");
         }else if(NmDokter.getText().trim().equals("")){
@@ -1573,23 +1587,14 @@ public class DlgBookingOperasi extends javax.swing.JDialog {
                 JOptionPane.showMessageDialog(rootPane,"Data billing sudah terverifikasi.\nSilahkan hubungi bagian kasir/keuangan ..!!");
                 TCari.requestFocus();
             }else{
-                if(Sequel.menyimpantf("booking_operasi (no_rawat,kode_paket,tanggal,jam_mulai,jam_selesai,status,kd_dokter,kd_ruang_ok,dokteranastesi,perawat,waktu)",
-                        "?,?,?,?,?,?,?,?,?,?,now()","data", 10,new String[]{
-                    TNoRw.getText(),KdOperasi.getText(),Valid.SetTgl(DTPTgl.getSelectedItem()+""),
-                    JamMulai.getSelectedItem()+":"+MenitMulai.getSelectedItem()+":"+DetikMulai.getSelectedItem(),
-                    JamSelesai.getSelectedItem()+":"+MenitSelesai.getSelectedItem()+":"+DetikSelesai.getSelectedItem(),
-                    Status.getSelectedItem().toString(),KdDokter.getText(),KdRuangOperasi.getText(),NmDokterAnastesi.getText(),
-                    Perawat.getText()
-                    })==true){
-                    tampil();
-                    emptTeks();
-                }
+                simpanBookingTerjaga(false);
             }   
         }
 }//GEN-LAST:event_BtnSimpanActionPerformed
 
     private void BtnSimpanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnSimpanKeyPressed
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
+            evt.consume();
             BtnSimpanActionPerformed(null);
         }else{
             Valid.pindah(evt,BtnOperasi,BtnBatal);
@@ -1796,6 +1801,11 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     }//GEN-LAST:event_DTPCari4KeyPressed
 
     private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnEditActionPerformed
+        if(memprosesPerubahanBooking || !akses.getoperasi()) return;
+        if(bookingTerpilih == null || tbObat.getSelectedRow() < 0) {
+            JOptionPane.showMessageDialog(this,"Pilih jadwal yang akan diubah terlebih dahulu.");
+            return;
+        }
         if(TNoRw.getText().trim().equals("")||TPasien.getText().trim().equals("")){
             Valid.textKosong(TNoRw,"pasien");
         }else if(NmDokter.getText().trim().equals("")){
@@ -1811,28 +1821,13 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             JOptionPane.showMessageDialog(rootPane,"Jadwal bentrok dengan jam mulai operasi yang lain..!!");
             JamMulai.requestFocus();
         }else{
-            if(tbObat.getSelectedRow()!= -1){
-                if(Sequel.mengedittf("booking_operasi","no_rawat=? and kode_paket=? and tanggal=? and jam_mulai=? and jam_selesai=? and status=? and kd_dokter=? and kd_ruang_ok=? and dokteranastesi=? and perawat=? ",
-                        "no_rawat=?,kode_paket=?,tanggal=?,jam_mulai=?,jam_selesai=?,status=?,kd_dokter=?,kd_ruang_ok=?,dokteranastesi=?,perawat=?",20,new String[]{
-                        TNoRw.getText(),KdOperasi.getText(),Valid.SetTgl(DTPTgl.getSelectedItem()+""),
-                        JamMulai.getSelectedItem()+":"+MenitMulai.getSelectedItem()+":"+DetikMulai.getSelectedItem(),
-                        JamSelesai.getSelectedItem()+":"+MenitSelesai.getSelectedItem()+":"+DetikSelesai.getSelectedItem(),
-                        Status.getSelectedItem().toString(),KdDokter.getText(),KdRuangOperasi.getText(),NmDokterAnastesi.getText(),Perawat.getText(),tbObat.getValueAt(tbObat.getSelectedRow(),1).toString(),
-                        tbObat.getValueAt(tbObat.getSelectedRow(),11).toString(),tbObat.getValueAt(tbObat.getSelectedRow(),5).toString(),
-                        tbObat.getValueAt(tbObat.getSelectedRow(),6).toString(),tbObat.getValueAt(tbObat.getSelectedRow(),7).toString(),
-                        tbObat.getValueAt(tbObat.getSelectedRow(),8).toString(),tbObat.getValueAt(tbObat.getSelectedRow(),13).toString(),
-                        tbObat.getValueAt(tbObat.getSelectedRow(),16).toString(),tbObat.getValueAt(tbObat.getSelectedRow(),18).toString(),
-                        tbObat.getValueAt(tbObat.getSelectedRow(),19).toString()   
-                     })==true){
-                    tampil();
-                    emptTeks();
-                }
-            }
+            simpanBookingTerjaga(true);
         }
     }//GEN-LAST:event_BtnEditActionPerformed
 
     private void BtnEditKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnEditKeyPressed
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
+            evt.consume();
             BtnEditActionPerformed(null);
         }else{
             Valid.pindah(evt, BtnHapus, BtnKeluar);
@@ -2203,7 +2198,8 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
 
     private void BtnSimpan1KeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnSimpan1KeyPressed
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
-            BtnSimpanActionPerformed(null);
+            evt.consume();
+            BtnSimpan1ActionPerformed(null);
         }
     }//GEN-LAST:event_BtnSimpan1KeyPressed
 
@@ -2600,7 +2596,11 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     private widget.Tanggal tgl2;
     // End of variables declaration//GEN-END:variables
 
-    public void tampil() {     
+    public void tampil() {
+        memuatBooking = true;
+        bookingTerpilih = null;
+        generasiCekBooking++;
+        timerCekBooking.stop();
         if(R1.isSelected()==true){
             status=" booking_operasi.status='Menunggu' ";
         }else if(R4.isSelected()==true){
@@ -2615,7 +2615,7 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         Valid.tabelKosong(tabMode);
         try {
             ps=koneksi.prepareStatement(
-                    "select booking_operasi.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,booking_operasi.tanggal,"+
+                    "select booking_operasi.id_booking,booking_operasi.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,booking_operasi.tanggal,"+
                     "booking_operasi.jam_mulai,booking_operasi.jam_selesai,booking_operasi.status,booking_operasi.kd_dokter,booking_operasi.dokteranastesi,"+
                     "booking_operasi.perawat,dokter.nm_dokter,booking_operasi.kode_paket,paket_operasi.nm_perawatan,concat(reg_periksa.umurdaftar,' ',reg_periksa.sttsumur) as umur,"+
                     "pasien.jk,poliklinik.nm_poli,booking_operasi.kd_ruang_ok,ruang_ok.nm_ruang_ok "+
@@ -2657,7 +2657,7 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
                         rs.getString("jk"),rs.getString("tanggal"),rs.getString("jam_mulai"),rs.getString("jam_selesai"),
                         rs.getString("status"),kamar,diagnosa,rs.getString("kode_paket"),rs.getString("nm_perawatan"),
                         rs.getString("kd_dokter"),rs.getString("nm_dokter"),order,rs.getString("kd_ruang_ok"),
-                        rs.getString("nm_ruang_ok"),rs.getString("dokteranastesi"),rs.getString("perawat")
+                        rs.getString("nm_ruang_ok"),rs.getString("dokteranastesi"),rs.getString("perawat"),rs.getLong("id_booking")
                     });
                     i++;
                 }
@@ -2675,10 +2675,16 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             System.out.println("Notif : "+e);
         } 
         LCount.setText(""+tabMode.getRowCount());
+        memuatBooking = false;
+        jadwalkanCekBooking();
     }
 
 
     public void emptTeks() {
+        mengisiBooking = true;
+        bookingTerpilih = null;
+        tbObat.clearSelection();
+        Status.setSelectedItem("Permintaan");
         KdDokter.setText("");
         NmDokter.setText("");
         KdOperasi.setText("");
@@ -2695,10 +2701,26 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         DTPTgl.requestFocus();
         NmDokterAnastesi.setText("");
         Perawat.setText("");
+        mengisiBooking = false;
+        jadwalkanCekBooking();
     }
 
     private void getData() {
+        if(memuatBooking || mengisiBooking) return;
         if(tbObat.getSelectedRow()!= -1){
+            mengisiBooking = true;
+            generasiCekBooking++;
+            timerCekBooking.stop();
+            int baris = tbObat.getSelectedRow();
+            int[] kolom = {1,11,5,6,7,8,13,16,18,19};
+            String[] asli = new String[kolom.length];
+            for(int n=0;n<kolom.length;n++) {
+                Object isi = tbObat.getValueAt(baris,kolom[n]);
+                asli[n] = isi == null ? "" : isi.toString();
+            }
+            bookingTerpilih = new BookingOperasiGuard.Data(
+                    ((Number)tbObat.getValueAt(baris,20)).longValue(), asli);
+            aturPilihanStatusBooking(true);
             TNoRw.setText(tbObat.getValueAt(tbObat.getSelectedRow(),1).toString()); 
             TPasien.setText(tbObat.getValueAt(tbObat.getSelectedRow(),2).toString());
             JamMulai.setSelectedItem(tbObat.getValueAt(tbObat.getSelectedRow(),6).toString().substring(0,2));
@@ -2718,9 +2740,218 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             Valid.SetTgl(DTPTgl,tbObat.getValueAt(tbObat.getSelectedRow(),5).toString());
             NmDokterAnastesi.setText(tbObat.getValueAt(tbObat.getSelectedRow(),18).toString());
             Perawat.setText(tbObat.getValueAt(tbObat.getSelectedRow(),19).toString());
+            mengisiBooking = false;
+            perbaruiTombolBooking();
         }
     }
     
+    // Kontrol tambahan diletakkan di luar initComponents agar tetap aman saat form dibuka NetBeans.
+    private void pasangKontrolBooking() {
+        javax.swing.JPanel wadah = new javax.swing.JPanel(new java.awt.BorderLayout());
+        javax.swing.JPanel kontrol = new javax.swing.JPanel(new java.awt.BorderLayout());
+        javax.swing.JPanel alur = new BadgeStatusOperasi.PanelAlur();
+        java.awt.Color latar = new java.awt.Color(242,247,253);
+        kontrol.setBackground(latar);
+        alur.setBackground(latar);
+        alur.add(new javax.swing.JLabel("Alur status operasi:"));
+        for(int n=0;n<badgeBooking.length;n++) {
+            final String tujuan = BookingOperasiGuard.STATUS[n];
+            javax.swing.JButton tombol = new BadgeStatusOperasi(tujuan,n);
+            tombol.addActionListener(e -> lanjutkanStatusBooking(tujuan));
+            badgeBooking[n] = tombol;
+            alur.add(BadgeStatusOperasi.tahapDenganPanah(tombol,n > 0));
+        }
+        infoBooking.setFont(new java.awt.Font("Segoe UI",java.awt.Font.PLAIN,12));
+        infoBooking.setBorder(javax.swing.BorderFactory.createEmptyBorder(0,12,6,8));
+        kontrol.add(alur,java.awt.BorderLayout.NORTH);
+        kontrol.add(infoBooking,java.awt.BorderLayout.SOUTH);
+        wadah.add(kontrol,java.awt.BorderLayout.NORTH);
+        wadah.add(Scroll,java.awt.BorderLayout.CENTER);
+        internalFrame1.add(wadah,java.awt.BorderLayout.CENTER);
+        BtnBatal.setToolTipText("Mulai input jadwal baru. Perubahan jadwal terpilih menggunakan Ganti.");
+        BtnSimpan.setToolTipText("Hanya untuk jadwal baru; jadwal yang sudah ada menggunakan Ganti.");
+        timerCekBooking.setRepeats(false);
+        javax.swing.event.DocumentListener listener = new javax.swing.event.DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { jadwalkanCekBooking(); }
+            public void removeUpdate(DocumentEvent e) { jadwalkanCekBooking(); }
+            public void changedUpdate(DocumentEvent e) { jadwalkanCekBooking(); }
+        };
+        TNoRw.getDocument().addDocumentListener(listener);
+        KdOperasi.getDocument().addDocumentListener(listener);
+        KdDokter.getDocument().addDocumentListener(listener);
+        DTPTgl.addActionListener(e -> jadwalkanCekBooking());
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowActivated(WindowEvent e) {
+                if(bookingTerpilih == null) jadwalkanCekBooking();
+            }
+        });
+        tbObat.getSelectionModel().addListSelectionListener(e -> {
+            if(e.getValueIsAdjusting() || memuatBooking || mengisiBooking) return;
+            if(tbObat.getSelectedRow() >= 0) getData();
+            else { bookingTerpilih = null; jadwalkanCekBooking(); }
+        });
+        jadwalkanCekBooking();
+    }
+
+    private void aturPilihanStatusBooking(boolean jadwalLama) {
+        if(jadwalLama) {
+            if(Status.getItemCount() != BookingOperasiGuard.STATUS.length) {
+                Status.setModel(new javax.swing.DefaultComboBoxModel(BookingOperasiGuard.STATUS.clone()));
+            }
+        } else {
+            if(Status.getItemCount() != 1 || !"Permintaan".equals(Status.getItemAt(0))) {
+                Status.setModel(new javax.swing.DefaultComboBoxModel(new String[]{"Permintaan"}));
+            }
+            Status.setSelectedItem("Permintaan");
+        }
+        Status.setEnabled(!memprosesPerubahanBooking && jadwalLama && akses.getoperasi());
+        Status.setToolTipText(jadwalLama ? "Status jadwal terpilih; perubahan manual menggunakan Ganti."
+                : "Jadwal baru selalu berstatus Permintaan.");
+    }
+
+    private BookingOperasiGuard.Data dataFormBooking() {
+        return new BookingOperasiGuard.Data(bookingTerpilih == null ? 0 : bookingTerpilih.id,
+            TNoRw.getText().trim(),KdOperasi.getText().trim(),Valid.SetTgl(DTPTgl.getSelectedItem()+""),
+            JamMulai.getSelectedItem()+":"+MenitMulai.getSelectedItem()+":"+DetikMulai.getSelectedItem(),
+            JamSelesai.getSelectedItem()+":"+MenitSelesai.getSelectedItem()+":"+DetikSelesai.getSelectedItem(),
+            bookingTerpilih == null ? "Permintaan" : Status.getSelectedItem().toString(),
+            KdDokter.getText().trim(),KdRuangOperasi.getText().trim(),
+            NmDokterAnastesi.getText(),Perawat.getText());
+    }
+
+    private void jadwalkanCekBooking() {
+        if(mengisiBooking || memuatBooking) return;
+        generasiCekBooking++;
+        timerCekBooking.stop();
+        cekBookingSelesai = false;
+        duplikatBooking = false;
+        perbaruiTombolBooking();
+        if(bookingTerpilih == null && !TNoRw.getText().trim().isEmpty()
+                && !KdOperasi.getText().trim().isEmpty() && !KdDokter.getText().trim().isEmpty()) {
+            timerCekBooking.restart();
+        }
+    }
+
+    private void periksaBookingBaru() {
+        if(bookingTerpilih != null || !isDisplayable()) return;
+        final long generasi = generasiCekBooking;
+        final BookingOperasiGuard.Data data = dataFormBooking();
+        new javax.swing.SwingWorker<Long,Void>() {
+            protected Long doInBackground() throws Exception {
+                try(Connection c = koneksiDB.condbTransaksi()) {
+                    return BookingOperasiGuard.cariDuplikat(c,data,0);
+                }
+            }
+            protected void done() {
+                if(generasi != generasiCekBooking || bookingTerpilih != null || !isDisplayable()) return;
+                try {
+                    duplikatBooking = get() > 0;
+                    cekBookingSelesai = true;
+                    perbaruiTombolBooking();
+                } catch(Exception ex) {
+                    BtnSimpan.setEnabled(false);
+                    infoBooking.setText("Pemeriksaan jadwal gagal. Pilih ulang paket/dokter untuk mencoba kembali.");
+                }
+            }
+        }.execute();
+    }
+
+    private void perbaruiTombolBooking() {
+        boolean terpilih = bookingTerpilih != null;
+        aturPilihanStatusBooking(terpilih);
+        boolean lengkap = !TNoRw.getText().trim().isEmpty() && !KdOperasi.getText().trim().isEmpty()
+                && !KdDokter.getText().trim().isEmpty();
+        BtnSimpan.setEnabled(!memprosesPerubahanBooking && akses.getbooking_operasi() && !terpilih && cekBookingSelesai && !duplikatBooking);
+        BtnEdit.setEnabled(!memprosesPerubahanBooking && akses.getoperasi() && terpilih);
+        int urutan = terpilih ? BookingOperasiGuard.urutan(bookingTerpilih.nilai[5]) : -1;
+        for(int n=0;n<badgeBooking.length;n++) {
+            if(badgeBooking[n] == null) continue;
+            boolean sekarang = terpilih ? urutan == n : n == 0;
+            boolean berikut = terpilih && urutan >= 0 && n == urutan+1;
+            javax.swing.JButton tombol = badgeBooking[n];
+            ((BadgeStatusOperasi)tombol).setStatusSekarang(sekarang);
+            tombol.setEnabled(!memprosesPerubahanBooking && akses.getoperasi() && berikut);
+            tombol.setToolTipText(sekarang ? "Status saat ini: "+BookingOperasiGuard.STATUS[n]
+                    : berikut ? "Berikutnya: "+BookingOperasiGuard.STATUS[n]+". Klik untuk melanjutkan status."
+                    : "Tahap "+BookingOperasiGuard.STATUS[n]+"; hanya tahap berikutnya yang dapat dipilih.");
+        }
+        if(terpilih) {
+            String tahapBerikut = urutan >= 0 && urutan < BookingOperasiGuard.STATUS.length-1
+                    ? BookingOperasiGuard.STATUS[urutan+1] : "-";
+            infoBooking.setText("Saat ini: "+bookingTerpilih.nilai[5]+"  |  Berikutnya: "+tahapBerikut
+                    +(akses.getoperasi() && !"-".equals(tahapBerikut) ? " (klik badge)." : "."));
+        }
+        else if(duplikatBooking) infoBooking.setText("Jadwal sudah ada. Pilih baris jadwal tersebut dan klik Ganti. Simpan dinonaktifkan.");
+        else if(!lengkap) infoBooking.setText("Jadwal baru: status Permintaan (terkunci). Lengkapi pasien, tanggal, paket dan dokter.");
+        else infoBooking.setText(cekBookingSelesai ? "Jadwal baru: status Permintaan (terkunci). Klik Simpan untuk menambah jadwal." : "Memeriksa apakah jadwal sudah ada...");
+    }
+
+    private void simpanBookingTerjaga(boolean ubah) {
+        if(memprosesPerubahanBooking || (ubah ? !akses.getoperasi() : !akses.getbooking_operasi())) return;
+        // Tangkap identitas dan nilai SEBELUM membuka koneksi atau memicu pembaruan UI.
+        final BookingOperasiGuard.Data lama = bookingTerpilih;
+        final BookingOperasiGuard.Data baru = dataFormBooking();
+        if(ubah && (lama == null || lama.id <= 0 || baru.id != lama.id)) {
+            JOptionPane.showMessageDialog(this,"Pilih ulang jadwal yang akan diganti. Ganti tidak boleh menambah jadwal baru.");
+            return;
+        }
+        if(!ubah && (lama != null || baru.id != 0)) {
+            JOptionPane.showMessageDialog(this,"Gunakan Ganti untuk jadwal yang sudah ada.");
+            return;
+        }
+        memprosesPerubahanBooking = true;
+        perbaruiTombolBooking();
+        try(Connection c = koneksiDB.condbTransaksi()) {
+            String audit = ubah ? BookingOperasiGuard.ganti(c,baru,lama)
+                    : BookingOperasiGuard.simpanBaru(c,baru);
+            Sequel.SimpanTrack(audit);
+            tampil();
+            emptTeks();
+        } catch(SQLException ex) {
+            JOptionPane.showMessageDialog(this,"Jadwal belum disimpan: "+ex.getMessage());
+            jadwalkanCekBooking();
+        } finally {
+            memprosesPerubahanBooking = false;
+            perbaruiTombolBooking();
+        }
+    }
+
+    private void lanjutkanStatusBooking(String tujuan) {
+        if(memprosesPerubahanBooking || !akses.getoperasi() || bookingTerpilih == null) return;
+        if(!java.util.Arrays.equals(dataFormBooking().nilai,bookingTerpilih.nilai)) {
+            JOptionPane.showMessageDialog(this,"Ada perubahan data pada form. Klik Ganti terlebih dahulu sebelum memperbarui status melalui badge.");
+            return;
+        }
+        final BookingOperasiGuard.Data lama = bookingTerpilih;
+        memprosesPerubahanBooking = true;
+        perbaruiTombolBooking();
+        try(Connection c = koneksiDB.condbTransaksi()) {
+            String audit = BookingOperasiGuard.status(c,lama,tujuan);
+            Sequel.SimpanTrack(audit);
+            // Pertahankan baris agar bisa melanjutkan status meskipun filter semula hanya Permintaan.
+            mengaturFilterBooking = true;
+            try {
+                R2.setSelected(true);
+                Valid.SetTgl(DTPCari1,lama.nilai[2]);
+                Valid.SetTgl(DTPCari2,lama.nilai[2]);
+                TCari.setText(lama.nilai[0]);
+            } finally { mengaturFilterBooking = false; }
+            tampil();
+            for(int baris=0;baris<tabMode.getRowCount();baris++) {
+                if(((Number)tabMode.getValueAt(baris,20)).longValue() == lama.id) {
+                    tbObat.setRowSelectionInterval(baris,baris);
+                    tbObat.scrollRectToVisible(tbObat.getCellRect(baris,1,true));
+                    break;
+                }
+            }
+        } catch(SQLException ex) {
+            JOptionPane.showMessageDialog(this,"Status belum diperbarui: "+ex.getMessage());
+        } finally {
+            memprosesPerubahanBooking = false;
+            perbaruiTombolBooking();
+        }
+    }
+
     static final class CalonJadwal {
         final long id;
         final String noRawat, kodePaket, tanggal, jam, jamSelesai, kodeDokter, dokter,
@@ -2879,6 +3110,8 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     }
 
     public void setNoRm(String norwt,String norm,String nama,String lokasi,String posisi) {
+        bookingTerpilih = null;
+        tbObat.clearSelection();
         TNoRw.setText(norwt);
         TPasien.setText(norm+" "+nama);
         Kamar.setText(lokasi);
@@ -2931,6 +3164,7 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         BtnPreOperasi.setVisible(akses.getpenilaian_pre_operasi());
         BtnTransferAntarRuang.setVisible(akses.gettransfer_pasien_antar_ruang());
         Perawat.setText(Sequel.cariIsi("Select nama from petugas where nip = ?", akses.getkode()));
+        perbaruiTombolBooking();
     }
 
     private void isMenu(){

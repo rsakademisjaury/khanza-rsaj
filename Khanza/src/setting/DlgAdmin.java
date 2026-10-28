@@ -14,6 +14,8 @@
 package setting;
 
 import fungsi.WarnaTable;
+import fungsi.PasswordPolicy;
+import fungsi.AccountPasswordService;
 import fungsi.batasInput;
 import fungsi.koneksiDB;
 import fungsi.sekuel;
@@ -73,7 +75,9 @@ public class DlgAdmin extends javax.swing.JDialog {
         tbAdmin.setDefaultRenderer(Object.class, new WarnaTable());
 
         TKd.setDocument(new batasInput((byte)30).getKata(TKd));
-        TNm.setDocument(new batasInput((byte)30).getKata(TNm));
+        PasswordPolicy.configure(TNm);
+        TNm.setToolTipText(PasswordPolicy.HINT + " Kosongkan saat edit untuk mempertahankan password.");
+        pasangResetPassword();
     }
 
     /** This method is called from within the constructor to
@@ -92,7 +96,7 @@ public class DlgAdmin extends javax.swing.JDialog {
         jLabel3 = new widget.Label();
         TKd = new widget.TextBox();
         jLabel4 = new widget.Label();
-        TNm = new widget.TextBox();
+        TNm = new javax.swing.JPasswordField();
         panelGlass5 = new widget.panelisi();
         BtnSimpan = new widget.Button();
         BtnBatal = new widget.Button();
@@ -291,9 +295,7 @@ public class DlgAdmin extends javax.swing.JDialog {
         }else if(TNm.getText().trim().equals("")){
             Valid.textKosong(TNm,"Password");
         }else if(tabMode.getRowCount()==0){
-            Sequel.menyimpan("admin","AES_ENCRYPT('"+TKd.getText()+"','nur'),AES_ENCRYPT('"+TNm.getText()+"','windi')","Kode Admin");
-            tampil();
-            emptTeks();
+            if (PasswordDialogs.confirm(this, TNm) && simpanAdmin(false)) { tampil(); emptTeks(); }
         }else if(tabMode.getRowCount()>0){
             JOptionPane.showMessageDialog(null,"Maaf, Hanya diijinkan satu Admin Utama ...!!!!");
             TKd.requestFocus();
@@ -322,9 +324,9 @@ public class DlgAdmin extends javax.swing.JDialog {
         if(tabMode.getRowCount()==0){
             JOptionPane.showMessageDialog(null,"Maaf, data sudah habis...!!!!");
             TKd.requestFocus();
-        }else if(TNm.getText().trim().equals("")){
+        }else if(tbAdmin.getSelectedRow() == -1){
             JOptionPane.showMessageDialog(null,"Maaf, Gagal menghapus. Pilih dulu data yang mau dihapus.\nKlik data pada table untuk memilih...!!!!");
-        }else if(! TNm.getText().trim().equals("")){
+        }else if(tbAdmin.getSelectedRow() != -1){
             Sequel.queryu("delete from admin");
             tampil();
             emptTeks();
@@ -340,15 +342,14 @@ public class DlgAdmin extends javax.swing.JDialog {
 }//GEN-LAST:event_BtnHapusKeyPressed
 
     private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnEditActionPerformed
-        if(TKd.getText().trim().equals("")){
-            Valid.textKosong(TKd,"kode jabatan");
-        }else if(TNm.getText().trim().equals("")){
-            Valid.textKosong(TNm,"nama jabatan");
-        }else{
-            Sequel.queryu("delete from admin");
-            Sequel.menyimpan("admin","AES_ENCRYPT('"+TKd.getText()+"','nur'),AES_ENCRYPT('"+TNm.getText()+"','windi')","Kode Admin");
-            if(tabMode.getRowCount()!=0){tampil();}
-            emptTeks();
+        if (tbAdmin.getSelectedRow() < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih akun admin yang akan diubah.");
+        } else if (TKd.getText().trim().isEmpty()) {
+            Valid.textKosong(TKd, "ID Admin");
+        } else if (TNm.getDocument().getLength() > 0 && !PasswordDialogs.confirm(this, TNm)) {
+            return;
+        } else if (simpanAdmin(true)) {
+            tampil(); emptTeks();
         }
 }//GEN-LAST:event_BtnEditActionPerformed
 
@@ -427,7 +428,7 @@ public class DlgAdmin extends javax.swing.JDialog {
     private widget.Button BtnSimpan;
     private widget.ScrollPane Scroll;
     private widget.TextBox TKd;
-    private widget.TextBox TNm;
+    private javax.swing.JPasswordField TNm;
     private widget.InternalFrame internalFrame1;
     private widget.Label jLabel3;
     private widget.Label jLabel4;
@@ -439,7 +440,7 @@ public class DlgAdmin extends javax.swing.JDialog {
     public void tampil() {
         Valid.tabelKosong(tabMode);
         try{
-            ps=koneksi.prepareStatement("select AES_DECRYPT(usere,'nur'),AES_DECRYPT(passworde,'windi') from admin");
+            ps=koneksi.prepareStatement("select AES_DECRYPT(usere,'nur'),'********' as password_hidden from admin");
             try {
                 rs=ps.executeQuery();
                 while(rs.next()){
@@ -466,9 +467,8 @@ public class DlgAdmin extends javax.swing.JDialog {
         int row=tbAdmin.getSelectedRow();
         if(row!= -1){
             String kode=tabMode.getValueAt(row,0).toString();
-            String nama=tabMode.getValueAt(row,1).toString();
             TKd.setText(kode);
-            TNm.setText(nama);
+            TNm.setText("");
         }
     }
 
@@ -476,5 +476,41 @@ public class DlgAdmin extends javax.swing.JDialog {
         TKd.setText("");
         TNm.setText("");
         TKd.requestFocus();
+    }
+
+    private boolean simpanAdmin(boolean edit) {
+        char[] password = TNm.getPassword();
+        try {
+            AccountPasswordService service = new AccountPasswordService(koneksiDB::condbVerifikasiSesi);
+            boolean saved = edit
+                    ? service.editAdmin(tbAdmin.getValueAt(tbAdmin.getSelectedRow(), 0).toString(), TKd.getText(), password)
+                    : service.createAdmin(TKd.getText(), password);
+            if (saved) Sequel.SimpanTrack((edit ? "EDIT" : "CREATE") + " ADMIN akun=" + TKd.getText() + " [PASSWORD DISEMBUNYIKAN]");
+            else JOptionPane.showMessageDialog(this, "Akun tidak ditemukan. Muat ulang daftar akun.");
+            return saved;
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage()); return false;
+        } catch (java.sql.SQLException e) {
+            PasswordDialogs.failure(this); return false;
+        } finally { java.util.Arrays.fill(password, '\0'); }
+    }
+
+    private void pasangResetPassword() {
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        javax.swing.JMenuItem reset = new javax.swing.JMenuItem("Reset Password...");
+        reset.addActionListener(event -> {
+            int selected = tbAdmin.getSelectedRow();
+            if (selected < 0) { JOptionPane.showMessageDialog(this, "Pilih akun admin terlebih dahulu."); return; }
+            if (PasswordDialogs.reset(this, tbAdmin.getValueAt(selected, 0).toString(), AccountPasswordService.Account.ADMIN)) {
+                TNm.setText(""); tampil();
+            }
+        });
+        menu.add(reset); tbAdmin.setComponentPopupMenu(menu);
+    }
+
+    @Override
+    public void dispose() {
+        TNm.setText("");
+        super.dispose();
     }
 }

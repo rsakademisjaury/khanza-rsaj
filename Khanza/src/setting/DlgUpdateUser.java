@@ -250,7 +250,8 @@ public class DlgUpdateUser extends javax.swing.JDialog {
             }
         }
         tbUser.setDefaultRenderer(Object.class, new WarnaTable());
-        TPass.setDocument(new batasInput((byte)50).getKata(TPass));
+        TPass.setEditable(false);
+        TPass.setToolTipText("Form ini hanya mengubah hak akses; password diatur pada Data User.");
         TCari.setDocument(new batasInput((byte)100).getKata(TCari));       
     }
 
@@ -275,7 +276,7 @@ public class DlgUpdateUser extends javax.swing.JDialog {
         panelGlass5 = new widget.panelisi();
         jLabel3 = new widget.Label();
         jLabel4 = new widget.Label();
-        TPass = new widget.TextBox();
+        TPass = new javax.swing.JPasswordField();
         TNmUser = new widget.TextBox();
         panelGlass8 = new widget.panelisi();
         jLabel8 = new widget.Label();
@@ -620,8 +621,6 @@ public class DlgUpdateUser extends javax.swing.JDialog {
     private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpanActionPerformed
         if(TKd.getText().trim().equals("")||TNmUser.getText().trim().equals("")){
             Valid.textKosong(TNmUser,"User");            
-        }else if(TPass.getText().trim().equals("")){
-            Valid.textKosong(TPass,"Password");            
         }else{ 
             Simpan();
             Simpan2();
@@ -700,7 +699,7 @@ public class DlgUpdateUser extends javax.swing.JDialog {
     private widget.TextBox TCari;
     private widget.TextBox TKd;
     private widget.TextBox TNmUser;
-    private widget.TextBox TPass;
+    private javax.swing.JPasswordField TPass;
     private widget.InternalFrame internalFrame1;
     private widget.Label jLabel3;
     private widget.Label jLabel4;
@@ -5785,7 +5784,7 @@ public class DlgUpdateUser extends javax.swing.JDialog {
     public void isUser(String User,String Nama, String Password){
         TKd.setText(User);
         TNmUser.setText(Nama);
-        TPass.setText(Password);
+        TPass.setText("");
         tampil(User);
         TCari.requestFocus();
     }

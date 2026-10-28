@@ -1174,7 +1174,7 @@ public class BPJSSuratKontrolSKDPVclaim extends javax.swing.JDialog {
     } else {
         try {
             // Simpan langsung ke tabel "bridging_surat_kontrol_bpjs"
-            if (Sequel.menyimpantf("bridging_surat_kontrol_bpjs", "?,?,?,?,?,?,?,?", "No.Surat", 8, new String[]{
+            if (SuratLepasRawatAudit.impor(Sequel, koneksi, "bridging_surat_kontrol_bpjs", "?,?,?,?,?,?,?,?", "No.Surat", 8, new String[]{
                         NoSEP.getText(), Valid.SetTgl(TanggalSurat.getSelectedItem() + ""), NoSurat.getText(), 
                         Valid.SetTgl(TanggalKontrol.getSelectedItem() + ""), KdDokter.getText(), NmDokter.getText(), 
                         KdPoli.getText(), NmPoli.getText()
@@ -1384,6 +1384,8 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     }//GEN-LAST:event_DTPTanggalKontrol2KeyPressed
 
     private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnEditActionPerformed
+        if (SuratLepasRawatForm.arahkanEditTanggal(this, koneksi, NoSurat.getText(),
+                Valid.SetTgl(TanggalKontrol.getSelectedItem() + ""))) return;
 //if (NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")) {
 //        Valid.textKosong(NoRawat, "pasien");
 //    } else if (NmDokter.getText().trim().equals("") || KdDokter.getText().trim().equals("")) {
@@ -1512,7 +1514,7 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     } else {
         try {
             // Mengedit data di tabel "bridging_surat_kontrol_bpjs"
-            if (Sequel.mengedittf(
+            if (SuratLepasRawatAudit.edit(Sequel, koneksi,
                     "bridging_surat_kontrol_bpjs", 
                     "no_surat=?", 
                     "tgl_surat=?, tgl_rencana=?, kd_dokter_bpjs=?, nm_dokter_bpjs=?, kd_poli_bpjs=?, nm_poli_bpjs=?", 

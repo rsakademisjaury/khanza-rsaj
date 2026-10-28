@@ -1,5 +1,7 @@
 package simrskhanza;
 
+import fungsi.LoginCaptcha;
+import fungsi.LoginCaptchaPanel;
 import java.awt.Color;
 import java.awt.Dialog;
 import java.awt.BasicStroke;
@@ -58,6 +60,7 @@ final class SessionLockDialog extends JDialog {
     private final JTextArea status = new JTextArea();
     private final JPanel actions = new JPanel(new java.awt.GridLayout(1, 2, BUTTON_GAP, 0));
     private final JPanel passwordContainer;
+    private final LoginCaptchaPanel captcha = new LoginCaptchaPanel();
     private final JPanel right = new JPanel(new GridBagLayout());
     private final JLabel timeoutIcon = new JLabel(loadTimeoutIcon(), SwingConstants.CENTER);
     private BufferedImage backdrop;
@@ -118,8 +121,8 @@ final class SessionLockDialog extends JDialog {
         actions.add(open);
         actions.add(switchUser);
 
-        status.setFont(FONT.deriveFont(11f));
-        status.setForeground(new Color(166, 48, 47));
+        status.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 13));
+        status.setForeground(new Color(153, 34, 34));
         status.setEditable(false);
         status.setFocusable(false);
         status.setOpaque(false);
@@ -127,8 +130,10 @@ final class SessionLockDialog extends JDialog {
         status.setWrapStyleWord(true);
         status.setVisible(false);
         // Tinggi dialog mengikuti isian; tidak ada ruang ekstra untuk pemusatan.
-        addRow(right, status, 2, 10);
-        addRow(right, actions, 3, 0);
+        captcha.setOnSubmit(onOpen);
+        addRow(right, captcha, 2, 12);
+        addRow(right, status, 3, 10);
+        addRow(right, actions, 4, 0);
         getRootPane().setDefaultButton(open);
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
@@ -242,6 +247,7 @@ final class SessionLockDialog extends JDialog {
     void prepare(String user) {
         username.setText(user);
         clearPassword();
+        captcha.setChallenge(null);
         setBusy(false);
         setStatus(" ");
     }
@@ -264,6 +270,16 @@ final class SessionLockDialog extends JDialog {
         password.requestFocusInWindow();
     }
 
+    void setCaptcha(LoginCaptcha.Challenge challenge) {
+        captcha.setChallenge(challenge);
+        updateDialogSize();
+    }
+
+    String getCaptchaId() { return captcha.getChallengeId(); }
+    String getCaptchaAnswer() { return captcha.getAnswer(); }
+    void focusCaptcha() { captcha.focusAnswer(); }
+    void setCaptchaRefreshAction(Runnable action) { captcha.setOnRefresh(action); }
+
     void setStatus(String text) {
         status.setText(text == null ? "" : text);
         status.setVisible(!status.getText().trim().isEmpty());
@@ -275,8 +291,15 @@ final class SessionLockDialog extends JDialog {
         open.setText(busy ? "Memeriksa..." : "Buka Sesi");
         password.setEditable(!busy);
         reveal.setEnabled(!busy);
+        captcha.setBusy(busy);
         // Ganti User tersedia saat DB lambat; hasil worker lama diabaikan.
         updateDialogSize();
+    }
+
+    /** Penguncian login tetap menyediakan Ganti User dan tidak menutup draft. */
+    void setLoginBlocked(boolean blocked) {
+        setBusy(blocked);
+        if (blocked) open.setText("Tunggu...");
     }
 
     /** Tinggi mengikuti isian agar margin atas/bawah sama dengan margin sisi. */
@@ -284,15 +307,18 @@ final class SessionLockDialog extends JDialog {
         int minimumInput = Math.max(
                 open.getPreferredSize().width + BUTTON_GAP + switchUser.getPreferredSize().width,
                 password.getFontMetrics(FONT.deriveFont(12f)).stringWidth(PLACEHOLDER) + 82);
+        if (captcha.isVisible()) minimumInput = Math.max(minimumInput, 258);
         int units = (Math.max(384, 2 * FRAME + SIDE + 2 * PADDING + minimumInput) + 15) / 16;
         int baseHeight = 2 * FRAME + 2 * PADDING + 22 + 10 + FIELD_HEIGHT + 14
                 + open.getPreferredSize().height;
         int width = units * 16 - 2 * FRAME - SIDE - 2 * PADDING;
         int height = baseHeight + (status.isVisible() ? messageHeight(width) + 10 : 0);
+        if (captcha.isVisible()) height += LoginCaptchaPanel.PANEL_HEIGHT + 12;
         username.setPreferredSize(new Dimension(width, 22));
         passwordContainer.setPreferredSize(new Dimension(width, FIELD_HEIGHT));
         passwordContainer.setMinimumSize(new Dimension(width, FIELD_HEIGHT));
         status.setPreferredSize(new Dimension(width, messageHeight(width)));
+        captcha.setPreferredSize(new Dimension(width, LoginCaptchaPanel.PANEL_HEIGHT));
         getContentPane().setPreferredSize(new Dimension(units * 16, height));
         pack();
         if (getOwner() != null && getOwner().isShowing()) {
@@ -394,7 +420,27 @@ final class SessionLockDialog extends JDialog {
         SessionButton(String text, boolean primary) {
             super(text);
             this.primary = primary;
-            setUI(new BasicButtonUI());
+            setUI(new BasicButtonUI() {
+                @Override
+                protected void paintText(Graphics graphics, javax.swing.JComponent component,
+                        java.awt.Rectangle textRect, String text) {
+                    javax.swing.AbstractButton button = (javax.swing.AbstractButton) component;
+                    Graphics2D g = (Graphics2D) graphics.create();
+                    try {
+                        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                        g.setFont(button.getFont());
+                        g.setColor(button.isEnabled() ? button.getForeground() : INK);
+                        // Hindari emboss dua lapis pada label tombol nonaktif.
+                        javax.swing.plaf.basic.BasicGraphicsUtils.drawStringUnderlineCharAt(
+                                g, text, button.getDisplayedMnemonicIndex(),
+                                textRect.x + getTextShiftOffset(),
+                                textRect.y + g.getFontMetrics().getAscent() + getTextShiftOffset());
+                    } finally {
+                        g.dispose();
+                    }
+                }
+            });
             setFont(new Font("Segoe UI Semibold", Font.PLAIN, 12));
             setForeground(primary ? Color.WHITE : BLUE);
             setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));

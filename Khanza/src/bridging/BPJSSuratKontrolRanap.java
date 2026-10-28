@@ -1025,7 +1025,7 @@ if(NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")){
             System.out.println("message : " + nameNode.path("message").asText());
             if(nameNode.path("code").asText().equals("200")){
                 response = mapper.readTree(api.Decrypt(root.path("response").asText(), utc)).path("noSuratKontrol");
-                if(Sequel.menyimpantf("bridging_surat_kontrol_bpjs", "?,?,?,?,?,?,?,?", "No.Surat", 8, new String[]{
+                if(SuratLepasRawatAudit.simpan(Sequel, koneksi, "bridging_surat_kontrol_bpjs", "?,?,?,?,?,?,?,?", "No.Surat", 8, new String[]{
                         NoSEP.getText(), Valid.SetTgl(TanggalSurat.getSelectedItem() + ""), response.asText(), 
                         Valid.SetTgl(TanggalKontrol.getSelectedItem() + ""), KdDokter.getText(), NmDokter.getText(), 
                         KdPoli.getText(), NmPoli.getText()
@@ -1297,6 +1297,8 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     }//GEN-LAST:event_DTPTanggalKontrol2KeyPressed
 
     private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnEditActionPerformed
+        if (SuratLepasRawatForm.arahkanEditTanggal(this, koneksi, NoSurat.getText(),
+                Valid.SetTgl(TanggalKontrol.getSelectedItem() + ""))) return;
 if (NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")) {
         Valid.textKosong(NoRawat, "pasien");
     } else if (NmDokter.getText().trim().equals("") || KdDokter.getText().trim().equals("")) {
@@ -1331,7 +1333,7 @@ if (NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")) {
                 System.out.println("code : " + nameNode.path("code").asText());
                 System.out.println("message : " + nameNode.path("message").asText());
                 if (nameNode.path("code").asText().equals("200")) {
-                    if (Sequel.mengedittf("bridging_surat_kontrol_bpjs", "no_surat=?", 
+                    if (SuratLepasRawatAudit.edit(Sequel, koneksi, "bridging_surat_kontrol_bpjs", "no_surat=?",
                             "tgl_surat=?,tgl_rencana=?,kd_dokter_bpjs=?,nm_dokter_bpjs=?,kd_poli_bpjs=?,nm_poli_bpjs=?", 
                             7, new String[] {
                                 Valid.SetTgl(TanggalSurat.getSelectedItem() + ""), 

@@ -154,6 +154,9 @@ import inventory.InventorySuplier;
 import kepegawaian.DlgBarcode;
 import fungsi.batasInput;
 import fungsi.koneksiDB;
+import fungsi.LoginAttemptGuard;
+import fungsi.LoginCaptcha;
+import fungsi.LoginCaptchaPanel;
 import fungsi.sekuel;
 import fungsi.validasi;
 import fungsi.akses;
@@ -1149,6 +1152,8 @@ import keuangan.KeuanganPiutangLainLain;
 import javax.swing.JButton;
 import javax.swing.UIManager;
 import javax.swing.SwingWorker;
+import fungsi.LoginSessionGuard;
+import fungsi.LoginSessionMonitor;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -1364,7 +1369,18 @@ public class frmUtama extends javax.swing.JFrame {
     private String usernameSesi = "";
     private boolean adminSesi;
     private SessionLockDialog dialogKunciSesi;
-    private SwingWorker<Boolean, Void> workerBukaSesi;
+    private SwingWorker<LoginAttemptGuard.Result, Void> workerBukaSesi;
+    // RSAJ - Tahap 1 pengamanan login. Koneksi terpisah dari pelayanan/alarm.
+    private final LoginAttemptGuard pengamanLogin =
+            new LoginAttemptGuard(koneksiDB::condbVerifikasiSesi);
+    private final LoginSessionGuard pengamanSesiTunggal = new LoginSessionGuard(
+            koneksiDB::condbVerifikasiSesi, koneksiDB::condbPemantauan);
+    private final LoginSessionMonitor pemantauSesiTunggal = new LoginSessionMonitor(
+            pengamanSesiTunggal, this::akhiriSesiTunggal);
+    private SwingWorker<LoginAttemptGuard.Result, Void> workerLoginAwal;
+    private javax.swing.Timer timerTungguLogin;
+    private String usernameTungguLogin = "";
+    private final LoginCaptchaPanel captchaLoginAwal = new LoginCaptchaPanel();
     private javax.swing.Timer timerPulsaFokusLogin;
     private java.beans.PropertyChangeListener pemantauWindowAktifLogin;
     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize(); 
@@ -1639,7 +1655,9 @@ public class frmUtama extends javax.swing.JFrame {
         this.setExtendedState(MAXIMIZED_BOTH);
         //this.setSize(screen.width,screen.height);
         edAdmin.setDocument(new batasInput((byte)100).getKata(edAdmin));
-        edPwd.setDocument(new batasInput((byte)100).getKata(edPwd));
+        edPwd.setDocument(new javax.swing.text.PlainDocument()); // Password diteruskan persis, termasuk simbol.
+        pasangMenuPassword();
+        pasangPemantauPengamanLogin();
         
         edAdmin.requestFocus();
         
@@ -2560,7 +2578,11 @@ public class frmUtama extends javax.swing.JFrame {
         jLabel2.setText("Belum punya akses? Hubungi Tim IT");
         jLabel2.setFont(new java.awt.Font(
                 "Segoe UI", java.awt.Font.PLAIN, 12));
-        jLabel2.setBounds(20, 358, 340, 20);
+        // Ruang tiga baris untuk pesan yang lebih besar tanpa menimpa tombol.
+        jLabel2.setUI(new javax.swing.plaf.basic.BasicLabelUI());
+        jLabel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 8, 3, 8));
+        jLabel2.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel2.setBounds(20, 347, 340, 60);
 
         jLabel3.setVisible(false);
         jLabelUser1.setVisible(false);
@@ -2571,10 +2593,14 @@ public class frmUtama extends javax.swing.JFrame {
         jLabel6.setOpaque(false);
         jLabel6.setBorder(javax.swing.BorderFactory.createMatteBorder(
                 1, 0, 0, 0, new Color(255, 255, 255, 42)));
-        jLabel6.setBounds(24, 388, 332, 1);
+        jLabel6.setBounds(24, 412, 332, 1);
 
         BtnCancel.setText("Keluar");
-        BtnCancel.setBounds(140, 399, 100, 30);
+        BtnCancel.setBounds(140, 423, 100, 30);
+        captchaLoginAwal.setLoginStyle();
+        captchaLoginAwal.setOnRefresh(this::gantiCaptchaLoginAwal);
+        captchaLoginAwal.setOnSubmit(() -> BtnLoginActionPerformed(null));
+        jPanel1.add(captchaLoginAwal);
     }
 
     private void pasangTemaFieldLogin(javax.swing.JPasswordField field,
@@ -2864,7 +2890,7 @@ public class frmUtama extends javax.swing.JFrame {
             aturGambarPanelJudul(false);
         }
         BtnLogin.setSelected(false);
-        DlgLogin.setSize(LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN);
+        aturTataLetakCaptchaLogin();
         posisikanDialogLogin();
         aktifkanBackdropLogin();
 
@@ -3507,6 +3533,27 @@ public class frmUtama extends javax.swing.JFrame {
 
     private static final class ModernLoginButtonUI
             extends javax.swing.plaf.basic.BasicButtonUI {
+
+        @Override
+        protected void paintText(java.awt.Graphics graphics,
+                javax.swing.JComponent component, java.awt.Rectangle textRect, String text) {
+            javax.swing.AbstractButton tombol = (javax.swing.AbstractButton) component;
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g2.setFont(tombol.getFont());
+                g2.setColor(tombol.isEnabled() ? tombol.getForeground() : new Color(42, 59, 72));
+                // BasicButtonUI menggambar teks disabled dua kali (emboss).
+                // Gambar sekali agar Tunggu/Memeriksa tetap tajam satu baris.
+                javax.swing.plaf.basic.BasicGraphicsUtils.drawStringUnderlineCharAt(
+                        g2, text, tombol.getDisplayedMnemonicIndex(),
+                        textRect.x + getTextShiftOffset(),
+                        textRect.y + g2.getFontMetrics().getAscent() + getTextShiftOffset());
+            } finally {
+                g2.dispose();
+            }
+        }
 
         @Override
         public void paint(java.awt.Graphics graphics,
@@ -11031,6 +11078,7 @@ public class frmUtama extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void formWindowClosed(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosed
+        pemantauSesiTunggal.stop(true);
         if (kunciSesi != null) {
             kunciSesi.close();
         }
@@ -11046,6 +11094,7 @@ private void BtnLogActionPerformed(java.awt.event.ActionEvent evt) {
 
     switch (BtnLog.getText().trim()) {
         case "Log Out":
+            pemantauSesiTunggal.stop(true);
             if (kunciSesi != null) {
                 kunciSesi.stop();
             }
@@ -17080,49 +17129,356 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         this.setCursor(Cursor.getDefaultCursor());
     }//GEN-LAST:event_MnPenyerahanResepActionPerformed
 
-    private void BtnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnLoginActionPerformed
-    if (kunciSesi != null && kunciSesi.isLocked()) {
-        loginUlangSesi();
-        return;
-    }
-    BtnLogin.setSelected(true);
-    // Memeriksa input username dan password
-    if (edAdmin.getText().trim().isEmpty()) {
-        Valid.textKosong(edAdmin, "Username");
-        return;
-    }
-    
-    if (edPwd.getText().trim().isEmpty()) {
-        Valid.textKosong(edPwd, "Password");
-        return;
-    }
-    
-        try {
-            akses.setData(edAdmin.getText(), edPwd.getText());
 
-            if (akses.getjml1() >= 1) {
-                setAdminAccess();
-                mulaiPemantauanSesi();
-                startITServiceChat();
-            } else if (akses.getjml2() >= 1) {
-                setUserAccess();
-                mulaiPemantauanSesi();
-
-                //notif
-                initBtnNotif();
-                initBtnJawaban();
-                startKonsulToasts();
-                startJawabanToasts();     
-                startRanapToasts();
-                startITServiceChat();
-                
-            } else {
-                handleLoginFailure();
-            }
-        } catch (Exception e) {
-            System.out.println("Notifikasi : " + e);
+    /** Akses password di samping Logout; alur autentikasi tetap melalui form yang sama. */
+    private void pasangMenuPassword() {
+        for (java.awt.Component komponen : panelKanan.getComponents()) {
+            if ("BtnMenuPassword".equals(komponen.getName())) return;
         }
+        javax.swing.JButton opsi = new javax.swing.JButton() {
+            @Override protected void paintComponent(java.awt.Graphics graphics) {
+                if (getModel().isRollover() || getModel().isPressed()) {
+                    java.awt.Graphics2D g = (java.awt.Graphics2D) graphics.create();
+                    g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                            java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.setColor(new java.awt.Color(24, 111, 178, getModel().isPressed() ? 40 : 22));
+                    g.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 8, 8);
+                    g.dispose();
+                }
+                super.paintComponent(graphics);
+            }
+        };
+        opsi.setName("BtnMenuPassword");
+        opsi.setToolTipText("Menu akun");
+        opsi.getAccessibleContext().setAccessibleName("Menu akun: Ganti Password");
+        opsi.setPreferredSize(new java.awt.Dimension(28, 27));
+        opsi.setMargin(new java.awt.Insets(0, 0, 0, 0));
+        opsi.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        opsi.setBorderPainted(false);
+        opsi.setContentAreaFilled(false);
+        opsi.setOpaque(false);
+        opsi.setFocusPainted(false);
+        opsi.setFocusable(false);
+        opsi.setRolloverEnabled(true);
+        opsi.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        opsi.setIcon(new javax.swing.Icon() {
+            @Override public int getIconWidth() { return 16; }
+            @Override public int getIconHeight() { return 16; }
+            @Override public void paintIcon(java.awt.Component component, java.awt.Graphics graphics, int x, int y) {
+                java.awt.Graphics2D g = (java.awt.Graphics2D) graphics.create();
+                g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(new java.awt.Color(38, 73, 102));
+                for (int i = 0; i < 3; i++) g.fillOval(x + 6, y + 2 + i * 5, 3, 3);
+                g.dispose();
+            }
+        });
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        menu.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(202, 218, 232)),
+                javax.swing.BorderFactory.createEmptyBorder(4, 4, 4, 4)));
+        javax.swing.JMenuItem ganti = new javax.swing.JMenuItem("Ganti Password");
+        ganti.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        ganti.setMargin(new java.awt.Insets(6, 10, 6, 10));
+        menu.add(ganti);
+        menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent event) {
+                ganti.setEnabled("Log Out".equals(BtnLog.getText().trim()) && !usernameSesi.isEmpty()
+                        && kunciSesi != null && !kunciSesi.isLocked());
+            }
+            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent event) { }
+            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent event) { }
+        });
+        opsi.setComponentPopupMenu(menu);
+        Runnable perbarui = () -> {
+            boolean login = "Log Out".equals(BtnLog.getText().trim());
+            opsi.setVisible(login);
+            opsi.setEnabled(login);
+            if (!login) menu.setVisible(false);
+            panelKanan.revalidate();
+            panelKanan.repaint();
+        };
+        BtnLog.addPropertyChangeListener("text", event -> perbarui.run());
+        opsi.addActionListener(event -> {
+            boolean boleh = "Log Out".equals(BtnLog.getText().trim()) && !usernameSesi.isEmpty()
+                    && kunciSesi != null && !kunciSesi.isLocked();
+            ganti.setEnabled(boleh);
+            if (!boleh) return;
+            int x = Math.min(0, opsi.getWidth() - menu.getPreferredSize().width);
+            menu.show(opsi, x, opsi.getHeight());
+        });
+        ganti.addActionListener(event -> {
+            if (!"Log Out".equals(BtnLog.getText().trim()) || usernameSesi.isEmpty()
+                    || kunciSesi == null || kunciSesi.isLocked()) return;
+            setting.WindowInputPassword dialog = new setting.WindowInputPassword(this, true);
+            dialog.setAccount(usernameSesi, adminSesi
+                    ? fungsi.AccountPasswordService.Account.ADMIN : fungsi.AccountPasswordService.Account.USER);
+            dialog.setLocationRelativeTo(this);
+            dialog.setVisible(true);
+        });
+        int posisiLogout = panelKanan.getComponentZOrder(BtnLog);
+        panelKanan.add(opsi, posisiLogout < 0 ? panelKanan.getComponentCount() : posisiLogout + 1);
+        perbarui.run();
+    }
+
+    private void BtnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnLoginActionPerformed
+        if (kunciSesi != null && kunciSesi.isLocked()) {
+            loginUlangSesi();
+            return;
+        }
+        if (workerLoginAwal != null || (timerTungguLogin != null
+                && edAdmin.getText().equals(usernameTungguLogin))) return;
+        BtnLogin.setSelected(true);
+        if (edAdmin.getText().trim().isEmpty()) {
+            tampilkanPesanLogin("Masukkan username terlebih dahulu.", true);
+            edAdmin.requestFocusInWindow();
+            return;
+        }
+        if (edPwd.getText().trim().isEmpty()) {
+            tampilkanPesanLogin("Masukkan password terlebih dahulu.", true);
+            edPwd.requestFocusInWindow();
+            return;
+        }
+        if (captchaLoginAwal.isVisible() && captchaLoginAwal.getAnswer().isEmpty()) {
+            tampilkanPesanLogin("Masukkan kode CAPTCHA pada gambar.", true);
+            captchaLoginAwal.focusAnswer();
+            return;
+        }
+        final String user = edAdmin.getText();
+        final char[] password = edPwd.getPassword();
+        final String captchaId = captchaLoginAwal.getChallengeId();
+        final String captchaAnswer = captchaLoginAwal.getAnswer();
+        setLoginAwalBusy(true);
+        workerLoginAwal = new SwingWorker<LoginAttemptGuard.Result, Void>() {
+            @Override
+            protected LoginAttemptGuard.Result doInBackground() throws Exception {
+                return pengamanLogin.authenticate(user, password,
+                        LoginAttemptGuard.AccountType.ANY, "LOGIN_AWAL", captchaId, captchaAnswer);
+            }
+
+            @Override
+            protected void done() {
+                boolean pertahankanPassword = false;
+                try {
+                    if (workerLoginAwal != this) return;
+                    workerLoginAwal = null;
+                    setLoginAwalBusy(false);
+                    LoginAttemptGuard.Result hasil = get();
+                    pertahankanPassword = hasil.isCaptchaProblem();
+                    tampilkanCaptchaLoginAwal(hasil.getCaptcha());
+                    if (hasil.isCaptchaProblem()) {
+                        tampilkanPesanLogin(hasil.getStatus() == LoginAttemptGuard.Status.CAPTCHA_INVALID
+                                ? "Kode CAPTCHA salah atau kedaluwarsa.\nKetik kode pada gambar baru."
+                                : hasil.getMessage(), true);
+                        captchaLoginAwal.focusAnswer();
+                        return;
+                    }
+                    if (!hasil.isSuccess()) {
+                        handleLoginFailure(hasil.isLocked()
+                                ? "Percobaan login dikunci sementara."
+                                : LoginAttemptGuard.FAILURE_MESSAGE + "\nSisa percobaan: "
+                                  + hasil.getRemainingAttempts() + ".");
+                        if (hasil.isLocked()) tampilkanTungguLogin(user, hasil, null);
+                        else edPwd.requestFocusInWindow();
+                        return;
+                    }
+                    hentikanTungguLogin();
+                    tampilkanPesanLogin("Belum punya akses? Hubungi Tim IT", false);
+                    // Hak akses dan proses login sukses tetap melalui alur lama.
+                    akses.setData(user, new String(password));
+                    if (akses.getjml1() >= 1) {
+                        pemantauSesiTunggal.start(hasil.getSession());
+                        setAdminAccess();
+                        mulaiPemantauanSesi();
+                        startITServiceChat();
+                    } else if (akses.getjml2() >= 1) {
+                        pemantauSesiTunggal.start(hasil.getSession());
+                        setUserAccess();
+                        mulaiPemantauanSesi();
+                        initBtnNotif();
+                        initBtnJawaban();
+                        startKonsulToasts();
+                        startJawabanToasts();
+                        startRanapToasts();
+                        startITServiceChat();
+                    } else {
+                        pemantauSesiTunggal.discard(hasil.getSession());
+                        handleLoginFailure("Login belum dapat diselesaikan.\nHubungi Tim IT.");
+                    }
+                } catch (Exception exception) {
+                    if (pemantauSesiTunggal.ticket() != null) {
+                        akhiriSesiTunggal(true);
+                    }
+                    // Gangguan DB/SQL pengaman tidak dianggap password salah,
+                    // dan tidak membuka jalur login tanpa pemeriksaan pengaman.
+                    handleLoginFailure("Login belum dapat diperiksa.\nPeriksa koneksi atau hubungi Tim IT.");
+                    catatGangguanPengamanLogin(exception);
+                } finally {
+                    java.util.Arrays.fill(password, '\0');
+                    if (!pertahankanPassword) edPwd.setText("");
+                }
+            }
+        };
+        workerLoginAwal.execute();
     }//GEN-LAST:event_BtnLoginActionPerformed
+
+    private void setLoginAwalBusy(boolean busy) {
+        BtnLogin.setEnabled(!busy);
+        BtnLogin.setText(busy ? "Memeriksa..." : "Masuk");
+        edAdmin.setEditable(!busy);
+        edPwd.setEditable(!busy);
+        cekBox1.setEnabled(!busy);
+        captchaLoginAwal.setBusy(busy);
+        if (busy) tampilkanPesanLogin("Memeriksa username dan password...", false);
+    }
+
+    /** Pesan autentikasi hanya tampil di form login, tanpa toast/pop-up. */
+    private void tampilkanPesanLogin(String pesan, boolean error) {
+        String isi = pesan == null ? "" : pesan;
+        String aman = isi.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        jLabel2.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        jLabel2.setForeground(Color.WHITE);
+        jLabel2.setText("<html><div style='width:242px;text-align:center;'>"
+                + aman.replace("\n", "<br>") + "</div></html>");
+        jLabel2.setToolTipText(isi);
+    }
+
+    private void tampilkanCaptchaLoginAwal(LoginCaptcha.Challenge challenge) {
+        captchaLoginAwal.setChallenge(challenge);
+        aturTataLetakCaptchaLogin();
+    }
+
+    /** Hanya kartu login yang bertambah tinggi ketika CAPTCHA dibutuhkan. */
+    private void aturTataLetakCaptchaLogin() {
+        int tambahan = captchaLoginAwal.isVisible() ? LoginCaptchaPanel.PANEL_HEIGHT + 12 : 0;
+        captchaLoginAwal.setBounds(X_KOMPONEN_LOGIN, 298,
+                LEBAR_KOMPONEN_LOGIN, LoginCaptchaPanel.PANEL_HEIGHT);
+        BtnLogin.setLocation(X_KOMPONEN_LOGIN, 298 + tambahan);
+        jLabel2.setLocation(20, 347 + tambahan);
+        jLabel6.setLocation(24, 412 + tambahan);
+        BtnCancel.setLocation(140, 423 + tambahan);
+        Dimension ukuran = new Dimension(LEBAR_KARTU_LOGIN, TINGGI_AREA_LOGIN + 24 + tambahan);
+        jPanel1.setMinimumSize(ukuran);
+        jPanel1.setPreferredSize(ukuran);
+        jPanel1.setSize(ukuran);
+        Dimension dialog = new Dimension(LEBAR_DIALOG_LOGIN, TINGGI_DIALOG_LOGIN + 24 + tambahan);
+        DlgLogin.setMinimumSize(dialog);
+        DlgLogin.setSize(dialog);
+        jPanel1.revalidate();
+        jPanel1.repaint();
+        if (DlgLogin.isVisible()) posisikanDialogLogin();
+    }
+
+    private void gantiCaptchaLoginAwal() {
+        if (workerLoginAwal != null || timerTungguLogin != null
+                || !captchaLoginAwal.isVisible()) return;
+        final String user = edAdmin.getText();
+        final String previousId = captchaLoginAwal.getChallengeId();
+        setLoginAwalBusy(true);
+        tampilkanPesanLogin("Memuat gambar CAPTCHA...", false);
+        workerLoginAwal = new SwingWorker<LoginAttemptGuard.Result, Void>() {
+            @Override protected LoginAttemptGuard.Result doInBackground() throws Exception {
+                return pengamanLogin.refreshCaptcha(user, "LOGIN_AWAL", previousId);
+            }
+            @Override protected void done() {
+                if (workerLoginAwal != this) return;
+                workerLoginAwal = null;
+                setLoginAwalBusy(false);
+                try {
+                    LoginAttemptGuard.Result hasil = get();
+                    tampilkanCaptchaLoginAwal(hasil.getCaptcha());
+                    if (hasil.isLocked()) tampilkanTungguLogin(user, hasil, null);
+                    else {
+                        tampilkanPesanLogin("Ketik kode CAPTCHA pada gambar baru.", false);
+                        captchaLoginAwal.focusAnswer();
+                    }
+                } catch (Exception exception) {
+                    tampilkanPesanLogin("CAPTCHA belum dapat dimuat.\nPeriksa koneksi atau hubungi Tim IT.", true);
+                    catatGangguanPengamanLogin(exception);
+                }
+            }
+        };
+        workerLoginAwal.execute();
+    }
+
+    private void pasangPemantauPengamanLogin() {
+        edAdmin.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void berubah() {
+                if (workerLoginAwal == null) {
+                    hentikanTungguLogin();
+                    tampilkanCaptchaLoginAwal(null);
+                    tampilkanPesanLogin("Belum punya akses? Hubungi Tim IT", false);
+                }
+            }
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent event) { berubah(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent event) { berubah(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent event) { berubah(); }
+        });
+    }
+
+    /** Timer hanya menampilkan sisa tunggu; keputusan tetap diperiksa di DB. */
+    private void tampilkanTungguLogin(String user, LoginAttemptGuard.Result hasil,
+            SessionLockDialog dialog) {
+        hentikanTungguLogin();
+        usernameTungguLogin = user;
+        final long selesai = System.nanoTime()
+                + java.util.concurrent.TimeUnit.SECONDS.toNanos(hasil.getRetryAfterSeconds());
+        if (dialog == null) {
+            BtnLogin.setEnabled(false);
+            BtnLogin.setText("Tunggu...");
+        } else {
+            dialog.setLoginBlocked(true);
+        }
+        Runnable perbarui = () -> {
+            if ((dialog == null && !user.equals(edAdmin.getText()))
+                    || (dialog != null && dialogKunciSesi != dialog)) {
+                hentikanTungguLogin();
+                return;
+            }
+            long sisa = Math.max(0L, (selesai - System.nanoTime() + 999999999L) / 1000000000L);
+            if (sisa == 0) {
+                hentikanTungguLogin();
+                if (dialog == null) tampilkanPesanLogin("Silakan coba login kembali.", false);
+                else { dialog.setStatus("Silakan coba login kembali."); dialog.focusPassword(); }
+                return;
+            }
+            if (dialog == null) {
+                tampilkanPesanLogin("Akun dikunci.\nCoba lagi dalam "
+                        + LoginAttemptGuard.formatWait(sisa) + ".", true);
+            } else {
+                dialog.setStatus("Percobaan login dikunci sementara. Coba lagi dalam "
+                        + LoginAttemptGuard.formatWait(sisa) + ".");
+            }
+        };
+        timerTungguLogin = new javax.swing.Timer(1000, event -> perbarui.run());
+        timerTungguLogin.start();
+        perbarui.run();
+    }
+
+    private void hentikanTungguLogin() {
+        if (timerTungguLogin != null) {
+            timerTungguLogin.stop();
+            timerTungguLogin = null;
+        }
+        usernameTungguLogin = "";
+        BtnLogin.setEnabled(workerLoginAwal == null);
+        BtnLogin.setText(workerLoginAwal == null ? "Masuk" : "Memeriksa...");
+        if (dialogKunciSesi != null && workerBukaSesi == null) {
+            dialogKunciSesi.setLoginBlocked(false);
+        }
+    }
+
+    private void catatGangguanPengamanLogin(Exception exception) {
+        Throwable penyebab = exception.getCause() == null ? exception : exception.getCause();
+        // Tidak mencetak pesan SQL/parameter yang mungkin berisi data sensitif.
+        if (penyebab instanceof java.sql.SQLException) {
+            java.sql.SQLException sql = (java.sql.SQLException) penyebab;
+            System.out.println("[Pengaman Login] SQLState=" + sql.getSQLState()
+                    + ", kode=" + sql.getErrorCode());
+        } else {
+            System.out.println("[Pengaman Login] " + penyebab.getClass().getSimpleName());
+        }
+    }
 
     /** Mulai hitungan baru hanya sesudah login biasa benar-benar berhasil. */
     private void mulaiPemantauanSesi() {
@@ -17135,6 +17491,27 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         adminSesi = akses.getjml1() >= 1;
         edPwd.setText("");
         kunciSesi.start();
+    }
+
+    /** Login PC lain mencabut akses melalui alur logout lama, termasuk saat timeout. */
+    private void akhiriSesiTunggal(boolean gangguanKoneksi) {
+        // Worker pembukaan sesi yang terlambat tidak boleh menghidupkan sesi lama.
+        workerBukaSesi = null;
+        hentikanTungguLogin();
+        if (dialogKunciSesi != null) {
+            dialogKunciSesi.clearPassword();
+            dialogKunciSesi = null;
+        }
+        dialogLoginDiperlukan = false;
+        if (kunciSesi != null) kunciSesi.releaseForLogout();
+        BtnLog.setText("Log Out");
+        BtnLogActionPerformed(new java.awt.event.ActionEvent(
+                BtnLog, java.awt.event.ActionEvent.ACTION_PERFORMED, "Log Out"));
+        koneksiDB.bukaSesiDatabase();
+        adminSesi = false;
+        tampilkanPesanLogin(gangguanKoneksi
+                ? "Status sesi belum dapat diperiksa.\nPeriksa koneksi lalu login kembali."
+                : "Sesi berakhir karena akun login di tempat lain.\nSilakan login kembali.", true);
     }
 
     private void tampilkanLoginTimeout() {
@@ -17152,6 +17529,7 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
                 cekBox1.getIcon(), cekBox1.getSelectedIcon(),
                 this::loginUlangSesi, this::gantiUserSaatTimeout);
         dialogKunciSesi.prepare(usernameSesi);
+        dialogKunciSesi.setCaptchaRefreshAction(this::gantiCaptchaSesi);
         // Ambil wallpaper yang sudah ada di cache login, bukan snapshot form.
         ImageIcon latarTimeout = daftarWallpaper.isEmpty() ? wallpaperFallbackPanel
                 : daftarWallpaper.get(Math.max(0, Math.min(indeksWallpaper, daftarWallpaper.size() - 1)));
@@ -17164,9 +17542,11 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         if (kunciSesi == null || !kunciSesi.isLocked()) {
             return;
         }
+        hentikanTungguLogin();
         // Worker yang selesai sesudah logout tidak boleh membuka sesi lama.
         if (workerBukaSesi != null) {
-            workerBukaSesi.cancel(false);
+            // Biarkan verifikasi yang sudah berjalan menyelesaikan transaksi.
+            // Hasilnya diabaikan; jangan hapus char[] sebelum worker selesai.
             workerBukaSesi = null;
         }
         if (dialogKunciSesi != null) {
@@ -17189,12 +17569,14 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
 
     private void loginUlangSesi() {
         if (kunciSesi == null || !kunciSesi.isLocked()
-                || dialogKunciSesi == null || workerBukaSesi != null) {
+                || dialogKunciSesi == null || workerBukaSesi != null
+                || (timerTungguLogin != null && usernameSesi.equals(usernameTungguLogin))) {
             return;
         }
         final SessionLockDialog dialog = dialogKunciSesi;
         final String userTerkunci = usernameSesi;
         final boolean akunAdmin = adminSesi;
+        final LoginSessionGuard.Ticket ticket = pemantauSesiTunggal.ticket();
         if (!userTerkunci.equals(dialog.getUsername())) {
             dialog.setStatus("Akun berbeda. Gunakan Ganti User.");
             dialog.clearPassword();
@@ -17206,31 +17588,25 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
             dialog.focusPassword();
             return;
         }
+        if (!dialog.getCaptchaId().isEmpty() && dialog.getCaptchaAnswer().isEmpty()) {
+            java.util.Arrays.fill(password, '\0');
+            dialog.setStatus("Masukkan kode CAPTCHA pada gambar.");
+            dialog.focusCaptcha();
+            return;
+        }
+        final String captchaId = dialog.getCaptchaId();
+        final String captchaAnswer = dialog.getCaptchaAnswer();
         dialog.clearPassword();
         dialog.setBusy(true);
         dialog.setStatus("Memeriksa password...");
-        workerBukaSesi = new SwingWorker<Boolean, Void>() {
+        workerBukaSesi = new SwingWorker<LoginAttemptGuard.Result, Void>() {
             @Override
-            protected Boolean doInBackground() throws Exception {
+            protected LoginAttemptGuard.Result doInBackground() throws Exception {
                 try {
-                    // Tabel/enkripsi sama dengan login semula. Tidak memanggil
-                    // akses.setData() atau mengubah hak akses ketika reauth.
-                    String sql = akunAdmin
-                            ? "select 1 from admin where usere=AES_ENCRYPT(?,'nur') "
-                              + "and passworde=AES_ENCRYPT(?,'windi') limit 1"
-                            : "select 1 from user where id_user=AES_ENCRYPT(?,'nur') "
-                              + "and password=AES_ENCRYPT(?,'windi') limit 1";
-                    // Koneksi khusus agar query password tidak menahan koneksi
-                    // bersama yang digunakan refresh/alarm lab di EDT.
-                    try (Connection koneksiVerifikasi = koneksiDB.condbVerifikasiSesi();
-                         PreparedStatement verifikasi = koneksiVerifikasi.prepareStatement(sql)) {
-                        verifikasi.setQueryTimeout(10);
-                        verifikasi.setString(1, userTerkunci);
-                        verifikasi.setString(2, new String(password));
-                        try (ResultSet hasil = verifikasi.executeQuery()) {
-                            return hasil.next();
-                        }
-                    }
+                    // Tidak memuat ulang/mengubah akses akun ketika reauth.
+                    return pengamanLogin.authenticate(userTerkunci, password,
+                            akunAdmin ? LoginAttemptGuard.AccountType.ADMIN
+                                      : LoginAttemptGuard.AccountType.USER, "BUKA_SESI", captchaId, captchaAnswer, ticket);
                 } finally {
                     java.util.Arrays.fill(password, '\0');
                 }
@@ -17247,19 +17623,33 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
                 }
                 workerBukaSesi = null;
                 dialog.setBusy(false);
-                boolean sah;
+                LoginAttemptGuard.Result hasil;
                 try {
-                    sah = get();
+                    hasil = get();
                 } catch (Exception ex) {
-                    dialog.setStatus("Verifikasi gagal. Periksa koneksi lalu coba lagi.");
+                    dialog.setStatus("Login belum dapat diperiksa. Periksa koneksi "
+                            + "atau hubungi Tim IT untuk memeriksa pengaman login.");
+                    catatGangguanPengamanLogin(ex);
                     dialog.focusPassword();
                     return;
                 }
-                if (!sah) {
-                    dialog.setStatus("Password salah. Sesi tetap terkunci.");
-                    dialog.focusPassword();
+                if (hasil.isSessionRevoked()) {
+                    akhiriSesiTunggal(false);
                     return;
                 }
+                dialog.setCaptcha(hasil.getCaptcha());
+                if (hasil.isCaptchaProblem()) {
+                    dialog.setStatus(hasil.getMessage());
+                    dialog.focusCaptcha();
+                    return;
+                }
+                if (!hasil.isSuccess()) {
+                    dialog.setStatus(hasil.getMessage());
+                    if (hasil.isLocked()) tampilkanTungguLogin(userTerkunci, hasil, dialog);
+                    else dialog.focusPassword();
+                    return;
+                }
+                hentikanTungguLogin();
                 dialogLoginDiperlukan = false;
                 dialog.clearPassword();
                 dialogKunciSesi = null;
@@ -17269,6 +17659,45 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
             }
         };
         // Verifikasi tidak memblokir EDT/modal event loop dan timer alarm lab.
+        workerBukaSesi.execute();
+    }
+
+    private void gantiCaptchaSesi() {
+        if (dialogKunciSesi == null || workerBukaSesi != null || timerTungguLogin != null) return;
+        final SessionLockDialog dialog = dialogKunciSesi;
+        final String user = usernameSesi;
+        final String previousId = dialog.getCaptchaId();
+        final LoginSessionGuard.Ticket ticket = pemantauSesiTunggal.ticket();
+        if (previousId.isEmpty()) return;
+        dialog.setBusy(true);
+        dialog.setStatus("Memuat gambar CAPTCHA...");
+        workerBukaSesi = new SwingWorker<LoginAttemptGuard.Result, Void>() {
+            @Override protected LoginAttemptGuard.Result doInBackground() throws Exception {
+                return pengamanLogin.refreshCaptcha(user, "BUKA_SESI", previousId, ticket);
+            }
+            @Override protected void done() {
+                if (workerBukaSesi != this || dialogKunciSesi != dialog
+                        || !user.equals(usernameSesi) || !kunciSesi.isLocked()) return;
+                workerBukaSesi = null;
+                dialog.setBusy(false);
+                try {
+                    LoginAttemptGuard.Result hasil = get();
+                    if (hasil.isSessionRevoked()) {
+                        akhiriSesiTunggal(false);
+                        return;
+                    }
+                    dialog.setCaptcha(hasil.getCaptcha());
+                    if (hasil.isLocked()) tampilkanTungguLogin(user, hasil, dialog);
+                    else {
+                        dialog.setStatus("Ketik kode CAPTCHA pada gambar baru.");
+                        dialog.focusCaptcha();
+                    }
+                } catch (Exception exception) {
+                    dialog.setStatus("CAPTCHA belum dapat dimuat. Periksa koneksi atau hubungi Tim IT.");
+                    catatGangguanPengamanLogin(exception);
+                }
+            }
+        };
         workerBukaSesi.execute();
     }
 
@@ -17679,12 +18108,9 @@ private javax.swing.ImageIcon getUserIcon(String nik) {
 }
 
 // Method untuk menangani kegagalan login
-private void handleLoginFailure() {
+private void handleLoginFailure(String pesan) {
 	hentikanRujukanMasukSatuSehat();
-//    JOptionPane.showMessageDialog(this, "Username atau Password salah!", "Login Gagal", JOptionPane.ERROR_MESSAGE);
-    Notifications.getInstance().show(
-                Notifications.Type.ERROR,                Notifications.Location.TOP_CENTER,
-                "Username atau Password salah!"        );
+    tampilkanPesanLogin(pesan, true);
     edAdmin.requestFocus();
     BtnMenu.setEnabled(false);
     BtnLog.setText("Log In");

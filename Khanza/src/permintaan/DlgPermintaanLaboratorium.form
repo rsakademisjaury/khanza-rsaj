@@ -1047,7 +1047,7 @@
                         </Component>
                         <Component class="widget.Label" name="jLabel12">
                           <Properties>
-                            <Property name="text" type="java.lang.String" value="Diperoleh Dengan :"/>
+                            <Property name="text" type="java.lang.String" value="Cara Mendapatkan Jaringan :"/>
                             <Property name="name" type="java.lang.String" value="jLabel12" noResource="true"/>
                           </Properties>
                           <Constraints>
@@ -1074,7 +1074,7 @@
                         </Component>
                         <Component class="widget.Label" name="jLabel14">
                           <Properties>
-                            <Property name="text" type="java.lang.String" value="Lokasi Pengambilan Jaringan :"/>
+                            <Property name="text" type="java.lang.String" value="Lokasi/Bahan Jaringan :"/>
                             <Property name="name" type="java.lang.String" value="jLabel14" noResource="true"/>
                           </Properties>
                           <Constraints>
@@ -1101,7 +1101,7 @@
                         </Component>
                         <Component class="widget.Label" name="jLabel16">
                           <Properties>
-                            <Property name="text" type="java.lang.String" value="Diawetkan/Direndam Dengan :"/>
+                            <Property name="text" type="java.lang.String" value="Cairan Fiksasi :"/>
                             <Property name="name" type="java.lang.String" value="jLabel16" noResource="true"/>
                           </Properties>
                           <Constraints>

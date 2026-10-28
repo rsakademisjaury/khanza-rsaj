@@ -298,8 +298,8 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
     private boolean muatUlangKasirRSAJ = false;
 
     // RSAJ HEADER V7 - layout identitas dibangun ulang di luar generated code NetBeans.
-    // No. Reg dan No. Kartu tetap dipertahankan sebagai komponen internal karena masih
-    // dipakai fungsi lain, tetapi tidak lagi ditampilkan pada header.
+    // No. Reg tetap internal; No. Kartu ditampilkan setelah No. Antrian Obat
+    // menggunakan komponen dan sumber data kolom 28 yang sudah ada.
     private javax.swing.JPanel panelHeaderInfoRSAJ;
     private javax.swing.plaf.LabelUI uiSepNormalRSAJ;
     private boolean sedangAturHeaderRSAJ=false;
@@ -311,6 +311,12 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
     public DlgKasirRalan(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+         // RSAJ: pintu masuk terpisah; handler surat dan SKDP lama tetap dipakai.
+         javax.swing.JMenuItem lepasRawatMandiri = new javax.swing.JMenuItem("Surat Lepas Rawat");
+         lepasRawatMandiri.setFont(new java.awt.Font("Segoe UI", 0, 12));
+         lepasRawatMandiri.addActionListener(e -> bridging.SuratLepasRawatForm.buka(this, TNoRMCari.getText(), ""));
+         MnSuratSurat.add(lepasRawatMandiri);
+
         initHeaderKasirRalanRSAJ();
         initKasirRalan();
         initMenuKFR();
@@ -931,10 +937,11 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             NoSEP1.setText("Rujukan Terbaru");
             NoSEP2.setText("Expire");
             LblAntrianFarmasi.setText("No. Antrian Obat");
+            NoSEP3.setText("No. Kartu");
 
             widget.Label[] judul = {
                 jLabel4, jLabel8, jLabel7, NoSEP,
-                NoSEP1, NoSEP2, LblAntrianFarmasi
+                NoSEP1, NoSEP2, LblAntrianFarmasi, NoSEP3
             };
             for (widget.Label label : judul) {
                 label.setFont(fontJudul);
@@ -946,7 +953,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
 
             widget.Label[] nilai = {
                 TNoRwCari, TPasienCari, TNoRMCari, TSEPCari,
-                RujukanTerbaru, RujukanExpire, TAntrianFarmasi
+                RujukanTerbaru, RujukanExpire, TAntrianFarmasi, NoKartu
             };
             for (widget.Label label : nilai) {
                 label.setFont(fontNilai);
@@ -969,11 +976,12 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
             setIconHeaderRSAJ(LblIconRujukanTerbaru, "/picture/rujukan_terbaru.png");
             setIconHeaderRSAJ(LblIconRujukanExpire, "/picture/expire.png");
             setIconHeaderRSAJ(LblIconAntrianFarmasi, "/picture/antrian_obat.png");
+            setIconHeaderRSAJ(LblIconNoKartu, "/picture/no_rm.png");
 
             widget.Label[] semuaIcon = {
                 LblIconNoRawat, LblIconNamaPasien, LblIconNoRM,
                 LblIconSEP, LblIconRujukanTerbaru, LblIconRujukanExpire,
-                LblIconAntrianFarmasi
+                LblIconAntrianFarmasi, LblIconNoKartu
             };
             for (widget.Label icon : semuaIcon) {
                 icon.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -1150,6 +1158,8 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconRujukanExpire, NoSEP2, RujukanExpire, null);
         tambahSeparatorHeaderRSAJ(panelHeaderInfoRSAJ);
         tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconAntrianFarmasi, LblAntrianFarmasi, TAntrianFarmasi, null);
+        tambahSeparatorHeaderRSAJ(panelHeaderInfoRSAJ);
+        tambahBlokHeaderRSAJ(panelHeaderInfoRSAJ, LblIconNoKartu, NoSEP3, NoKartu, null);
         panelHeaderInfoRSAJ.add(javax.swing.Box.createHorizontalGlue());
 
         javax.swing.JScrollPane scrollInfo = new javax.swing.JScrollPane(
@@ -1214,7 +1224,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         };
         widget.Label[] nilai = {
             TNoRwCari, TPasienCari, TNoRMCari, TSEPCari,
-            RujukanTerbaru, RujukanExpire, TAntrianFarmasi
+            RujukanTerbaru, RujukanExpire, TAntrianFarmasi, NoKartu
         };
         for (widget.Label label : nilai) {
             label.addPropertyChangeListener(listener);
@@ -1309,6 +1319,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         sesuaikanLebarNilaiHeaderRSAJ(RujukanTerbaru, NoSEP1);
         sesuaikanLebarNilaiHeaderRSAJ(RujukanExpire, NoSEP2);
         sesuaikanLebarNilaiHeaderRSAJ(TAntrianFarmasi, LblAntrianFarmasi);
+        sesuaikanLebarNilaiHeaderRSAJ(NoKartu, NoSEP3);
         if (panelHeaderInfoRSAJ != null) {
             panelHeaderInfoRSAJ.invalidate();
             panelHeaderInfoRSAJ.revalidate();
@@ -7878,7 +7889,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         NoKartu.setName("NoKartu"); // NOI18N
         NoKartu.setPreferredSize(new java.awt.Dimension(140, 23));
 
-        NoSEP3.setText("No. Kartu :");
+        NoSEP3.setText("No. Kartu");
         NoSEP3.setName("NoSEP3"); // NOI18N
         NoSEP3.setPreferredSize(new java.awt.Dimension(50, 23));
 
@@ -8008,7 +8019,7 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         LblIconRujukanExpire.setPreferredSize(new java.awt.Dimension(26, 44));
 
         LblIconNoKartu.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        LblIconNoKartu.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/invoice (2).png"))); // NOI18N
+        LblIconNoKartu.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/no_rm.png"))); // NOI18N
         LblIconNoKartu.setName("LblIconNoKartu"); // NOI18N
         LblIconNoKartu.setPreferredSize(new java.awt.Dimension(26, 44));
 

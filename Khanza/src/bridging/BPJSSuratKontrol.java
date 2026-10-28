@@ -304,6 +304,9 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             JADIKANBOOKINGSURATKONTROLAPIBPJS="no";
         }
         inisialisasiPulangBPJS();
+        javax.swing.JMenuItem kelolaLepasRawat = new javax.swing.JMenuItem("Kelola Surat Lepas Rawat");
+        kelolaLepasRawat.addActionListener(e -> SuratLepasRawatForm.buka(this, NoRM.getText(), NoSurat.getText()));
+        jPopupMenu1.add(kelolaLepasRawat);
     }
     
     /** This method is called from within the constructor to
@@ -1443,7 +1446,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             System.out.println("message : " + nameNode.path("message").asText());
             if(nameNode.path("code").asText().equals("200")){
                 response = mapper.readTree(api.Decrypt(root.path("response").asText(), utc)).path("noSuratKontrol");
-                if(Sequel.menyimpantf("bridging_surat_kontrol_bpjs", "?,?,?,?,?,?,?,?", "No.Surat", 8, new String[]{
+                if(SuratLepasRawatAudit.simpan(Sequel, koneksi, "bridging_surat_kontrol_bpjs", "?,?,?,?,?,?,?,?", "No.Surat", 8, new String[]{
                         NoSEP.getText(), Valid.SetTgl(TanggalSurat.getSelectedItem() + ""), response.asText(), 
                         Valid.SetTgl(TanggalKontrol.getSelectedItem() + ""), KdDokter.getText(), NmDokter.getText(), 
                         KdPoli.getText(), NmPoli.getText()
@@ -1716,6 +1719,8 @@ private void ChkInputActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     }//GEN-LAST:event_DTPTanggalKontrol2KeyPressed
 
     private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnEditActionPerformed
+        if (SuratLepasRawatForm.arahkanEditTanggal(this, koneksi, NoSurat.getText(),
+                Valid.SetTgl(TanggalKontrol.getSelectedItem() + ""))) return;
 if (NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")) {
         Valid.textKosong(NoRawat, "pasien");
     } else if (NmDokter.getText().trim().equals("") || KdDokter.getText().trim().equals("")) {
@@ -1750,7 +1755,7 @@ if (NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")) {
                 System.out.println("code : " + nameNode.path("code").asText());
                 System.out.println("message : " + nameNode.path("message").asText());
                 if (nameNode.path("code").asText().equals("200")) {
-                    if (Sequel.mengedittf("bridging_surat_kontrol_bpjs", "no_surat=?", 
+                    if (SuratLepasRawatAudit.edit(Sequel, koneksi, "bridging_surat_kontrol_bpjs", "no_surat=?",
                             "tgl_surat=?,tgl_rencana=?,kd_dokter_bpjs=?,nm_dokter_bpjs=?,kd_poli_bpjs=?,nm_poli_bpjs=?", 
                             7, new String[] {
                                 Valid.SetTgl(TanggalSurat.getSelectedItem() + ""), 
@@ -3298,16 +3303,20 @@ private File findFolderRecursively(File dir, String folderName) {
                 "no_sep=values(no_sep),tgl_surat=values(tgl_surat),tgl_rencana=values(tgl_rencana)," +
                 "kd_dokter_bpjs=values(kd_dokter_bpjs),nm_dokter_bpjs=values(nm_dokter_bpjs)," +
                 "kd_poli_bpjs=values(kd_poli_bpjs),nm_poli_bpjs=values(nm_poli_bpjs)";
-        try (PreparedStatement simpan = koneksi.prepareStatement(sql)) {
-            simpan.setString(1,nomorSEP);
-            simpan.setString(2,tanggalSurat);
-            simpan.setString(3,nomorSurat);
-            simpan.setString(4,tanggalKontrol);
-            simpan.setString(5,kodeDokter);
-            simpan.setString(6,namaDokter);
-            simpan.setString(7,kodePoli);
-            simpan.setString(8,namaPoli);
-            simpan.executeUpdate();
+        synchronized (koneksi) {
+            try (SuratLepasRawatAudit audit = new SuratLepasRawatAudit(koneksi, fungsi.akses.getkode(),
+                    "TARIK_VCLAIM", "Penyesuaian sesuai data VClaim", null);
+                    PreparedStatement simpan = koneksi.prepareStatement(sql)) {
+                simpan.setString(1,nomorSEP);
+                simpan.setString(2,tanggalSurat);
+                simpan.setString(3,nomorSurat);
+                simpan.setString(4,tanggalKontrol);
+                simpan.setString(5,kodeDokter);
+                simpan.setString(6,namaDokter);
+                simpan.setString(7,kodePoli);
+                simpan.setString(8,namaPoli);
+                simpan.executeUpdate();
+            }
         }
 
         HasilTarikSuratKontrol hasil = new HasilTarikSuratKontrol();
@@ -3637,6 +3646,65 @@ private void tampil() {
     // Tombol ini diaktifkan jika pengguna memiliki level akses Admin Utama
     BtnHapus.setEnabled(akses.getadmin());
     terapkanKunciPulangBPJS();
+    }
+
+    /** Dipanggil form mandiri; selalu pilih surat persis dari DB, bukan indeks lama. */
+    public void prosesLepasRawat(String nomorSurat, boolean upload) throws Exception {
+        pilihSuratLepasRawat(nomorSurat);
+        if (upload) BtnUploadLepasRawatActionPerformed(null);
+        else MnSuratLepasRawatActionPerformed(null);
+    }
+
+    private void pilihSuratLepasRawat(String nomorSurat) throws Exception {
+        if (!akses.getbpjs_surat_kontrol()) throw new Exception("Hak akses Surat Kontrol BPJS tidak tersedia.");
+        if (nomorSurat==null||!nomorSurat.matches("[A-Za-z0-9._-]{1,40}")) throw new Exception("Nomor surat tidak valid.");
+        try (PreparedStatement cek = koneksi.prepareStatement(
+                "select tgl_surat from bridging_surat_kontrol_bpjs where no_surat=?")) {
+            cek.setString(1, nomorSurat);
+            try (ResultSet hasil = cek.executeQuery()) {
+                if (!hasil.next()) throw new Exception("Surat Kontrol tidak ditemukan. Muat ulang daftar.");
+                R1.setSelected(true);
+                Valid.SetTgl(DTPTanggalSurat1, hasil.getString(1));
+                Valid.SetTgl(DTPTanggalSurat2, hasil.getString(1));
+            }
+        }
+        TCari.setText(nomorSurat);
+        tampil();
+        for (int baris=0; baris<tbObat.getRowCount(); baris++) {
+            if (nomorSurat.equals(tbObat.getValueAt(baris,9))) {
+                tbObat.setRowSelectionInterval(baris,baris);
+                getData();
+                return;
+            }
+        }
+        throw new Exception("Surat Kontrol tidak berhasil dimuat untuk cetak/upload.");
+    }
+
+    /** Dipanggil di EDT; hanya membuat file sementara milik satu pekerjaan penggantian. */
+    public java.util.List<File> siapkanFileLepasRawat(String nomorSurat,String prefix) throws Exception {
+        if(prefix==null||!prefix.matches("SLR_[A-Za-z0-9_]+")) throw new Exception("Nama file sementara tidak valid.");
+        pilihSuratLepasRawat(nomorSurat);
+        File pdf=new File("tmpPDF",prefix+".pdf");
+        HapusJPGLepasRawat(prefix);
+        java.nio.file.Files.deleteIfExists(pdf.toPath());
+        boolean lengkap=false;
+        try {
+            CreatePDFLepasRawat(prefix);
+            if(!pdf.isFile()||pdf.length()==0) throw new Exception("PDF Lepas Rawat baru belum berhasil dibuat.");
+            int halaman;
+            try(PDDocument doc=PDDocument.load(pdf)) { halaman=doc.getNumberOfPages(); }
+            if(halaman<1) throw new Exception("PDF Lepas Rawat baru tidak memiliki halaman.");
+            ConvertPDFtoJPGLepasRawat(prefix);
+            java.util.List<File> files=new java.util.ArrayList<>();
+            for(int p=1;p<=halaman;p++) {
+                File file=new File("tmpJPG",prefix+(halaman==1?"":"_page_"+p)+".jpg");
+                if(!file.isFile()||file.length()==0) throw new Exception("Halaman Lepas Rawat baru belum lengkap.");
+                files.add(file);
+            }
+            lengkap=true;return files;
+        } finally {
+            if(!lengkap) { HapusJPGLepasRawat(prefix);java.nio.file.Files.deleteIfExists(pdf.toPath()); }
+        }
     }
 
     public JTable getTable(){
@@ -4196,6 +4264,9 @@ private void UploadJPGLepasRawat(String FileName, String docpath, String noRawat
                 }
 
                 if (uploadSuccess) {
+                    SuratLepasRawatBerkas.catatUploadManual(koneksi,
+                            tbObat.getValueAt(tbObat.getSelectedRow(),9).toString(),
+                            noRawatUpload,kodeBerkasLepasRawat,filePath,akses.getkode());
                     System.out.println("Upload Surat Lepas Rawat berhasil: " + jpgFile.getName());
                 } else {
                     semuaBerhasil = false;
