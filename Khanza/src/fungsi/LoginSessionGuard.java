@@ -8,7 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Batas komputer per akun; setiap aplikasi memiliki ticket terpisah. */
+/** Batas komputer per akun yang dapat dimatikan; setiap aplikasi memiliki ticket terpisah. */
 public final class LoginSessionGuard {
     @FunctionalInterface
     public interface ConnectionFactory { Connection open() throws SQLException; }
@@ -27,20 +27,42 @@ public final class LoginSessionGuard {
         this.writes = writes; this.reads = reads;
     }
 
+    /** Dibaca ulang tanpa cache agar perubahan status berlaku pada sesi berjalan. */
+    private static boolean singleLoginEnabled(Connection c) throws SQLException {
+        try (PreparedStatement q = prepare(c,
+                "select status from rsaj_login_session_setting where id=1");
+             ResultSet row = q.executeQuery()) {
+            // Instalasi lama tetap memakai perilaku ON sampai migrasi dipasang.
+            if (!row.next()) return true;
+            String status = row.getString(1);
+            if ("0".equals(status)) return false;
+            if ("1".equals(status)) return true;
+            throw new SQLException("Status single login harus 0 atau 1.");
+        } catch (SQLException exception) {
+            // Hanya tabel baru yang belum ada boleh menggunakan default ON.
+            // Gangguan koneksi, izin SELECT, dan konfigurasi rusak tetap dilaporkan.
+            if (exception.getErrorCode() == 1146 && "42S02".equals(exception.getSQLState())) return true;
+            throw exception;
+        }
+    }
+
     // Guard autentikasi telah mengunci baris rsaj_login_security akun yang sama.
     static Ticket claim(Connection c, String accountKey, String username, String deviceId) throws SQLException {
         if (deviceId == null || !deviceId.matches("[0-9a-f]{64}")) throw new SQLException("Identitas komputer tidak valid.");
-        int maximum = 1;
-        try (PreparedStatement q = prepare(c, "select max_devices,aktif from rsaj_login_multi_device "
+        int maximum = Integer.MAX_VALUE;
+        if (singleLoginEnabled(c)) {
+            maximum = 1;
+            try (PreparedStatement q = prepare(c, "select max_devices,aktif from rsaj_login_multi_device "
                 + "where username=? and binary username=binary ?")) {
-            q.setString(1, username); q.setString(2, username);
-            try (ResultSet row = q.executeQuery()) {
-                if (row.next()) {
-                    int active = row.getInt(2), configured = row.getInt(1);
-                    if (active != 0 && active != 1) throw new SQLException("Pengaturan komputer aktif tidak valid.");
-                    if (active == 1) {
-                        if (configured < 1 || configured > 2) throw new SQLException("Batas komputer hanya satu atau dua.");
-                        maximum = configured;
+                q.setString(1, username); q.setString(2, username);
+                try (ResultSet row = q.executeQuery()) {
+                    if (row.next()) {
+                        int active = row.getInt(2), configured = row.getInt(1);
+                        if (active != 0 && active != 1) throw new SQLException("Pengaturan komputer aktif tidak valid.");
+                        if (active == 1) {
+                            if (configured < 1 || configured > 2) throw new SQLException("Batas komputer hanya satu atau dua.");
+                            maximum = configured;
+                        }
                     }
                 }
             }
@@ -98,6 +120,8 @@ public final class LoginSessionGuard {
 
     static boolean current(Connection c, Ticket ticket, String accountKey, boolean lock) throws SQLException {
         if (ticket == null || !ticket.accountKey.equals(accountKey)) return false;
+        // BUKA_SESI tetap memeriksa password/CAPTCHA melalui LoginAttemptGuard.
+        if (!singleLoginEnabled(c)) return true;
         try (PreparedStatement q = prepare(c, CURRENT + (lock ? " for update" : ""))) {
             bind(q, ticket); try (ResultSet row = q.executeQuery()) { return row.next(); }
         }
@@ -109,15 +133,18 @@ public final class LoginSessionGuard {
         boolean renew;
         try (Connection c = reads.open()) {
             if (c == null) throw new SQLException("Koneksi pemeriksaan sesi tidak tersedia.");
+            boolean enabled = singleLoginEnabled(c);
             try (PreparedStatement q = prepare(c, CURRENT)) {
                 bind(q, ticket);
                 try (ResultSet row = q.executeQuery()) {
-                    if (!row.next()) return false;
+                    if (!row.next()) return !enabled;
                     renew = row.getBoolean(1);
                 }
             }
         }
         if (!renew) return true;
+        // Lease tetap diperbarui saat OFF supaya tiket aktif tidak kedaluwarsa
+        // semata-mata karena fitur dimatikan. OFF tidak mencabut tiket pengguna.
         try (Connection c = writes.open()) {
             if (c == null) throw new SQLException("Koneksi perpanjangan sesi tidak tersedia.");
             try (PreparedStatement q = prepare(c, "update rsaj_login_instance "

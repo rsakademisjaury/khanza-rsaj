@@ -25,7 +25,7 @@ public final class LabPABahanPanel extends JPanel {
         for(int n=0;n<keys.length;n++){
             JTextComponent c;
             // Komponen lama dipakai kembali, termasuk batasInput dan key handler-nya.
-            if(lama.length==6 && n>=1 && n<=6)c=lama[n-1];else c=new JTextArea(1,15);
+            if(lama.length==6 && n>=1 && n<=6)c=lama[n-1];else c=new TextAreaPA();
             c.setFont(new Font("Segoe UI",Font.PLAIN,12));c.setBackground(Color.WHITE);
             if(c instanceof JTextArea){((JTextArea)c).setLineWrap(true);((JTextArea)c).setWrapStyleWord(true);}
             controls.put(keys[n],c);labels.put(keys[n],names[n]);
@@ -46,6 +46,17 @@ public final class LabPABahanPanel extends JPanel {
     private final Map<String,JPanel> wrappers=new HashMap<>();
     private void rebuild(){
         rows.removeAll();int row=0;
+        if(!hasil){
+            java.util.List<String> aktif=new ArrayList<>();
+            for(String key:controls.keySet())if(visible(key)){
+                aktif.add(key);if(key.equals("rsSebelum")&&tanggalRiwayatPA!=null)aktif.add("tanggalRiwayatPA");
+            }
+            for(int n=0;n<aktif.size();n++){
+                int lebar=n==aktif.size()-1&&n%2==0?2:1;
+                tambahInputPermintaan(aktif.get(n),n%2,n/2,lebar);
+            }
+            revalidate();repaint();return;
+        }
         for(String key:controls.keySet())if(visible(key)){
             // Hanya panel hasil: dua pasangan bahan ditampilkan dalam dua kolom.
             // Form permintaan tetap memakai susunan satu kolom sebelumnya.
@@ -60,13 +71,47 @@ public final class LabPABahanPanel extends JPanel {
             if(wrapper==null){wrapper=new Input(controls.get(key));wrappers.put(key,wrapper);}
             rows.add(wrapper,c);
             if(!kiri)row+=2;
-            if(!hasil&&key.equals("rsSebelum")&&tanggalRiwayatPA!=null){
-                JLabel tanggal=new JLabel("Riwayat PA Tgl. :");tanggal.setFont(new Font("Segoe UI",Font.PLAIN,12));tanggal.setForeground(new Color(53,74,96));
-                c.gridx=0;c.gridwidth=2;c.gridy=row++;c.insets=new Insets(5,0,2,0);rows.add(tanggal,c);
-                c.gridy=row++;c.insets=new Insets(0,0,2,0);rows.add(tanggalRiwayatPA,c);
-            }
+
         }
         revalidate();repaint();
+    }
+    private void tambahInputPermintaan(String key,int kolom,int baris,int lebar){
+        boolean tanggal=key.equals("tanggalRiwayatPA");
+        JLabel label=new JLabel((tanggal?"Riwayat PA Tgl.":labels.get(key))+" :");
+        label.setFont(new Font("Segoe UI",Font.PLAIN,12));label.setForeground(new Color(53,74,96));
+        GridBagConstraints c=new GridBagConstraints();c.gridx=kolom;c.gridy=baris*2;c.gridwidth=lebar;c.weightx=1;
+        c.fill=GridBagConstraints.HORIZONTAL;c.anchor=GridBagConstraints.NORTHWEST;
+        c.insets=new Insets(5,kolom==1?6:0,2,lebar==1&&kolom==0?6:0);rows.add(label,c);
+        c.gridy++;c.insets=new Insets(0,kolom==1?6:0,2,lebar==1&&kolom==0?6:0);
+        if(tanggal)rows.add(tanggalRiwayatPA,c);
+        else{
+            JPanel wrapper=wrappers.get(key);
+            if(wrapper==null){wrapper=new Input(controls.get(key));wrappers.put(key,wrapper);}
+            rows.add(wrapper,c);
+        }
+    }
+    // Renderer hanya untuk input PA; tidak memanggil painter glass/Nimbus yang
+    // dapat menggambar garis tambahan di dalam komponen teks.
+    public static widget.TextBox buatTextBoxPA(){return new TextBoxPA();}
+    private static final class TextBoxPA extends widget.TextBox {
+        @Override public void updateUI(){setUI(new javax.swing.plaf.basic.BasicTextFieldUI());}
+        @Override public void paint(Graphics g){paintComponent(g);}
+        @Override protected void paintComponent(Graphics g){
+            Graphics copy=g.create();try{if(getUI()!=null)getUI().paint(copy,this);}finally{copy.dispose();}
+        }
+        @Override protected void paintBorder(Graphics g){}
+    }
+    private static final class TextAreaPA extends JTextArea {
+        TextAreaPA(){super(1,15);}
+        @Override public void updateUI(){setUI(new javax.swing.plaf.basic.BasicTextAreaUI());}
+        @Override protected void paintBorder(Graphics g){}
+    }
+    private static final class ScrollPA extends JScrollPane {
+        ScrollPA(JTextArea text){super(text);}
+        @Override public void updateUI(){
+            setUI(new javax.swing.plaf.basic.BasicScrollPaneUI());
+            setBorder(BorderFactory.createEmptyBorder());setViewportBorder(BorderFactory.createEmptyBorder());
+        }
     }
     /** Pada hasil PA, nomor dan combo jenis yang sama dipasang dalam satu baris. */
     public void setNomorPAField(JTextField nomor){
@@ -131,10 +176,11 @@ public final class LabPABahanPanel extends JPanel {
         private final boolean garisBawaan;
         private boolean pending;
         Input(JTextComponent text){
-            super(new BorderLayout());this.text=text;garisBawaan=text instanceof widget.TextBox;
+            super(new BorderLayout());this.text=text;garisBawaan=text instanceof widget.TextBox&&!(text instanceof TextBoxPA);
             setBackground(Color.WHITE);setBorder(BorderFactory.createEmptyBorder(2,2,2,2));
             text.setBorder(BorderFactory.createEmptyBorder(4,8,4,8));
-            if(text instanceof JTextArea){scroll=new JScrollPane(text);scroll.setBorder(null);scroll.setViewportBorder(null);
+            if(text instanceof JTextArea){scroll=new ScrollPA((JTextArea)text);
+                scroll.getViewport().setBackground(Color.WHITE);
                 scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
                 add(scroll,BorderLayout.CENTER);
             }else{scroll=null;add(text,BorderLayout.CENTER);}

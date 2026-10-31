@@ -20,8 +20,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -42,19 +42,18 @@ public class DlgCariPermintaanLabPA extends javax.swing.JDialog {
     private sekuel Sequel=new sekuel();
     private validasi Valid=new validasi();
     private Connection koneksi=koneksiDB.condb();
-    private int i,nilai_detik,permintaanbaru=0;
+    private int i,permintaanbaru=0;
     private PreparedStatement ps,ps2;
     private ResultSet rs,rs2;
     private DlgCariDokter dokter=new DlgCariDokter(null,false);
     private DlgCariPoli poli=new DlgCariPoli(null,false);
     private DlgCariBangsal ruang=new DlgCariBangsal(null,false);
     private BackgroundMusic music;
-    private Date now;
-    private boolean aktif=false,semua;
-    private String pilihan="",alarm="",formalarm="",nol_detik,detik,tglsampel="",tglhasil="",norm="",kamar="",namakamar="",InformasiTambahan,DiagnosaKlinis,
+    private boolean semua;
+    private String pilihan="",alarm="",formalarm="",tglsampel="",tglhasil="",norm="",kamar="",namakamar="",InformasiTambahan,DiagnosaKlinis,
                     tanggalbahan,diperolehdengan,lokasijaringan,diawetkandengan,pernahdilakukandi,tanggalpa,diagnosapa,nomorpa,
                     NoPermintaan="",NoRawat="",Pasien="",Permintaan="",JamPermintaan="",Sampel="",JamSampel="",Hasil="",JamHasil="",KodeDokter="",DokterPerujuk="",Ruang="",
-                    itempermintaan="",finger="";
+                    finger="";
     
     
     /** Creates new form DlgProgramStudi
@@ -85,7 +84,7 @@ public class DlgCariPermintaanLabPA extends javax.swing.JDialog {
             }else if(i==1){
                 column.setPreferredWidth(105);
             }else if(i==2){
-                column.setPreferredWidth(200);
+                column.setPreferredWidth(320);
             }else if(i==3){
                 column.setPreferredWidth(65);
             }else if(i==4){
@@ -131,7 +130,8 @@ public class DlgCariPermintaanLabPA extends javax.swing.JDialog {
             }else if(i==23){
                 column.setPreferredWidth(150);
             }else if(i==24){
-                column.setPreferredWidth(200);
+                column.setMinWidth(0);
+                column.setMaxWidth(0);
             }
         }
         
@@ -230,7 +230,7 @@ public class DlgCariPermintaanLabPA extends javax.swing.JDialog {
             }else if(i==1){
                 column.setPreferredWidth(105);
             }else if(i==2){
-                column.setPreferredWidth(200);
+                column.setPreferredWidth(320);
             }else if(i==3){
                 column.setPreferredWidth(65);
             }else if(i==4){
@@ -276,7 +276,8 @@ public class DlgCariPermintaanLabPA extends javax.swing.JDialog {
             }else if(i==23){
                 column.setPreferredWidth(150);
             }else if(i==24){
-                column.setPreferredWidth(200);
+                column.setMinWidth(0);
+                column.setMaxWidth(0);
             }
         }
         
@@ -1247,45 +1248,49 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
                     
                     Sequel.queryu("delete from temporary_permintaan_lab");
                     int row=tabMode.getRowCount();
-                    for(i=0;i<row;i++){  
+                    for(i=0;i<row;i++){
+                        if (PermintaanLabPATable.teks(tabMode, i, 0).isEmpty()) {
+                            continue;
+                        }
+                        String[] dataCetak = PermintaanLabPATable.dataPermintaan(tabMode, i);
                         tglsampel="";
                         try {
-                            tglsampel=tabMode.getValueAt(i,5).toString();
+                            tglsampel=dataCetak[5];
                         } catch (Exception e) {
                             tglsampel="";
                         }
                         tglhasil="";
                         try {
-                            tglhasil=tabMode.getValueAt(i,7).toString();
+                            tglhasil=dataCetak[7];
                         } catch (Exception e) {
                             tglhasil="";
                         }
                         Sequel.menyimpan("temporary_permintaan_lab","'0','"+
-                            tabMode.getValueAt(i,0).toString()+"','"+
-                            tabMode.getValueAt(i,1).toString()+"','"+
-                            tabMode.getValueAt(i,2).toString()+"','"+
-                            tabMode.getValueAt(i,3).toString()+"','"+
-                            tabMode.getValueAt(i,4).toString()+"','"+
+                            dataCetak[0]+"','"+
+                            dataCetak[1]+"','"+
+                            dataCetak[2]+"','"+
+                            dataCetak[3]+"','"+
+                            dataCetak[4]+"','"+
                             tglsampel+"','"+
-                            tabMode.getValueAt(i,6).toString()+"','"+
+                            dataCetak[6]+"','"+
                             tglhasil+"','"+
-                            tabMode.getValueAt(i,8).toString()+"','"+
-                            tabMode.getValueAt(i,9).toString()+"','"+
-                            tabMode.getValueAt(i,10).toString()+"','"+
-                            tabMode.getValueAt(i,11).toString()+"','"+
-                            tabMode.getValueAt(i,12).toString()+"','"+
-                            tabMode.getValueAt(i,13).toString()+"','"+
-                            tabMode.getValueAt(i,14).toString()+"','"+
-                            tabMode.getValueAt(i,15).toString()+"','"+
-                            tabMode.getValueAt(i,16).toString()+"','"+
-                            tabMode.getValueAt(i,17).toString()+"','"+
-                            tabMode.getValueAt(i,18).toString()+"','"+
-                            tabMode.getValueAt(i,19).toString()+"','"+
-                            tabMode.getValueAt(i,20).toString()+"','"+
-                            tabMode.getValueAt(i,21).toString()+"','"+
-                            tabMode.getValueAt(i,22).toString()+"','"+
-                            tabMode.getValueAt(i,23).toString()+"','"+
-                            tabMode.getValueAt(i,24).toString()+"','','','','','','','','','','','',''","Periksa Lab"); 
+                            dataCetak[8]+"','"+
+                            dataCetak[9]+"','"+
+                            dataCetak[10]+"','"+
+                            dataCetak[11]+"','"+
+                            dataCetak[12]+"','"+
+                            dataCetak[13]+"','"+
+                            dataCetak[14]+"','"+
+                            dataCetak[15]+"','"+
+                            dataCetak[16]+"','"+
+                            dataCetak[17]+"','"+
+                            dataCetak[18]+"','"+
+                            dataCetak[19]+"','"+
+                            dataCetak[20]+"','"+
+                            dataCetak[21]+"','"+
+                            dataCetak[22]+"','"+
+                            dataCetak[23]+"','"+
+                            dataCetak[24]+"','','','','','','','','','','','',''","Periksa Lab");
                     }
                     
                     Map<String, Object> param = new HashMap<>();
@@ -1367,45 +1372,49 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
                     
                     Sequel.queryu("delete from temporary_permintaan_lab");
                     int row=tabMode3.getRowCount();
-                    for(i=0;i<row;i++){  
+                    for(i=0;i<row;i++){
+                        if (PermintaanLabPATable.teks(tabMode3, i, 0).isEmpty()) {
+                            continue;
+                        }
+                        String[] dataCetak = PermintaanLabPATable.dataPermintaan(tabMode3, i);
                         tglsampel="";
                         try {
-                            tglsampel=tabMode3.getValueAt(i,5).toString();
+                            tglsampel=dataCetak[5];
                         } catch (Exception e) {
                             tglsampel="";
                         }
                         tglhasil="";
                         try {
-                            tglhasil=tabMode3.getValueAt(i,7).toString();
+                            tglhasil=dataCetak[7];
                         } catch (Exception e) {
                             tglhasil="";
                         }
                         Sequel.menyimpan("temporary_permintaan_lab","'0','"+
-                            tabMode3.getValueAt(i,0).toString()+"','"+
-                            tabMode3.getValueAt(i,1).toString()+"','"+
-                            tabMode3.getValueAt(i,2).toString()+"','"+
-                            tabMode3.getValueAt(i,3).toString()+"','"+
-                            tabMode3.getValueAt(i,4).toString()+"','"+
+                            dataCetak[0]+"','"+
+                            dataCetak[1]+"','"+
+                            dataCetak[2]+"','"+
+                            dataCetak[3]+"','"+
+                            dataCetak[4]+"','"+
                             tglsampel+"','"+
-                            tabMode3.getValueAt(i,6).toString()+"','"+
+                            dataCetak[6]+"','"+
                             tglhasil+"','"+
-                            tabMode3.getValueAt(i,8).toString()+"','"+
-                            tabMode3.getValueAt(i,9).toString()+"','"+
-                            tabMode3.getValueAt(i,10).toString()+"','"+
-                            tabMode3.getValueAt(i,11).toString()+"','"+
-                            tabMode3.getValueAt(i,12).toString()+"','"+
-                            tabMode3.getValueAt(i,13).toString()+"','"+
-                            tabMode3.getValueAt(i,14).toString()+"','"+
-                            tabMode3.getValueAt(i,15).toString()+"','"+
-                            tabMode3.getValueAt(i,16).toString()+"','"+
-                            tabMode3.getValueAt(i,17).toString()+"','"+
-                            tabMode3.getValueAt(i,18).toString()+"','"+
-                            tabMode3.getValueAt(i,19).toString()+"','"+
-                            tabMode3.getValueAt(i,20).toString()+"','"+
-                            tabMode3.getValueAt(i,21).toString()+"','"+
-                            tabMode3.getValueAt(i,22).toString()+"','"+
-                            tabMode3.getValueAt(i,23).toString()+"','"+
-                            tabMode3.getValueAt(i,24).toString()+"','','','','','','','','','','','',''","Periksa Lab"); 
+                            dataCetak[8]+"','"+
+                            dataCetak[9]+"','"+
+                            dataCetak[10]+"','"+
+                            dataCetak[11]+"','"+
+                            dataCetak[12]+"','"+
+                            dataCetak[13]+"','"+
+                            dataCetak[14]+"','"+
+                            dataCetak[15]+"','"+
+                            dataCetak[16]+"','"+
+                            dataCetak[17]+"','"+
+                            dataCetak[18]+"','"+
+                            dataCetak[19]+"','"+
+                            dataCetak[20]+"','"+
+                            dataCetak[21]+"','"+
+                            dataCetak[22]+"','"+
+                            dataCetak[23]+"','"+
+                            dataCetak[24]+"','','','','','','','','','','','',''","Periksa Lab");
                     }
                     
                     Map<String, Object> param = new HashMap<>();
@@ -1792,6 +1801,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     }//GEN-LAST:event_BtnCloseIn4ActionPerformed
 
     private void BtnSimpan4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpan4ActionPerformed
+        String noOrderDisimpan = NoPermintaan;
         if(TabPilihRawat.getSelectedIndex()==0){
             if(!NoRawat.equals("")){
                 if(NoPermintaan.trim().equals("")){
@@ -1830,8 +1840,9 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                             Sequel.queryu("delete from antrilabpa");
                             Sequel.queryu("insert into antrilabpa values('1')");
                             TeksKosong();
-                            tbLabRalan.setValueAt(Valid.SetTgl(TanggalPulang.getSelectedItem()+""),tbLabRalan.getSelectedRow(),5);
-                            tbLabRalan.setValueAt(TanggalPulang.getSelectedItem().toString().substring(11,19),tbLabRalan.getSelectedRow(),6);
+                            PermintaanLabPATable.perbaruiSampel(tabMode, noOrderDisimpan,
+                                    Valid.SetTgl(TanggalPulang.getSelectedItem()+""),
+                                    TanggalPulang.getSelectedItem().toString().substring(11,19));
                     }
                 }
             }else{            
@@ -1867,8 +1878,9 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                                     break;
                             }  
                             TeksKosong();
-                            tbLabRanap.setValueAt(Valid.SetTgl(TanggalPulang.getSelectedItem()+""),tbLabRanap.getSelectedRow(),5);
-                            tbLabRanap.setValueAt(TanggalPulang.getSelectedItem().toString().substring(11,19),tbLabRanap.getSelectedRow(),6);
+                            PermintaanLabPATable.perbaruiSampel(tabMode3, noOrderDisimpan,
+                                    Valid.SetTgl(TanggalPulang.getSelectedItem()+""),
+                                    TanggalPulang.getSelectedItem().toString().substring(11,19));
                     }
                 }
             }else{            
@@ -1949,11 +1961,11 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     }//GEN-LAST:event_TabRawatInapMouseClicked
 
     private void formWindowActivated(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowActivated
-        aktif=true;
+        // Alarm mengikuti form yang masih terbuka, seperti PK.
     }//GEN-LAST:event_formWindowActivated
 
     private void formWindowDeactivated(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowDeactivated
-        aktif=false;
+        // Kehilangan fokus tidak menghentikan alarm CITO.
     }//GEN-LAST:event_formWindowDeactivated
 
     private void ChkAccorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ChkAccorActionPerformed
@@ -2331,7 +2343,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
         try {
             semua=CrDokter.getText().trim().equals("")&&CrPoli.getText().trim().equals("")&&TCari.getText().trim().equals("");
             ps=koneksi.prepareStatement(
-                    "select permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,permintaan_labpa.tgl_permintaan,"+
+                    "select permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.tgl_lahir,permintaan_labpa.tgl_permintaan,"+
                     "if(permintaan_labpa.jam_permintaan='00:00:00','',permintaan_labpa.jam_permintaan) as jam_permintaan,reg_periksa.kd_pj,penjab.png_jawab,"+
                     "if(permintaan_labpa.tgl_sampel='0000-00-00','',permintaan_labpa.tgl_sampel) as tgl_sampel,if(permintaan_labpa.jam_sampel='00:00:00','',permintaan_labpa.jam_sampel) as jam_sampel,"+
                     "if(permintaan_labpa.tgl_hasil='0000-00-00','',permintaan_labpa.tgl_hasil) as tgl_hasil,if(permintaan_labpa.jam_hasil='00:00:00','',permintaan_labpa.jam_hasil) as jam_hasil,"+
@@ -2365,17 +2377,19 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                     
                 rs=ps.executeQuery();
                 while(rs.next()){
-                    itempermintaan="";
+                    List<PermintaanLabPATable.Pemeriksaan> pemeriksaan = new ArrayList<>();
                     ps2=koneksi.prepareStatement(
-                            "select permintaan_pemeriksaan_labpa.kd_jenis_prw,jns_perawatan_lab.nm_perawatan "+
+                            "select permintaan_pemeriksaan_labpa.kd_jenis_prw,jns_perawatan_lab.nm_perawatan,rsaj_labpa_jenis.jenis "+
                             "from permintaan_pemeriksaan_labpa inner join jns_perawatan_lab on "+
                             "permintaan_pemeriksaan_labpa.kd_jenis_prw=jns_perawatan_lab.kd_jenis_prw "+
-                            "where permintaan_pemeriksaan_labpa.noorder=?");
+                            "left join rsaj_labpa_jenis on rsaj_labpa_jenis.kd_jenis_prw=permintaan_pemeriksaan_labpa.kd_jenis_prw "+
+                            "where permintaan_pemeriksaan_labpa.noorder=? order by rsaj_labpa_jenis.jenis,jns_perawatan_lab.nm_perawatan");
                     try {
                         ps2.setString(1,rs.getString("noorder"));
                         rs2=ps2.executeQuery();
                         while(rs2.next()){
-                            itempermintaan=rs2.getString("nm_perawatan")+", "+itempermintaan;
+                            pemeriksaan.add(new PermintaanLabPATable.Pemeriksaan(
+                                    rs2.getString("nm_perawatan"), rs2.getString("jenis")));
                         }
                     } catch (Exception e) {
                         System.out.println("Notif 2 : "+e);
@@ -2387,18 +2401,17 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                             ps2.close();
                         }
                     }
-                    itempermintaan=itempermintaan.substring(0,itempermintaan.length()-2);
-                    tabMode.addRow(new String[]{
+                    PermintaanLabPATable.tambahPermintaan(tabMode, new String[]{
                         rs.getString("noorder"),rs.getString("no_rawat"),rs.getString("no_rkm_medis")+" "+
-                        rs.getString("nm_pasien"),rs.getString("tgl_permintaan"),rs.getString("jam_permintaan"),
+                        rs.getString("nm_pasien")+" - "+rs.getString("tgl_lahir"),rs.getString("tgl_permintaan"),rs.getString("jam_permintaan"),
                         rs.getString("tgl_sampel"),rs.getString("jam_sampel"),rs.getString("tgl_hasil"),
                         rs.getString("jam_hasil"),rs.getString("dokter_perujuk"),rs.getString("nm_dokter"),
                         rs.getString("nm_poli"),rs.getString("informasi_tambahan"),rs.getString("diagnosa_klinis"),
                         rs.getString("kd_pj"),rs.getString("png_jawab"),rs.getString("pengambilan_bahan"),
                         rs.getString("diperoleh_dengan"),rs.getString("lokasi_jaringan"),rs.getString("diawetkan_dengan"),
                         rs.getString("pernah_dilakukan_di"),rs.getString("tanggal_pa_sebelumnya"),rs.getString("nomor_pa_sebelumnya"),
-                        rs.getString("diagnosa_pa_sebelumnya"),itempermintaan
-                    });
+                        rs.getString("diagnosa_pa_sebelumnya"),""
+                    }, pemeriksaan);
                 }
                 rs.last();
                 LCount.setText(""+rs.getRow());
@@ -2423,7 +2436,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
             semua=CrDokter.getText().trim().equals("")&&CrPoli.getText().trim().equals("")&&TCari.getText().trim().equals("");
             ps=koneksi.prepareStatement(
                 "select permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,reg_periksa.kd_pj,"+
-                "pasien.nm_pasien,jns_perawatan_lab.nm_perawatan,permintaan_labpa.tgl_permintaan,penjab.png_jawab,"+
+                "pasien.nm_pasien,pasien.tgl_lahir,jns_perawatan_lab.nm_perawatan,permintaan_labpa.tgl_permintaan,penjab.png_jawab,"+
                 "if(permintaan_labpa.jam_permintaan='00:00:00','',permintaan_labpa.jam_permintaan) as jam_permintaan,permintaan_labpa.tgl_sampel,"+
                 "if(permintaan_labpa.jam_sampel='00:00:00','',permintaan_labpa.jam_sampel) as jam_sampel, permintaan_labpa.tgl_hasil,"+
                 "if(permintaan_labpa.jam_hasil='00:00:00','',permintaan_labpa.jam_hasil) as jam_hasil,"+
@@ -2464,7 +2477,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                 rs=ps.executeQuery();
                 while(rs.next()){
                     tabMode2.addRow(new String[]{
-                        rs.getString("noorder"),rs.getString("no_rawat"),rs.getString("no_rkm_medis")+" "+rs.getString("nm_pasien"),
+                        rs.getString("noorder"),rs.getString("no_rawat"),rs.getString("no_rkm_medis")+" "+rs.getString("nm_pasien")+" - "+rs.getString("tgl_lahir"),
                         rs.getString("nm_perawatan"),rs.getString("tgl_permintaan"),rs.getString("jam_permintaan"),rs.getString("tgl_sampel"),
                         rs.getString("jam_sampel"),rs.getString("tgl_hasil"),rs.getString("jam_hasil"),rs.getString("dokter_perujuk"),
                         rs.getString("nm_dokter"),rs.getString("nm_poli"),rs.getString("informasi_tambahan"),
@@ -2492,59 +2505,47 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     
     
     private void getData() {
-        if(tbLabRalan.getSelectedRow()!= -1){
-            NoPermintaan=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),0).toString();
-            NoRawat=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),1).toString();
-            Pasien=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),2).toString();
-            Permintaan=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),3).toString();
-            JamPermintaan=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),4).toString();
-            Sampel=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),5).toString();
-            JamSampel=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),6).toString();
-            Hasil=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),7).toString();
-            JamHasil=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),8).toString();
-            KodeDokter=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),9).toString();
-            DokterPerujuk=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),10).toString();
-            Ruang=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),11).toString();
-            InformasiTambahan=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),12).toString();
-            DiagnosaKlinis=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),13).toString();
-            tanggalbahan=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),16).toString();
-            diperolehdengan=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),17).toString();
-            lokasijaringan=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),18).toString();
-            diawetkandengan=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),19).toString();
-            pernahdilakukandi=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),20).toString();
-            tanggalpa=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),21).toString();
-            nomorpa=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),22).toString();
-            diagnosapa=tbLabRalan.getValueAt(tbLabRalan.getSelectedRow(),23).toString();
-        }
+        getDataPermintaan(tbLabRalan);
     }
-    
+
     private void getData2() {
-        if(tbLabRanap.getSelectedRow()!= -1){
-            NoPermintaan=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),0).toString();
-            NoRawat=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),1).toString();
-            Pasien=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),2).toString();
-            Permintaan=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),3).toString();
-            JamPermintaan=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),4).toString();
-            Sampel=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),5).toString();
-            JamSampel=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),6).toString();
-            Hasil=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),7).toString();
-            JamHasil=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),8).toString();
-            KodeDokter=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),9).toString();
-            DokterPerujuk=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),10).toString();
-            Ruang=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),11).toString();
-            InformasiTambahan=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),12).toString();
-            DiagnosaKlinis=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),13).toString();
-            tanggalbahan=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),16).toString();
-            diperolehdengan=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),17).toString();
-            lokasijaringan=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),18).toString();
-            diawetkandengan=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),19).toString();
-            pernahdilakukandi=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),20).toString();
-            tanggalpa=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),21).toString();
-            nomorpa=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),22).toString();
-            diagnosapa=tbLabRanap.getValueAt(tbLabRanap.getSelectedRow(),23).toString();
-        }
+        getDataPermintaan(tbLabRanap);
     }
-    
+
+    private void getDataPermintaan(JTable tabel) {
+        if (tabel.getSelectedRow() == -1) {
+            return;
+        }
+        int baris = tabel.convertRowIndexToModel(tabel.getSelectedRow());
+        String[] data = PermintaanLabPATable.dataPermintaan((DefaultTableModel)tabel.getModel(), baris);
+        if (data == null) {
+            TeksKosong();
+            return;
+        }
+        NoPermintaan=data[0];
+        NoRawat=data[1];
+        Pasien=data[2];
+        Permintaan=data[3];
+        JamPermintaan=data[4];
+        Sampel=data[5];
+        JamSampel=data[6];
+        Hasil=data[7];
+        JamHasil=data[8];
+        KodeDokter=data[9];
+        DokterPerujuk=data[10];
+        Ruang=data[11];
+        InformasiTambahan=data[12];
+        DiagnosaKlinis=data[13];
+        tanggalbahan=data[16];
+        diperolehdengan=data[17];
+        lokasijaringan=data[18];
+        diawetkandengan=data[19];
+        pernahdilakukandi=data[20];
+        tanggalpa=data[21];
+        nomorpa=data[22];
+        diagnosapa=data[23];
+    }
+
     private void TeksKosong() {
         NoPermintaan="";
         NoRawat="";
@@ -2610,7 +2611,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
             semua=CrDokter2.getText().trim().equals("")&&Kamar.getText().trim().equals("")&&TCari.getText().trim().equals("");
             if(cmbStatus.getSelectedIndex()==0){
                 ps=koneksi.prepareStatement(
-                    "select permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,permintaan_labpa.tgl_permintaan,"+
+                    "select permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.tgl_lahir,permintaan_labpa.tgl_permintaan,"+
                     "if(permintaan_labpa.jam_permintaan='00:00:00','',permintaan_labpa.jam_permintaan) as jam_permintaan,reg_periksa.kd_pj,penjab.png_jawab,"+
                     "if(permintaan_labpa.tgl_sampel='0000-00-00','',permintaan_labpa.tgl_sampel) as tgl_sampel,if(permintaan_labpa.jam_sampel='00:00:00','',permintaan_labpa.jam_sampel) as jam_sampel,"+
                     "if(permintaan_labpa.tgl_hasil='0000-00-00','',permintaan_labpa.tgl_hasil) as tgl_hasil,if(permintaan_labpa.jam_hasil='00:00:00','',permintaan_labpa.jam_hasil) as jam_hasil,"+
@@ -2631,7 +2632,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                     "group by permintaan_labpa.noorder order by permintaan_labpa.tgl_permintaan desc,permintaan_labpa.jam_permintaan desc,kamar_inap.tgl_masuk desc");
             }else{
                 ps=koneksi.prepareStatement(
-                    "select permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,permintaan_labpa.tgl_permintaan,"+
+                    "select permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,pasien.tgl_lahir,permintaan_labpa.tgl_permintaan,"+
                     "if(permintaan_labpa.jam_permintaan='00:00:00','',permintaan_labpa.jam_permintaan) as jam_permintaan,reg_periksa.kd_pj,penjab.png_jawab,"+
                     "if(permintaan_labpa.tgl_sampel='0000-00-00','',permintaan_labpa.tgl_sampel) as tgl_sampel,if(permintaan_labpa.jam_sampel='00:00:00','',permintaan_labpa.jam_sampel) as jam_sampel,"+
                     "if(permintaan_labpa.tgl_hasil='0000-00-00','',permintaan_labpa.tgl_hasil) as tgl_hasil,if(permintaan_labpa.jam_hasil='00:00:00','',permintaan_labpa.jam_hasil) as jam_hasil,"+
@@ -2669,17 +2670,19 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                     
                 rs=ps.executeQuery();
                 while(rs.next()){
-                    itempermintaan="";
+                    List<PermintaanLabPATable.Pemeriksaan> pemeriksaan = new ArrayList<>();
                     ps2=koneksi.prepareStatement(
-                            "select permintaan_pemeriksaan_labpa.kd_jenis_prw,jns_perawatan_lab.nm_perawatan "+
+                            "select permintaan_pemeriksaan_labpa.kd_jenis_prw,jns_perawatan_lab.nm_perawatan,rsaj_labpa_jenis.jenis "+
                             "from permintaan_pemeriksaan_labpa inner join jns_perawatan_lab on "+
                             "permintaan_pemeriksaan_labpa.kd_jenis_prw=jns_perawatan_lab.kd_jenis_prw "+
-                            "where permintaan_pemeriksaan_labpa.noorder=?");
+                            "left join rsaj_labpa_jenis on rsaj_labpa_jenis.kd_jenis_prw=permintaan_pemeriksaan_labpa.kd_jenis_prw "+
+                            "where permintaan_pemeriksaan_labpa.noorder=? order by rsaj_labpa_jenis.jenis,jns_perawatan_lab.nm_perawatan");
                     try {
                         ps2.setString(1,rs.getString("noorder"));
                         rs2=ps2.executeQuery();
                         while(rs2.next()){
-                            itempermintaan=rs2.getString("nm_perawatan")+", "+itempermintaan;
+                            pemeriksaan.add(new PermintaanLabPATable.Pemeriksaan(
+                                    rs2.getString("nm_perawatan"), rs2.getString("jenis")));
                         }
                     } catch (Exception e) {
                         System.out.println("Notif 2 : "+e);
@@ -2691,18 +2694,17 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                             ps2.close();
                         }
                     }
-                    itempermintaan=itempermintaan.substring(0,itempermintaan.length()-2);
-                    tabMode3.addRow(new String[]{
+                    PermintaanLabPATable.tambahPermintaan(tabMode3, new String[]{
                         rs.getString("noorder"),rs.getString("no_rawat"),rs.getString("no_rkm_medis")+" "+
-                        rs.getString("nm_pasien"),rs.getString("tgl_permintaan"),rs.getString("jam_permintaan"),
+                        rs.getString("nm_pasien")+" - "+rs.getString("tgl_lahir"),rs.getString("tgl_permintaan"),rs.getString("jam_permintaan"),
                         rs.getString("tgl_sampel"),rs.getString("jam_sampel"),rs.getString("tgl_hasil"),
                         rs.getString("jam_hasil"),rs.getString("dokter_perujuk"),rs.getString("nm_dokter"),
                         rs.getString("nm_bangsal"),rs.getString("informasi_tambahan"),rs.getString("diagnosa_klinis"),
                         rs.getString("kd_pj"),rs.getString("png_jawab"),rs.getString("pengambilan_bahan"),
                         rs.getString("diperoleh_dengan"),rs.getString("lokasi_jaringan"),rs.getString("diawetkan_dengan"),
                         rs.getString("pernah_dilakukan_di"),rs.getString("tanggal_pa_sebelumnya"),rs.getString("nomor_pa_sebelumnya"),
-                        rs.getString("diagnosa_pa_sebelumnya"),itempermintaan
-                    });
+                        rs.getString("diagnosa_pa_sebelumnya"),""
+                    }, pemeriksaan);
                 }
                 rs.last();
                 LCount.setText(""+rs.getRow());
@@ -2728,7 +2730,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
             if(cmbStatus.getSelectedIndex()==0){
                 ps=koneksi.prepareStatement(
                         "select distinct permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,reg_periksa.kd_pj,"+
-                        "pasien.nm_pasien,jns_perawatan_lab.nm_perawatan,permintaan_labpa.tgl_permintaan,penjab.png_jawab,"+
+                        "pasien.nm_pasien,pasien.tgl_lahir,jns_perawatan_lab.nm_perawatan,permintaan_labpa.tgl_permintaan,penjab.png_jawab,"+
                         "if(permintaan_labpa.jam_permintaan='00:00:00','',permintaan_labpa.jam_permintaan) as jam_permintaan,permintaan_labpa.tgl_sampel,"+
                         "if(permintaan_labpa.jam_sampel='00:00:00','',permintaan_labpa.jam_sampel) as jam_sampel, permintaan_labpa.tgl_hasil,"+
                         "if(permintaan_labpa.jam_hasil='00:00:00','',permintaan_labpa.jam_hasil) as jam_hasil,"+
@@ -2755,7 +2757,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
             }else{
                 ps=koneksi.prepareStatement(
                         "select distinct permintaan_labpa.noorder,permintaan_labpa.no_rawat,reg_periksa.no_rkm_medis,reg_periksa.kd_pj,"+
-                        "pasien.nm_pasien,jns_perawatan_lab.nm_perawatan,permintaan_labpa.tgl_permintaan,penjab.png_jawab,"+
+                        "pasien.nm_pasien,pasien.tgl_lahir,jns_perawatan_lab.nm_perawatan,permintaan_labpa.tgl_permintaan,penjab.png_jawab,"+
                         "if(permintaan_labpa.jam_permintaan='00:00:00','',permintaan_labpa.jam_permintaan) as jam_permintaan,permintaan_labpa.tgl_sampel,"+
                         "if(permintaan_labpa.jam_sampel='00:00:00','',permintaan_labpa.jam_sampel) as jam_sampel, permintaan_labpa.tgl_hasil,"+
                         "if(permintaan_labpa.jam_hasil='00:00:00','',permintaan_labpa.jam_hasil) as jam_hasil,"+
@@ -2800,7 +2802,7 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
                 rs=ps.executeQuery();
                 while(rs.next()){
                     tabMode4.addRow(new String[]{
-                        rs.getString("noorder"),rs.getString("no_rawat"),rs.getString("no_rkm_medis")+" "+rs.getString("nm_pasien"),
+                        rs.getString("noorder"),rs.getString("no_rawat"),rs.getString("no_rkm_medis")+" "+rs.getString("nm_pasien")+" - "+rs.getString("tgl_lahir"),
                         rs.getString("nm_perawatan"),rs.getString("tgl_permintaan"),rs.getString("jam_permintaan"),rs.getString("tgl_sampel"),rs.getString("jam_sampel"),
                         rs.getString("tgl_hasil"),rs.getString("jam_hasil"),rs.getString("dokter_perujuk"),rs.getString("nm_dokter"),
                         rs.getString("nm_bangsal"),rs.getString("informasi_tambahan"),rs.getString("diagnosa_klinis"),
@@ -2828,50 +2830,44 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     
     private void jam(){
         ActionListener taskPerformer = (ActionEvent e) -> {
-            if(aktif==true){
-                nol_detik = "";
-                now = Calendar.getInstance().getTime();
-                nilai_detik = now.getSeconds();
-                if (nilai_detik <= 9) {
-                    nol_detik = "0";
+            if (isShowing() && !WindowAmbilSampel.isShowing() && !koneksiDB.sesiDatabaseTerkunci()) {
+                JTable tabel = TabPilihRawat.getSelectedIndex()==0 ? tbLabRalan : tbLabRanap;
+                DefaultTableModel model = (DefaultTableModel)tabel.getModel();
+                int baris = tabel.getSelectedRow()==-1 ? -1 : tabel.convertRowIndexToModel(tabel.getSelectedRow());
+                String[] dataDipilih = PermintaanLabPATable.dataPermintaan(model, baris);
+                permintaanbaru=0;
+                if(formalarm.contains("ralan")){
+                    tampil();
+                    permintaanbaru+=PermintaanLabPATable.hitungCitoBelumSampel(tabMode);
                 }
-
-                detik = nol_detik + Integer.toString(nilai_detik);
-                if(detik.equals("05")){
-                    permintaanbaru=0;
-                    if(formalarm.contains("ralan")){
-                        tampil();
-                        for(i=0;i<tbLabRalan.getRowCount();i++){
-                            if((!tbLabRalan.getValueAt(i,0).toString().equals(""))&&tbLabRalan.getValueAt(i,5).toString().equals("")){
-                                permintaanbaru++;
-                            }
-                        }
-                    }
-
-                    if(formalarm.contains("ranap")){
-                        tampil3();
-                        for(i=0;i<tbLabRanap.getRowCount();i++){
-                            if((!tbLabRanap.getValueAt(i,0).toString().equals(""))&&tbLabRanap.getValueAt(i,5).toString().equals("")){
-                                permintaanbaru++;
-                            }
-                        }
-                    }
-
-                    if(permintaanbaru>0){
-                        try {
-                            music = new BackgroundMusic("./suara/alarm.mp3");
-                            music.start();
-                        } catch (Exception ex) {
-                            System.out.println(ex);
-                        }
+                if(formalarm.contains("ranap")){
+                    tampil3();
+                    permintaanbaru+=PermintaanLabPATable.hitungCitoBelumSampel(tabMode3);
+                }
+                // Pemutakhiran otomatis tidak boleh memindahkan tindakan ke order lain.
+                if (dataDipilih != null) {
+                    int induk = PermintaanLabPATable.cariPermintaan(model, dataDipilih[0]);
+                    if (induk != -1) {
+                        int barisTampil = tabel.convertRowIndexToView(induk);
+                        tabel.setRowSelectionInterval(barisTampil, barisTampil);
+                        getDataPermintaan(tabel);
+                    } else {
+                        TeksKosong();
                     }
                 }
-            }                
+                if(permintaanbaru>0){
+                    try {
+                        music = new BackgroundMusic("./suara/alarm.mp3");
+                        music.start();
+                    } catch (Exception ex) {
+                        System.out.println(ex);
+                    }
+                }
+            }
         };
-        // Timer
-        new Timer(1000, taskPerformer).start();
+        new Timer(10000, taskPerformer).start();
     }
-    
+
     private void isMenu(){
         if(ChkAccor.isSelected()==true){
             ChkAccor.setVisible(false);
@@ -2887,3 +2883,4 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     }
     
 }
+

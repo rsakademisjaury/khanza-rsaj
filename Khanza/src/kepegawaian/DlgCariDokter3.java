@@ -11,23 +11,16 @@
 
 package kepegawaian;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fungsi.WarnaTable;
 import fungsi.batasInput;
 import fungsi.koneksiDB;
 import fungsi.validasi;
 import fungsi.akses;
-import fungsi.sekuel;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.event.KeyEvent;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.util.List;
 import javax.swing.JTable;
 import javax.swing.event.DocumentEvent;
 import javax.swing.table.DefaultTableModel;
@@ -41,15 +34,7 @@ public final class DlgCariDokter3 extends javax.swing.JDialog {
     private final DefaultTableModel tabMode;
     private validasi Valid=new validasi();
     private Connection koneksi=koneksiDB.condb();
-    private PreparedStatement ps;
-    private ResultSet rs;
-    private File file;
-    private FileWriter fileWriter;
-    private ObjectMapper mapper = new ObjectMapper();
-    private JsonNode root;
-    private JsonNode response;
-    private FileReader myObj;
-    private sekuel Sequel=new sekuel();
+    private List<String[]> dataDokter;
     /** Creates new form DlgPenyakit
      * @param parent
      * @param modal */
@@ -105,21 +90,15 @@ public final class DlgCariDokter3 extends javax.swing.JDialog {
             TCari.getDocument().addDocumentListener(new javax.swing.event.DocumentListener(){
                 @Override
                 public void insertUpdate(DocumentEvent e) {
-                    if(TCari.getText().length()>2){
-                        tampil2();
-                    }
+                    tampil2();
                 }
                 @Override
                 public void removeUpdate(DocumentEvent e) {
-                    if(TCari.getText().length()>2){
-                        tampil2();
-                    }
+                    tampil2();
                 }
                 @Override
                 public void changedUpdate(DocumentEvent e) {
-                    if(TCari.getText().length()>2){
-                        tampil2();
-                    }
+                    tampil2();
                 }
             });
         }
@@ -358,14 +337,7 @@ public final class DlgCariDokter3 extends javax.swing.JDialog {
     }//GEN-LAST:event_formWindowActivated
 
     private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
-        try {
-            if(Valid.daysOld("./cache/dokter.iyem")<30){
-                tampil2();
-            }else{
-                tampil();
-            }
-        } catch (Exception e) {
-        }
+        tampil();
     }//GEN-LAST:event_formWindowOpened
 
     /**
@@ -400,54 +372,34 @@ public final class DlgCariDokter3 extends javax.swing.JDialog {
     // End of variables declaration//GEN-END:variables
 
     private void tampil() {
-        Valid.tabelKosong(tabMode);
         try {
-            file=new File("./cache/dokter.iyem");
-            file.createNewFile();
-            fileWriter = new FileWriter(file);
-            StringBuilder iyembuilder = new StringBuilder();
-            ps=koneksi.prepareStatement(
-                "select dokter.kd_dokter,dokter.nm_dokter,dokter.jk,dokter.tmp_lahir, "+
-                "dokter.tgl_lahir,dokter.gol_drh,dokter.agama,dokter.almt_tgl,dokter.no_telp, "+
-                "dokter.stts_nikah,spesialis.nm_sps,dokter.alumni,dokter.no_ijn_praktek "+
-                "from dokter inner join spesialis on dokter.kd_sps=spesialis.kd_sps "+
-                "where dokter.status='1' order by dokter.nm_dokter");
-            try{
-                rs=ps.executeQuery();
-                while(rs.next()){
-                    tabMode.addRow(new Object[]{
-                        rs.getString(1),rs.getString(2),rs.getString(3),
-                        rs.getString(4),rs.getString(5),rs.getString(6),
-                        rs.getString(7),rs.getString(8),rs.getString(9),
-                        rs.getString(10),rs.getString(11),rs.getString(12),
-                        rs.getString(13)
-                    });
-                    iyembuilder.append("{\"KodeDokter\":\"").append(rs.getString(1)).append("\",\"NamaDokter\":\"").append(rs.getString(2).replaceAll("\"","")).append("\",\"JK\":\"").append(rs.getString(3)).append("\",\"TmpLahir\":\"").append(rs.getString(4).replaceAll("\"","")).append("\",\"TglLahir\":\"").append(rs.getString(5)).append("\",\"GD\":\"").append(rs.getString(6)).append("\",\"Agama\":\"").append(rs.getString(7)).append("\",\"AlamatTinggal\":\"").append(rs.getString(8).replaceAll("\"","")).append("\",\"NoTelp\":\"").append(rs.getString(9)).append("\",\"SttsNikah\":\"").append(rs.getString(10)).append("\",\"Spesialis\":\"").append(rs.getString(11)).append("\",\"Alumni\":\"").append(rs.getString(12).replaceAll("\"","")).append("\",\"NoIjinPraktek\":\"").append(rs.getString(13)).append("\"},");
-                }
-            }catch(Exception e){
-                System.out.println("Notifikasi : "+e);
-            }finally{
-                if( rs != null ){
-                    rs.close();
-                }
-                
-                if( ps != null ){
-                    ps.close();
-                }
+            List<String[]> terbaru = DataDokter.baca(koneksi, DataDokter.SELECT_DOKTER);
+            dataDokter = terbaru;
+            tampilData();
+            try {
+                DataDokter.simpanCache(dataDokter, "./cache/dokter.iyem", "NoKTP");
+            } catch (java.io.IOException e) {
+                // Pencarian tetap berfungsi bila direktori cache tidak dapat ditulis.
+                System.out.println("Notifikasi cache dokter : " + e);
             }
-            
-            if (iyembuilder.length() > 0) {
-                iyembuilder.setLength(iyembuilder.length() - 1);
-                fileWriter.write("{\"dokter\":["+iyembuilder+"]}");
-                fileWriter.flush();
-            }
-            
-            fileWriter.close();
-            iyembuilder=null;
-        } catch (Exception e) {
-            System.out.println("Notifikasi : "+e);
+        } catch (java.sql.SQLException e) {
+            dataDokter = null;
+            Valid.tabelKosong(tabMode);
+            LCount.setText("0");
+            System.out.println("Notifikasi data dokter : " + e);
         }
-        LCount.setText(""+tabMode.getRowCount());
+    }
+
+    private void tampilData() {
+        Valid.tabelKosong(tabMode);
+        if (dataDokter != null) {
+            for (String[] baris : dataDokter) {
+                if (DataDokter.cocok(baris, TCari.getText())) {
+                    tabMode.addRow(java.util.Arrays.copyOf(baris, 13));
+                }
+            }
+        }
+        LCount.setText("" + tabMode.getRowCount());
     }
 
     public void emptTeks() { 
@@ -463,68 +415,20 @@ public final class DlgCariDokter3 extends javax.swing.JDialog {
     }
     
     private void tampil2() {
-        try {
-            myObj = new FileReader("./cache/dokter.iyem");
-            root = mapper.readTree(myObj);
-            Valid.tabelKosong(tabMode);
-            response = root.path("dokter");
-            if(response.isArray()){
-                if(TCari.getText().trim().equals("")){
-                    for(JsonNode list:response){
-                        tabMode.addRow(new Object[]{
-                            list.path("KodeDokter").asText(),list.path("NamaDokter").asText(),list.path("JK").asText(),list.path("TmpLahir").asText(),list.path("TglLahir").asText(),list.path("GD").asText(),list.path("Agama").asText(),list.path("AlamatTinggal").asText(),list.path("NoTelp").asText(),list.path("SttsNikah").asText(),list.path("Spesialis").asText(),list.path("Alumni").asText(),list.path("NoIjinPraktek").asText()
-                        });
-                    }
-                }else{
-                    for(JsonNode list:response){
-                        if(list.path("KodeDokter").asText().toLowerCase().contains(TCari.getText().toLowerCase())||list.path("NamaDokter").asText().toLowerCase().contains(TCari.getText().toLowerCase())||list.path("Spesialis").asText().toLowerCase().contains(TCari.getText().toLowerCase())){
-                            tabMode.addRow(new Object[]{
-                                list.path("KodeDokter").asText(),list.path("NamaDokter").asText(),list.path("JK").asText(),list.path("TmpLahir").asText(),list.path("TglLahir").asText(),list.path("GD").asText(),list.path("Agama").asText(),list.path("AlamatTinggal").asText(),list.path("NoTelp").asText(),list.path("SttsNikah").asText(),list.path("Spesialis").asText(),list.path("Alumni").asText(),list.path("NoIjinPraktek").asText()
-                            });
-                        }
-                    }
-                }
-            }
-            myObj.close();
-        } catch (Exception ex) {
-            if(ex.toString().contains("java.io.FileNotFoundException")){
-                tampil();
-            }else{
-                System.out.println("Notifikasi : "+ex);
-            }
+        if (dataDokter == null) {
+            tampil();
+        } else {
+            tampilData();
         }
-    } 
-    
+    }
+
     public String tampil3(String kode) {
         try {
-            if(Valid.daysOld("./cache/dokter.iyem")>7){
-                tampil();
-            }
-        } catch (Exception e) {
-            if(e.toString().contains("No such file or directory")){
-                tampil();
-            }
+            // Identitas dokter login tidak bergantung pada cache pencarian.
+            return DataDokter.nama(koneksi, kode);
+        } catch (java.sql.SQLException e) {
+            System.out.println("Notifikasi nama dokter : " + e);
+            return "";
         }
-        
-        String iyem="";
-        try {
-            myObj = new FileReader("./cache/dokter.iyem");
-            root = mapper.readTree(myObj);
-            response = root.path("dokter");
-            if(response.isArray()){
-                for(JsonNode list:response){
-                    if(list.path("KodeDokter").asText().equalsIgnoreCase(kode)){
-                        iyem=list.path("NamaDokter").asText();
-                    }
-                }
-            }
-            myObj.close();
-        } catch (Exception ex) {
-            System.out.println("Notifikasi : "+ex);
-        }
-        if(iyem.equals("")){
-            iyem=Sequel.cariIsi("select dokter.nm_dokter from dokter where dokter.kd_dokter=?",kode);
-        }
-        return iyem;
     }
 }

@@ -151,7 +151,7 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         }
         tbTarifPK.setDefaultRenderer(Object.class, new WarnaTable());
         
-        Object[] row3={"P","Kode Periksa","Nama Pemeriksaan"};
+        Object[] row3={"P","Kode Periksa","Kategori","Nama Pemeriksaan"};
         tabMode3=new DefaultTableModel(null,row3){
               @Override public boolean isCellEditable(int rowIndex, int colIndex){
                 boolean a = false;
@@ -161,7 +161,7 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
                 return a;
              }
              Class[] types = new Class[] {
-                java.lang.Boolean.class, java.lang.Object.class, java.lang.Object.class
+                java.lang.Boolean.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class
              };
              @Override
              public Class getColumnClass(int columnIndex) {
@@ -173,13 +173,15 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         tbTarifPA.setPreferredScrollableViewportSize(new Dimension(500,500));
         tbTarifPA.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        for(i = 0; i < 3; i++) {
+        for(i = 0; i < 4; i++) {
             TableColumn column = tbTarifPA.getColumnModel().getColumn(i);
             if(i==0){
                 column.setPreferredWidth(20);
             }else if(i==1){
                 column.setPreferredWidth(100);
             }else if(i==2){
+                column.setPreferredWidth(160);
+            }else if(i==3){
                 column.setPreferredWidth(652);
             }
         }
@@ -449,20 +451,20 @@ public final class DlgPermintaanLaboratorium extends javax.swing.JDialog {
         jLabel13 = new widget.Label();
         TNoPermintaanPA = new widget.TextBox();
         jLabel12 = new widget.Label();
-        DiperolehDengan = new widget.TextBox();
+        DiperolehDengan = fungsi.LabPABahanPanel.buatTextBoxPA();
         jLabel14 = new widget.Label();
-        LokasiPengambilan = new widget.TextBox();
+        LokasiPengambilan = fungsi.LabPABahanPanel.buatTextBoxPA();
         jLabel16 = new widget.Label();
-        Diawetkan = new widget.TextBox();
+        Diawetkan = fungsi.LabPABahanPanel.buatTextBoxPA();
         jLabel17 = new widget.Label();
         TanggalPA = new widget.Tanggal();
         jLabel18 = new widget.Label();
-        DilakukanPA = new widget.TextBox();
+        DilakukanPA = fungsi.LabPABahanPanel.buatTextBoxPA();
         jLabel19 = new widget.Label();
-        DiagnosaPA = new widget.TextBox();
+        DiagnosaPA = fungsi.LabPABahanPanel.buatTextBoxPA();
         TanggalBahan = new widget.Tanggal();
         jLabel20 = new widget.Label();
-        NomorPA = new widget.TextBox();
+        NomorPA = fungsi.LabPABahanPanel.buatTextBoxPA();
         jLabel21 = new widget.Label();
         Scroll2 = new widget.ScrollPane();
         tbTarifPA = new widget.Table();
@@ -2850,12 +2852,14 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             kode=new String[jml];
             nama=null;
             nama=new String[jml];
+            String[] kategoriPA=new String[jml];
             index=0; 
             for(i=0;i<tbTarifPA.getRowCount();i++){
                 if(tbTarifPA.getValueAt(i,0).toString().equals("true")){
                     pilih[index]=true;
                     kode[index]=tbTarifPA.getValueAt(i,1).toString();
-                    nama[index]=tbTarifPA.getValueAt(i,2).toString();
+                    kategoriPA[index]=tbTarifPA.getValueAt(i,2).toString();
+                    nama[index]=tbTarifPA.getValueAt(i,3).toString();
                     index++;
                 }
             }
@@ -2863,7 +2867,7 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             Valid.tabelKosong(tabMode3);
             
             for(i=0;i<jml;i++){
-                tabMode3.addRow(new Object[] {pilih[i],kode[i],nama[i]});
+                tabMode3.addRow(new Object[] {pilih[i],kode[i],kategoriPA[i],nama[i]});
             }       
         
             pstindakan=siapkanQueryTarifPA();
@@ -2872,7 +2876,7 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             try {
                 rstindakan=pstindakan.executeQuery();
                 while(rstindakan.next()){
-                    if(sudahAda.add(rstindakan.getString(1)))tabMode3.addRow(new Object[]{false,rstindakan.getString(1),rstindakan.getString(2)});
+                    if(sudahAda.add(rstindakan.getString(1)))tabMode3.addRow(new Object[]{false,rstindakan.getString(1),rstindakan.getString("kategori_pa"),rstindakan.getString(2)});
                 }
             } catch (Exception e) {
                 System.out.println("Notifikasi : "+e);
@@ -3063,7 +3067,8 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         tbTarifPA.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_LAST_COLUMN);
         tbTarifPA.getColumnModel().getColumn(0).setMinWidth(20);tbTarifPA.getColumnModel().getColumn(0).setMaxWidth(20);
         tbTarifPA.getColumnModel().getColumn(1).setMinWidth(80);tbTarifPA.getColumnModel().getColumn(1).setMaxWidth(140);
-        tbTarifPA.getColumnModel().getColumn(2).setMinWidth(150);
+        tbTarifPA.getColumnModel().getColumn(2).setMinWidth(140);tbTarifPA.getColumnModel().getColumn(2).setMaxWidth(200);
+        tbTarifPA.getColumnModel().getColumn(3).setMinWidth(150);
         PanelCariUtama1.revalidate();PanelCariUtama1.repaint();
         tabMode3.addTableModelListener(e->{if(!sinkronBahanTerjadwal){sinkronBahanTerjadwal=true;javax.swing.SwingUtilities.invokeLater(()->{sinkronBahanTerjadwal=false;sinkronPilihanBahanPA();});}});
         tbTarifPA.getSelectionModel().addListSelectionListener(e->{if(!e.getValueIsAdjusting()&&!menataBahanPA)pilihBahanDariTabelPA();});
@@ -3084,7 +3089,7 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         }
     }
     private java.sql.PreparedStatement siapkanQueryTarifPA()throws java.sql.SQLException{
-        StringBuilder sql=new StringBuilder("select jns_perawatan_lab.kd_jenis_prw,jns_perawatan_lab.nm_perawatan,penjab.png_jawab from jns_perawatan_lab inner join penjab on penjab.kd_pj=jns_perawatan_lab.kd_pj where jns_perawatan_lab.kategori='PA' and jns_perawatan_lab.status='1'");
+        StringBuilder sql=new StringBuilder("select jns_perawatan_lab.kd_jenis_prw,jns_perawatan_lab.nm_perawatan,penjab.png_jawab,case pa_jenis.jenis when 'H' then 'HISTOPATOLOGI' when 'S' then 'SITOLOGI' when 'IHC' then 'IMMUNOHISTOKIMIA' else '-' end as kategori_pa from jns_perawatan_lab inner join penjab on penjab.kd_pj=jns_perawatan_lab.kd_pj left join rsaj_labpa_jenis pa_jenis on pa_jenis.kd_jenis_prw=jns_perawatan_lab.kd_jenis_prw where jns_perawatan_lab.kategori='PA' and jns_perawatan_lab.status='1'");
         boolean bayar="Yes".equals(cara_bayar_lab),pakaiKelas="Yes".equals(kelas_lab);
         if(bayar)sql.append(" and (jns_perawatan_lab.kd_pj=? or jns_perawatan_lab.kd_pj='-')");
         if(pakaiKelas)sql.append(" and (jns_perawatan_lab.kelas=? or jns_perawatan_lab.kelas='-')");
@@ -3105,7 +3110,7 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
         try{
             pilihBahanPA.removeAllItems();
             for(int r=0;r<tbTarifPA.getRowCount();r++)if(Boolean.TRUE.equals(tbTarifPA.getValueAt(r,0))){
-                String kode=tbTarifPA.getValueAt(r,1).toString(),nama=tbTarifPA.getValueAt(r,2).toString();
+                String kode=tbTarifPA.getValueAt(r,1).toString(),nama=tbTarifPA.getValueAt(r,3).toString();
                 if(!cacheBahanPA.containsKey(kode)){
                     fungsi.LabPAData.Bahan b=new fungsi.LabPAData.Bahan();
                     String jenis=cacheJenisPA.get(kode);
