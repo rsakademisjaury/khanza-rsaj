@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import fungsi.LoginFailureDiagnostics.Stage;
 
 /**
  * RSAJ: penghitung login bersama untuk login awal dan buka sesi timeout.
@@ -132,10 +133,17 @@ public final class LoginAttemptGuard {
         // Identitas persis sama dengan AES_ENCRYPT pada autentikasi lama.
         // Tidak melakukan trim/lowercase yang dapat menggabungkan akun berbeda.
         final String accountKey = accountKey(username);
+        // Provider ini baru dieksekusi oleh guard saat status single login ON.
+        final LoginDeviceIdentity.Provider sessionIdentity = () -> {
+            try { return deviceIdentity.id(); }
+            catch (SQLException failure) { throw LoginFailureDiagnostics.at(Stage.DEVICE_ID, failure); }
+        };
+        Stage stage = Stage.CONNECT;
         try (Connection connection = connections.open()) {
             if (connection == null) throw new SQLException("Koneksi pengaman login tidak tersedia.");
             connection.setAutoCommit(false);
             try {
+                stage = Stage.SECURITY_SETTING;
                 int maximumAttempts;
                 int lockMinutes;
                 try (PreparedStatement query = prepare(connection,
@@ -151,6 +159,7 @@ public final class LoginAttemptGuard {
                 }
                 // INSERT ... ON DUPLICATE mengunci satu akun juga pada koneksi
                 // dari PC lain. SELECT FOR UPDATE mempertahankan lock hingga commit.
+                stage = Stage.ACCOUNT_LOCK;
                 try (PreparedStatement insert = prepare(connection,
                         "insert into rsaj_login_security "
                         + "(account_key, failed_attempts, locked_until, updated_at) "
@@ -177,28 +186,41 @@ public final class LoginAttemptGuard {
                         wait = row.getLong(4);
                     }
                 }
+                stage = Stage.SESSION_CHECK;
                 if ("BUKA_SESI".equals(loginSource)
                         && !LoginSessionGuard.current(connection, session, accountKey, true)) {
+                    stage = Stage.AUDIT;
                     audit(connection, accountKey, loginSource, "SESSION_REVOKED");
+                    stage = Stage.COMMIT;
                     connection.commit();
+                    stage = Stage.CLOSE_CONNECTION;
                     return new Result(Status.SESSION_REVOKED, Math.max(0, maximumAttempts - failures), 0);
                 }
                 if (locked) {
+                    stage = Stage.AUDIT;
                     audit(connection, accountKey, loginSource, "LOCKED");
+                    stage = Stage.COMMIT;
                     connection.commit();
+                    stage = Stage.CLOSE_CONNECTION;
                     return new Result(Status.LOCKED, 0, Math.max(1, wait));
                 }
                 // Sesudah masa lock selesai, percobaan baru dimulai dari nol.
                 if (hadLock) {
                     failures = 0;
+                    stage = Stage.RESET_ATTEMPTS;
                     saveState(connection, accountKey, 0, 0);
+                    stage = Stage.CAPTCHA;
                     clearCaptcha(connection, accountKey);
                 }
+                stage = Stage.CAPTCHA;
                 removeExpiredCaptcha(connection, accountKey);
                 if (refreshOnly) {
                     LoginCaptcha.Challenge captcha = issueCaptcha(connection, accountKey, loginSource, challengeId);
+                    stage = Stage.AUDIT;
                     audit(connection, accountKey, loginSource, "CAPTCHA_REFRESH");
+                    stage = Stage.COMMIT;
                     connection.commit();
+                    stage = Stage.CLOSE_CONNECTION;
                     return new Result(Status.CAPTCHA_REQUIRED, Math.max(0, maximumAttempts - failures), 0, captcha);
                 }
                 boolean supplied = challengeId != null && !challengeId.isEmpty();
@@ -208,31 +230,50 @@ public final class LoginAttemptGuard {
                     if (!consumeCaptcha(connection, accountKey, loginSource, challengeId, answer)) {
                         LoginCaptcha.Challenge captcha = issueCaptcha(connection, accountKey, loginSource, challengeId);
                         Status status = supplied ? Status.CAPTCHA_INVALID : Status.CAPTCHA_REQUIRED;
+                        stage = Stage.AUDIT;
                         audit(connection, accountKey, loginSource, supplied ? "CAPTCHA_INVALID" : "CAPTCHA_REQUIRED");
+                        stage = Stage.COMMIT;
                         connection.commit();
+                        stage = Stage.CLOSE_CONNECTION;
                         return new Result(status, Math.max(0, maximumAttempts - failures), 0, captcha);
                     }
                 }
+                stage = Stage.VERIFY_PASSWORD;
                 final boolean valid = verify(connection, username, password, accountType);
                 if (valid) {
+                    stage = Stage.CLAIM_SESSION;
                     LoginSessionGuard.Ticket acquired = "LOGIN_AWAL".equals(loginSource)
-                            ? LoginSessionGuard.claim(connection, accountKey, username, deviceIdentity.id()) : session;
+                            ? LoginSessionGuard.claimWithIdentity(connection, accountKey, username, sessionIdentity)
+                            : LoginSessionGuard.prepareResume(connection, session, accountKey, username, sessionIdentity);
+                    stage = Stage.RESET_ATTEMPTS;
                     saveState(connection, accountKey, 0, 0);
+                    stage = Stage.CAPTCHA;
                     clearCaptcha(connection, accountKey);
+                    stage = Stage.AUDIT;
                     audit(connection, accountKey, loginSource, "SUCCESS");
+                    stage = Stage.COMMIT;
                     connection.commit();
+                    if ("BUKA_SESI".equals(loginSource)) {
+                        acquired = LoginSessionGuard.adoptAfterCommit(session, acquired);
+                    }
+                    stage = Stage.CLOSE_CONNECTION;
                     return new Result(Status.SUCCESS, maximumAttempts, 0, null, acquired);
                 }
                 failures++;
                 final boolean newLock = failures >= maximumAttempts;
+                stage = Stage.RESET_ATTEMPTS;
                 saveState(connection, accountKey, failures, newLock ? lockMinutes : 0);
                 LoginCaptcha.Challenge captcha = null;
+                stage = Stage.CAPTCHA;
                 if (newLock) clearCaptcha(connection, accountKey);
                 else if (failures >= CAPTCHA_AFTER_FAILURES) {
                     captcha = issueCaptcha(connection, accountKey, loginSource, "");
                 }
+                stage = Stage.AUDIT;
                 audit(connection, accountKey, loginSource, newLock ? "LOCKED" : "FAILED");
+                stage = Stage.COMMIT;
                 connection.commit();
+                stage = Stage.CLOSE_CONNECTION;
                 return new Result(newLock ? Status.LOCKED : Status.FAILED,
                         Math.max(0, maximumAttempts - failures), newLock ? lockMinutes * 60L : 0, captcha);
             } catch (SQLException | RuntimeException exception) {
@@ -240,6 +281,8 @@ public final class LoginAttemptGuard {
                 catch (SQLException rollbackFailure) { exception.addSuppressed(rollbackFailure); }
                 throw exception;
             }
+        } catch (SQLException exception) {
+            throw LoginFailureDiagnostics.at(stage, exception);
         }
     }
 

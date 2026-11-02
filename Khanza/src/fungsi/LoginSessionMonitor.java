@@ -78,7 +78,10 @@ public final class LoginSessionMonitor {
                 boolean valid = false;
                 boolean unavailable = false;
                 try { valid = get(); }
-                catch (Exception exception) { unavailable = true; }
+                catch (Exception exception) {
+                    unavailable = true;
+                    LoginFailureDiagnostics.log(exception, LoginFailureDiagnostics.Stage.SESSION_CHECK);
+                }
                 if (!valid) {
                     stop(false);
                     // Error koneksi dibedakan dari penggantian sesi oleh login lain.

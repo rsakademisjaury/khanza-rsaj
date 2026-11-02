@@ -1,6 +1,6 @@
 /*
  * PATCH RSAJ - Popup daftar surat kontrol pasien dari form Registrasi.
- * UI modern mandiri tanpa mengubah query/alur data.
+ * Menampilkan surat kontrol BPJS dan SKDP lokal berdasarkan No. RM pasien.
  */
 package bridging;
 
@@ -378,6 +378,7 @@ public final class CekSuratKontrolPopup extends JDialog {
 
     public void tampil() {
         kosongkanTabel();
+        LblSumber.setText("BPJS + SKDP Lokal");
         if (noRM.equals("")) {
             LblStatus.setText("No.RM pasien masih kosong.");
             return;
@@ -385,18 +386,33 @@ public final class CekSuratKontrolPopup extends JDialog {
 
         try {
             setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-            if (isPasienBPJS()) {
-                LblSumber.setText("Surat Kontrol BPJS");
+            String sumberGagal = "";
+            // Riwayat pasien dibaca dari kedua sumber, apa pun penjamin saat ini.
+            // Kegagalan satu sumber tidak menghalangi pembacaan sumber lainnya.
+            try {
                 tampilBPJS();
-            } else {
-                LblSumber.setText("Surat Kontrol Umum / Instansi");
-                tampilUmumInstansi();
+            } catch (Exception e) {
+                sumberGagal = "BPJS";
+                System.out.println("Notif Cek Surat Kontrol BPJS : " + e);
             }
+            int jumlahBPJS = tabMode.getRowCount();
 
-            if (tabMode.getRowCount() == 0) {
+            try {
+                tampilSKDPLokal();
+            } catch (Exception e) {
+                sumberGagal += sumberGagal.equals("") ? "SKDP Lokal" : " dan SKDP Lokal";
+                System.out.println("Notif Cek Surat Kontrol SKDP Lokal : " + e);
+            }
+            int jumlahSKDP = tabMode.getRowCount() - jumlahBPJS;
+
+            if (!sumberGagal.equals("")) {
+                LblStatus.setText("Data belum lengkap: gagal membaca " + sumberGagal
+                        + ". Tampil " + tabMode.getRowCount() + " surat. Klik Cek Ulang.");
+            } else if (tabMode.getRowCount() == 0) {
                 LblStatus.setText("Tidak ditemukan surat kontrol untuk No.RM " + noRM + ".");
             } else {
-                LblStatus.setText("Ditemukan " + tabMode.getRowCount() + " surat kontrol untuk No.RM " + noRM + ".");
+                LblStatus.setText("Ditemukan " + tabMode.getRowCount() + " surat kontrol untuk No.RM " + noRM
+                        + " (BPJS: " + jumlahBPJS + ", SKDP Lokal: " + jumlahSKDP + ").");
             }
         } catch (Exception e) {
             System.out.println("Notif Cek Surat Kontrol : " + e);
@@ -404,12 +420,6 @@ public final class CekSuratKontrolPopup extends JDialog {
         } finally {
             setCursor(Cursor.getDefaultCursor());
         }
-    }
-
-    private boolean isPasienBPJS() {
-        String kode = kodePenjamin.toUpperCase();
-        String nama = namaPenjamin.toUpperCase();
-        return kode.equals("BPJ") || kode.contains("BPJS") || nama.contains("BPJS");
     }
 
     private void tampilBPJS() throws Exception {
@@ -447,7 +457,7 @@ public final class CekSuratKontrolPopup extends JDialog {
         }
     }
 
-    private void tampilUmumInstansi() throws Exception {
+    private void tampilSKDPLokal() throws Exception {
         String sql =
                 "select s.no_antrian,s.tanggal_rujukan,s.tanggal_datang,d.nm_dokter," +
                 "s.diagnosa,s.status," +
@@ -457,7 +467,7 @@ public final class CekSuratKontrolPopup extends JDialog {
                 "and br.tanggal_periksa=date(s.tanggal_datang) " +
                 "and br.no_rkm_medis=s.no_rkm_medis limit 1),'') as nm_poli " +
                 "from skdp_bpjs s " +
-                "inner join dokter d on d.kd_dokter=s.kd_dokter " +
+                "left join dokter d on d.kd_dokter=s.kd_dokter " +
                 "where s.no_rkm_medis=? " +
                 "order by s.tanggal_datang desc,s.tanggal_rujukan desc,s.no_antrian desc";
 
@@ -466,7 +476,7 @@ public final class CekSuratKontrolPopup extends JDialog {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     tabMode.addRow(new Object[]{
-                        "Umum/Instansi",
+                        "SKDP Lokal",
                         aman(rs.getString("no_antrian")),
                         aman(rs.getString("tanggal_rujukan")),
                         aman(rs.getString("tanggal_datang")),
@@ -506,3 +516,4 @@ public final class CekSuratKontrolPopup extends JDialog {
         }
     }
 }
+

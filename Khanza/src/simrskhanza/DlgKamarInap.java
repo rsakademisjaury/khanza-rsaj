@@ -739,6 +739,28 @@ import rekammedis.RMRiwayatPerawatan;
      // TODO DOBEL BED INIT BARU: dialog dobel bed dipisah ke class terpisah agar tidak menambah ukuran constructor
     private DlgInputDobelBed dobelBedInitBaru;
          
+     private javax.swing.JMenuItem mnReadmisi;
+     private javax.swing.JMenuItem mnRekapReadmisi;
+
+     private void initMenuReadmisi() {
+         mnReadmisi = new javax.swing.JMenuItem("Readmisi");
+         mnRekapReadmisi = new javax.swing.JMenuItem("Rekap Readmisi <= 5 Hari");
+         mnReadmisi.setFont(new java.awt.Font("Segoe UI", 0, 12));
+         mnRekapReadmisi.setFont(mnReadmisi.getFont());
+         mnReadmisi.addActionListener(e -> {
+             int baris = tbKamIn.getSelectedRow();
+             if (baris < 0 || tbKamIn.getValueAt(baris, 0) == null
+                     || tbKamIn.getValueAt(baris, 0).toString().trim().isEmpty()) {
+                 javax.swing.JOptionPane.showMessageDialog(this, "Pilih pasien/episode rawat inap yang sudah pulang terlebih dahulu.");
+                 return;
+             }
+             DlgReadmisi.buka(this, tbKamIn.getValueAt(baris, 0).toString().trim());
+         });
+         mnRekapReadmisi.addActionListener(e -> DlgReadmisi.buka(this, ""));
+         jPopupMenu1.insert(mnReadmisi, 0);
+         jPopupMenu1.insert(mnRekapReadmisi, 1);
+     }
+
      /** Creates new form DlgKamarInap
       * @param parent
         @param modal */
@@ -748,8 +770,11 @@ import rekammedis.RMRiwayatPerawatan;
          // RSAJ: pintu masuk terpisah; handler surat dan SKDP lama tetap dipakai.
          javax.swing.JMenuItem lepasRawatMandiri = new javax.swing.JMenuItem("Surat Lepas Rawat");
          lepasRawatMandiri.setFont(new java.awt.Font("Segoe UI", 0, 12));
-         lepasRawatMandiri.addActionListener(e -> bridging.SuratLepasRawatForm.buka(this, TNoRMCari.getText(), ""));
+//         lepasRawatMandiri.addActionListener(e -> bridging.SuratLepasRawatForm.buka(this, TNoRMCari.getText(), ""));
          MnSurat.add(lepasRawatMandiri);
+
+         // RSAJ: form readmisi dibuat saat dipanggil, tanpa query di pemuatan tabel ranap.
+         initMenuReadmisi();
 
          LblKelasRawat.setIcon(iconKelasRawat);
          tampilkanKelasRawat("");
@@ -28059,6 +28084,8 @@ private void tampil() {
          }         
          
          MnStatusMin.setEnabled(akses.getadmin());
+         mnReadmisi.setEnabled(akses.getkamar_inap());
+         mnRekapReadmisi.setEnabled(akses.getkamar_inap());
          BtnSimpan.setEnabled(akses.getkamar_inap());
          BtnSimpanpindah.setEnabled(akses.getkamar_inap());
          BtnPrint.setEnabled(akses.getkamar_inap());

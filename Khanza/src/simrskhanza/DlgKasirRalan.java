@@ -311,12 +311,6 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
     public DlgKasirRalan(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
-         // RSAJ: pintu masuk terpisah; handler surat dan SKDP lama tetap dipakai.
-         javax.swing.JMenuItem lepasRawatMandiri = new javax.swing.JMenuItem("Surat Lepas Rawat");
-         lepasRawatMandiri.setFont(new java.awt.Font("Segoe UI", 0, 12));
-         lepasRawatMandiri.addActionListener(e -> bridging.SuratLepasRawatForm.buka(this, TNoRMCari.getText(), ""));
-         MnSuratSurat.add(lepasRawatMandiri);
-
         initHeaderKasirRalanRSAJ();
         initKasirRalan();
         initMenuKFR();

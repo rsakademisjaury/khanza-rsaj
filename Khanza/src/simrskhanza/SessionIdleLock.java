@@ -33,18 +33,19 @@ import java.awt.image.BufferedImage;
  * Seluruh metode pengendali dijalankan di EDT.
  */
 final class SessionIdleLock implements AutoCloseable {
-    static final long DEFAULT_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(15);
+    static final long DEFAULT_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(SessionIdleTimeoutSetting.DEFAULT_MINUTES);
     static final Color LOCK_BACKGROUND = new Color(224, 233, 240);
 
     private final JDialog initialLogin;
     private final Runnable showLogin;
-    private final long timeoutNanos;
+    private final SessionIdleTimeoutSetting.IdleClock idleClock;
+    private final SessionIdleTimeoutSetting.Poller timeoutSettingPoller;
     private final Timer timer;
     private final InputQueue inputQueue;
     private final Map<JRootPane, ShieldState> shields = new IdentityHashMap<>();
     private Component previousFocus;
     private JDialog lockDialog;
-    private long lastActivityNanos;
+    private String lastTimeoutSettingLog = "";
     private boolean active;
     private boolean locked;
     private boolean closed;
@@ -52,11 +53,17 @@ final class SessionIdleLock implements AutoCloseable {
     private BufferedImage backdropImage;
 
     SessionIdleLock(JDialog initialLogin, Runnable showLogin) {
-        this(initialLogin, showLogin, DEFAULT_TIMEOUT_MILLIS);
+        this(initialLogin, showLogin, DEFAULT_TIMEOUT_MILLIS,
+                new SessionIdleTimeoutSetting(fungsi.koneksiDB::condbPemantauan));
     }
 
-    // Interval pendek hanya untuk uji; produksi selalu lima menit.
+    // Constructor durasi tetap dipertahankan untuk pengujian tanpa database.
     SessionIdleLock(JDialog initialLogin, Runnable showLogin, long timeoutMillis) {
+        this(initialLogin, showLogin, timeoutMillis, null);
+    }
+
+    private SessionIdleLock(JDialog initialLogin, Runnable showLogin, long timeoutMillis,
+            SessionIdleTimeoutSetting setting) {
         if (!SwingUtilities.isEventDispatchThread()) {
             throw new IllegalStateException("SessionIdleLock harus dibuat di EDT");
         }
@@ -65,11 +72,14 @@ final class SessionIdleLock implements AutoCloseable {
         }
         this.initialLogin = initialLogin;
         this.showLogin = showLogin;
-        timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+        idleClock = new SessionIdleTimeoutSetting.IdleClock(timeoutMillis);
         inputQueue = new InputQueue();
         Toolkit.getDefaultToolkit().getSystemEventQueue().push(inputQueue);
         timer = new Timer((int) Math.min(1000L, timeoutMillis), evt -> checkTimeout());
         timer.setCoalesce(true);
+        timeoutSettingPoller = setting == null ? null
+                : new SessionIdleTimeoutSetting.Poller(setting,
+                        this::applyTimeoutSetting, this::timeoutSettingFailed);
     }
 
     void start() {
@@ -77,13 +87,15 @@ final class SessionIdleLock implements AutoCloseable {
             return;
         }
         active = true;
-        lastActivityNanos = System.nanoTime();
+        idleClock.activity(System.nanoTime());
         timer.start();
+        if (timeoutSettingPoller != null) timeoutSettingPoller.start();
     }
 
     void stop() {
         active = false;
         timer.stop();
+        if (timeoutSettingPoller != null) timeoutSettingPoller.stop();
     }
 
     boolean isLocked() {
@@ -91,13 +103,47 @@ final class SessionIdleLock implements AutoCloseable {
     }
 
     private boolean expired() {
-        return active && System.nanoTime() - lastActivityNanos >= timeoutNanos;
+        return active && idleClock.expired(System.nanoTime());
+    }
+
+    private void applyTimeoutSetting(SessionIdleTimeoutSetting.Value value) {
+        if (closed || !active) return;
+        // Membaca/mengubah pengaturan bukan aktivitas pengguna.
+        idleClock.setTimeoutMillis(value.millis());
+        String state = "OK:" + value.minutes + ":" + value.source;
+        if (!state.equals(lastTimeoutSettingLog)) {
+            lastTimeoutSettingLog = state;
+            System.out.println("[Timeout] idle_minutes=" + value.minutes + ", sumber=" + value.source);
+        }
+        // Nilai lebih pendek berlaku pada idle yang telah berjalan, tanpa
+        // membuka otomatis sesi yang sebelumnya sudah terkunci.
+        checkTimeout();
+    }
+
+    private void timeoutSettingFailed(Throwable failure) {
+        if (closed || !active) return;
+        String kind = failure.getClass().getSimpleName().replaceAll("[^A-Za-z0-9_$]", "_");
+        String details = "jenis=" + kind;
+        if (failure instanceof java.sql.SQLException) {
+            java.sql.SQLException sql = (java.sql.SQLException) failure;
+            String sqlState = sql.getSQLState();
+            details += ", SQLState=" + (sqlState == null ? "null"
+                    : sqlState.matches("[A-Z0-9]{5}") ? sqlState : "OTHER")
+                    + ", kode=" + sql.getErrorCode();
+        }
+        if (!details.equals(lastTimeoutSettingLog)) {
+            lastTimeoutSettingLog = details;
+            System.out.println("[Timeout] Pengaturan belum terbaca; memakai_menit="
+                    + TimeUnit.MILLISECONDS.toMinutes(idleClock.timeoutMillis()) + ", " + details);
+        }
     }
 
     private void checkTimeout() {
         if (!closed && !locked && expired()) {
             locked = true; // Tutup celah input sebelum masuk modal event loop.
             timer.stop();
+            System.out.println("[Timeout] Idle terlampaui; batas_menit="
+                    + TimeUnit.MILLISECONDS.toMinutes(idleClock.timeoutMillis()));
             previousFocus = java.awt.KeyboardFocusManager
                     .getCurrentKeyboardFocusManager().getFocusOwner();
             MenuSelectionManager.defaultManager().clearSelectedPath();
@@ -295,6 +341,7 @@ final class SessionIdleLock implements AutoCloseable {
         release();
         previousFocus = null;
         closed = true;
+        if (timeoutSettingPoller != null) timeoutSettingPoller.close();
         inputQueue.remove();
     }
 
@@ -324,7 +371,7 @@ final class SessionIdleLock implements AutoCloseable {
                     return;
                 }
                 if (active && !locked) {
-                    lastActivityNanos = System.nanoTime();
+                    idleClock.activity(System.nanoTime());
                 }
             }
             if (!closed && locked && (event instanceof WindowEvent

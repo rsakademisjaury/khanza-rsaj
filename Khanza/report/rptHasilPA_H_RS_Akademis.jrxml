@@ -1,58 +1,517 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rptHasilPA_H_RS_Akademis" language="java" pageWidth="595" pageHeight="842" columnWidth="523" leftMargin="36" rightMargin="36" topMargin="26" bottomMargin="26" whenNoDataType="AllSectionsNoDetail" isSummaryWithPageHeaderAndFooter="true"><property name="rsaj.pa.foto.x" value="0"/><property name="rsaj.pa.foto.width" value="523"/>
-<style name="NilaiHasil" isBold="false"><conditionalStyle><conditionExpression>Boolean.TRUE.equals($F{tebal})</conditionExpression><style isBold="true"/></conditionalStyle></style>
-<parameter name="namars" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="alamatrs" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="kotars" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="propinsirs" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="kontakrs" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="emailrs" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="judul" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="no_pa" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="norm" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="noperiksa" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="namapasien" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="jkel" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="lahir" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="umur" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="alamat" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="pengirim" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="namakamar" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="tanggal_terima" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="tanggal_jawab" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="penanda" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="finger" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="labelTanggal" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="labelJawab" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="labelPenanda" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="nopermintaan" class="java.lang.String"><defaultValueExpression>""</defaultValueExpression></parameter>
-<parameter name="logo" class="java.awt.Image"/>
-<parameter name="qrImage" class="java.awt.Image"/>
-<parameter name="jenis_jaringan" class="java.lang.String"/><field name="label" class="java.lang.String"/><field name="isi" class="java.lang.String"/><field name="tebal" class="java.lang.Boolean"/><field name="bahan" class="java.lang.Boolean"/><field name="akhir_bahan" class="java.lang.Boolean"/><title><band height="113" splitType="Stretch"><image scaleImage="FillFrame" onErrorType="Blank">
-				<reportElement x="0" y="0" width="67" height="67"/>
-				<imageExpression>$P{logo}</imageExpression>
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rptHasilPA_H_RS_Akademis" pageWidth="595" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="523" leftMargin="36" rightMargin="36" topMargin="26" bottomMargin="26" isSummaryWithPageHeaderAndFooter="true" uuid="fa0be0c8-0ad4-4fb4-9125-9675a41fbd6f">
+	<property name="rsaj.pa.foto.x" value="0"/>
+	<property name="rsaj.pa.foto.width" value="523"/>
+	<style name="NilaiHasil" isBold="false">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[Boolean.TRUE.equals($F{tebal})]]></conditionExpression>
+			<style isBold="true"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="namars" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="alamatrs" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="kotars" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="propinsirs" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="kontakrs" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="emailrs" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="judul" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="no_pa" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="norm" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="noperiksa" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="namapasien" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="jkel" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="lahir" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="umur" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="alamat" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pengirim" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="namakamar" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tanggal_terima" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tanggal_jawab" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="penanda" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="finger" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="labelTanggal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="labelJawab" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="labelPenanda" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="nopermintaan" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="logo" class="java.awt.Image"/>
+	<parameter name="qrImage" class="java.awt.Image"/>
+	<parameter name="jenis_jaringan" class="java.lang.String"/>
+	<field name="label" class="java.lang.String"/>
+	<field name="isi" class="java.lang.String"/>
+	<field name="tebal" class="java.lang.Boolean"/>
+	<field name="bahan" class="java.lang.Boolean"/>
+	<field name="akhir_bahan" class="java.lang.Boolean"/>
+	<title>
+		<band height="113" splitType="Stretch">
+			<image scaleImage="FillFrame" onErrorType="Blank">
+				<reportElement x="0" y="0" width="67" height="67" uuid="13996d94-dc27-470b-945a-fc799b2d6bdd"/>
+				<imageExpression><![CDATA[$P{logo}]]></imageExpression>
 			</image>
 			<staticText>
-				<reportElement mode="Transparent" x="72" y="1" width="451" height="33" forecolor="#000000" backcolor="#F0F0DC">
+				<reportElement mode="Transparent" x="0" y="1" width="523" height="33" forecolor="#000000" backcolor="#F0F0DC" uuid="fc3af416-4abb-49c8-bd83-f3cc0123afe0">
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center" verticalAlignment="Top">
-					<font fontName="SansSerif" size="12" isBold="true"/>
+					<font fontName="Segoe UI" size="12" isBold="true"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<text>RUMAH SAKIT AKADEMIS JAURY JUSUF PUTERA
-INSTALASI LABORATORIUM</text>
+				<text><![CDATA[RUMAH SAKIT AKADEMIS JAURY JUSUF PUTERA
+INSTALASI LABORATORIUM]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Transparent" x="72" y="34" width="451" height="42" forecolor="#000000" backcolor="#F0F0DC">
+				<reportElement mode="Transparent" x="0" y="34" width="523" height="42" forecolor="#000000" backcolor="#F0F0DC" uuid="06d5c926-9711-4403-8ce4-71d34d2cac35">
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center" verticalAlignment="Top">
-					<font fontName="SansSerif" size="10" isBold="false"/>
+					<font fontName="Segoe UI" size="10" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<text>Jln. Jend. M. Jusuf No. 57A
+				<text><![CDATA[Jln. Jend. M. Jusuf No. 57A
 Telp. (0411) 3617343, 3613054, 3613071, Fax (0411) 3613914
-Makassar 90174</text>
+Makassar 90174]]></text>
 			</staticText>
-			<line><reportElement x="0" y="79" width="523" height="1" positionType="Float"/><graphicElement><pen lineWidth="0.5" lineColor="#888888"/></graphicElement></line><textField isStretchWithOverflow="false" isBlankWhenNull="true"><reportElement x="0" y="89" width="523" height="22" positionType="Float"/><textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" size="12" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{judul}]]></textFieldExpression></textField></band></title><pageHeader><band height="114" splitType="Stretch"><line><reportElement x="0" y="0" width="523" height="1" positionType="Float"/><graphicElement><pen lineWidth="0.5" lineColor="#888888"/></graphicElement></line><frame><reportElement x="16" y="9" width="507" height="15" positionType="Float"/><staticText><reportElement x="0" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[No. PA]]></text></staticText><staticText><reportElement x="78" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="85" y="0" width="161" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{no_pa}]]></textFieldExpression></textField><staticText><reportElement x="255" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Diterima Tgl.]]></text></staticText><staticText><reportElement x="333" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="340" y="0" width="167" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{tanggal_terima}]]></textFieldExpression></textField></frame><frame><reportElement x="16" y="24" width="507" height="15" positionType="Float"/><staticText><reportElement x="0" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[No. RM/No. Reg]]></text></staticText><staticText><reportElement x="78" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="85" y="0" width="161" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{norm}+"/"+$P{noperiksa}]]></textFieldExpression></textField><staticText><reportElement x="255" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Dijawab Tgl.]]></text></staticText><staticText><reportElement x="333" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="340" y="0" width="167" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{tanggal_jawab}]]></textFieldExpression></textField></frame><frame><reportElement x="16" y="39" width="507" height="15" positionType="Float"/><staticText><reportElement x="0" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Nama]]></text></staticText><staticText><reportElement x="78" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="85" y="0" width="161" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{namapasien}]]></textFieldExpression></textField><staticText><reportElement x="255" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Jenis Jaringan]]></text></staticText><staticText><reportElement x="333" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="340" y="0" width="167" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{jenis_jaringan}]]></textFieldExpression></textField></frame><frame><reportElement x="16" y="54" width="507" height="15" positionType="Float"/><staticText><reportElement x="0" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Jenis Kelamin]]></text></staticText><staticText><reportElement x="78" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="85" y="0" width="161" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{jkel}]]></textFieldExpression></textField><staticText><reportElement x="255" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Rumah Sakit]]></text></staticText><staticText><reportElement x="333" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="340" y="0" width="167" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{namars}]]></textFieldExpression></textField></frame><frame><reportElement x="16" y="69" width="507" height="15" positionType="Float"/><staticText><reportElement x="0" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Tgl Lahir / Umur]]></text></staticText><staticText><reportElement x="78" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="85" y="0" width="161" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{lahir}+" / "+$P{umur}]]></textFieldExpression></textField><staticText><reportElement x="255" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Dokter Perujuk]]></text></staticText><staticText><reportElement x="333" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="340" y="0" width="167" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{pengirim}]]></textFieldExpression></textField></frame><frame><reportElement x="16" y="84" width="507" height="15" positionType="Float"/><staticText><reportElement x="0" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Alamat]]></text></staticText><staticText><reportElement x="78" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="85" y="0" width="161" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{alamat}]]></textFieldExpression></textField><staticText><reportElement x="255" y="0" width="78" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9" isBold="true"/></textElement><text><![CDATA[Unit Pengantar]]></text></staticText><staticText><reportElement x="333" y="0" width="7" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="340" y="0" width="167" height="15" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{namakamar}]]></textFieldExpression></textField></frame><line><reportElement x="0" y="108" width="523" height="1" positionType="Float"/><graphicElement><pen lineWidth="0.5" lineColor="#888888"/></graphicElement></line></band></pageHeader><detail><band height="16" splitType="Stretch"><printWhenExpression><![CDATA[Boolean.TRUE.equals($F{bahan})]]></printWhenExpression><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="16" y="0" width="130" height="16" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$F{label}]]></textFieldExpression></textField><staticText><reportElement x="146" y="0" width="8" height="16" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><text><![CDATA[:]]></text></staticText><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="154" y="0" width="369" height="16" positionType="Float"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$F{isi}]]></textFieldExpression></textField></band><band height="14" splitType="Prevent"><printWhenExpression><![CDATA[Boolean.TRUE.equals($F{akhir_bahan})]]></printWhenExpression><line><reportElement x="0" y="10" width="523" height="1" positionType="Float"/><graphicElement><pen lineWidth="0.5" lineColor="#888888"/></graphicElement></line></band><band height="30" splitType="Stretch"><printWhenExpression><![CDATA[!Boolean.TRUE.equals($F{bahan})]]></printWhenExpression><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="0" y="8" width="98" height="18" positionType="Float" style="NilaiHasil"/><textElement textAlignment="Left" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$F{label}]]></textFieldExpression></textField><textField isStretchWithOverflow="true" isBlankWhenNull="true"><reportElement x="100" y="8" width="423" height="18" positionType="Float" style="NilaiHasil"/><textElement textAlignment="Justified" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$F{isi}]]></textFieldExpression></textField></band></detail><pageFooter><band height="18"><textField isStretchWithOverflow="false" isBlankWhenNull="true"><reportElement x="240" y="3" width="283" height="14" positionType="Float"/><textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="SansSerif" size="8"/></textElement><textFieldExpression><![CDATA["Waktu Cetak :   "+new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new java.util.Date())]]></textFieldExpression></textField></band></pageFooter><summary><band height="126" splitType="Prevent"><textField isStretchWithOverflow="false" isBlankWhenNull="true"><reportElement x="320" y="14" width="203" height="16" positionType="Float"/><textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{kotars}+", "+$P{tanggal_jawab}]]></textFieldExpression></textField><textField isStretchWithOverflow="false" isBlankWhenNull="true"><reportElement x="320" y="32" width="203" height="16" positionType="Float"/><textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{labelPenanda}]]></textFieldExpression></textField><image scaleImage="RetainShape" onErrorType="Blank"><reportElement x="391" y="49" width="62" height="62"/><imageExpression><![CDATA[$P{qrImage}]]></imageExpression></image><textField isStretchWithOverflow="false" isBlankWhenNull="true"><reportElement x="300" y="110" width="223" height="16" positionType="Float"/><textElement textAlignment="Center" verticalAlignment="Middle"><font fontName="SansSerif" size="9"/></textElement><textFieldExpression><![CDATA[$P{penanda}]]></textFieldExpression></textField></band></summary></jasperReport>
+			<line>
+				<reportElement positionType="Float" x="0" y="79" width="523" height="1" uuid="050dcb5d-ea57-4937-9412-d71615eb782f"/>
+				<graphicElement>
+					<pen lineWidth="1.5" lineStyle="Solid" lineColor="#000000"/>
+				</graphicElement>
+			</line>
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" x="0" y="89" width="523" height="22" uuid="d13d6983-0ea7-4da8-b110-418f73c29bda"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{judul}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="114" splitType="Stretch">
+			<line>
+				<reportElement positionType="Float" x="0" y="0" width="523" height="1" uuid="dd9b7f89-cd0c-45f1-8006-f487bd430ef4"/>
+				<graphicElement>
+					<pen lineWidth="0.75" lineColor="#000000"/>
+				</graphicElement>
+			</line>
+			<frame>
+				<reportElement positionType="Float" x="16" y="9" width="507" height="15" uuid="c179840c-a95c-43bf-bac0-23be6ca7ee55"/>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="0" width="78" height="15" uuid="cf5e54a4-2992-4a6a-8f32-0199a297b312"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[No. PA]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="78" y="0" width="7" height="15" uuid="6e985f0c-e982-4b3b-8434-4f7ab6331ba7"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="85" y="0" width="161" height="15" uuid="8096cd9a-d6f0-453e-a688-6a7c08547621"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{no_pa}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="255" y="0" width="78" height="15" uuid="1da3fa2c-9db6-4eac-8a99-68136daf89e4"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Diterima Tgl.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="333" y="0" width="7" height="15" uuid="c50b122f-0caa-4287-b522-964541d4a4d8"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="340" y="0" width="167" height="15" uuid="c6d8f627-712f-42e1-99e0-8d496858d9f7"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{tanggal_terima}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="16" y="24" width="507" height="15" uuid="a167f71b-f4ee-452e-bfb4-79f2eadf8735"/>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="0" width="78" height="15" uuid="00281926-65f4-4693-b0a1-419468380fb1"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[No. RM/No. Reg]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="78" y="0" width="7" height="15" uuid="b9d7c5be-2595-480c-ad86-210554a5611f"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="85" y="0" width="161" height="15" uuid="38b3da78-af49-4091-82d2-132f61a8792b"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{norm}+"/"+$P{noperiksa}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="255" y="0" width="78" height="15" uuid="1cee2928-f972-4c6f-a496-502675958db4"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Dijawab Tgl.]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="333" y="0" width="7" height="15" uuid="3b5f6151-4d40-4f61-b952-0dbb8c75d3c2"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="340" y="0" width="167" height="15" uuid="389dbeb5-aa10-4f05-bb6e-b880c817cf03"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{tanggal_jawab}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="16" y="39" width="507" height="15" uuid="f1b29f1b-3d8b-411e-819d-60957b952da6"/>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="0" width="78" height="15" uuid="47e3c680-ff7f-4df3-9e17-b31ca2b59fcc"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Nama]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="78" y="0" width="7" height="15" uuid="e5ecc1a6-df4a-4971-8915-86949293ed82"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="85" y="0" width="161" height="15" uuid="d08bdebc-8345-430e-af56-015d1c69d625"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{namapasien}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="255" y="0" width="78" height="15" uuid="b125990b-836d-4823-8ebc-7b105642b79c"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Jenis Jaringan]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="333" y="0" width="7" height="15" uuid="e0ef2917-4ead-48bf-8400-a03da23491d2"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="340" y="0" width="167" height="15" uuid="cd6bc1f0-188f-4693-b868-17f31900373a"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{jenis_jaringan}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="16" y="54" width="507" height="15" uuid="9fc7affe-ebb2-438e-b057-971beff180b3"/>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="0" width="78" height="15" uuid="702c03a1-d1d2-4631-8482-6f79541b25e8"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Jenis Kelamin]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="78" y="0" width="7" height="15" uuid="48203e4f-3f3b-4458-8465-61f35ac80f5e"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="85" y="0" width="161" height="15" uuid="93683585-fbd3-42e2-b7e4-353c5559e2df"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{jkel}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="255" y="0" width="78" height="15" uuid="1c46381a-c32e-4034-9729-daa2ce21805e"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Rumah Sakit]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="333" y="0" width="7" height="15" uuid="6ec66c2e-8542-482a-ac9c-f51687c0095b"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="340" y="0" width="167" height="15" uuid="52219e67-cd88-44be-851e-1abd34797233"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{namars}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="16" y="69" width="507" height="15" uuid="d2f06db4-2f01-4e36-bc17-b2a3aeba5d8f"/>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="0" width="78" height="15" uuid="6fa6317b-865a-4f3f-aa5c-0aca081d4272"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Tgl Lahir / Umur]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="78" y="0" width="7" height="15" uuid="21f1e1af-ba06-4e5b-b358-79b34d1ba9b8"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="85" y="0" width="161" height="15" uuid="8c7d523b-1bab-4673-b1d0-6d2f6b35c225"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{lahir}+" / "+$P{umur}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="255" y="0" width="78" height="15" uuid="bc1d015a-d15d-4aab-9d83-0b5974424b09"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Dokter Perujuk]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="333" y="0" width="7" height="15" uuid="607e4f44-58c5-4237-af05-4fe68ead0105"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="340" y="0" width="167" height="15" uuid="432cac2e-5b4c-4d9f-9c83-c2b4323e820b"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{pengirim}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement positionType="Float" x="16" y="84" width="507" height="15" uuid="35339024-8f92-4cd2-85c1-58e08270bf53"/>
+				<staticText>
+					<reportElement positionType="Float" x="0" y="0" width="78" height="15" uuid="8ac51d3b-eec5-4bd3-8a98-60bb378a7116"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Alamat]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="78" y="0" width="7" height="15" uuid="53697d8f-783a-48e6-93ca-d6c3e4113252"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="85" y="0" width="161" height="15" uuid="a00322c6-72bc-4601-bf47-67284bc93ee6"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{alamat}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement positionType="Float" x="255" y="0" width="78" height="15" uuid="84782540-9872-4394-8379-6ac042db8785"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI Semibold" size="9" isBold="true"/>
+					</textElement>
+					<text><![CDATA[Unit Pengantar]]></text>
+				</staticText>
+				<staticText>
+					<reportElement positionType="Float" x="333" y="0" width="7" height="15" uuid="32f6a87a-37e3-4d7f-a183-226f1f0ee336"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<text><![CDATA[:]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" x="340" y="0" width="167" height="15" uuid="4d32bcfe-2083-4a3a-a3ad-c5648a6cc0e2"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Segoe UI" size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{namakamar}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<line>
+				<reportElement positionType="Float" x="0" y="108" width="523" height="1" uuid="0779b856-9780-469c-903b-9fff387cf1d6"/>
+				<graphicElement>
+					<pen lineWidth="0.75" lineColor="#000000"/>
+				</graphicElement>
+			</line>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="16" splitType="Stretch">
+			<printWhenExpression><![CDATA[Boolean.TRUE.equals($F{bahan})]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="16" y="0" width="130" height="16" uuid="71febcd6-dba9-45ab-b90a-4b7584763dde"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{label}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement positionType="Float" x="146" y="0" width="8" height="16" uuid="2dc2a619-48c0-4844-a859-d242bd38e039"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="SansSerif" size="9"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="154" y="0" width="369" height="16" uuid="9218afc1-8996-4d86-bd02-4788fa4756b7"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{isi}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="14" splitType="Prevent">
+			<printWhenExpression><![CDATA[Boolean.TRUE.equals($F{akhir_bahan})]]></printWhenExpression>
+			<line>
+				<reportElement positionType="Float" x="0" y="10" width="523" height="1" uuid="84fcb593-2409-4dfb-8f23-86cb1073b4b9"/>
+				<graphicElement>
+					<pen lineWidth="0.75" lineColor="#000000"/>
+				</graphicElement>
+			</line>
+		</band>
+		<band height="30" splitType="Stretch">
+			<printWhenExpression><![CDATA[!Boolean.TRUE.equals($F{bahan})]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="NilaiHasil" positionType="Float" x="0" y="8" width="98" height="18" uuid="eaa8c5ca-8211-4984-a405-3e71b9544a44"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{label}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="NilaiHasil" positionType="Float" x="100" y="8" width="423" height="18" uuid="02110f5e-11b8-4d08-97f3-1d8aec865ffc"/>
+				<textElement textAlignment="Justified" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{isi}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="18">
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" x="300" y="3" width="223" height="14" uuid="52381900-ffbb-439d-96cd-b03f7425bd25"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Waktu Cetak :   "+new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new java.util.Date())]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="126" splitType="Prevent">
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" x="300" y="14" width="223" height="16" uuid="5a303cfb-f643-4793-b181-0ef9706bc8a0"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{kotars}+", "+$P{tanggal_jawab}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" x="300" y="32" width="223" height="16" uuid="71a2d1ec-86d3-4364-aa10-1a42442f3ecf"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{labelPenanda}]]></textFieldExpression>
+			</textField>
+			<image scaleImage="RetainShape" onErrorType="Blank">
+				<reportElement x="380" y="47" width="62" height="62" uuid="2805c643-27c5-4b27-8276-5d479a722383"/>
+				<imageExpression><![CDATA[$P{qrImage}]]></imageExpression>
+			</image>
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" x="300" y="110" width="223" height="16" uuid="1d15ddfe-7fbe-43a7-9be7-befe17c86f08"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI Semibold" size="9" isUnderline="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{penanda}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>
