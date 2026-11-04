@@ -89,45 +89,27 @@ public final class LampiranFotoLabPA {
         final int awal = atas + 36;
         final int akhir = hasil.getPageHeight() - bawah;
         final int label = 18;
-        final int jarak = 10;
-        final int kapasitas = akhir - awal - label - jarak;
-        if (kapasitas <= 0) throw new JRException("Ruang lampiran foto PA tidak cukup.");
+        final int jarak = 14;
+        final int tinggiSlot = (akhir - awal - jarak) / 2;
+        final int tinggiFotoMaks = tinggiSlot - label - 4;
+        if (atas < 0 || bawah < 0 || tinggiFotoMaks <= 0)
+            throw new JRException("Ruang lampiran foto PA tidak cukup untuk dua gambar.");
         JRBasePrintPage halaman = null;
-        int y = awal;
         for (int i = 0; i < foto.size(); i++) {
             Foto item = foto.get(i);
-            BufferedImage gambar = item.gambar;
-            if (gambar == null || gambar.getWidth() <= 0 || gambar.getHeight() <= 0) {
+            BufferedImage data = item == null ? null : item.gambar;
+            if (data == null || data.getWidth() <= 0 || data.getHeight() <= 0)
                 throw new JRException("Foto PA ke-" + (i + 1) + " tidak dapat dibaca.");
-            }
-            int tinggi = (int) Math.ceil((double) lebar * gambar.getHeight() / gambar.getWidth());
-            if (tinggi <= kapasitas) {
-                if (halaman == null || y + label + tinggi + jarak > akhir) {
-                    halaman = halamanBaru(hasil, identitas, kiri, lebar, atas);
-                    y = awal;
-                }
-                teks(hasil, halaman, kiri, y, lebar, label,
-                        "Foto " + (i + 1) + " — " + item.pemeriksaan, 9f);
-                gambar(hasil, halaman, gambar, kiri, y + label, lebar, tinggi);
-                y += label + tinggi + jarak;
-            } else {
-                // Foto sangat tinggi dibagi menjadi bagian berurutan, bukan dipotong/hilang.
-                // Lebar dan skala setiap bagian tetap sama dengan kotak identitas pasien.
-                int barisMaksimum = Math.max(1, (int) Math.floor(
-                        (double) kapasitas * gambar.getWidth() / lebar));
-                int bagian = 0;
-                for (int baris = 0; baris < gambar.getHeight(); baris += barisMaksimum) {
-                    int barisBagian = Math.min(barisMaksimum, gambar.getHeight() - baris);
-                    int tinggiBagian = (int) Math.ceil((double) lebar * barisBagian / gambar.getWidth());
-                    halaman = halamanBaru(hasil, identitas, kiri, lebar, atas);
-                    y = awal;
-                    teks(hasil, halaman, kiri, y, lebar, label,
-                            "Foto " + (i + 1) + " — " + item.pemeriksaan + " (bagian " + (++bagian) + ")", 9f);
-                    gambar(hasil, halaman, gambar.getSubimage(0, baris, gambar.getWidth(), barisBagian),
-                            kiri, y + label, lebar, tinggiBagian);
-                    y += label + tinggiBagian + jarak;
-                }
-            }
+            if (i % 2 == 0) halaman = halamanBaru(hasil, identitas, kiri, lebar, atas);
+            int y = awal + (i % 2) * (tinggiSlot + jarak);
+            // Dua slot per halaman. Gambar utuh, tidak di-crop/dipecah/diregangkan.
+            double skala = Math.min((double) tinggiFotoMaks / data.getHeight(), (double) lebar / data.getWidth());
+            int tinggi = Math.max(1, (int) Math.floor(data.getHeight() * skala));
+            int lebarFoto = Math.max(1, (int) Math.floor(data.getWidth() * skala));
+            int x = kiri + (lebar - lebarFoto) / 2;
+            teks(hasil, halaman, kiri, y, lebar, label,
+                    "Foto " + (i + 1) + " - " + item.pemeriksaan, 9f);
+            gambar(hasil, halaman, data, x, y + label + 4, lebarFoto, tinggi);
         }
     }
 
@@ -169,3 +151,4 @@ public final class LampiranFotoLabPA {
         halaman.addElement(gambar);
     }
 }
+

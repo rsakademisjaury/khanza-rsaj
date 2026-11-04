@@ -1962,7 +1962,7 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
             if(sukses==true){
                 for(i=0;i<tbPemeriksaan.getRowCount();i++){ 
                     if(!tbPemeriksaan.getValueAt(i,2).toString().equals("")){  
-                        if(Sequel.menyimpantf2("detail_periksa_labpa","?,?,?,?,?,?,?,?,?","Pemeriksaan Lab",9,new String[]{
+                        if(Sequel.menyimpantf2("detail_periksa_labpa (no_rawat,kd_jenis_prw,tgl_periksa,jam,diagnosa_klinik,makroskopik,mikroskopik,kesimpulan,kesan)","?,?,?,?,?,?,?,?,?","Pemeriksaan Lab",9,new String[]{
                                 TNoRw.getText(),tbPemeriksaan.getValueAt(i,6).toString(),Valid.SetTgl(Tanggal.getSelectedItem()+""),CmbJam.getSelectedItem()+":"+CmbMenit.getSelectedItem()+":"+CmbDetik.getSelectedItem(),
                                 tbPemeriksaan.getValueAt(i,1).toString(),tbPemeriksaan.getValueAt(i,2).toString(),tbPemeriksaan.getValueAt(i,3).toString(),tbPemeriksaan.getValueAt(i,4).toString(),tbPemeriksaan.getValueAt(i,5).toString()
                             })==false){
@@ -2072,3 +2072,4 @@ private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRS
     }
 
 }
+

@@ -361,6 +361,13 @@ public class DlgCariPeriksaLabPA extends javax.swing.JDialog {
         siapkanPanelPA();
         ChkAccor.setSelected(false);
         isPhoto();
+        // Pemilihan membuka panel; perpindahan fokus tidak menutupnya.
+        tbDokter.getSelectionModel().addListSelectionListener(e->{
+            if(!e.getValueIsAdjusting()&&tbDokter.getSelectedRow()>=0)javax.swing.SwingUtilities.invokeLater(()->bukaPilihanPanelPA());
+        });
+        tbDokter.addFocusListener(new java.awt.event.FocusAdapter(){
+            @Override public void focusGained(java.awt.event.FocusEvent e){if(tbDokter.getSelectedRow()>=0)bukaPilihanPanelPA();}
+        });
     }
 
     /** This method is called from within the constructor to
@@ -1293,9 +1300,7 @@ private void KdKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_TKdKey
 private void tbDokterMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tbDokterMouseClicked
     if(tabMode.getRowCount()!=0){
         try {
-            isPhoto();
-            panggilPhoto();
-            getData();
+            bukaPilihanPanelPA();
         } catch (java.lang.NullPointerException e) {
         }
     }
@@ -1305,7 +1310,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
    if(tabMode.getRowCount()!=0){
             if((evt.getKeyCode()==KeyEvent.VK_ENTER)||(evt.getKeyCode()==KeyEvent.VK_UP)||(evt.getKeyCode()==KeyEvent.VK_DOWN)){
                 try {
-                    getData();
+                    javax.swing.SwingUtilities.invokeLater(()->bukaPilihanPanelPA());
                 } catch (java.lang.NullPointerException e) {
                 }
             }
@@ -2675,6 +2680,21 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         sesuaikanLebarPanelPA();
     }
 
+    private void aturBukaPanelPA(boolean buka){
+        buka=buka&&tbDokter.getSelectedRow()>=0;
+        if(ChkAccor.isSelected()==buka)return;
+        ChkAccor.setSelected(buka);isPhoto();
+        if(buka)panggilPhoto();
+        else{++versiGaleriPA;if(pemuatFotoPA!=null)pemuatFotoPA.cancel(true);}
+    }
+    private void bukaPilihanPanelPA(){
+        fungsi.LabPAData.Kunci k=kunciPilihanPA();if(k==null)return;
+        boolean berubah=kunciBahanHasilPA==null||!k.token().equals(kunciBahanHasilPA.token());
+        if(berubah||!bahanHasilSiapPA)getData();
+        boolean terbuka=ChkAccor.isSelected();aturBukaPanelPA(true);
+        if(berubah&&terbuka)panggilPhoto();
+    }
+
     private String escapeHTMLPA(String nilai) {
         return nilai.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("\"", "&quot;").replace("'", "&#39;");
@@ -3076,9 +3096,9 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
                 " Hasil Pemeriksaan ", 0, 0,
                 new java.awt.Font("Segoe UI Semibold", java.awt.Font.BOLD, 13), biru));
         FormPass.setPreferredSize(null);
-        javax.swing.JLabel[] label = {label14, label17, label19, label20, label21};
-        javax.swing.JScrollPane[] isian = {scrollPane2, scrollPane3, scrollPane4, scrollPane5, scrollPane6};
-        javax.swing.JTextArea[] teks = {DiagnosaKlinis, Makroskopis, Mikroskopis, Kesimpulan, Kesan};
+        javax.swing.JLabel[] label = {label14, labelKeteranganKlinisPA, label17, label19, label20, label21};
+        javax.swing.JScrollPane[] isian = {scrollPane2, scrollKeteranganKlinisPA, scrollPane3, scrollPane4, scrollPane5, scrollPane6};
+        javax.swing.JTextArea[] teks = {DiagnosaKlinis, KeteranganKlinisPA, Makroskopis, Mikroskopis, Kesimpulan, Kesan};
         for (int n = 0; n < label.length; n++) {
             java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
             c.gridx = 0; c.gridy = n * 2 + 2; c.weightx = 1;
@@ -3093,11 +3113,16 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
             FormPass.add(new InputBulatPA(teks[n], isian[n]), c);
         }
         java.awt.GridBagConstraints tombol = new java.awt.GridBagConstraints();
-        tombol.gridx = 0; tombol.gridy = 12; tombol.weightx = 1;
+        tombol.gridx = 0; tombol.gridy = label.length * 2 + 2; tombol.weightx = 1;
         tombol.anchor = java.awt.GridBagConstraints.EAST;
         tombol.insets = new java.awt.Insets(8, 10, 10, 10);
-        FormPass.add(btnUbahPassword, tombol);
-        // Jaga isian tetap di atas ketika kelima input masih satu baris.
+        javax.swing.JPanel aksiHasilPA=new javax.swing.JPanel(new java.awt.BorderLayout(12,0));aksiHasilPA.setBackground(java.awt.Color.WHITE);
+        widget.Button btnSOAPPA=new widget.Button();btnSOAPPA.setText("SOAP / CPPT");btnSOAPPA.setFont(font);
+        btnSOAPPA.setIcon(fungsi.LabPASoapDialog.ikon());btnSOAPPA.setPreferredSize(new Dimension(145,30));
+        btnSOAPPA.setToolTipText("Lihat dan salin SOAP/CPPT kunjungan pasien yang dipilih");btnSOAPPA.addActionListener(e->lihatSOAPPA());
+        aksiHasilPA.add(btnSOAPPA,java.awt.BorderLayout.WEST);aksiHasilPA.add(btnUbahPassword,java.awt.BorderLayout.EAST);
+        tombol.fill=java.awt.GridBagConstraints.HORIZONTAL;FormPass.add(aksiHasilPA,tombol);
+        // Jaga isian tetap di atas ketika input masih satu baris.
         javax.swing.JPanel areaHasil = new javax.swing.JPanel(new java.awt.BorderLayout());
         areaHasil.setBackground(java.awt.Color.WHITE);
         areaHasil.add(FormPass, java.awt.BorderLayout.NORTH);
@@ -3506,21 +3531,28 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
     }
     private void aturJenisHasilPA(){
         if(bahanHasilPA==null)return;
-        boolean umum=!"IHC".equals(bahanHasilPA.getJenis());
+        boolean umum=!hasilTerdaftarPA||!"IHC".equals(bahanHasilPA.getJenis());
+        bahanHasilPA.setVisible(true);
         label14.setVisible(umum);scrollPane2.getParent().setVisible(umum);
+        labelKeteranganKlinisPA.setVisible(umum);scrollKeteranganKlinisPA.getParent().setVisible(umum);
         label17.setVisible(umum);scrollPane3.getParent().setVisible(umum);
         label19.setVisible(umum);scrollPane4.getParent().setVisible(umum);
-        if(btnBuatNoPA!=null)btnBuatNoPA.setEnabled(bahanHasilSiapPA&&nomorTerbitPA.isEmpty()&&fungsi.LabPAData.validJenis(bahanHasilPA.getJenis()));
+        if(btnBuatNoPA!=null)btnBuatNoPA.setEnabled(hasilTerdaftarPA&&bahanHasilSiapPA&&nomorTerbitPA.isEmpty()&&fungsi.LabPAData.validJenis(bahanHasilPA.getJenis()));
         FormPass.revalidate();FormPass.repaint();
     }
     private void muatTambahanHasilPA(){
-        if(bahanHasilPA==null)return;bahanHasilSiapPA=false;nomorTerbitPA="";kunciBahanHasilPA=kunciPilihanPA();
+        if(bahanHasilPA==null)return;bahanHasilSiapPA=false;hasilTerdaftarPA=false;bahanAwalHasilPA=null;nomorTerbitPA="";kunciBahanHasilPA=kunciPilihanPA();KeteranganKlinisPA.setText("");
         if(kunciBahanHasilPA==null){bahanHasilPA.setValue(new fungsi.LabPAData.Bahan());noPATerbitField.setText("Pilih pemeriksaan");aturJenisHasilPA();return;}
         try{
+            try(java.sql.PreparedStatement p=koneksi.prepareStatement("select keterangan_klinik from detail_periksa_labpa where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
+                kunciBahanHasilPA.bind(p,1);try(java.sql.ResultSet r=p.executeQuery()){if(r.next())KeteranganKlinisPA.setText(fungsi.LabPAData.text(r.getString(1)));}
+            }
+            hasilTerdaftarPA=pemeriksaanTerdaftarPA(kunciBahanHasilPA);
             fungsi.LabPAData.Bahan b=fungsi.LabPAData.muat(koneksi,kunciBahanHasilPA,tbDokter.getValueAt(tbDokter.getSelectedRow(),7).toString());
             nomorTerbitPA=fungsi.LabPAData.nomor(koneksi,kunciBahanHasilPA);
             bahanHasilPA.setValue(b);bahanHasilPA.setTypeLocked(!nomorTerbitPA.isEmpty());
-            noPATerbitField.setText(nomorTerbitPA.isEmpty()?"Belum diterbitkan":nomorTerbitPA);bahanHasilSiapPA=true;
+            bahanAwalHasilPA=bahanHasilPA.getValue().copy();
+            noPATerbitField.setText(nomorTerbitPA.isEmpty()?(hasilTerdaftarPA?"Belum diterbitkan":"-"):nomorTerbitPA);bahanHasilSiapPA=true;
         }catch(Exception ex){
             bahanHasilPA.setValue(new fungsi.LabPAData.Bahan());noPATerbitField.setText("Data tambahan PA belum tersedia");
             System.out.println("Data bahan PA: "+ex.getMessage());
@@ -3536,15 +3568,18 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         return true;
     }
     private void simpanHasilPATambahan(){
-        if(!cocokPilihanHasilPA()||!bahanHasilPA.validasi(this))return;
+        if(!cocokPilihanHasilPA())return;
+        boolean simpanBahan=hasilTerdaftarPA||bahanHasilBerubahPA();
+        if(simpanBahan&&!bahanHasilPA.validasi(this))return;
         fungsi.LabPAData.Kunci k=kunciBahanHasilPA;
         try{
             if(!koneksi.getAutoCommit())throw new java.sql.SQLException("Selesaikan transaksi aktif terlebih dahulu.");
             koneksi.setAutoCommit(false);
             try{
-                fungsi.LabPAData.simpanHasil(koneksi,k,bahanHasilPA.getValue(),akses.getkode());
-                try(java.sql.PreparedStatement p=koneksi.prepareStatement("update detail_periksa_labpa set diagnosa_klinik=?,makroskopik=?,mikroskopik=?,kesimpulan=?,kesan=? where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
-                    p.setString(1,DiagnosaKlinis.getText());p.setString(2,Makroskopis.getText());p.setString(3,Mikroskopis.getText());p.setString(4,Kesimpulan.getText());p.setString(5,Kesan.getText());k.bind(p,6);
+                if(pemeriksaanTerdaftarPA(k)!=hasilTerdaftarPA)throw new java.sql.SQLException("Mapping PA berubah. Pilih kembali pemeriksaan sebelum menyimpan.");
+                if(simpanBahan)fungsi.LabPAData.simpanHasil(koneksi,k,bahanHasilPA.getValue(),akses.getkode());
+                try(java.sql.PreparedStatement p=koneksi.prepareStatement("update detail_periksa_labpa set diagnosa_klinik=?,keterangan_klinik=?,makroskopik=?,mikroskopik=?,kesimpulan=?,kesan=? where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
+                    p.setString(1,DiagnosaKlinis.getText());p.setString(2,KeteranganKlinisPA.getText());p.setString(3,Makroskopis.getText());p.setString(4,Mikroskopis.getText());p.setString(5,Kesimpulan.getText());p.setString(6,Kesan.getText());k.bind(p,7);
                     if(p.executeUpdate()==0){
                         try(java.sql.PreparedStatement cek=koneksi.prepareStatement("select count(*) from detail_periksa_labpa where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
                             k.bind(cek,1);try(java.sql.ResultSet r=cek.executeQuery()){if(!r.next()||r.getInt(1)==0)throw new java.sql.SQLException("Baris hasil pemeriksaan PA belum tersedia.");}
@@ -3561,6 +3596,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         }catch(Exception ex){JOptionPane.showMessageDialog(this,"Hasil PA gagal disimpan.\n"+ex.getMessage());}
     }
     private void buatNoPATambahan(){
+        if(!hasilTerdaftarPA)return;
         if(!cocokPilihanHasilPA()||!bahanHasilPA.validasi(this))return;
         if(!nomorTerbitPA.isEmpty()){JOptionPane.showMessageDialog(this,"No. PA sudah diterbitkan: "+nomorTerbitPA);return;}
         int jawab=JOptionPane.showOptionDialog(this,"Yakin ingin menerbitkan no. PA untuk no. pemeriksaan ini?",
@@ -3576,27 +3612,65 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
     }
     private net.sf.jasperreports.engine.JasperPrint siapkanReportJenisPA(java.util.Map<String,Object> param)throws Exception{
         fungsi.LabPAData.Kunci k=kunciPilihanPA();if(k==null)throw new java.io.IOException("Pilih pemeriksaan PA terlebih dahulu.");
+        boolean terdaftar=pemeriksaanTerdaftarPA(k);
         fungsi.LabPAData.Bahan b=fungsi.LabPAData.muat(koneksi,k,tbDokter.getValueAt(tbDokter.getSelectedRow(),7).toString());
-        if(!fungsi.LabPAData.validJenis(b.jenis))throw new java.io.IOException("Pilih jenis pemeriksaan pada data bahan dan simpan melalui tombol Ubah.");
+        if(terdaftar&&!fungsi.LabPAData.validJenis(b.jenis))throw new java.io.IOException("Pilih jenis pemeriksaan pada data bahan dan simpan melalui tombol Ubah.");
         java.util.Map<String,Object> klinis=new java.util.HashMap<>();
-        try(java.sql.PreparedStatement p=koneksi.prepareStatement("select diagnosa_klinik,makroskopik,mikroskopik,kesimpulan,kesan from detail_periksa_labpa where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
+        try(java.sql.PreparedStatement p=koneksi.prepareStatement("select diagnosa_klinik,makroskopik,mikroskopik,kesimpulan,kesan,keterangan_klinik from detail_periksa_labpa where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
             k.bind(p,1);try(java.sql.ResultSet r=p.executeQuery()){if(r.next()){
-                klinis.put("diagnosa_klinik",r.getString(1));klinis.put("makroskopik",r.getString(2));klinis.put("mikroskopik",r.getString(3));klinis.put("kesimpulan",r.getString(4));klinis.put("catatan",r.getString(5));
+                klinis.put("diagnosa_klinik",r.getString(1));klinis.put("keterangan_klinik",r.getString(6));klinis.put("makroskopik",r.getString(2));klinis.put("mikroskopik",r.getString(3));klinis.put("kesimpulan",r.getString(4));klinis.put("catatan",r.getString(5));
             }}
         }
         param.put("jenis_jaringan",b.jenisJaringan);
-        param.put("kodeperiksa",k.kode);String no=fungsi.LabPAData.nomor(koneksi,k);param.put("no_pa",no.isEmpty()?"Belum diterbitkan":no);
-        param.put("nopermintaan",b.noorder);param.put("tanggal_terima",k.tanggal+" "+k.jam);param.put("tanggal_jawab",k.tanggal+" "+k.jam);
+        param.put("kodeperiksa",k.kode);String no=fungsi.LabPAData.nomor(koneksi,k);param.put("no_pa",no.isEmpty()?(terdaftar?"Belum diterbitkan":"-"):no);
+        param.put("nama_pemeriksaan",tbDokter.getValueAt(tbDokter.getSelectedRow(),7).toString());
+        if(terdaftar)param.put("nopermintaan",b.noorder);
+        param.put("tanggal_terima",k.tanggal+" "+k.jam);param.put("tanggal_jawab",k.tanggal+" "+k.jam);
+        if(!terdaftar){
+            String terima=fungsi.LabPAData.text(param.get("tanggalsampel")),jamTerima=fungsi.LabPAData.text(param.get("jamsampel"));
+            if(terima.isEmpty()||terima.startsWith("0000")){terima=fungsi.LabPAData.text(param.get("tanggalpermintaan"));jamTerima=fungsi.LabPAData.text(param.get("jampermintaan"));}
+            if(!terima.isEmpty()&&!terima.startsWith("0000"))param.put("tanggal_terima",terima+" "+jamTerima);
+        }
         if(!b.noorder.isEmpty())try(java.sql.PreparedStatement p=koneksi.prepareStatement("select * from permintaan_labpa where noorder=?")){
             p.setString(1,b.noorder);try(java.sql.ResultSet r=p.executeQuery()){if(r.next()){
-                klinis.put("keterangan_klinik",r.getString(11));
                 String tgl=fungsi.LabPAData.text(r.getString(5));String jam=fungsi.LabPAData.text(r.getString(6));
                 if(tgl.isEmpty()||tgl.startsWith("0000")){tgl=r.getString(3);jam=r.getString(4);}
                 param.put("tanggal_terima",tgl+" "+jam);
             }}
         }
         param.put("logo",fungsi.LabPAReport.image(param.get("logo")));
-        return fungsi.LabPAReport.fill(b.jenis,false,param,fungsi.LabPAReport.rows(b,klinis,false));
+        return terdaftar?fungsi.LabPAReport.fill(b.jenis,false,param,fungsi.LabPAReport.rows(b,klinis,false)):fungsi.LabPAReport.fillUmum(b,param,klinis);
+    }
+
+    private boolean hasilTerdaftarPA;
+    private final javax.swing.JLabel labelKeteranganKlinisPA=new javax.swing.JLabel("Keterangan Klinis :");
+    private final javax.swing.JTextArea KeteranganKlinisPA=new javax.swing.JTextArea(){
+        @Override public void updateUI(){setUI(new javax.swing.plaf.basic.BasicTextAreaUI());}
+        @Override protected void paintBorder(java.awt.Graphics g){}
+    };
+    private final javax.swing.JScrollPane scrollKeteranganKlinisPA=new javax.swing.JScrollPane(KeteranganKlinisPA){
+        @Override public void updateUI(){setUI(new javax.swing.plaf.basic.BasicScrollPaneUI());setViewportBorder(javax.swing.BorderFactory.createEmptyBorder());}
+        @Override protected void paintBorder(java.awt.Graphics g){}
+    };
+    private fungsi.LabPAData.Bahan bahanAwalHasilPA;
+    private boolean bahanHasilBerubahPA(){
+        if(bahanAwalHasilPA==null)return true;
+        fungsi.LabPAData.Bahan a=bahanAwalHasilPA,b=bahanHasilPA.getValue();
+        String[] lama={a.jenis,a.jenisJaringan,a.lokasi,a.cara,a.fiksasi,a.rsSebelum,a.noSebelum,a.diagnosaPA,a.permintaanIHC,a.pemeriksaanIHC};
+        String[] baru={b.jenis,b.jenisJaringan,b.lokasi,b.cara,b.fiksasi,b.rsSebelum,b.noSebelum,b.diagnosaPA,b.permintaanIHC,b.pemeriksaanIHC};
+        return !java.util.Arrays.equals(lama,baru);
+    }
+    private boolean pemeriksaanTerdaftarPA(fungsi.LabPAData.Kunci k)throws java.sql.SQLException{
+        try(java.sql.PreparedStatement p=koneksi.prepareStatement("select 1 from rsaj_labpa_jenis where kd_jenis_prw=?")){
+            p.setString(1,k.kode);try(java.sql.ResultSet r=p.executeQuery()){return r.next();}
+        }
+    }
+    private void lihatSOAPPA(){
+        fungsi.LabPAData.Kunci k=kunciPilihanPA();if(k==null){JOptionPane.showMessageDialog(this,"Pilih pasien terlebih dahulu.");return;}
+        String pasien=tbDokter.getValueAt(tbDokter.getSelectedRow(),1).toString();
+        fungsi.LabPASoapDialog dialog=new fungsi.LabPASoapDialog(this,koneksi,k.noRawat,pasien);
+        dialog.setVisible(true);tbDokter.requestFocusInWindow();
     }
 
 }
+

@@ -3436,6 +3436,7 @@ public class DlgUser extends javax.swing.JDialog {
         PasswordPolicy.configure(TPass);
         TPass.setToolTipText(PasswordPolicy.HINT + " Kosongkan saat edit untuk mempertahankan password.");
         pasangResetPassword();
+        pasangMataPassword();
         TCari.setDocument(new batasInput((byte)100).getKata(TCari));       
         
         dlgdokter.addWindowListener(new WindowListener() {
@@ -9110,6 +9111,26 @@ private void BtnPrintKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         } catch (java.sql.SQLException e) {
             PasswordDialogs.failure(this); return false;
         } finally { java.util.Arrays.fill(password, '\0'); }
+    }
+
+    private void pasangMataPassword() {
+        java.awt.Rectangle posisi = TPass.getBounds();
+        final UserPasswordEye mata = new UserPasswordEye(TPass,
+                () -> "Admin Utama".equals(akses.getkode()),
+                () -> {
+                    int baris = tbUser.getSelectedRow();
+                    if (baris < 0) return "";
+                    String id = tbUser.getValueAt(baris, 0).toString();
+                    return id.equals(TKd.getText()) ? id : "";
+                }, koneksiDB::condbVerifikasiSesi);
+        panelGlass5.remove(TPass);
+        panelGlass5.add(mata);
+        mata.setBounds(posisi);
+        tbUser.getSelectionModel().addListSelectionListener(event -> mata.sembunyikan());
+        mata.pantau(TKd.getDocument());
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowClosed(WindowEvent event) { mata.sembunyikan(); }
+        });
     }
 
     private void pasangResetPassword() {

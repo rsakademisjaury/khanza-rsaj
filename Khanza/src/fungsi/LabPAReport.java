@@ -99,7 +99,8 @@ public final class LabPAReport {
         }else{
             addBahan(rows,"Cara Mendapatkan Jaringan",b.cara,permintaan,false);
             addBahan(rows,"Cairan Fiksasi",b.fiksasi,permintaan,true);
-            add(rows,"Diagnosa Klinik",klinis.get("diagnosa_klinik"));add(rows,"Ket. Klinik",klinis.get("keterangan_klinik"));
+            if(permintaan){add(rows,"Diagnosa Klinik",klinis.get("diagnosa_klinik"));add(rows,"Ket. Klinik",klinis.get("keterangan_klinik"));}
+            else{add(rows,"Diagnosa Klinis",klinis.get("diagnosa_klinik"));add(rows,"Ket. Klinis",klinis.get("keterangan_klinik"));}
             if(!permintaan){add(rows,"Makroskopik",klinis.get("makroskopik"));add(rows,"Mikroskopik",klinis.get("mikroskopik"));}
         }
         if(!permintaan){add(rows,"Kesimpulan",klinis.get("kesimpulan"));add(rows,"Catatan",klinis.get("catatan"));}
@@ -119,6 +120,25 @@ public final class LabPAReport {
     public static JasperPrint fill(String jenis,boolean permintaan,Map<String,Object> params,List<Map<String,?>> rows)throws Exception{
         if(!LabPAData.validJenis(jenis))throw new IllegalArgumentException("Jenis pemeriksaan belum dipilih.");
         String nama=permintaan?"rptPermintaanPA_RS_Akademis":"rptHasilPA_"+jenis+"_RS_Akademis";
+        return fillReport(nama,permintaan,(permintaan?"PERMINTAAN PEMERIKSAAN ":"HASIL PEMERIKSAAN ")+LabPAData.namaJenis(jenis).toUpperCase(Locale.ROOT),params,rows);
+    }
+    /** Hasil kode di luar mapping: desain PA yang sama, tanpa memaksakan jenis/nomor baru. */
+    public static JasperPrint fillUmum(Map<String,Object> params,Map<String,Object> klinis)throws Exception{
+        return fillUmum(new LabPAData.Bahan(),params,klinis);
+    }
+    public static JasperPrint fillUmum(LabPAData.Bahan bahan,Map<String,Object> params,Map<String,Object> klinis)throws Exception{
+        List<Map<String,?>> rows=new ArrayList<>();
+        addBahan(rows,"Jenis Jaringan",bahan.jenisJaringan,false,false);
+        addBahan(rows,"Lokasi/Bahan Jaringan",bahan.lokasi,false,false);
+        addBahan(rows,"Cara Mendapatkan Jaringan",bahan.cara,false,false);
+        addBahan(rows,"Cairan Fiksasi",bahan.fiksasi,false,true);
+        add(rows,"Diagnosa Klinis",klinis.get("diagnosa_klinik"));
+        add(rows,"Ket. Klinis",klinis.get("keterangan_klinik"));
+        add(rows,"Makroskopik",klinis.get("makroskopik"));add(rows,"Mikroskopik",klinis.get("mikroskopik"));
+        add(rows,"Kesimpulan",klinis.get("kesimpulan"));add(rows,"Catatan",klinis.get("catatan"));
+        return fillReport("rptHasilPA_Umum_RS_Akademis",false,"HASIL PEMERIKSAAN PATOLOGI ANATOMI",params,rows);
+    }
+    private static JasperPrint fillReport(String nama,boolean permintaan,String judul,Map<String,Object> params,List<Map<String,?>> rows)throws Exception{
         File source=new File("report",nama+".jrxml");
         if(!source.isFile())throw new java.io.IOException("File report belum dipasang: "+source.getPath());
         Map<String,Object> p=new HashMap<>(params);
@@ -131,8 +151,10 @@ public final class LabPAReport {
             if("L".equalsIgnoreCase(jk))p.put("jkel","Laki-Laki");
             else if("P".equalsIgnoreCase(jk))p.put("jkel","Perempuan");
         }
-        p.put("judul",(permintaan?"PERMINTAAN PEMERIKSAAN ":"HASIL PEMERIKSAAN ")+LabPAData.namaJenis(jenis).toUpperCase(Locale.ROOT));
-        p.put("qrImage",qr(LabPAData.text(p.get("finger"))));
+        p.put("judul",judul);
+        BufferedImage kodeQR=qr(LabPAData.text(p.get("finger")));
+        if(!permintaan&&kodeQR==null)throw new java.io.IOException("QR tanda tangan hasil PA tidak dapat dibuat. Pastikan data penanda dan library ZXing tersedia.");
+        p.put("qrImage",kodeQR);
         p.put("labelTanggal",permintaan?"Tgl. Permintaan":"Diterima Tgl.");
         p.put("labelJawab",permintaan?"Pengambilan Bahan":"Dijawab Tgl.");
         p.put("labelPenanda",permintaan?"Dokter Perujuk":"Ahli Patologi Anatomi");
@@ -160,11 +182,20 @@ public final class LabPAReport {
             Object format=formatClass.getField("QR_CODE").get(null);
             Class<?> writerClass=Class.forName("com.google.zxing.qrcode.QRCodeWriter");
             Object writer=writerClass.newInstance();
-            Object matrix=writerClass.getMethod("encode",String.class,formatClass,int.class,int.class).invoke(writer,value,180,180);
+            Class<?> hintClass=Class.forName("com.google.zxing.EncodeHintType");
+            Map<Object,Object> hints=new HashMap<>();hints.put(hintClass.getField("CHARACTER_SET").get(null),"UTF-8");
+            Object matrix=writerClass.getMethod("encode",String.class,formatClass,int.class,int.class,Map.class).invoke(writer,value,format,360,360,hints);
             java.lang.reflect.Method get=matrix.getClass().getMethod("get",int.class,int.class);
-            BufferedImage image=new BufferedImage(180,180,BufferedImage.TYPE_INT_RGB);
-            for(int y=0;y<180;y++)for(int x=0;x<180;x++)image.setRGB(x,y,Boolean.TRUE.equals(get.invoke(matrix,x,y))?0xff000000:0xffffffff);
+            int width=((Number)matrix.getClass().getMethod("getWidth").invoke(matrix)).intValue();
+            int height=((Number)matrix.getClass().getMethod("getHeight").invoke(matrix)).intValue();
+            BufferedImage image=new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
+            for(int y=0;y<height;y++)for(int x=0;x<width;x++)image.setRGB(x,y,Boolean.TRUE.equals(get.invoke(matrix,x,y))?0xff000000:0xffffffff);
             return image;
-        }catch(Exception ex){System.out.println("QR report PA tidak tersedia: "+ex.getClass().getSimpleName());return null;}
+        }catch(Exception|LinkageError ex){
+            Throwable sebab=ex;
+            while(sebab instanceof java.lang.reflect.InvocationTargetException&&sebab.getCause()!=null)sebab=sebab.getCause();
+            System.out.println("QR report PA tidak tersedia: "+sebab.getClass().getSimpleName()+": "+sebab.getMessage());return null;
+        }
     }
 }
+
