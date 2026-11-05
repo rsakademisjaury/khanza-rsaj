@@ -2667,6 +2667,8 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         MnCetakNota.setEnabled(allowedUsers.contains(akses.getkode()));       
         BtnPrint.setEnabled(allowedUsers.contains(akses.getkode()));
         BtnUpload.setEnabled(allowedUsers.contains(akses.getkode()) && akses.getberkas_digital_perawatan()); 
+        bolehUbahPeriksaPA=allowedUsers.contains(akses.getkode())&&akses.getperiksa_lab();
+        if(menuUbahPeriksaPA!=null)menuUbahPeriksaPA.setEnabled(bolehUbahPeriksaPA);
         ppRiwayat.setEnabled(akses.getresume_pasien());   
         ppBerkasDigital.setEnabled(akses.getberkas_digital_perawatan());     
     }
@@ -3136,6 +3138,7 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
             @Override public void componentShown(java.awt.event.ComponentEvent e) { sesuaikanLebarPanelPA(); }
         });
         siapkanHasilPATambahan();
+        siapkanMenuUbahPeriksaPA();
         pesanGaleriPA("Pilih pemeriksaan untuk melihat foto hasil PA.");
     }
 
@@ -3473,9 +3476,72 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
             }
         } finally { request.disconnect(); }
     }
+    private javax.swing.JMenuItem menuUbahPeriksaPA;
+    private boolean bolehUbahPeriksaPA;
+    private String keteranganAwalUbahPA="";
+    private void siapkanMenuUbahPeriksaPA(){
+        if(menuUbahPeriksaPA!=null)return;
+        menuUbahPeriksaPA=new javax.swing.JMenuItem("Ubah Periksa Lab");
+        menuUbahPeriksaPA.setName("menuUbahPeriksaPA");
+        menuUbahPeriksaPA.setFont(new java.awt.Font("Segoe UI",java.awt.Font.PLAIN,12));
+        menuUbahPeriksaPA.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/category.png")));
+        menuUbahPeriksaPA.setPreferredSize(new Dimension(210,28));
+        menuUbahPeriksaPA.setEnabled(bolehUbahPeriksaPA);
+        menuUbahPeriksaPA.addActionListener(e->ubahPeriksaPA());jPopupMenu1.insert(menuUbahPeriksaPA,0);
+        tbDokter.addMouseListener(new java.awt.event.MouseAdapter(){
+            private void pilih(java.awt.event.MouseEvent e){
+                if(!e.isPopupTrigger())return;
+                int row=tbDokter.rowAtPoint(e.getPoint());
+                if(row>=0&&row!=tbDokter.getSelectedRow()){tbDokter.setRowSelectionInterval(row,row);bukaPilihanPanelPA();}
+            }
+            @Override public void mousePressed(java.awt.event.MouseEvent e){pilih(e);}
+            @Override public void mouseReleased(java.awt.event.MouseEvent e){pilih(e);}
+        });
+    }
+    private void ubahPeriksaPA(){
+        if(!bolehUbahPeriksaPA||!akses.getperiksa_lab())return;
+        if(sedangUploadFotoPA||sedangHapusFotoPA){JOptionPane.showMessageDialog(this,"Tunggu proses foto PA selesai sebelum mengubah pemeriksaan.");return;}
+        if(!cocokPilihanHasilPA())return;
+        int row=tbDokter.getSelectedRow();
+        if(bahanHasilBerubahPA()||!KeteranganKlinisPA.getText().equals(keteranganAwalUbahPA)
+                ||!DiagnosaKlinis.getText().equals(String.valueOf(tbDokter.getValueAt(row,9)))
+                ||!Makroskopis.getText().equals(String.valueOf(tbDokter.getValueAt(row,10)))
+                ||!Mikroskopis.getText().equals(String.valueOf(tbDokter.getValueAt(row,11)))
+                ||!Kesimpulan.getText().equals(String.valueOf(tbDokter.getValueAt(row,12)))
+                ||!Kesan.getText().equals(String.valueOf(tbDokter.getValueAt(row,13)))){
+            JOptionPane.showMessageDialog(this,"Simpan perubahan hasil/bahan melalui tombol Ubah terlebih dahulu.");return;
+        }
+        if(Sequel.cariRegistrasi(kunciBahanHasilPA.noRawat)>0){
+            JOptionPane.showMessageDialog(this,"Billing sudah terverifikasi atau kunjungan dibatalkan. Hubungi kasir/keuangan.");return;
+        }
+        fungsi.LabPAData.Kunci lama=kunciBahanHasilPA;
+        try{
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            fungsi.LabPAUbahPemeriksaan.Data data=fungsi.LabPAUbahPemeriksaan.muat(koneksi,lama);
+            java.util.List<fungsi.LabPAUbahPemeriksaan.Pilihan> list=fungsi.LabPAUbahPemeriksaan.pilihan(koneksi,data);
+            this.setCursor(Cursor.getDefaultCursor());
+            if(list.isEmpty()){JOptionPane.showMessageDialog(this,"Tidak ada pemeriksaan PA aktif lain dalam jenis "+data.jenis+" yang sama.");return;}
+            fungsi.LabPAUbahDialog dialog=new fungsi.LabPAUbahDialog(this,data,list);dialog.setVisible(true);
+            fungsi.LabPAUbahPemeriksaan.Pilihan pilihan=dialog.getPilihan();if(pilihan==null)return;
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            fungsi.LabPAUbahPemeriksaan.ubah(koneksi,lama,pilihan,dialog.getAlasan(),akses.getkode());
+            tampil();
+            for(int r=0;r<tbDokter.getRowCount();r++){
+                if(lama.noRawat.equals(String.valueOf(tbDokter.getValueAt(r,0)))&&pilihan.kode.equals(String.valueOf(tbDokter.getValueAt(r,14)))
+                        &&lama.tanggal.equals(String.valueOf(tbDokter.getValueAt(r,3)))&&lama.jam.equals(String.valueOf(tbDokter.getValueAt(r,4)))){
+                    tbDokter.setRowSelectionInterval(r,r);getData();panggilPhoto();break;
+                }
+            }
+            JOptionPane.showMessageDialog(this,"Pemeriksaan PA berhasil diubah. Hasil, foto, order terkait dan No. PA mengikuti kode pengganti.");
+        }catch(Exception ex){
+            System.out.println("Ubah Periksa PA: "+ex);
+            JOptionPane.showMessageDialog(this,"Pemeriksaan PA belum dapat diubah.\n"+ex.getMessage(),"Ubah Periksa Lab PA",JOptionPane.WARNING_MESSAGE);
+        }finally{this.setCursor(Cursor.getDefaultCursor());}
+    }
     private fungsi.LabPABahanPanel bahanHasilPA;
     private javax.swing.JTextField noPATerbitField;
     private widget.Button btnBuatNoPA;
+    private widget.Button btnCetakLabelPA;
     private fungsi.LabPAData.Kunci kunciBahanHasilPA;
     private String nomorTerbitPA="";
     private boolean bahanHasilSiapPA;
@@ -3509,7 +3575,24 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         btnBuatNoPA.addActionListener(e->buatNoPATambahan());
         int index=0;java.awt.Component[] tombol=panelisi1.getComponents();
         for(int n=0;n<tombol.length;n++)if(tombol[n]==BtnUpload)index=n+1;
-        panelisi1.add(btnBuatNoPA,index);
+        btnCetakLabelPA=new widget.Button();btnCetakLabelPA.setText("Cetak Label");btnCetakLabelPA.setName("btnCetakLabelPA");
+        btnCetakLabelPA.setFont(BtnUpload.getFont());btnCetakLabelPA.setMargin(BtnUpload.getMargin());
+        btnCetakLabelPA.setForeground(BtnUpload.getForeground());btnCetakLabelPA.setBackground(BtnUpload.getBackground());
+        btnCetakLabelPA.setIconTextGap(BtnUpload.getIconTextGap());
+        btnCetakLabelPA.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/b_print.png")));
+        int lebarLabel=btnCetakLabelPA.getFontMetrics(btnCetakLabelPA.getFont()).stringWidth(btnCetakLabelPA.getText())
+                +btnCetakLabelPA.getIcon().getIconWidth()+btnCetakLabelPA.getIconTextGap()
+                +btnCetakLabelPA.getInsets().left+btnCetakLabelPA.getInsets().right+12;
+        btnCetakLabelPA.setPreferredSize(new Dimension(Math.max(BtnUpload.getPreferredSize().width,lebarLabel),30));
+        btnCetakLabelPA.setToolTipText("Cetak label pemeriksaan terpilih setelah No. PA diterbitkan");
+        btnCetakLabelPA.setEnabled(false);btnCetakLabelPA.addActionListener(e->cetakLabelPATambahan());
+        // Satu kelompok agar Cetak Label selalu di kanan Buat No. PA saat toolbar membungkus.
+        javax.swing.JPanel tombolNomorPA=new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT,5,0));
+        tombolNomorPA.setOpaque(false);
+        tombolNomorPA.add(btnBuatNoPA);tombolNomorPA.add(btnCetakLabelPA);
+        tombolNomorPA.setPreferredSize(new Dimension(btnBuatNoPA.getPreferredSize().width
+                +btnCetakLabelPA.getPreferredSize().width+15,30));
+        panelisi1.add(tombolNomorPA,index);
         panelisi1.addComponentListener(new java.awt.event.ComponentAdapter(){
             @Override public void componentResized(java.awt.event.ComponentEvent e){sesuaikanTombolHasilPA();}
             @Override public void componentShown(java.awt.event.ComponentEvent e){sesuaikanTombolHasilPA();}
@@ -3538,15 +3621,17 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         label17.setVisible(umum);scrollPane3.getParent().setVisible(umum);
         label19.setVisible(umum);scrollPane4.getParent().setVisible(umum);
         if(btnBuatNoPA!=null)btnBuatNoPA.setEnabled(hasilTerdaftarPA&&bahanHasilSiapPA&&nomorTerbitPA.isEmpty()&&fungsi.LabPAData.validJenis(bahanHasilPA.getJenis()));
+        if(btnCetakLabelPA!=null)btnCetakLabelPA.setEnabled(bahanHasilSiapPA&&!nomorTerbitPA.isEmpty());
         FormPass.revalidate();FormPass.repaint();
     }
     private void muatTambahanHasilPA(){
-        if(bahanHasilPA==null)return;bahanHasilSiapPA=false;hasilTerdaftarPA=false;bahanAwalHasilPA=null;nomorTerbitPA="";kunciBahanHasilPA=kunciPilihanPA();KeteranganKlinisPA.setText("");
+        if(bahanHasilPA==null)return;bahanHasilSiapPA=false;hasilTerdaftarPA=false;bahanAwalHasilPA=null;nomorTerbitPA="";kunciBahanHasilPA=kunciPilihanPA();KeteranganKlinisPA.setText("");keteranganAwalUbahPA="";
         if(kunciBahanHasilPA==null){bahanHasilPA.setValue(new fungsi.LabPAData.Bahan());noPATerbitField.setText("Pilih pemeriksaan");aturJenisHasilPA();return;}
         try{
             try(java.sql.PreparedStatement p=koneksi.prepareStatement("select keterangan_klinik from detail_periksa_labpa where no_rawat=? and kd_jenis_prw=? and tgl_periksa=? and jam=?")){
                 kunciBahanHasilPA.bind(p,1);try(java.sql.ResultSet r=p.executeQuery()){if(r.next())KeteranganKlinisPA.setText(fungsi.LabPAData.text(r.getString(1)));}
             }
+            keteranganAwalUbahPA=KeteranganKlinisPA.getText();
             hasilTerdaftarPA=pemeriksaanTerdaftarPA(kunciBahanHasilPA);
             fungsi.LabPAData.Bahan b=fungsi.LabPAData.muat(koneksi,kunciBahanHasilPA,tbDokter.getValueAt(tbDokter.getSelectedRow(),7).toString());
             nomorTerbitPA=fungsi.LabPAData.nomor(koneksi,kunciBahanHasilPA);
@@ -3599,16 +3684,45 @@ private void tbDokterKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_
         if(!hasilTerdaftarPA)return;
         if(!cocokPilihanHasilPA()||!bahanHasilPA.validasi(this))return;
         if(!nomorTerbitPA.isEmpty()){JOptionPane.showMessageDialog(this,"No. PA sudah diterbitkan: "+nomorTerbitPA);return;}
-        int jawab=JOptionPane.showOptionDialog(this,"Yakin ingin menerbitkan no. PA untuk no. pemeriksaan ini?",
-                "Buat No. PA",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE,null,new String[]{"Ya","Tidak"},"Tidak");
-        if(jawab!=JOptionPane.YES_OPTION)return;
         btnBuatNoPA.setEnabled(false);
         try{
             fungsi.LabPAData.Bahan b=bahanHasilPA.getValue();
-            fungsi.LabPAData.simpanHasil(koneksi,kunciBahanHasilPA,b,akses.getkode());
-            String nomor=fungsi.LabPAData.terbitkan(koneksi,kunciBahanHasilPA,b.jenis,akses.getkode());
-            muatTambahanHasilPA();JOptionPane.showMessageDialog(this,"No. PA berhasil diterbitkan: "+nomor);
-        }catch(Exception ex){aturJenisHasilPA();JOptionPane.showMessageDialog(this,"No. PA belum dapat diterbitkan.\n"+ex.getMessage());}
+            boolean bahanDisimpan=false;
+            String pemberitahuan="";
+            while(true){
+                String sudahTerbit=fungsi.LabPAData.nomor(koneksi,kunciBahanHasilPA);
+                if(!sudahTerbit.isEmpty()){
+                    muatTambahanHasilPA();JOptionPane.showMessageDialog(this,"No. PA sudah diterbitkan: "+sudahTerbit);return;
+                }
+                String calonNomor=fungsi.LabPAData.nomorBerikutnya(koneksi,b.jenis);
+                int jawab=JOptionPane.showOptionDialog(this,pemberitahuan+"Yakin ingin menerbitkan No. PA "+calonNomor+" untuk no. pemeriksaan ini?",
+                        "Buat No. PA",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE,null,new String[]{"Ya","Tidak"},"Tidak");
+                if(jawab!=JOptionPane.YES_OPTION)return;
+                if(!bahanDisimpan){
+                    fungsi.LabPAData.simpanHasil(koneksi,kunciBahanHasilPA,b,akses.getkode());
+                    bahanDisimpan=true;
+                }
+                try{
+                    String nomor=fungsi.LabPAData.terbitkan(koneksi,kunciBahanHasilPA,b.jenis,akses.getkode(),calonNomor);
+                    muatTambahanHasilPA();JOptionPane.showMessageDialog(this,"No. PA berhasil diterbitkan: "+nomor);return;
+                }catch(fungsi.LabPAData.NomorPABerubahException ex){
+                    pemberitahuan="Urutan No. PA telah berubah. Periksa kembali nomor berikut sebelum melanjutkan.\n\n";
+                }catch(fungsi.LabPAData.NomorPASudahTerbitException ex){
+                    muatTambahanHasilPA();JOptionPane.showMessageDialog(this,ex.getMessage());return;
+                }
+            }
+        }catch(Exception ex){JOptionPane.showMessageDialog(this,"No. PA belum dapat diterbitkan.\n"+ex.getMessage());}
+        finally{aturJenisHasilPA();}
+    }
+    private void cetakLabelPATambahan(){
+        if(!cocokPilihanHasilPA())return;
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        try{
+            fungsi.LabPALabel.tampilkanHasil(koneksi,kunciBahanHasilPA);
+        }catch(Exception ex){
+            System.out.println("Label hasil PA : "+ex);
+            JOptionPane.showMessageDialog(this,ex.getMessage(),"Cetak Label No. PA",JOptionPane.WARNING_MESSAGE);
+        }finally{this.setCursor(Cursor.getDefaultCursor());}
     }
     private net.sf.jasperreports.engine.JasperPrint siapkanReportJenisPA(java.util.Map<String,Object> param)throws Exception{
         fungsi.LabPAData.Kunci k=kunciPilihanPA();if(k==null)throw new java.io.IOException("Pilih pemeriksaan PA terlebih dahulu.");

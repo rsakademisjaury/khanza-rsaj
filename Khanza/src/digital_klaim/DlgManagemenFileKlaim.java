@@ -96,6 +96,69 @@ public final class DlgManagemenFileKlaim extends javax.swing.JDialog {
     // RowSorter dimatikan sementara selama JTable diisi.
     private static final int FETCH_SIZE_KLAIM = 200;
 
+    // Metadata indikator dipisahkan dari nama/kolom model agar proses klaim tetap utuh.
+    private final java.util.Map<String, InfoKunjunganUlang> readmisiRalan =
+            new java.util.HashMap<String, InfoKunjunganUlang>();
+    private final java.util.Map<String, InfoKunjunganUlang> readmisiRanap =
+            new java.util.HashMap<String, InfoKunjunganUlang>();
+
+    // Skrining lokal: pulang akhir -> masuk rawat inap berikutnya, 0..30 hari.
+    // Ini POTENSI, bukan keputusan verifikasi BPJS. Pengecualian ditelaah coder.
+    // Subquery riwayat tidak dibatasi periode atau penjamin daftar klaim saat ini.
+    private static final String SQL_READMISI_KLAIM =
+            "  (SELECT CONCAT(ri.no_rawat,'|', " +
+            "       (SELECT MIN(TIMESTAMP(ka.tgl_masuk,COALESCE(ka.jam_masuk,'00:00:00'))) " +
+            "          FROM kamar_inap ka WHERE ka.no_rawat=ri.no_rawat " +
+            "            AND ka.tgl_masuk>='1000-01-01'),'|', " +
+            "       TIMESTAMP(kp.tgl_keluar,COALESCE(kp.jam_keluar,'00:00:00')),'|', " +
+            "       TIMESTAMP(km.tgl_masuk,COALESCE(km.jam_masuk,'00:00:00')),'|', " +
+            "       DATEDIFF(km.tgl_masuk,kp.tgl_keluar),'|',di.kd_penyakit) " +
+            "     FROM reg_periksa ri " +
+            "     JOIN diagnosa_pasien di ON di.no_rawat=ri.no_rawat " +
+            "          AND di.status='Ranap' AND di.prioritas=1 " +
+            "     JOIN diagnosa_pasien dn ON dn.no_rawat=rp.no_rawat " +
+            "          AND dn.status='Ranap' AND dn.prioritas=1 AND dn.kd_penyakit=di.kd_penyakit " +
+            "     JOIN kamar_inap kp ON kp.no_rawat=ri.no_rawat " +
+            "          AND kp.tgl_keluar>='1000-01-01' AND kp.stts_pulang NOT IN ('-','Pindah Kamar') " +
+            "     JOIN kamar_inap km ON km.no_rawat=rp.no_rawat AND km.tgl_masuk>='1000-01-01' " +
+            "    WHERE ri.no_rkm_medis=rp.no_rkm_medis AND ri.no_rawat<>rp.no_rawat " +
+            "      AND ri.status_lanjut='Ranap' AND rp.status_lanjut='Ranap' " +
+            "      AND ri.stts<>'Batal' AND rp.stts<>'Batal' " +
+            "      AND TRIM(di.kd_penyakit) NOT IN ('','-') " +
+            "      AND TIMESTAMP(km.tgl_masuk,COALESCE(km.jam_masuk,'00:00:00'))= " +
+            "          (SELECT MIN(TIMESTAMP(ki.tgl_masuk,COALESCE(ki.jam_masuk,'00:00:00'))) " +
+            "             FROM kamar_inap ki WHERE ki.no_rawat=rp.no_rawat AND ki.tgl_masuk>='1000-01-01') " +
+            "      AND TIMESTAMP(kp.tgl_keluar,COALESCE(kp.jam_keluar,'00:00:00'))= " +
+            "          (SELECT MAX(TIMESTAMP(ko.tgl_keluar,COALESCE(ko.jam_keluar,'00:00:00'))) " +
+            "             FROM kamar_inap ko WHERE ko.no_rawat=ri.no_rawat AND ko.tgl_keluar>='1000-01-01' " +
+            "               AND ko.stts_pulang NOT IN ('-','Pindah Kamar')) " +
+            "      AND kp.tgl_keluar BETWEEN DATE_SUB(km.tgl_masuk, INTERVAL 30 DAY) AND km.tgl_masuk " +
+            "      AND TIMESTAMP(kp.tgl_keluar,COALESCE(kp.jam_keluar,'00:00:00')) " +
+            "          <=TIMESTAMP(km.tgl_masuk,COALESCE(km.jam_masuk,'00:00:00')) " +
+            "    ORDER BY kp.tgl_keluar DESC,kp.jam_keluar DESC,ri.no_rawat DESC,di.kd_penyakit " +
+            "    LIMIT 1) AS riwayat_kunjungan_ulang, ";
+
+    // Rawat jalan diberi indikator tersendiri, bukan label readmisi rawat inap.
+    private static final String SQL_FRAGMENTASI_KLAIM =
+            "  (SELECT CONCAT(ri.no_rawat,'|', " +
+            "       TIMESTAMP(ri.tgl_registrasi,COALESCE(ri.jam_reg,'00:00:00')),'|-|', " +
+            "       TIMESTAMP(rp.tgl_registrasi,COALESCE(rp.jam_reg,'00:00:00')),'|', " +
+            "       DATEDIFF(rp.tgl_registrasi,ri.tgl_registrasi),'|',di.kd_penyakit) " +
+            "     FROM reg_periksa ri " +
+            "     JOIN diagnosa_pasien di ON di.no_rawat=ri.no_rawat " +
+            "          AND di.status='Ralan' AND di.prioritas=1 " +
+            "     JOIN diagnosa_pasien dn ON dn.no_rawat=rp.no_rawat " +
+            "          AND dn.status='Ralan' AND dn.prioritas=1 AND dn.kd_penyakit=di.kd_penyakit " +
+            "    WHERE ri.no_rkm_medis=rp.no_rkm_medis AND ri.no_rawat<>rp.no_rawat " +
+            "      AND ri.status_lanjut='Ralan' AND rp.status_lanjut='Ralan' " +
+            "      AND ri.stts<>'Batal' AND rp.stts<>'Batal' " +
+            "      AND TRIM(di.kd_penyakit) NOT IN ('','-') AND ri.tgl_registrasi>='1000-01-01' " +
+            "      AND ri.tgl_registrasi BETWEEN DATE_SUB(rp.tgl_registrasi, INTERVAL 7 DAY) AND rp.tgl_registrasi " +
+            "      AND TIMESTAMP(ri.tgl_registrasi,COALESCE(ri.jam_reg,'00:00:00')) " +
+            "          <TIMESTAMP(rp.tgl_registrasi,COALESCE(rp.jam_reg,'00:00:00')) " +
+            "    ORDER BY ri.tgl_registrasi DESC,ri.jam_reg DESC,ri.no_rawat DESC,di.kd_penyakit " +
+            "    LIMIT 1) AS riwayat_kunjungan_ulang, ";
+
 
     //private String[] columns = new String[10];
     //private String[][] data = new String[0][0];
@@ -108,6 +171,8 @@ public final class DlgManagemenFileKlaim extends javax.swing.JDialog {
     public DlgManagemenFileKlaim(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+        // Ruang vertikal agar outline badge pada label tidak terpotong.
+        NamaPasien.setPreferredSize(new Dimension(NamaPasien.getPreferredSize().width, 32));
         this.setLocation(10, 2);
         setSize(1156, 650);
         this.sourceDir = sourceDir;
@@ -181,6 +246,8 @@ public final class DlgManagemenFileKlaim extends javax.swing.JDialog {
                 new WarnaTableSelected(),
                 new int[]{0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14}
         );
+
+        pasangBadgeReadmisi(tbListPasienRalan, readmisiRalan);
 
         Object[] columnsRanap = new String[]{"P", "No Rawat", "No RM", "Nama Pasien", "Poli", "DPJP", "No SEP", 
                                              "Tgl SEP", "Hak Kelas", "Status Bayar", "Diagnosa", "Status Coding", "Kirim Online","Individual","Berkas","Tgl. Pulang","Catatan"};
@@ -256,6 +323,8 @@ public final class DlgManagemenFileKlaim extends javax.swing.JDialog {
                 new WarnaTableSelectedRanap(),
                 new int[]{0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
         );
+
+        pasangBadgeReadmisi(tbListPasienRanap, readmisiRanap);
 
         Object[] columnsLaporan = new String[]{"No.", "Tgl. Masuk", "Tgl. Pulang", "No. SEP", "Pasien", "Code CBG", 
                                              "Tarif Total", "Billing RS", "Rawat", "Petugas"};
@@ -384,22 +453,7 @@ public final class DlgManagemenFileKlaim extends javax.swing.JDialog {
                 @Override
                 public void valueChanged(ListSelectionEvent e) {
                     if (!e.getValueIsAdjusting()) {
-                        int row = tbListPasienRalan.getSelectedRow();
-                        if (row != -1) {
-                            // Dapatkan nilai dari baris yang dipilih
-                            String Lnorawat = tbListPasienRalan.getValueAt(row, 1).toString();
-                            String Lrm = tbListPasienRalan.getValueAt(row, 2).toString();
-                            String Lnama = tbListPasienRalan.getValueAt(row, 3).toString();
-                            String Lpoli = tbListPasienRalan.getValueAt(row, 4).toString();
-                            NamaPasien.setText(Lnorawat+ " . " +Lrm+ " . " +Lnama+ " . " +Lpoli);
-
-//                            // Dapatkan nilai kedua dari baris yang dipilih
-//                            String kunjungan2 = tbListPasienRalan.getValueAt(row, 4).toString();
-//                            TCariKunjungan3.setText(kunjungan2);
-
-                            // Panggil metode atau lakukan aksi lainnya
-                            // tampilRalan();
-                        }
+                        tampilNamaPasienReadmisi(tbListPasienRalan, readmisiRalan);
                     }
                 }
             });                 
@@ -408,15 +462,7 @@ public final class DlgManagemenFileKlaim extends javax.swing.JDialog {
                 @Override
                 public void valueChanged(ListSelectionEvent e) {
                     if (!e.getValueIsAdjusting()) {
-                        int row = tbListPasienRanap.getSelectedRow();
-                        if (row != -1) {                            
-                            // Dapatkan nilai dari baris yang dipilih
-                            String Lnorawat = tbListPasienRanap.getValueAt(row, 1).toString();
-                            String Lrm = tbListPasienRanap.getValueAt(row, 2).toString();
-                            String Lnama = tbListPasienRanap.getValueAt(row, 3).toString();
-                            String Lpoli = tbListPasienRanap.getValueAt(row, 4).toString();
-                            NamaPasien.setText(Lnorawat+ " . " +Lrm+ " . " +Lnama+ " . " +Lpoli);
-                        }
+                        tampilNamaPasienReadmisi(tbListPasienRanap, readmisiRanap);
                     }
                 }
             });
@@ -433,6 +479,7 @@ public final class DlgManagemenFileKlaim extends javax.swing.JDialog {
                             String Lnama = tbBukaKunci.getValueAt(row, 3).toString();
                             String Lpoli = tbBukaKunci.getValueAt(row, 4).toString();
                             NamaPasien.setText(Lnorawat+ " . " +Lrm+ " . " +Lnama+ " . " +Lpoli);
+                            NamaPasien.setToolTipText(null);
                         }
                     }
                 }
@@ -2020,6 +2067,158 @@ private void pasangRendererWarnaKompatibelDPJP(
     });
 }
 
+// Badge hanya pada renderer Nama Pasien. Nilai model tetap nama pasien asli.
+private void pasangBadgeReadmisi(final JTable tabel,
+                                final java.util.Map<String, InfoKunjunganUlang> riwayat) {
+    final javax.swing.table.TableCellRenderer rendererLama = tabel.getDefaultRenderer(Object.class);
+    final javax.swing.table.DefaultTableCellRenderer rendererNama =
+            new javax.swing.table.DefaultTableCellRenderer();
+    final javax.swing.Icon badgeRanap = new IkonBadgeReadmisi("POTENSI READMISI");
+    final javax.swing.Icon badgeRalan = new IkonBadgeReadmisi("POTENSI FRAGMENTASI");
+    // Menjaga ruang untuk nama dan badge tanpa menambah/menggeser kolom model.
+    tabel.getColumnModel().getColumn(3).setPreferredWidth(360);
+    tabel.getColumnModel().getColumn(3).setCellRenderer(new javax.swing.table.TableCellRenderer() {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(
+                JTable table, Object value, boolean isSelected, boolean hasFocus,
+                int row, int column) {
+            java.awt.Component asli = rendererLama.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, 3);
+            int modelRow = table.convertRowIndexToModel(row);
+            String noRawat = String.valueOf(table.getModel().getValueAt(modelRow, 1));
+            InfoKunjunganUlang info = riwayat.get(noRawat);
+            if (info == null) return asli;
+
+            rendererNama.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            rendererNama.setFont(asli.getFont());
+            rendererNama.setBackground(asli.getBackground());
+            rendererNama.setForeground(asli.getForeground());
+            if (asli instanceof javax.swing.JComponent) {
+                rendererNama.setBorder(((javax.swing.JComponent) asli).getBorder());
+            }
+            rendererNama.setIcon(info.rawatInap ? badgeRanap : badgeRalan);
+            rendererNama.setIconTextGap(8);
+            rendererNama.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            rendererNama.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+            rendererNama.setToolTipText(keteranganReadmisi(info));
+            return rendererNama;
+        }
+    });
+}
+
+private static final class InfoKunjunganUlang {
+    final boolean rawatInap;
+    final String noRawat, masukSebelumnya, pulangSebelumnya, masukSekarang, diagnosis;
+    final int selisihHari;
+
+    private InfoKunjunganUlang(boolean rawatInap, String[] data) {
+        this.rawatInap = rawatInap;
+        noRawat = data[0];
+        masukSebelumnya = data[1];
+        pulangSebelumnya = data[2];
+        masukSekarang = data[3];
+        selisihHari = Integer.parseInt(data[4]);
+        diagnosis = data[5];
+    }
+
+    private String label() {
+        return rawatInap ? "POTENSI READMISI" : "POTENSI FRAGMENTASI";
+    }
+}
+
+private static InfoKunjunganUlang bacaInfoKunjunganUlang(String data, boolean rawatInap) {
+    if (data == null || data.isEmpty()) return null;
+    // Semua bagian berasal dari identifier/kode dan waktu SQL, bukan narasi bebas.
+    String[] bagian = data.split("\\|", -1);
+    if (bagian.length != 6) return null;
+    try {
+        InfoKunjunganUlang info = new InfoKunjunganUlang(rawatInap, bagian);
+        return info.selisihHari >= 0 && info.selisihHari <= (rawatInap ? 30 : 7) ? info : null;
+    } catch (NumberFormatException e) {
+        return null;
+    }
+}
+
+private static final class IkonBadgeReadmisi implements javax.swing.Icon {
+    private final String teks;
+    private final java.awt.Font font = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 10);
+    private final int lebar;
+
+    private IkonBadgeReadmisi(String teks) {
+        this.teks = teks;
+        lebar = new javax.swing.JLabel().getFontMetrics(font).stringWidth(teks) + 16;
+    }
+
+    @Override public int getIconWidth() { return lebar; }
+    @Override public int getIconHeight() { return 18; }
+
+    @Override
+    public void paintIcon(java.awt.Component c, java.awt.Graphics graphics, int x, int y) {
+        java.awt.Graphics2D g = (java.awt.Graphics2D) graphics.create();
+        try {
+            g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(new java.awt.Color(239, 246, 255));
+            g.fillRoundRect(x, y, getIconWidth() - 1, getIconHeight() - 1, 12, 12);
+            g.setColor(new java.awt.Color(147, 197, 253));
+            g.drawRoundRect(x, y, getIconWidth() - 1, getIconHeight() - 1, 12, 12);
+            g.setFont(font);
+            g.setColor(new java.awt.Color(29, 78, 216));
+            java.awt.FontMetrics fm = g.getFontMetrics();
+            g.drawString(teks, x + (getIconWidth() - fm.stringWidth(teks)) / 2,
+                    y + (getIconHeight() - fm.getHeight()) / 2 + fm.getAscent());
+        } finally {
+            g.dispose();
+        }
+    }
+}
+
+private void tampilNamaPasienReadmisi(JTable tabel, java.util.Map<String, InfoKunjunganUlang> riwayat) {
+    int row = tabel.getSelectedRow();
+    NamaPasien.setToolTipText(null);
+    if (row < 0) {
+        NamaPasien.setText("");
+        return;
+    }
+    int modelRow = tabel.convertRowIndexToModel(row);
+    javax.swing.table.TableModel model = tabel.getModel();
+    String noRawat = String.valueOf(model.getValueAt(modelRow, 1));
+    String rm = String.valueOf(model.getValueAt(modelRow, 2));
+    String nama = String.valueOf(model.getValueAt(modelRow, 3));
+    String poli = String.valueOf(model.getValueAt(modelRow, 4));
+    InfoKunjunganUlang info = riwayat.get(noRawat);
+    if (info == null) {
+        NamaPasien.setText(noRawat + " . " + rm + " . " + nama + " . " + poli);
+    } else {
+        // HTML hanya untuk tampilan JLabel; ikon user dan font label tetap dipakai.
+        NamaPasien.setText("<html><table cellpadding='0' cellspacing='0'><tr><td>"
+                + escapeHtmlReadmisi(noRawat + " . " + rm + " . " + nama) + "&nbsp;&nbsp;</td>"
+                + "<td style='background-color:#eff6ff;color:#1d4ed8;font-size:10px;"
+                + "border:1px solid #93c5fd;padding:1px 5px'>" + info.label() + "</td><td>"
+                + escapeHtmlReadmisi(" . " + poli) + "</td></tr></table></html>");
+        NamaPasien.setToolTipText(keteranganReadmisi(info));
+    }
+}
+
+private static String keteranganReadmisi(InfoKunjunganUlang info) {
+    return "<html><b>" + info.label() + " - PERLU VERIFIKASI CODER</b><br>"
+            + "No. Rawat sebelumnya: " + escapeHtmlReadmisi(info.noRawat) + "<br>"
+            + "Masuk sebelumnya: " + escapeHtmlReadmisi(info.masukSebelumnya) + "<br>"
+            + (info.rawatInap ? "Pulang akhir sebelumnya: " + escapeHtmlReadmisi(info.pulangSebelumnya) + "<br>" : "")
+            + "Masuk sekarang: " + escapeHtmlReadmisi(info.masukSekarang) + "<br>"
+            + "Selisih: " + info.selisihHari + " hari ("
+            + (info.rawatInap ? "pulang ke masuk; skrining lokal" : "antar kunjungan rawat jalan") + ")<br>"
+            + "Diagnosis utama sama: " + escapeHtmlReadmisi(info.diagnosis) + "<br>"
+            + "Telaah pengecualian: kegawatdaruratan, penyakit kronis, prosedur terjadwal"
+            + (info.rawatInap ? "." : ", atau konsultasi hasil pemeriksaan penunjang.")
+            + "<br>Indikator awal; keputusan klaim mengikuti verifikasi dan ketentuan yang berlaku.</html>";
+}
+
+private static String escapeHtmlReadmisi(String value) {
+    return value.replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
+}
+
 // Optimasi pengisian JTable: RowSorter bawaan JTable sangat mahal bila aktif
 // saat ribuan addRow() dipanggil satu per satu. Setelah selesai, sorter dipasang lagi.
 private void mulaiIsiTabelCepat(JTable table) {
@@ -2138,6 +2337,7 @@ private void tampilRalan() {
 
     mulaiIsiTabelCepat(tbListPasienRalan);
     try {
+        readmisiRalan.clear();
         Valid.tabelKosong(TabModePasienRalan);
 
         String kataKunci = TCariKunjungan.getText().trim();
@@ -2166,6 +2366,7 @@ private void tampilRalan() {
 
         String sql =
             "SELECT " +
+            SQL_FRAGMENTASI_KLAIM +
             "  rp.no_rawat, rp.tgl_registrasi, rp.no_rkm_medis, p.nm_pasien, pl.nm_poli, " +
             "  COALESCE(d.nm_dokter, '-') AS dpjp, " +
             "  rp.status_bayar, " +
@@ -2235,6 +2436,12 @@ private void tampilRalan() {
                     String statusBerkas = rs.getString("berkas");
                     if ("Belum Coding".equalsIgnoreCase(statusCoding)) jumlahBelumCoding++;
                     if ("-".equals(statusBerkas)) jumlahBelumGabung++;
+
+                    InfoKunjunganUlang infoUlang = bacaInfoKunjunganUlang(
+                            rs.getString("riwayat_kunjungan_ulang"), false);
+                    if (infoUlang != null) {
+                        readmisiRalan.put(rs.getString("no_rawat"), infoUlang);
+                    }
 
                     TabModePasienRalan.addRow(new Object[]{
                         false,
@@ -2518,6 +2725,7 @@ private void tampilRanap() {
 
     mulaiIsiTabelCepat(tbListPasienRanap);
     try {
+        readmisiRanap.clear();
         Valid.tabelKosong(TabModePasienRanap);
 
         String kataKunci = TCariKunjungan.getText().trim();
@@ -2547,6 +2755,7 @@ private void tampilRanap() {
 
         String sql =
             "SELECT " +
+            SQL_READMISI_KLAIM +
             "  rp.no_rawat, rp.no_rkm_medis, rp.tgl_registrasi, p.nm_pasien, rp.status_bayar, " +
             // Bangsal terakhir dieksekusi hanya untuk pasien hasil filter periode.
             "  COALESCE((SELECT b.nm_bangsal " +
@@ -2628,6 +2837,12 @@ private void tampilRanap() {
                     String statusBerkas = rs.getString("berkas");
                     if ("Belum Coding".equalsIgnoreCase(statusCoding)) jumlahBelumCoding++;
                     if ("-".equals(statusBerkas)) jumlahBelumGabung++;
+
+                    InfoKunjunganUlang infoUlang = bacaInfoKunjunganUlang(
+                            rs.getString("riwayat_kunjungan_ulang"), true);
+                    if (infoUlang != null) {
+                        readmisiRanap.put(rs.getString("no_rawat"), infoUlang);
+                    }
 
                     TabModePasienRanap.addRow(new Object[]{
                         false,

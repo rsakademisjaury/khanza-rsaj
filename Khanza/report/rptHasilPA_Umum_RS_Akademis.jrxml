@@ -121,12 +121,12 @@ INSTALASI LABORATORIUM]]></text>
 Telp. (0411) 3617343, 3613054, 3613071, Fax (0411) 3613914
 Makassar 90174]]></text>
 			</staticText>
-			<line>
-				<reportElement positionType="Float" x="0" y="79" width="523" height="1" uuid="050dcb5d-ea57-4937-9412-d71615eb782f"/>
+			<rectangle>
+				<reportElement positionType="Float" x="0" y="79" width="523" height="2" uuid="050dcb5d-ea57-4937-9412-d71615eb782f" mode="Opaque" forecolor="#000000" backcolor="#000000"/>
 				<graphicElement>
-					<pen lineWidth="1.5" lineStyle="Solid" lineColor="#000000"/>
+					<pen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</graphicElement>
-			</line>
+			</rectangle>
 			<textField isBlankWhenNull="true">
 				<reportElement positionType="Float" x="0" y="89" width="523" height="22" uuid="d13d6983-0ea7-4da8-b110-418f73c29bda"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
@@ -138,12 +138,12 @@ Makassar 90174]]></text>
 	</title>
 	<pageHeader>
 		<band height="114" splitType="Stretch">
-			<line>
-				<reportElement positionType="Float" x="0" y="0" width="523" height="1" uuid="dd9b7f89-cd0c-45f1-8006-f487bd430ef4"/>
+			<rectangle>
+				<reportElement positionType="Float" x="0" y="0" width="523" height="1" uuid="dd9b7f89-cd0c-45f1-8006-f487bd430ef4" mode="Opaque" forecolor="#000000" backcolor="#000000"/>
 				<graphicElement>
-					<pen lineWidth="0.75" lineColor="#000000"/>
+					<pen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</graphicElement>
-			</line>
+			</rectangle>
 			<frame>
 				<reportElement positionType="Float" x="16" y="9" width="507" height="15" uuid="c179840c-a95c-43bf-bac0-23be6ca7ee55"/>
 				<staticText>
@@ -414,12 +414,12 @@ Makassar 90174]]></text>
 					<textFieldExpression><![CDATA[$P{namakamar}]]></textFieldExpression>
 				</textField>
 			</frame>
-			<line>
-				<reportElement positionType="Float" x="0" y="108" width="523" height="1" uuid="0779b856-9780-469c-903b-9fff387cf1d6"/>
+			<rectangle>
+				<reportElement positionType="Float" x="0" y="108" width="523" height="1" uuid="0779b856-9780-469c-903b-9fff387cf1d6" mode="Opaque" forecolor="#000000" backcolor="#000000"/>
 				<graphicElement>
-					<pen lineWidth="0.75" lineColor="#000000"/>
+					<pen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</graphicElement>
-			</line>
+			</rectangle>
 		</band>
 	</pageHeader>
 	<detail>
@@ -449,12 +449,12 @@ Makassar 90174]]></text>
 		</band>
 		<band height="14" splitType="Prevent">
 			<printWhenExpression><![CDATA[Boolean.TRUE.equals($F{akhir_bahan})]]></printWhenExpression>
-			<line>
-				<reportElement positionType="Float" x="0" y="10" width="523" height="1" uuid="84fcb593-2409-4dfb-8f23-86cb1073b4b9"/>
+			<rectangle>
+				<reportElement positionType="Float" x="0" y="10" width="523" height="1" uuid="84fcb593-2409-4dfb-8f23-86cb1073b4b9" mode="Opaque" forecolor="#000000" backcolor="#000000"/>
 				<graphicElement>
-					<pen lineWidth="0.75" lineColor="#000000"/>
+					<pen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</graphicElement>
-			</line>
+			</rectangle>
 		</band>
 		<band height="30" splitType="Stretch">
 			<printWhenExpression><![CDATA[!Boolean.TRUE.equals($F{bahan})]]></printWhenExpression>

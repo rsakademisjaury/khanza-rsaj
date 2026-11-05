@@ -162,7 +162,37 @@ public final class LabPAData {
         if(!validJenis(jenis)||urutan<1)throw new IllegalArgumentException("Jenis/urutan No. PA tidak valid.");
         return String.format(Locale.ROOT,"%s.%02d.%03d",jenis,tahun%100,urutan);
     }
+    /** Membaca calon nomor tanpa membuat/mengubah penghitung atau memesan nomor. */
+    public static String nomorBerikutnya(Connection c,String jenis) throws SQLException {
+        if(!validJenis(jenis))throw new SQLException("Pilih jenis pemeriksaan terlebih dahulu.");
+        synchronized(c){
+            if(!c.getAutoCommit())throw new SQLException("Selesaikan transaksi aktif sebelum membaca calon No. PA.");
+            try(PreparedStatement p=c.prepareStatement("select year(current_date()),greatest("
+                    +"coalesce((select nomor_terakhir from rsaj_labpa_counter where jenis=? and tahun=year(current_date())),0),"
+                    +"coalesce((select max(urutan) from rsaj_labpa_nomor where jenis=? and tahun=year(current_date())),0))")){
+                p.setString(1,jenis);p.setString(2,jenis);
+                try(ResultSet r=p.executeQuery()){
+                    if(!r.next())throw new SQLException("Calon No. PA tidak dapat dibaca.");
+                    long terakhir=r.getLong(2);
+                    if(terakhir==Long.MAX_VALUE)throw new SQLException("Urutan No. PA sudah mencapai batas penyimpanan.");
+                    return formatNomor(jenis,r.getInt(1),terakhir+1);
+                }
+            }
+        }
+    }
+    public static final class NomorPABerubahException extends SQLException {
+        public NomorPABerubahException(String nomor){
+            super("Urutan No. PA telah berubah. Konfirmasikan kembali calon nomor "+nomor+".");
+        }
+    }
+    public static final class NomorPASudahTerbitException extends SQLException {
+        public NomorPASudahTerbitException(String nomor){super("No. PA sudah diterbitkan: "+nomor);}
+    }
     public static String terbitkan(Connection c,Kunci k,String jenis,String user) throws SQLException {
+        return terbitkan(c,k,jenis,user,null);
+    }
+    /** Jika calon nomor diberikan, nomor yang terbit wajib sesuai konfirmasi pengguna. */
+    public static String terbitkan(Connection c,Kunci k,String jenis,String user,String nomorDikonfirmasi) throws SQLException {
         if(!validJenis(jenis))throw new SQLException("Pilih jenis pemeriksaan terlebih dahulu.");
         synchronized(c){
             if(!c.getAutoCommit())throw new SQLException("Selesaikan transaksi aktif sebelum menerbitkan No. PA.");
@@ -173,7 +203,10 @@ public final class LabPAData {
                     k.bind(p,1);try(ResultSet r=p.executeQuery()){if(!r.next())throw new SQLException("Pemeriksaan PA tidak ditemukan.");}
                 }
                 String ada=nomor(c,k);
-                if(!ada.isEmpty()){c.commit();return ada;}
+                if(!ada.isEmpty()){
+                    if(nomorDikonfirmasi!=null)throw new NomorPASudahTerbitException(ada);
+                    c.commit();return ada;
+                }
                 try(PreparedStatement p=c.prepareStatement("select jenis from rsaj_labpa_hasil where "+WHERE_KEY)){
                     k.bind(p,1);try(ResultSet r=p.executeQuery()){
                         if(!r.next()||!jenis.equals(r.getString(1)))throw new SQLException("Jenis pemeriksaan berubah. Muat ulang data sebelum menerbitkan nomor.");
@@ -183,21 +216,36 @@ public final class LabPAData {
                 try(PreparedStatement p=c.prepareStatement("select year(current_date())" );ResultSet r=p.executeQuery()){
                     if(!r.next())throw new SQLException("Tahun server tidak dapat dibaca.");tahun=r.getInt(1);
                 }
-                try(PreparedStatement p=c.prepareStatement("insert ignore into rsaj_labpa_counter (jenis,tahun,nomor_terakhir) values (?,?,0)")){
+                // Masing-masing jenis mempunyai urutan sendiri per tahun.
+                // Upsert mengambil kunci tulis sebelum membaca penghitung agar
+                // dua komputer pada jenis yang sama tidak mendapat urutan ganda.
+                try(PreparedStatement p=c.prepareStatement("insert into rsaj_labpa_counter (jenis,tahun,nomor_terakhir) values (?,?,0) on duplicate key update jenis=values(jenis)")){
                     p.setString(1,jenis);p.setInt(2,tahun);p.executeUpdate();
                 }
-                long next;
+                long terakhir;
                 try(PreparedStatement p=c.prepareStatement("select nomor_terakhir from rsaj_labpa_counter where jenis=? and tahun=? for update")){
                     p.setString(1,jenis);p.setInt(2,tahun);try(ResultSet r=p.executeQuery()){
-                        if(!r.next())throw new SQLException("Urutan No. PA tidak dapat dibaca.");next=r.getLong(1)+1;
+                        if(!r.next())throw new SQLException("Urutan No. PA per jenis tidak dapat dibaca.");terakhir=r.getLong(1);
                     }
                 }
+                // Nomor yang sempat terbit dengan aturan bersama tetap dipertahankan.
+                // Lanjutkan maksimum milik jenis ini saja, bukan jenis lainnya.
+                try(PreparedStatement p=c.prepareStatement("select coalesce(max(urutan),0) from rsaj_labpa_nomor where jenis=? and tahun=?")){
+                    p.setString(1,jenis);p.setInt(2,tahun);try(ResultSet r=p.executeQuery()){
+                        if(r.next())terakhir=Math.max(terakhir,r.getLong(1));
+                    }
+                }
+                if(terakhir==Long.MAX_VALUE)throw new SQLException("Urutan No. PA sudah mencapai batas penyimpanan.");
+                long next=terakhir+1;
                 String nomor=formatNomor(jenis,tahun,next);
+                // Pemeriksaan dilakukan setelah penghitung terkunci. Jangan terbitkan
+                // nomor berbeda jika petugas lain lebih dulu memakai calon nomor.
+                if(nomorDikonfirmasi!=null&&!nomor.equals(nomorDikonfirmasi))throw new NomorPABerubahException(nomor);
                 try(PreparedStatement p=c.prepareStatement("insert into rsaj_labpa_nomor (no_rawat,kd_jenis_prw,tgl_periksa,jam,jenis,tahun,urutan,no_pa,issued_at,issued_by) values (?,?,?,?,?,?,?,?,now(),?)")){
                     int i=k.bind(p,1);p.setString(i++,jenis);p.setInt(i++,tahun);p.setLong(i++,next);p.setString(i++,nomor);p.setString(i,user);p.executeUpdate();
                 }
                 try(PreparedStatement p=c.prepareStatement("update rsaj_labpa_counter set nomor_terakhir=? where jenis=? and tahun=?")){
-                    p.setLong(1,next);p.setString(2,jenis);p.setInt(3,tahun);if(p.executeUpdate()!=1)throw new SQLException("Urutan No. PA gagal diperbarui.");
+                    p.setLong(1,next);p.setString(2,jenis);p.setInt(3,tahun);if(p.executeUpdate()!=1)throw new SQLException("Urutan No. PA per jenis gagal diperbarui.");
                 }
                 c.commit();return nomor;
             }catch(SQLException|RuntimeException ex){c.rollback();throw ex;}

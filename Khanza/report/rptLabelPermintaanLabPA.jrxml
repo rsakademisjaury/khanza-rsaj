@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rptLabelPermintaanLabPA" pageWidth="141" pageHeight="85" columnWidth="137" leftMargin="2" rightMargin="2" topMargin="2" bottomMargin="2" uuid="ea6de1fa-ffc0-46ae-a50e-dc7a83405a2b">
+	<property name="net.sf.jasperreports.export.pdf.force.linebreak.policy" value="true"/>
+	<style name="Nama" fontName="Segoe UI" fontSize="8" isBold="true">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{nama}.length()>40]]></conditionExpression>
+			<style fontSize="5.5"/>
+		</conditionalStyle>
+	</style>
+	<style name="Dokter" fontName="Segoe UI" fontSize="6.5">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{dokter}.length()>32]]></conditionExpression>
+			<style fontSize="5.5"/>
+		</conditionalStyle>
+	</style>
+	<style name="Pemeriksaan" fontName="Segoe UI" fontSize="7" isBold="true">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{pemeriksaan}.length()>26]]></conditionExpression>
+			<style fontSize="5.5"/>
+		</conditionalStyle>
+	</style>
+	<field name="no_pa" class="java.lang.String"/>
+	<field name="nama" class="java.lang.String"/>
+	<field name="norm" class="java.lang.String"/>
+	<field name="tgllahir" class="java.lang.String"/>
+	<field name="unit" class="java.lang.String"/>
+	<field name="dokter" class="java.lang.String"/>
+	<field name="pemeriksaan" class="java.lang.String"/>
+	<detail>
+		<band height="81" splitType="Prevent">
+			<textField pattern="dd/MM/yy HH:mm">
+				<reportElement x="6" y="0" width="12" height="81" uuid="c633ed3d-f142-432c-8c70-460bab8348be"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font fontName="Segoe UI" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Nama" x="24" y="16" width="113" height="18" uuid="ac320461-e49c-4de8-8752-76895bd2e681"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nama}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="24" y="34" width="113" height="11" uuid="96dd9359-448d-4a47-b8b4-2fde821f1e10">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{norm}+"   "+$F{tgllahir}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="24" y="44" width="113" height="11" uuid="fb5e9f7d-0c47-42aa-9e50-a3a66b38b4aa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Segoe UI" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{unit}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="Dokter" x="24" y="54" width="113" height="11" uuid="646baba1-3435-4163-9a8a-9b82e3e06ef4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font size="8"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dokter}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement style="Pemeriksaan" x="24" y="65" width="113" height="14" uuid="466616a4-2df9-4ad2-ad9f-d1e2bb63fb0f"/>
+				<textElement verticalAlignment="Middle">
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["[ "+$F{pemeriksaan}+" ]"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="24" y="0" width="113" height="20" uuid="8ea55aaf-f22d-4701-be4a-3e63cd914213"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="SansSerif" size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{no_pa}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

@@ -1136,7 +1136,7 @@ public class DlgCariPermintaanLabPA extends javax.swing.JDialog {
         FormMenu.add(BtnCetakHasilLab);
 
         BtnBarcodePermintaan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/item.png"))); // NOI18N
-        BtnBarcodePermintaan.setText("Barcode No.Permintaan");
+        BtnBarcodePermintaan.setText("Label No. PA");
         BtnBarcodePermintaan.setFocusPainted(false);
         BtnBarcodePermintaan.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
         // BtnBarcodePermintaan.setGlassColor(new java.awt.Color(255, 255, 255));
@@ -2143,60 +2143,25 @@ private void tbLabRalanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
     }//GEN-LAST:event_BtnCetakHasilLabActionPerformed
 
     private void BtnBarcodePermintaanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnBarcodePermintaanActionPerformed
-        if(TabPilihRawat.getSelectedIndex()==0){
-            if(!NoRawat.equals("")){
-                if(NoPermintaan.trim().equals("")){
-                    Valid.textKosong(TCari,"No.Permintaan");
-                }else{ 
-                    this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                    Map<String, Object> param = new HashMap<>();
-                    norm=Sequel.cariIsi("select reg_periksa.no_rkm_medis from reg_periksa where reg_periksa.no_rawat=? ",NoRawat);
-                    param.put("nama",Sequel.cariIsi("select pasien.nm_pasien from pasien where pasien.no_rkm_medis=? ",norm));
-                    param.put("alamat",Sequel.cariIsi("select date_format(tgl_lahir,'%d/%m/%Y') from pasien where no_rkm_medis=?",norm));
-                    param.put("norm",norm);
-                    param.put("parameter","%"+TCari.getText().trim()+"%");     
-                    param.put("namars",akses.getnamars());
-                    param.put("alamatrs",akses.getalamatrs());
-                    param.put("kotars",akses.getkabupatenrs());
-                    param.put("propinsirs",akses.getpropinsirs());
-                    param.put("kontakrs",akses.getkontakrs());
-                    param.put("emailrs",akses.getemailrs());   
-                    Valid.MyReportqry("rptBarcodePermintaanLab.jasper","report","::[ Barcode No.Permintaan Lab ]::",
-                            "select noorder from permintaan_labpa where no_rawat='"+NoRawat+"'",param); 
-                    TeksKosong();
-                    this.setCursor(Cursor.getDefaultCursor());
-                } 
-            }else{            
-                JOptionPane.showMessageDialog(null,"Maaf, silahkan pilih data permintaan...!!!!");
-                TCari.requestFocus();
-            } 
-        }else if(TabPilihRawat.getSelectedIndex()==1){
-            if(!NoRawat.equals("")){
-                if(NoPermintaan.trim().equals("")){
-                    Valid.textKosong(TCari,"No.Permintaan");
-                }else{ 
-                    this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                    Map<String, Object> param = new HashMap<>();
-                    norm=Sequel.cariIsi("select reg_periksa.no_rkm_medis from reg_periksa where reg_periksa.no_rawat=? ",NoRawat);
-                    param.put("nama",Sequel.cariIsi("select pasien.nm_pasien from pasien where pasien.no_rkm_medis=? ",norm));
-                    param.put("alamat",Sequel.cariIsi("select date_format(tgl_lahir,'%d/%m/%Y') from pasien where no_rkm_medis=?",norm));
-                    param.put("norm",norm);
-                    param.put("parameter","%"+TCari.getText().trim()+"%");     
-                    param.put("namars",akses.getnamars());
-                    param.put("alamatrs",akses.getalamatrs());
-                    param.put("kotars",akses.getkabupatenrs());
-                    param.put("propinsirs",akses.getpropinsirs());
-                    param.put("kontakrs",akses.getkontakrs());
-                    param.put("emailrs",akses.getemailrs());   
-                    Valid.MyReportqry("rptBarcodePermintaanLab.jasper","report","::[ Barcode No.Permintaan Lab ]::",
-                            "select noorder from permintaan_labpa where no_rawat='"+NoRawat+"'",param); 
-                    TeksKosong();
-                    this.setCursor(Cursor.getDefaultCursor());
-                } 
-            }else{            
-                JOptionPane.showMessageDialog(null,"Maaf, silahkan pilih data permintaan...!!!!");
-                TCari.requestFocus();
-            } 
+        if (TabPilihRawat.getSelectedIndex()!=0 && TabPilihRawat.getSelectedIndex()!=1) return;
+        if (NoRawat.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,"Maaf, silahkan pilih data permintaan...!!!!");
+            TCari.requestFocus();
+            return;
+        }
+        if (NoPermintaan.trim().isEmpty()) {
+            Valid.textKosong(TCari,"No.Permintaan");
+            return;
+        }
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        try {
+            fungsi.LabPALabel.tampilkan(koneksi,NoPermintaan,NoRawat);
+            TeksKosong();
+        } catch (Exception ex) {
+            System.out.println("Label No. PA : "+ex);
+            JOptionPane.showMessageDialog(this,ex.getMessage(),"Label No. PA",JOptionPane.WARNING_MESSAGE);
+        } finally {
+            this.setCursor(Cursor.getDefaultCursor());
         }
     }//GEN-LAST:event_BtnBarcodePermintaanActionPerformed
 
