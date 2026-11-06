@@ -180,6 +180,8 @@ public final class DlgRawatInap extends javax.swing.JDialog {
     public DlgRawatInap(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+        // SSRME RSAJ: inisialisasi UI saja; jaringan/database hanya saat tombol diklik.
+        bridging.SsrmeLauncher.pasang(this, internalFrame1, () -> new bridging.SsrmeClient.Context(TNoRw.getText(), TNoRM.getText()), false, false);
 
         this.setLocation(8,1);
         setSize(885,674);

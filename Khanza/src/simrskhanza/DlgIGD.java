@@ -394,6 +394,8 @@ public final class DlgIGD extends javax.swing.JDialog {
         initIGD();
         initPopupVisumEtRepertum();
         initTombolHasilPenunjangIGD();
+        // SSRME RSAJ: inisialisasi UI saja; jaringan/database hanya saat tombol diklik.
+        bridging.SsrmeLauncher.pasang(this, internalFrame1, () -> bridging.SsrmeLauncher.dariTabel(tbPetugas, 2, 7), false, true);
 
         this.setLocation(8,1);
         setSize(885,674);

@@ -315,6 +315,8 @@ public final class DlgKasirRalan extends javax.swing.JDialog {
         initKasirRalan();
         initMenuKFR();
         initMenuRujukanSatuSehatRalan();
+        // SSRME RSAJ: inisialisasi UI saja; jaringan/database hanya saat tombol diklik.
+        bridging.SsrmeLauncher.pasang(this, internalFrame1, () -> bridging.SsrmeLauncher.dariTabel(TabRawat.getSelectedIndex()==0 ? tbKasirRalan : (TabRawat.getSelectedIndex()==1 ? tbKasirRalan2 : tbKasirRalan3), 11, 2), false, false);
     
     //Mengecek konsul yang belum dijawab//AKHIR    
         

@@ -77,6 +77,8 @@ public final class RMRiwayatPerawatan extends javax.swing.JDialog {
     public RMRiwayatPerawatan(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+        // SSRME RSAJ: inisialisasi UI saja; jaringan/database hanya saat tombol diklik.
+        bridging.SsrmeLauncher.pasang(this, internalFrame1, () -> new bridging.SsrmeClient.Context("", NoRM.getText()), false, false);
         this.setLocation(8,1);
         setSize(885,674);
         
