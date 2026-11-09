@@ -3,9 +3,7 @@ package bridging;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
+import java.awt.CardLayout;
 import java.awt.Window;
 import java.net.URI;
 import java.time.Instant;
@@ -13,25 +11,24 @@ import java.time.OffsetDateTime;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
 
-/** Viewer JavaFX seperti iCare BPJS; satu jendela SSRME per proses SIMRS. */
-public final class SsrmeViewer extends JDialog {
+/** Halaman WebView2 di dalam proses SIMRS; satu jendela viewer dengan kontrol jendela native. */
+public final class SsrmeViewer extends SsrmeUi.WindowFrame {
     private static SsrmeViewer active;
     private SsrmeClient.Link link;
     private final BooleanSupplier session;
     private final LinkRequest newLink;
     private final SsrmeTrace trace;
-    private final JPanel canvas = new JPanel(new BorderLayout());
-    private final JTextArea status = new JTextArea();
+    private final CardLayout pageLayout = new CardLayout();
+    private final JPanel canvas = new JPanel(pageLayout);
+    private final JPanel surface = new JPanel(new BorderLayout());
+    private final SsrmeUi.StatusPanel status = new SsrmeUi.StatusPanel();
+    private boolean problemVisible;
     private final JButton reload = SsrmeLauncher.button("Muat Ulang");
     private final JButton external = SsrmeLauncher.button("Buka di Browser");
     private final Timer guard;
@@ -47,51 +44,33 @@ public final class SsrmeViewer extends JDialog {
         if (active != null) active.dispose();
         SsrmeViewer dialog = new SsrmeViewer(owner, setup, link, action, session, newLink, trace);
         active = dialog;
-        dialog.start();
-        if (!dialog.closed) dialog.setVisible(true);
+        try {
+            dialog.start();
+            if (!dialog.closed) dialog.showBlocking();
+        } finally { dialog.dispose(); }
     }
 
     private SsrmeViewer(Window owner, SsrmeClient.Setup setup, SsrmeClient.Link link,
                         String action, BooleanSupplier session, LinkRequest newLink, SsrmeTrace trace) {
-        super(owner, "SATUSEHAT RME · SIMRS RSAJ", ModalityType.APPLICATION_MODAL);
+        super(owner, "SATUSEHAT RME · SIMRS RSAJ");
         this.link = link; this.session = session; this.newLink = newLink; this.trace=trace;
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        JPanel body = new JPanel(new BorderLayout(0, 10)); body.setBackground(Color.WHITE);
-        body.setBorder(BorderFactory.createEmptyBorder(14, 18, 14, 18)); setContentPane(body);
-        JPanel head = new JPanel(new BorderLayout(12, 5)); head.setOpaque(false);
-        JPanel identity = new JPanel(new java.awt.GridLayout(0, 1, 0, 5)); identity.setOpaque(false);
-        JLabel title = text("SATUSEHAT RME", true); title.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 21));
-        title.setForeground(new Color(35, 99, 190)); identity.add(title);
-        identity.add(text(setup.patientName + "  ·  No. RM " + setup.patientRm, true));
-        identity.add(text(("VIEW".equals(action) ? "Rekam medis nasional" : "Persetujuan akses")
-                + "  |  Operator: " + setup.actor, false));
-        head.add(identity, BorderLayout.CENTER);
-        JLabel official = text("Halaman resmi SATUSEHAT", false);
-        official.setForeground(new Color(0, 126, 112)); head.add(official, BorderLayout.EAST);
-        body.add(head, BorderLayout.NORTH);
-        canvas.setBackground(new Color(242, 247, 253));
-        canvas.setBorder(BorderFactory.createLineBorder(new Color(216, 226, 239)));
-        canvas.add(text("  Menyiapkan browser SATUSEHAT...", false), BorderLayout.CENTER);
+        JPanel body = new JPanel(new BorderLayout()); body.setBackground(Color.WHITE); setContentPane(body);
+        SsrmeUi.Header head=new SsrmeUi.Header(); head.update(setup,action); body.add(head,BorderLayout.NORTH);
+        canvas.setBackground(Color.WHITE);surface.setBackground(Color.WHITE);
+        canvas.add(surface,"page");canvas.add(status,"status");
+        status.showStatus("Menyiapkan halaman SATUSEHAT","Menyiapkan browser internal SSRME...",SsrmeUi.StatusPanel.INFO);
+        pageLayout.show(canvas,"status");
         body.add(canvas, BorderLayout.CENTER);
-        JPanel footer = new JPanel(new BorderLayout(8, 8)); footer.setOpaque(false);
-        status.setFont(new Font("Segoe UI", Font.PLAIN, 12)); status.setEditable(false);
-        status.setFocusable(false); status.setLineWrap(true); status.setWrapStyleWord(true);
-        status.setOpaque(false); status.setRows(2); footer.add(status, BorderLayout.CENTER);
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0)); actions.setOpaque(false);
         JButton close = SsrmeLauncher.button("Tutup"); close.addActionListener(e -> dispose());
         reload.setEnabled(false);
-        reload.setIcon(new ActionIcon(0)); external.setIcon(new ActionIcon(1)); close.setIcon(new ActionIcon(2));
         reload.addActionListener(e -> {
             if (!valid()) { dispose(); return; }
-            if (!fresh(link)) { message("Tautan sudah kedaluwarsa. Tutup dan minta tautan baru melalui SIMRS.", true); return; }
-            try { browser.reload(); } catch (RuntimeException ex) { failed(); }
+            if (!fresh(link)) { showProblem("Tautan SSRME sudah kedaluwarsa","Tautan sudah kedaluwarsa. Tutup dan minta tautan baru melalui SIMRS.",SsrmeUi.StatusPanel.LOCKED); return; }
+            try { browser.reload(); restorePage(); } catch (RuntimeException ex) { failed(); }
         });
         external.addActionListener(e -> openExternal());
-        actions.add(reload); actions.add(external); actions.add(close);
-        JPanel bottom=new JPanel(new BorderLayout());bottom.setOpaque(false);bottom.add(trace.button(this),BorderLayout.WEST);bottom.add(actions,BorderLayout.EAST);
-        footer.add(bottom, BorderLayout.SOUTH); body.add(footer, BorderLayout.SOUTH);
+        body.add(SsrmeUi.footer(trace.button(this),SsrmeUi.guideButton(this,"EMERGENCY".equals(action)),reload,external,close),BorderLayout.SOUTH);
         guard = new Timer(400, e -> { if (!valid()) dispose(); });
-        SsrmeUi.fit(this, owner);
     }
 
     private boolean valid() { return !closed && session.getAsBoolean(); }
@@ -100,24 +79,25 @@ public final class SsrmeViewer extends JDialog {
         guard.start();
         if (!valid()) { dispose(); return; }
         if (!fresh(link)) {
-            message("Tautan SSRME sudah kedaluwarsa. Tutup dan minta tautan baru, atau gunakan Buka di Browser.", true);
+            showProblem("Tautan SSRME sudah kedaluwarsa","Tautan SSRME sudah kedaluwarsa. Tutup dan minta tautan baru, atau gunakan Buka di Browser.",SsrmeUi.StatusPanel.LOCKED);
             return;
         }
         message("Menyiapkan Microsoft Edge WebView2 dalam SIMRS...", false);
         try {
             Consumer<String> report = value -> SwingUtilities.invokeLater(() -> {
-                if (valid() && !externalMode) message(value, false);
+                if (valid() && !externalMode) browserMessage(value);
             });
             Runnable failure = () -> SwingUtilities.invokeLater(() -> {
                 if (valid() && !externalMode) failed();
             });
             final String host = link.url.getHost();
             Predicate<String> navigation = url -> !closed && allowedNavigation(url, host);
-            // Muat saat diperlukan supaya kegagalan library JavaFX tetap dapat ditangani dialog fallback.
+            // Muat saat diperlukan supaya kegagalan bridge tetap mempunyai fallback manual.
             Class<?> type = SsrmeEdgeLoader.type();
             browser = (SsrmeBrowser) type.getMethod("create", URI.class, Consumer.class, Predicate.class, Runnable.class)
                     .invoke(null, link.url, report, navigation, failure);
-            canvas.removeAll(); canvas.add(browser.component(), BorderLayout.CENTER);
+            surface.removeAll(); surface.add(browser.component(), BorderLayout.CENTER);
+            if(!problemVisible) pageLayout.show(canvas,"page");
             canvas.revalidate(); canvas.repaint(); reload.setEnabled(true);
         } catch (Exception | LinkageError e) { failed(); }
     }
@@ -150,7 +130,7 @@ public final class SsrmeViewer extends JDialog {
         externalMode = true;
         // Tautan launch dapat sekali pakai. Minta tautan baru; jangan kirim ulang yang sudah dinavigasi.
         if (browser != null) { try { browser.close(); } catch (RuntimeException | LinkageError ignored) { } browser = null; }
-        canvas.removeAll(); canvas.add(text("  Menyiapkan pembukaan melalui browser...", false), BorderLayout.CENTER);
+        surface.removeAll();
         canvas.revalidate(); canvas.repaint(); reload.setEnabled(false); external.setEnabled(false);
         message("Meminta tautan baru untuk browser...", false);
         new SwingWorker<SsrmeClient.Link, Void>() {
@@ -174,45 +154,41 @@ public final class SsrmeViewer extends JDialog {
     private void failed() {
         trace.add(new SsrmeTrace.Entry(SsrmeTrace.now(),"LOCAL","local://viewer",0,0,"{}","{\"code\":\"VIEWER_UNAVAILABLE\"}"));
         if (browser != null) { try { browser.close(); } catch (RuntimeException | LinkageError ignored) { } browser = null; }
-        canvas.removeAll(); canvas.add(text("  Viewer internal belum tersedia pada komputer ini.", false), BorderLayout.CENTER);
+        surface.removeAll();
         canvas.revalidate(); canvas.repaint(); reload.setEnabled(false);
-        message("Viewer Edge belum tersedia. Gunakan Buka di Browser, lalu periksa paket runtime/ssrme-edge, Windows/Java 64-bit dan Microsoft Edge WebView2 Runtime.", true);
+        showProblem("Viewer internal belum tersedia","Viewer Edge belum tersedia. Gunakan Buka di Browser, lalu periksa paket runtime/ssrme-edge, Windows/Java 64-bit dan Microsoft Edge WebView2 Runtime.",SsrmeUi.StatusPanel.ERROR);
     }
 
     private void message(String value, boolean failed) {
-        status.setForeground(failed ? new Color(166, 52, 52) : new Color(36, 53, 75));
-        status.setText(value); status.setCaretPosition(0);
+        if(failed){showProblem("Halaman SSRME belum dapat dibuka",value,SsrmeUi.StatusPanel.ERROR);return;}
+        if(browser==null){problemVisible=false;status.setReturnAction(null);
+            status.showStatus("Menyiapkan halaman SATUSEHAT",value,SsrmeUi.StatusPanel.INFO);pageLayout.show(canvas,"status");
+            canvas.revalidate();canvas.repaint();}
+    }
+    private void showProblem(String title,String explanation,int kind){
+        problemVisible=true;status.showStatus(SsrmeUi.SHARING_MESSAGE.equals(explanation)?"Periksa berbagi resume medis":title,explanation,kind);
+        if(SsrmeUi.SHARING_MESSAGE.equals(explanation))status.setGuidance(SsrmeUi.PATIENT_GUIDE);
+        status.setReturnAction(browser==null?null:this::restorePage);pageLayout.show(canvas,"status");canvas.revalidate();canvas.repaint();
+    }
+    private void restorePage(){
+        if(!valid()){dispose();return;}
+        if(browser!=null){problemVisible=false;pageLayout.show(canvas,"page");canvas.revalidate();canvas.repaint();}
+    }
+    private void browserMessage(String value) {
+        if(value!=null&&value.startsWith("Viewer Edge siap.")){
+            if(!problemVisible&&browser!=null)restorePage();
+        }else if(value!=null&&value.startsWith("Navigasi di luar")){
+            showProblem("Navigasi halaman dibatasi",value,SsrmeUi.StatusPanel.LOCKED);
+        }else message(value,false);
     }
 
     @Override public void dispose() {
         if (!closed) {
-            closed = true; guard.stop(); canvas.removeAll(); canvas.repaint();
+            closed = true; guard.stop(); surface.removeAll(); canvas.repaint();
             if (browser != null) { try { browser.close(); } catch (RuntimeException | LinkageError ignored) { } browser = null; }
             link = null; if (active == this) active = null;
         }
         super.dispose();
     }
 
-    private static JLabel text(String value, boolean bold) {
-        // JLabel menafsirkan <html>; identitas dari database harus selalu teks biasa.
-        JLabel label = new JLabel(value); label.putClientProperty("html.disable", Boolean.TRUE);
-        label.setFont(new Font(bold ? "Segoe UI Semibold" : "Segoe UI", Font.PLAIN, 12));
-        label.setForeground(new Color(36, 53, 75)); return label;
-    }
-    private static final class ActionIcon implements javax.swing.Icon {
-        private final int kind;
-        ActionIcon(int kind) { this.kind = kind; }
-        public int getIconWidth() { return 16; }
-        public int getIconHeight() { return 16; }
-        public void paintIcon(java.awt.Component c, java.awt.Graphics original, int x, int y) {
-            java.awt.Graphics2D g = (java.awt.Graphics2D)original.create(); g.translate(x, y);
-            g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setColor(c.isEnabled() ? new Color(35,99,190) : new Color(155,164,177));
-            g.setStroke(new java.awt.BasicStroke(1.7f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
-            if (kind == 0) { g.drawArc(2,2,11,11,40,290); g.drawLine(12,1,13,5); g.drawLine(9,5,13,5); }
-            else if (kind == 1) { g.drawLine(9,2,14,2); g.drawLine(14,2,14,7); g.drawLine(14,2,7,9); g.drawLine(6,4,2,4); g.drawLine(2,4,2,14); g.drawLine(2,14,12,14); g.drawLine(12,14,12,10); }
-            else { g.drawLine(4,4,12,12); g.drawLine(12,4,4,12); }
-            g.dispose();
-        }
-    }
 }

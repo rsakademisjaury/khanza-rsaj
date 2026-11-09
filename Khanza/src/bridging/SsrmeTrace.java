@@ -21,7 +21,7 @@ import javax.swing.text.*;
 public final class SsrmeTrace {
     private static final ObjectMapper JSON=new ObjectMapper();
     private final DefaultListModel<Entry> rows=new DefaultListModel<Entry>();
-    private JDialog dialog;
+    private SsrmeUi.WindowFrame dialog;
     private boolean closed;
     public static final class Entry {
         public final String time,method,endpoint,request,response;
@@ -40,9 +40,12 @@ public final class SsrmeTrace {
     public void clear(){closed=true;rows.clear();if(dialog!=null)dialog.dispose();dialog=null;}
     public JButton button(Window owner){JButton b=SsrmeLauncher.button("{ JSON }");b.setToolTipText("Request dan response SSRME");b.addActionListener(e->show(owner));return b;}
     public void show(Window owner) {
-        if(dialog!=null&&dialog.isDisplayable()){dialog.toFront();return;}
-        dialog=new JDialog(owner,"SSRME · Request / Response",java.awt.Dialog.ModalityType.MODELESS);
-        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        if(dialog!=null&&dialog.isDisplayable()){
+            if(dialog.modalOwner==owner){dialog.toFront();return;}dialog.dispose();
+        }
+        dialog=new SsrmeUi.WindowFrame(owner,"SSRME · Request / Response");
+        JPanel titleBar=new JPanel(new BorderLayout());titleBar.setBackground(Color.WHITE);titleBar.setPreferredSize(new java.awt.Dimension(0,50));
+        titleBar.setBorder(BorderFactory.createEmptyBorder(0,12,0,12));JLabel title=SsrmeUi.label("SSRME · Request / Response",true);title.setFont(new Font("Segoe UI Semibold",Font.PLAIN,17));titleBar.add(title);dialog.add(titleBar,BorderLayout.NORTH);
         JList<Entry> list=new JList<Entry>(rows);list.setFont(new Font("Segoe UI",Font.PLAIN,12));list.setFixedCellHeight(50);
         list.setCellRenderer(new DefaultListCellRenderer(){@Override public java.awt.Component getListCellRendererComponent(JList<?> l,Object v,int i,boolean selected,boolean focus){
             JLabel label=(JLabel)super.getListCellRendererComponent(l,v,i,selected,focus);label.putClientProperty("html.disable",Boolean.TRUE);
@@ -62,11 +65,11 @@ public final class SsrmeTrace {
         list.addListSelectionListener(e->{if(!e.getValueIsAdjusting())render.run();});
         javax.swing.event.ListDataListener live=new javax.swing.event.ListDataListener(){public void intervalAdded(javax.swing.event.ListDataEvent e){list.setSelectedIndex(rows.size()-1);}public void intervalRemoved(javax.swing.event.ListDataEvent e){}public void contentsChanged(javax.swing.event.ListDataEvent e){}};
         rows.addListDataListener(live);dialog.addWindowListener(new java.awt.event.WindowAdapter(){@Override public void windowClosed(java.awt.event.WindowEvent e){rows.removeListDataListener(live);}});
-        JPanel actions=new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));JButton copy=SsrmeLauncher.button("Copy"),close=SsrmeLauncher.button("Tutup");
+        JButton copy=SsrmeLauncher.button("Copy"),close=SsrmeLauncher.button("Tutup");
         copy.addActionListener(e->java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new java.awt.datatransfer.StringSelection(shown[0]),null));
-        close.addActionListener(e->dialog.dispose());actions.add(copy);actions.add(close);dialog.add(actions,BorderLayout.SOUTH);
+        final SsrmeUi.WindowFrame shownDialog=dialog;close.addActionListener(e->shownDialog.dispose());dialog.add(SsrmeUi.footer(null,copy,close),BorderLayout.SOUTH);
         if(rows.size()>0)list.setSelectedIndex(rows.size()-1);else code.setText("Belum ada transaksi. Riwayat akan bertambah saat permintaan diproses.");
-        SsrmeUi.fit(dialog,owner);dialog.setVisible(true);
+        dialog.setVisible(true);
     }
     public static String now(){return ZonedDateTime.now(java.time.ZoneId.of("Asia/Makassar")).format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss 'WITA'"));}
     public static String cleanEndpoint(String value){try{URI u=URI.create(value);return u.getScheme()+"://"+u.getHost()+(u.getPort()>0?":"+u.getPort():"")+u.getPath()+(u.getRawQuery()==null?"":"?[PARAMETERS REDACTED]");}catch(Exception e){return "[ENDPOINT]";}}

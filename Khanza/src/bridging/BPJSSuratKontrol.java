@@ -315,6 +315,28 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        WindowUpdatePulang = new javax.swing.JDialog();
+        PulanginternalFrame5 = new bridging.BPJSPulangUI.PanelDialog();
+        PulangBtnCloseIn4 = new bridging.BPJSPulangUI.Tombol();
+        PulangBtnSimpan4 = new bridging.BPJSPulangUI.Tombol();
+        PulangjLabel26 = new widget.Label();
+        PulangTanggalPulang = new bridging.BPJSPulangUI.Tanggal();
+        PulangjLabel46 = new widget.Label();
+        PulangPanelStatus = new bridging.BPJSPulangUI.KotakInput();
+        PulangStatusPulang = new widget.ComboBox();
+        PulangjLabel47 = new widget.Label();
+        PulangNoSuratKematian = new widget.TextBox();
+        PulangjLabel48 = new widget.Label();
+        PulangTanggalKematian = new widget.Tanggal();
+        PulangjLabel49 = new widget.Label();
+        PulangPanelLP = new bridging.BPJSPulangUI.KotakInput();
+        PulangNoLPManual = new javax.swing.JTextField();
+        PulangJudul = new javax.swing.JLabel();
+        PulangSubjudul = new javax.swing.JLabel();
+        PulangIkonJudul = new javax.swing.JLabel();
+        PulangCatatan = new javax.swing.JLabel();
+        PulangGarisAtas = new javax.swing.JSeparator();
+        PulangGarisBawah = new javax.swing.JSeparator();
         buttonGroup1 = new javax.swing.ButtonGroup();
         jPopupMenu1 = new javax.swing.JPopupMenu();
         MnSurat = new javax.swing.JMenuItem();
@@ -333,34 +355,8 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         BtnEdit = new widget.Button();
         BtnPrint = new widget.Button();
         BtnAll = new widget.Button();
-        BtnTarikVClaim = new widget.Button();
-        BtnKirimPesan = new widget.Button();
         BtnUpload = new widget.Button();
         BtnUpdatePulangBPJS = new widget.Button();
-        LblStatusPulangBPJS = new widget.Label();
-        WindowUpdatePulang = new javax.swing.JDialog(this, true);
-        PulangJudul = new javax.swing.JLabel();
-        PulangSubjudul = new javax.swing.JLabel();
-        PulangIkonJudul = new javax.swing.JLabel();
-        PulangCatatan = new javax.swing.JLabel();
-        PulangGarisAtas = new javax.swing.JSeparator();
-        PulangGarisBawah = new javax.swing.JSeparator();
-        PulanginternalFrame5 = new BPJSPulangUI.PanelDialog();
-        PulangPanelStatus = new BPJSPulangUI.KotakInput();
-        PulangPanelLP = new BPJSPulangUI.KotakInput();
-        PulangBtnCloseIn4 = new BPJSPulangUI.Tombol();
-        PulangBtnSimpan4 = new BPJSPulangUI.Tombol();
-        PulangjLabel26 = new widget.Label();
-        PulangTanggalPulang = new BPJSPulangUI.Tanggal();
-        PulangjLabel46 = new widget.Label();
-        PulangStatusPulang = new widget.ComboBox();
-        PulangjLabel47 = new widget.Label();
-        PulangNoSuratKematian = new widget.TextBox();
-        PulangjLabel48 = new widget.Label();
-        PulangTanggalKematian = new widget.Tanggal();
-        PulangjLabel49 = new widget.Label();
-        PulangNoLPManual = new javax.swing.JTextField();
-        BtnUploadLepasRawat = new widget.Button();
         BtnKeluar = new widget.Button();
         panelGlass10 = new widget.panelisi();
         jLabel6 = new widget.Label();
@@ -368,6 +364,9 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         BtnCari = new widget.Button();
         jLabel7 = new widget.Label();
         LCount = new widget.Label();
+        BtnTarikVClaim = new widget.Button();
+        BtnKirimPesan = new widget.Button();
+        BtnUploadLepasRawat = new widget.Button();
         panelCari = new widget.panelisi();
         R1 = new widget.RadioButton();
         DTPTanggalSurat1 = new widget.Tanggal();
@@ -381,6 +380,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         PanelInput = new javax.swing.JPanel();
         ChkInput = new widget.CekBox();
         FormInput = new widget.PanelBiasa();
+        LblStatusPulangBPJS = new widget.Label();
         jLabel4 = new widget.Label();
         NoRawat = new widget.TextBox();
         jLabel9 = new widget.Label();
@@ -420,6 +420,157 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         jLabel19 = new widget.Label();
         jLabel21 = new widget.Label();
         jLabel23 = new widget.Label();
+
+        WindowUpdatePulang.setTitle("Update Tanggal Pulang");
+        WindowUpdatePulang.setMinimumSize(new java.awt.Dimension(548, 362));
+        WindowUpdatePulang.setModal(true);
+        WindowUpdatePulang.setName("WindowUpdatePulang"); // NOI18N
+        WindowUpdatePulang.setResizable(false);
+        WindowUpdatePulang.setSize(new java.awt.Dimension(548, 362));
+        WindowUpdatePulang.setType(java.awt.Window.Type.POPUP);
+        WindowUpdatePulang.setUndecorated(true);
+
+        PulanginternalFrame5.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(37, 99, 193), 2, true));
+        PulanginternalFrame5.setMinimumSize(new java.awt.Dimension(548, 362));
+        PulanginternalFrame5.setName("PulanginternalFrame5"); // NOI18N
+        PulanginternalFrame5.setLayout(null);
+
+        PulangBtnCloseIn4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/cross.png"))); // NOI18N
+        PulangBtnCloseIn4.setMnemonic('U');
+        PulangBtnCloseIn4.setText("Tutup");
+        PulangBtnCloseIn4.setToolTipText("Alt+U");
+        PulangBtnCloseIn4.setName("PulangBtnCloseIn4"); // NOI18N
+        PulangBtnCloseIn4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                PulangBtnCloseIn4ActionPerformed(evt);
+            }
+        });
+        PulanginternalFrame5.add(PulangBtnCloseIn4);
+        PulangBtnCloseIn4.setBounds(420, 310, 104, 36);
+
+        PulangBtnSimpan4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/save-16x16.png"))); // NOI18N
+        PulangBtnSimpan4.setMnemonic('S');
+        PulangBtnSimpan4.setText("Simpan");
+        PulangBtnSimpan4.setToolTipText("Alt+S");
+        PulangBtnSimpan4.setName("PulangBtnSimpan4"); // NOI18N
+        PulangBtnSimpan4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                PulangBtnSimpan4ActionPerformed(evt);
+            }
+        });
+        PulanginternalFrame5.add(PulangBtnSimpan4);
+        PulangBtnSimpan4.setBounds(304, 310, 104, 36);
+
+        PulangjLabel26.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        PulangjLabel26.setText("Tanggal Pulang");
+        PulangjLabel26.setName("PulangjLabel26"); // NOI18N
+        PulanginternalFrame5.add(PulangjLabel26);
+        PulangjLabel26.setBounds(24, 100, 212, 24);
+
+        PulangTanggalPulang.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026 10:12:03" }));
+        PulangTanggalPulang.setDisplayFormat("dd-MM-yyyy HH:mm:ss");
+        PulangTanggalPulang.setName("PulangTanggalPulang"); // NOI18N
+        PulangTanggalPulang.setPreferredSize(new java.awt.Dimension(95, 23));
+        PulanginternalFrame5.add(PulangTanggalPulang);
+        PulangTanggalPulang.setBounds(24, 132, 212, 36);
+
+        PulangjLabel46.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        PulangjLabel46.setText("Status Pulang ");
+        PulangjLabel46.setName("PulangjLabel46"); // NOI18N
+        PulanginternalFrame5.add(PulangjLabel46);
+        PulangjLabel46.setBounds(252, 100, 272, 24);
+
+        PulangPanelStatus.setName("PulangPanelStatus"); // NOI18N
+
+        PulangStatusPulang.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "1. Atas Persetujuan Dokter", "3. Atas Permintaan Sendiri", "" }));
+        PulangStatusPulang.setName("PulangStatusPulang"); // NOI18N
+        PulangStatusPulang.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                PulangStatusPulangItemStateChanged(evt);
+            }
+        });
+        PulangPanelStatus.add(PulangStatusPulang, java.awt.BorderLayout.CENTER);
+
+        PulanginternalFrame5.add(PulangPanelStatus);
+        PulangPanelStatus.setBounds(252, 132, 272, 36);
+
+        PulangjLabel47.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        PulangjLabel47.setText("Nomor Surat Kematian :");
+        PulangjLabel47.setName("PulangjLabel47"); // NOI18N
+        PulangjLabel47.setPreferredSize(new java.awt.Dimension(68, 23));
+        PulangjLabel47.setVisible(false);
+        PulanginternalFrame5.add(PulangjLabel47);
+        PulangjLabel47.setBounds(20, 87, 135, 26);
+
+        PulangNoSuratKematian.setEditable(false);
+        PulangNoSuratKematian.setHighlighter(null);
+        PulangNoSuratKematian.setName("PulangNoSuratKematian"); // NOI18N
+        PulangNoSuratKematian.setPreferredSize(new java.awt.Dimension(130, 23));
+        PulangNoSuratKematian.setVisible(false);
+        PulanginternalFrame5.add(PulangNoSuratKematian);
+        PulangNoSuratKematian.setBounds(160, 87, 190, 26);
+
+        PulangjLabel48.setText("Tanggal Kematian :");
+        PulangjLabel48.setName("PulangjLabel48"); // NOI18N
+        PulangjLabel48.setVisible(false);
+        PulanginternalFrame5.add(PulangjLabel48);
+        PulangjLabel48.setBounds(360, 53, 110, 26);
+
+        PulangTanggalKematian.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
+        PulangTanggalKematian.setDisplayFormat("dd-MM-yyyy");
+        PulangTanggalKematian.setEnabled(false);
+        PulangTanggalKematian.setName("PulangTanggalKematian"); // NOI18N
+        PulangTanggalKematian.setOpaque(false);
+        PulangTanggalKematian.setPreferredSize(new java.awt.Dimension(95, 23));
+        PulangTanggalKematian.setVisible(false);
+        PulanginternalFrame5.add(PulangTanggalKematian);
+        PulangTanggalKematian.setBounds(480, 53, 90, 26);
+
+        PulangjLabel49.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        PulangjLabel49.setText("Nomor LP Manual :");
+        PulangjLabel49.setName("PulangjLabel49"); // NOI18N
+        PulangjLabel49.setPreferredSize(new java.awt.Dimension(68, 23));
+        PulanginternalFrame5.add(PulangjLabel49);
+        PulangjLabel49.setBounds(24, 188, 500, 24);
+
+        PulangPanelLP.setName("PulangPanelLP"); // NOI18N
+
+        PulangNoLPManual.setHighlighter(null);
+        PulangNoLPManual.setName("PulangNoLPManual"); // NOI18N
+        PulangNoLPManual.setPreferredSize(new java.awt.Dimension(130, 23));
+        PulangPanelLP.add(PulangNoLPManual, java.awt.BorderLayout.CENTER);
+
+        PulanginternalFrame5.add(PulangPanelLP);
+        PulangPanelLP.setBounds(24, 220, 500, 36);
+
+        PulangJudul.setName("PulangJudul"); // NOI18N
+        PulangJudul.setText("Update Pulang BPJS");
+        PulanginternalFrame5.add(PulangJudul);
+        PulangJudul.setBounds(76, 21, 448, 24);
+
+        PulangSubjudul.setName("PulangSubjudul"); // NOI18N
+        PulangSubjudul.setText("Lengkapi tanggal dan status pulang pasien");
+        PulanginternalFrame5.add(PulangSubjudul);
+        PulangSubjudul.setBounds(76, 46, 448, 20);
+
+        PulangIkonJudul.setName("PulangIkonJudul"); // NOI18N
+        PulanginternalFrame5.add(PulangIkonJudul);
+        PulangIkonJudul.setBounds(24, 20, 40, 40);
+
+        PulangCatatan.setName("PulangCatatan"); // NOI18N
+        PulangCatatan.setText("Khusus kasus kecelakaan lalu lintas.");
+        PulanginternalFrame5.add(PulangCatatan);
+        PulangCatatan.setBounds(24, 262, 500, 20);
+
+        PulangGarisAtas.setName("PulangGarisAtas"); // NOI18N
+        PulanginternalFrame5.add(PulangGarisAtas);
+        PulangGarisAtas.setBounds(24, 84, 500, 1);
+
+        PulangGarisBawah.setName("PulangGarisBawah"); // NOI18N
+        PulanginternalFrame5.add(PulangGarisBawah);
+        PulangGarisBawah.setBounds(24, 298, 500, 1);
+
+        WindowUpdatePulang.getContentPane().add(PulanginternalFrame5, java.awt.BorderLayout.CENTER);
 
         jPopupMenu1.setName("jPopupMenu1"); // NOI18N
 
@@ -637,42 +788,6 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         });
         panelGlass8.add(BtnAll);
 
-        BtnTarikVClaim.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/accept.png"))); // NOI18N
-        BtnTarikVClaim.setMnemonic('V');
-        BtnTarikVClaim.setText("Tarik No. Surat");
-        BtnTarikVClaim.setToolTipText("Alt+V");
-        BtnTarikVClaim.setName("BtnTarikVClaim"); // NOI18N
-        BtnTarikVClaim.setPreferredSize(new java.awt.Dimension(135, 30));
-        BtnTarikVClaim.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                BtnTarikVClaimActionPerformed(evt);
-            }
-        });
-        BtnTarikVClaim.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyPressed(java.awt.event.KeyEvent evt) {
-                BtnTarikVClaimKeyPressed(evt);
-            }
-        });
-        panelGlass8.add(BtnTarikVClaim);
-
-        BtnKirimPesan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/email.png"))); // NOI18N
-        BtnKirimPesan.setMnemonic('M');
-        BtnKirimPesan.setText("Kirim Pesan");
-        BtnKirimPesan.setToolTipText("Alt+M");
-        BtnKirimPesan.setName("BtnKirimPesan"); // NOI18N
-        BtnKirimPesan.setPreferredSize(new java.awt.Dimension(105, 30));
-        BtnKirimPesan.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                BtnKirimPesanActionPerformed(evt);
-            }
-        });
-        BtnKirimPesan.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyPressed(java.awt.event.KeyEvent evt) {
-                BtnKirimPesanKeyPressed(evt);
-            }
-        });
-        panelGlass8.add(BtnKirimPesan);
-
         BtnUpload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/email.png"))); // NOI18N
         BtnUpload.setMnemonic('T');
         BtnUpload.setText("Upload");
@@ -691,36 +806,17 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         });
         panelGlass8.add(BtnUpload);
 
-        BtnUpdatePulangBPJS.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/save-16x16.png")));
+        BtnUpdatePulangBPJS.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/save-16x16.png"))); // NOI18N
         BtnUpdatePulangBPJS.setText("Update Pulang BPJS");
-        BtnUpdatePulangBPJS.setName("BtnUpdatePulangBPJS");
-        BtnUpdatePulangBPJS.setPreferredSize(new java.awt.Dimension(175, 30));
         BtnUpdatePulangBPJS.setEnabled(false);
+        BtnUpdatePulangBPJS.setName("BtnUpdatePulangBPJS"); // NOI18N
+        BtnUpdatePulangBPJS.setPreferredSize(new java.awt.Dimension(175, 30));
         BtnUpdatePulangBPJS.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 BtnUpdatePulangBPJSActionPerformed(evt);
             }
         });
         panelGlass8.add(BtnUpdatePulangBPJS);
-
-
-        BtnUploadLepasRawat.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/email.png"))); // NOI18N
-        BtnUploadLepasRawat.setMnemonic('L');
-        BtnUploadLepasRawat.setText("Upload Lepas Rawat");
-        BtnUploadLepasRawat.setToolTipText("Alt+L");
-        BtnUploadLepasRawat.setName("BtnUploadLepasRawat"); // NOI18N
-        BtnUploadLepasRawat.setPreferredSize(new java.awt.Dimension(145, 30));
-        BtnUploadLepasRawat.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                BtnUploadLepasRawatActionPerformed(evt);
-            }
-        });
-        BtnUploadLepasRawat.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyPressed(java.awt.event.KeyEvent evt) {
-                BtnUploadLepasRawatKeyPressed(evt);
-            }
-        });
-        panelGlass8.add(BtnUploadLepasRawat);
 
         BtnKeluar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/exit.png"))); // NOI18N
         BtnKeluar.setMnemonic('K');
@@ -743,7 +839,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         jPanel3.add(panelGlass8, java.awt.BorderLayout.PAGE_END);
 
         panelGlass10.setName("panelGlass10"); // NOI18N
-        panelGlass10.setPreferredSize(new java.awt.Dimension(44, 44));
+        panelGlass10.setPreferredSize(new java.awt.Dimension(44, 50));
         panelGlass10.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 9));
 
         jLabel6.setText("Key Word :");
@@ -787,6 +883,60 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         LCount.setPreferredSize(new java.awt.Dimension(50, 23));
         panelGlass10.add(LCount);
 
+        BtnTarikVClaim.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/accept.png"))); // NOI18N
+        BtnTarikVClaim.setMnemonic('V');
+        BtnTarikVClaim.setText("Tarik SKDP Vclaim");
+        BtnTarikVClaim.setToolTipText("Alt+V");
+        BtnTarikVClaim.setName("BtnTarikVClaim"); // NOI18N
+        BtnTarikVClaim.setPreferredSize(new java.awt.Dimension(135, 30));
+        BtnTarikVClaim.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnTarikVClaimActionPerformed(evt);
+            }
+        });
+        BtnTarikVClaim.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                BtnTarikVClaimKeyPressed(evt);
+            }
+        });
+        panelGlass10.add(BtnTarikVClaim);
+
+        BtnKirimPesan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/email.png"))); // NOI18N
+        BtnKirimPesan.setMnemonic('M');
+        BtnKirimPesan.setText("Kirim Pesan");
+        BtnKirimPesan.setToolTipText("Alt+M");
+        BtnKirimPesan.setName("BtnKirimPesan"); // NOI18N
+        BtnKirimPesan.setPreferredSize(new java.awt.Dimension(105, 30));
+        BtnKirimPesan.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnKirimPesanActionPerformed(evt);
+            }
+        });
+        BtnKirimPesan.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                BtnKirimPesanKeyPressed(evt);
+            }
+        });
+        panelGlass10.add(BtnKirimPesan);
+
+        BtnUploadLepasRawat.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/email.png"))); // NOI18N
+        BtnUploadLepasRawat.setMnemonic('L');
+        BtnUploadLepasRawat.setText("Upload Lepas Rawat");
+        BtnUploadLepasRawat.setToolTipText("Alt+L");
+        BtnUploadLepasRawat.setName("BtnUploadLepasRawat"); // NOI18N
+        BtnUploadLepasRawat.setPreferredSize(new java.awt.Dimension(145, 30));
+        BtnUploadLepasRawat.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnUploadLepasRawatActionPerformed(evt);
+            }
+        });
+        BtnUploadLepasRawat.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                BtnUploadLepasRawatKeyPressed(evt);
+            }
+        });
+        panelGlass10.add(BtnUploadLepasRawat);
+
         jPanel3.add(panelGlass10, java.awt.BorderLayout.CENTER);
 
         panelCari.setName("panelCari"); // NOI18N
@@ -803,7 +953,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         R1.setPreferredSize(new java.awt.Dimension(115, 23));
         panelCari.add(R1);
 
-        DTPTanggalSurat1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "23-06-2026" }));
+        DTPTanggalSurat1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         DTPTanggalSurat1.setDisplayFormat("dd-MM-yyyy");
         DTPTanggalSurat1.setName("DTPTanggalSurat1"); // NOI18N
         DTPTanggalSurat1.setOpaque(false);
@@ -826,7 +976,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         jLabel22.setPreferredSize(new java.awt.Dimension(25, 23));
         panelCari.add(jLabel22);
 
-        DTPTanggalSurat2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "23-06-2026" }));
+        DTPTanggalSurat2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         DTPTanggalSurat2.setDisplayFormat("dd-MM-yyyy");
         DTPTanggalSurat2.setName("DTPTanggalSurat2"); // NOI18N
         DTPTanggalSurat2.setOpaque(false);
@@ -852,7 +1002,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         R2.setPreferredSize(new java.awt.Dimension(120, 23));
         panelCari.add(R2);
 
-        DTPTanggalKontrol1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "23-06-2026" }));
+        DTPTanggalKontrol1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         DTPTanggalKontrol1.setDisplayFormat("dd-MM-yyyy");
         DTPTanggalKontrol1.setName("DTPTanggalKontrol1"); // NOI18N
         DTPTanggalKontrol1.setOpaque(false);
@@ -875,7 +1025,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         jLabel25.setPreferredSize(new java.awt.Dimension(25, 23));
         panelCari.add(jLabel25);
 
-        DTPTanggalKontrol2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "23-06-2026" }));
+        DTPTanggalKontrol2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         DTPTanggalKontrol2.setDisplayFormat("dd-MM-yyyy");
         DTPTanggalKontrol2.setName("DTPTanggalKontrol2"); // NOI18N
         DTPTanggalKontrol2.setOpaque(false);
@@ -924,6 +1074,12 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         FormInput.setName("FormInput"); // NOI18N
         FormInput.setPreferredSize(new java.awt.Dimension(190, 180));
         FormInput.setLayout(null);
+
+        LblStatusPulangBPJS.setText("Pilih pasien/SEP untuk melihat data SKDP lokal.");
+        LblStatusPulangBPJS.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        LblStatusPulangBPJS.setName("LblStatusPulangBPJS"); // NOI18N
+        FormInput.add(LblStatusPulangBPJS);
+        LblStatusPulangBPJS.setBounds(15, 282, 620, 25);
 
         jLabel4.setText("No.SEP :");
         jLabel4.setName("jLabel4"); // NOI18N
@@ -988,7 +1144,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         BtnSetSEPRalan.setBounds(490, 100, 120, 23);
 
         TanggalSurat.setForeground(new java.awt.Color(50, 70, 50));
-        TanggalSurat.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "23-06-2026" }));
+        TanggalSurat.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         TanggalSurat.setDisplayFormat("dd-MM-yyyy");
         TanggalSurat.setName("TanggalSurat"); // NOI18N
         TanggalSurat.setOpaque(false);
@@ -1068,7 +1224,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         jLabel14.setBounds(290, 160, 100, 23);
 
         TanggalKontrol.setForeground(new java.awt.Color(50, 70, 50));
-        TanggalKontrol.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "23-06-2026" }));
+        TanggalKontrol.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         TanggalKontrol.setDisplayFormat("dd-MM-yyyy");
         TanggalKontrol.setName("TanggalKontrol"); // NOI18N
         TanggalKontrol.setOpaque(false);
@@ -1238,157 +1394,9 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
 
         PanelInput.add(FormInput, java.awt.BorderLayout.CENTER);
 
-
-        LblStatusPulangBPJS.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        LblStatusPulangBPJS.setText("Pilih pasien/SEP untuk melihat data SKDP lokal.");
-        LblStatusPulangBPJS.setName("LblStatusPulangBPJS");
-        FormInput.add(LblStatusPulangBPJS);
-        LblStatusPulangBPJS.setBounds(15, 282, 620, 25);
-
         internalFrame1.add(PanelInput, java.awt.BorderLayout.PAGE_START);
 
         getContentPane().add(internalFrame1, java.awt.BorderLayout.CENTER);
-
-        WindowUpdatePulang.setTitle("Update Tanggal Pulang");
-        WindowUpdatePulang.setMinimumSize(new java.awt.Dimension(548, 362));
-        WindowUpdatePulang.setModal(true);
-        WindowUpdatePulang.setName("WindowUpdatePulang"); // NOI18N
-        WindowUpdatePulang.setResizable(false);
-        WindowUpdatePulang.setSize(new java.awt.Dimension(548, 362));
-        WindowUpdatePulang.setUndecorated(true);
-        WindowUpdatePulang.setType(java.awt.Window.Type.POPUP);
-
-        PulanginternalFrame5.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(37, 99, 193), 2, true));
-        PulanginternalFrame5.setMinimumSize(new java.awt.Dimension(548, 362));
-        PulanginternalFrame5.setName("PulanginternalFrame5"); // NOI18N
-        PulanginternalFrame5.setLayout(null);
-
-        PulangBtnCloseIn4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/cross.png"))); // NOI18N
-        PulangBtnCloseIn4.setMnemonic('U');
-        PulangBtnCloseIn4.setText("Tutup");
-        PulangBtnCloseIn4.setToolTipText("Alt+U");
-        PulangBtnCloseIn4.setName("PulangBtnCloseIn4"); // NOI18N
-        PulangBtnCloseIn4.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                PulangBtnCloseIn4ActionPerformed(evt);
-            }
-        });
-        PulanginternalFrame5.add(PulangBtnCloseIn4);
-        PulangBtnCloseIn4.setBounds(420, 310, 104, 36);
-
-        PulangBtnSimpan4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/save-16x16.png"))); // NOI18N
-        PulangBtnSimpan4.setMnemonic('S');
-        PulangBtnSimpan4.setText("Simpan");
-        PulangBtnSimpan4.setToolTipText("Alt+S");
-        PulangBtnSimpan4.setName("PulangBtnSimpan4"); // NOI18N
-        PulangBtnSimpan4.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                PulangBtnSimpan4ActionPerformed(evt);
-            }
-        });
-        PulanginternalFrame5.add(PulangBtnSimpan4);
-        PulangBtnSimpan4.setBounds(304, 310, 104, 36);
-
-        PulangjLabel26.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        PulangjLabel26.setText("Tanggal Pulang");
-        PulangjLabel26.setName("PulangjLabel26"); // NOI18N
-        PulanginternalFrame5.add(PulangjLabel26);
-        PulangjLabel26.setBounds(24, 100, 212, 24);
-
-        PulangTanggalPulang.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "20-05-2026 10:29:42" }));
-        PulangTanggalPulang.setDisplayFormat("dd-MM-yyyy HH:mm:ss");
-        PulangTanggalPulang.setName("PulangTanggalPulang"); // NOI18N
-        PulangTanggalPulang.setOpaque(false);
-        PulangTanggalPulang.setPreferredSize(new java.awt.Dimension(95, 23));
-        PulanginternalFrame5.add(PulangTanggalPulang);
-        PulangTanggalPulang.setBounds(24, 132, 212, 36);
-
-        PulangjLabel46.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        PulangjLabel46.setText("Status Pulang ");
-        PulangjLabel46.setName("PulangjLabel46"); // NOI18N
-        PulanginternalFrame5.add(PulangjLabel46);
-        PulangjLabel46.setBounds(252, 100, 272, 24);
-
-        PulangStatusPulang.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "1. Atas Persetujuan Dokter", "3. Atas Permintaan Sendiri", "5. Lain-lain" }));
-        PulangStatusPulang.setName("PulangStatusPulang"); // NOI18N
-        PulangStatusPulang.addItemListener(new java.awt.event.ItemListener() {
-            public void itemStateChanged(java.awt.event.ItemEvent evt) {
-                PulangStatusPulangItemStateChanged(evt);
-            }
-        });
-        PulangPanelStatus.add(PulangStatusPulang, java.awt.BorderLayout.CENTER);
-        PulanginternalFrame5.add(PulangPanelStatus);
-        PulangPanelStatus.setBounds(252, 132, 272, 36);
-
-        PulangjLabel47.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        PulangjLabel47.setText("Nomor Surat Kematian :");
-        PulangjLabel47.setName("PulangjLabel47"); // NOI18N
-        PulangjLabel47.setVisible(false);
-        PulangjLabel47.setPreferredSize(new java.awt.Dimension(68, 23));
-        PulanginternalFrame5.add(PulangjLabel47);
-        PulangjLabel47.setBounds(20, 87, 135, 26);
-
-        PulangNoSuratKematian.setEditable(false);
-        PulangNoSuratKematian.setHighlighter(null);
-        PulangNoSuratKematian.setName("PulangNoSuratKematian"); // NOI18N
-        PulangNoSuratKematian.setVisible(false);
-        PulangNoSuratKematian.setPreferredSize(new java.awt.Dimension(130, 23));
-        PulanginternalFrame5.add(PulangNoSuratKematian);
-        PulangNoSuratKematian.setBounds(160, 87, 190, 26);
-
-        PulangjLabel48.setText("Tanggal Kematian :");
-        PulangjLabel48.setName("PulangjLabel48"); // NOI18N
-        PulangjLabel48.setVisible(false);
-        PulanginternalFrame5.add(PulangjLabel48);
-        PulangjLabel48.setBounds(360, 53, 110, 26);
-
-        PulangTanggalKematian.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "20-05-2026" }));
-        PulangTanggalKematian.setDisplayFormat("dd-MM-yyyy");
-        PulangTanggalKematian.setEnabled(false);
-        PulangTanggalKematian.setName("PulangTanggalKematian"); // NOI18N
-        PulangTanggalKematian.setVisible(false);
-        PulangTanggalKematian.setOpaque(false);
-        PulangTanggalKematian.setPreferredSize(new java.awt.Dimension(95, 23));
-        PulanginternalFrame5.add(PulangTanggalKematian);
-        PulangTanggalKematian.setBounds(480, 53, 90, 26);
-
-        PulangjLabel49.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        PulangjLabel49.setText("Nomor LP Manual :");
-        PulangjLabel49.setName("PulangjLabel49"); // NOI18N
-        PulangjLabel49.setPreferredSize(new java.awt.Dimension(68, 23));
-        PulanginternalFrame5.add(PulangjLabel49);
-        PulangjLabel49.setBounds(24, 188, 500, 24);
-
-        PulangNoLPManual.setHighlighter(null);
-        PulangNoLPManual.setName("PulangNoLPManual"); // NOI18N
-        PulangNoLPManual.setPreferredSize(new java.awt.Dimension(130, 23));
-        PulangPanelLP.add(PulangNoLPManual, java.awt.BorderLayout.CENTER);
-        PulanginternalFrame5.add(PulangPanelLP);
-        PulangPanelLP.setBounds(24, 220, 500, 36);
-
-        PulangJudul.setName("PulangJudul");
-        PulangJudul.setText("Update Pulang BPJS");
-        PulanginternalFrame5.add(PulangJudul);
-        PulangJudul.setBounds(76, 21, 448, 24);
-        PulangSubjudul.setName("PulangSubjudul");
-        PulangSubjudul.setText("Lengkapi tanggal dan status pulang pasien");
-        PulanginternalFrame5.add(PulangSubjudul);
-        PulangSubjudul.setBounds(76, 46, 448, 20);
-        PulangIkonJudul.setName("PulangIkonJudul");
-        PulanginternalFrame5.add(PulangIkonJudul);
-        PulangIkonJudul.setBounds(24, 20, 40, 40);
-        PulangCatatan.setName("PulangCatatan");
-        PulangCatatan.setText("Khusus kasus kecelakaan lalu lintas.");
-        PulanginternalFrame5.add(PulangCatatan);
-        PulangCatatan.setBounds(24, 262, 500, 20);
-        PulangGarisAtas.setName("PulangGarisAtas");
-        PulanginternalFrame5.add(PulangGarisAtas);
-        PulangGarisAtas.setBounds(24, 84, 500, 1);
-        PulangGarisBawah.setName("PulangGarisBawah");
-        PulanginternalFrame5.add(PulangGarisBawah);
-        PulangGarisBawah.setBounds(24, 298, 500, 1);
-
-        WindowUpdatePulang.getContentPane().add(PulanginternalFrame5, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -2616,31 +2624,8 @@ private File findFolderRecursively(File dir, String folderName) {
     private widget.Button BtnSimpan;
     private widget.Button BtnSimpanAlasan;
     private widget.Button BtnTarikVClaim;
-    private widget.Button BtnUpload;
     private widget.Button BtnUpdatePulangBPJS;
-    private widget.Label LblStatusPulangBPJS;
-    private javax.swing.JDialog WindowUpdatePulang;
-    private javax.swing.JLabel PulangJudul;
-    private javax.swing.JLabel PulangSubjudul;
-    private javax.swing.JLabel PulangIkonJudul;
-    private javax.swing.JLabel PulangCatatan;
-    private javax.swing.JSeparator PulangGarisAtas;
-    private javax.swing.JSeparator PulangGarisBawah;
-    private BPJSPulangUI.PanelDialog PulanginternalFrame5;
-    private BPJSPulangUI.KotakInput PulangPanelStatus;
-    private BPJSPulangUI.KotakInput PulangPanelLP;
-    private BPJSPulangUI.Tombol PulangBtnCloseIn4;
-    private BPJSPulangUI.Tombol PulangBtnSimpan4;
-    private widget.Label PulangjLabel26;
-    private BPJSPulangUI.Tanggal PulangTanggalPulang;
-    private widget.Label PulangjLabel46;
-    private widget.ComboBox PulangStatusPulang;
-    private widget.Label PulangjLabel47;
-    private widget.TextBox PulangNoSuratKematian;
-    private widget.Label PulangjLabel48;
-    private widget.Tanggal PulangTanggalKematian;
-    private widget.Label PulangjLabel49;
-    private javax.swing.JTextField PulangNoLPManual;
+    private widget.Button BtnUpload;
     private widget.Button BtnUploadLepasRawat;
     private widget.CekBox ChkInput;
     private widget.Tanggal DTPTanggalKontrol1;
@@ -2655,6 +2640,7 @@ private File findFolderRecursively(File dir, String folderName) {
     private widget.TextBox KeteranganKontrol;
     private widget.Label LCount;
     private widget.Label LCount1;
+    private widget.Label LblStatusPulangBPJS;
     private javax.swing.JMenuItem MnSurat;
     private javax.swing.JMenuItem MnSuratKirimWA;
     private javax.swing.JMenuItem MnSuratLepasRawat;
@@ -2668,6 +2654,27 @@ private File findFolderRecursively(File dir, String folderName) {
     private widget.TextBox NoSEP;
     private widget.TextBox NoSurat;
     private javax.swing.JPanel PanelInput;
+    private bridging.BPJSPulangUI.Tombol PulangBtnCloseIn4;
+    private bridging.BPJSPulangUI.Tombol PulangBtnSimpan4;
+    private javax.swing.JLabel PulangCatatan;
+    private javax.swing.JSeparator PulangGarisAtas;
+    private javax.swing.JSeparator PulangGarisBawah;
+    private javax.swing.JLabel PulangIkonJudul;
+    private javax.swing.JLabel PulangJudul;
+    private javax.swing.JTextField PulangNoLPManual;
+    private widget.TextBox PulangNoSuratKematian;
+    private bridging.BPJSPulangUI.KotakInput PulangPanelLP;
+    private bridging.BPJSPulangUI.KotakInput PulangPanelStatus;
+    private widget.ComboBox PulangStatusPulang;
+    private javax.swing.JLabel PulangSubjudul;
+    private widget.Tanggal PulangTanggalKematian;
+    private bridging.BPJSPulangUI.Tanggal PulangTanggalPulang;
+    private bridging.BPJSPulangUI.PanelDialog PulanginternalFrame5;
+    private widget.Label PulangjLabel26;
+    private widget.Label PulangjLabel46;
+    private widget.Label PulangjLabel47;
+    private widget.Label PulangjLabel48;
+    private widget.Label PulangjLabel49;
     private widget.RadioButton R1;
     private widget.RadioButton R2;
     private widget.ScrollPane Scroll;
@@ -2677,6 +2684,7 @@ private File findFolderRecursively(File dir, String folderName) {
     private widget.Tanggal TanggalKontrol;
     private widget.Tanggal TanggalSurat;
     private widget.TextBox TglLahir;
+    private javax.swing.JDialog WindowUpdatePulang;
     private javax.swing.ButtonGroup buttonGroup1;
     private widget.InternalFrame internalFrame1;
     private widget.Label jLabel10;

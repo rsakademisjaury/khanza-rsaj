@@ -4691,7 +4691,7 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
             Valid.textKosong(TNm,"nama pasien");
         }else if(nmpnj.getText().trim().equals("")||Kdpnj.getText().trim().equals("")){
             Valid.textKosong(Kdpnj,"Asuransi/Askes/Png.Jawab");
-        }else if(no_ktp.equals("Yes")&&(TKtp.getText().trim().length()<p_no_ktp)){
+        }else if(no_ktp.equals("Yes")&&!identitasRujukanKosong()&&(TKtp.getText().trim().length()<p_no_ktp)){
             Valid.textKosong(TKtp,"No.KTP/SIM minimal "+p_no_ktp+" karakter dan ");            
         }else if(tmp_lahir.equals("Yes")&&(TTmp.getText().trim().length()<p_tmp_lahir)){
             Valid.textKosong(TTmp,"Tempat Lahir minimal "+p_tmp_lahir+" karakter dan ");            
@@ -4761,7 +4761,7 @@ private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIR
             // Validasi no_ktp
         } else {
             // Validasi nomor KTP
-            if (Sequel.cariInteger("select count(pasien.no_rkm_medis) from pasien where no_ktp = ? and no_rkm_medis !=" + TNo.getText().trim(),TKtp.getText())>0){
+            if (!identitasRujukanKosong() && Sequel.cariInteger("select count(pasien.no_rkm_medis) from pasien where no_ktp = ? and no_rkm_medis !=" + TNo.getText().trim(),TKtp.getText())>0){
                 String rm_sekarang = Sequel.cariString("select no_rkm_medis from pasien where no_ktp =" + TKtp.getText());
                 JOptionPane.showMessageDialog(null, "Nomor KTP sudah terdaftar di RM " + rm_sekarang);
                 TKtp.requestFocus();
@@ -5065,7 +5065,7 @@ private void BtnEditActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST
             Valid.textKosong(TNm,"nama pasien");
         }else if(nmpnj.getText().trim().equals("")||Kdpnj.getText().trim().equals("")){
             Valid.textKosong(Kdpnj,"Asuransi/Askes/Png.Jawab");
-        }else if(no_ktp.equals("Yes")&&(TKtp.getText().trim().length()<p_no_ktp)){
+        }else if(no_ktp.equals("Yes")&&!identitasRujukanKosong()&&(TKtp.getText().trim().length()<p_no_ktp)){
             Valid.textKosong(TKtp,"No.KTP/SIM minimal "+p_no_ktp+" karakter dan ");            
         }else if(tmp_lahir.equals("Yes")&&(TTmp.getText().trim().length()<p_tmp_lahir)){
             Valid.textKosong(TTmp,"Tempat Lahir minimal "+p_tmp_lahir+" karakter dan ");            
@@ -10232,6 +10232,7 @@ private void KabupatenMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:eve
         rmPasienRujukanMasuk=noRm==null?"":noRm.trim();
         isianRujukanDipotong=false;
         setTitle("Data Pasien - Rujukan Masuk SATUSEHAT");
+        String note;
         if (!rmPasienRujukanMasuk.isEmpty()) {
             // Gunakan pemuat data lokal yang sama dengan pemilihan pasien pada tabel.
             Carialamat.setText("");
@@ -10239,61 +10240,79 @@ private void KabupatenMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:eve
             cmbHlm.setSelectedItem("Semua");
             tampil();
             boolean found=false;
+            String jenisKelaminLokal="", tanggalLahirLokal="";
             for (int row=0;row<tbPasien.getRowCount();row++) {
                 if (rmPasienRujukanMasuk.equals(String.valueOf(tbPasien.getValueAt(row,1)))) {
+                    jenisKelaminLokal=String.valueOf(tbPasien.getValueAt(row,4));
+                    tanggalLahirLokal=String.valueOf(tbPasien.getValueAt(row,6));
                     tbPasien.setRowSelectionInterval(row,row);
                     getData();found=true;break;
                 }
             }
             if (!found || !rmPasienRujukanMasuk.equals(Kd2.getText())) throw new java.sql.SQLException("Data RM yang cocok belum dapat dimuat. Periksa kelengkapan master pasien.");
+            isiDemografiPasienRujukan();
+            if (!"L".equals(jenisKelaminLokal) && !"P".equals(jenisKelaminLokal)) pilihIsianPasienRujukan(CmbJk,nilaiPasienRujukan("jk"),"");
+            if (!bridging.SatuSehatRujukanMasukPasien.validBirth(tanggalLahirLokal)) isiTanggalLahirPasienRujukan();
             BtnSimpan.setEnabled(false);
             BtnEdit.setEnabled(true);
-            tampilkanInfoPasienRujukanMasuk("Pasien sudah memiliki No. RM "+rmPasienRujukanMasuk+". Data lokal ditampilkan untuk diperiksa. Gunakan Ganti jika ada koreksi.");
+            note="Pasien sudah memiliki No. RM "+rmPasienRujukanMasuk+". Isian lokal yang kosong dilengkapi dari rujukan jika tersedia. Periksa data sebelum Ganti.";
         } else {
-            isiTeksPasienRujukan(TNm,"nm_pasien",40);
-            isiTeksPasienRujukan(TKtp,"no_ktp",20);
-            isiTeksPasienRujukan(TTmp,"tmp_lahir",15);
-            isiTeksPasienRujukan(TTlp,"no_tlp",40);
-            isiTeksPasienRujukan(EMail,"email",50);
-            isiTeksPasienRujukan(TNoPeserta,"no_peserta",25);
-            isiTeksPasienRujukan(NmIbu,"nm_ibu",40);
-            isiTeksPasienRujukan(Alamat,"alamat",200);
-            isiTeksPasienRujukan(Kelurahan,"kelurahan",60);
-            isiTeksPasienRujukan(Kecamatan,"kecamatan",60);
-            isiTeksPasienRujukan(Kabupaten,"kabupaten",60);
-            isiTeksPasienRujukan(Propinsi,"propinsi",30);
-            isiTeksPasienRujukan(Saudara,"namakeluarga",50);
-            isiTeksPasienRujukan(AlamatPj,"alamatpj",100);
-            isiTeksPasienRujukan(KelurahanPj,"kelurahanpj",60);
-            isiTeksPasienRujukan(KecamatanPj,"kecamatanpj",60);
-            isiTeksPasienRujukan(KabupatenPj,"kabupatenpj",60);
-            isiTeksPasienRujukan(PropinsiPj,"propinsipj",30);
+            isiDemografiPasienRujukan();
             pilihIsianPasienRujukan(CmbJk,nilaiPasienRujukan("jk"),"");
             pilihIsianPasienRujukan(CmbStts,nilaiPasienRujukan("stts_nikah"),"");
             pilihIsianPasienRujukan(cmbAgama,nilaiPasienRujukan("agama"),"-");
             pilihIsianPasienRujukan(CmbKeluarga,nilaiPasienRujukan("keluarga"),"-");
             CMbPnd.setSelectedItem("-");
-            String birth=nilaiPasienRujukan("tgl_lahir");
-            if (bridging.SatuSehatRujukanMasukPasien.validBirth(birth)) Valid.SetTgl(DTPLahir,birth);
-            else {DTPLahir.setSelectedIndex(-1);TUmurTh.setText("");TUmurBl.setText("");TUmurHr.setText("");}
+            isiTanggalLahirPasienRujukan();
             isiBahasaPasienRujukan();
             BtnSimpan.setEnabled(true);
             BtnEdit.setEnabled(false);
-            String note="Data rujukan sudah diisikan. Periksa identitas, pilih penjamin dan lengkapi isian wajib, lalu Simpan untuk membuat nomor RM.";
+            note="Periksa isian otomatis dan lengkapi data wajib sesuai identitas pasien. Pilih penjamin sebelum Simpan.";
             if (!nilaiPasienRujukan("catatan").isEmpty()) note+=" "+nilaiPasienRujukan("catatan");
-            if (isianRujukanDipotong) note+=" Ada isian panjang yang disesuaikan batas kolom; arahkan mouse ke isian untuk melihat nilai lengkap.";
-            tampilkanInfoPasienRujukanMasuk(note);
         }
+        if (isianRujukanDipotong) note+=" Ada isian panjang yang disesuaikan batas kolom. Arahkan mouse ke isian untuk melihat nilai lengkap.";
+        tampilkanInfoPasienRujukanMasuk(note);
         BtnHapus.setEnabled(false);
         TabRawat.setSelectedIndex(0);
         TNm.requestFocusInWindow();
     }
+    private void isiDemografiPasienRujukan() {
+        isiTeksPasienRujukan(TNm,"nm_pasien",40);
+        isiTeksPasienRujukan(TKtp,"no_ktp",20);
+        isiTeksPasienRujukan(TTmp,"tmp_lahir",15);
+        isiTeksPasienRujukan(TTlp,"no_tlp",40);
+        isiTeksPasienRujukan(EMail,"email",50);
+        isiTeksPasienRujukan(TNoPeserta,"no_peserta",25);
+        isiTeksPasienRujukan(NmIbu,"nm_ibu",40);
+        isiTeksPasienRujukan(Alamat,"alamat",200);
+        isiTeksPasienRujukan(Kelurahan,"kelurahan",60);
+        isiTeksPasienRujukan(Kecamatan,"kecamatan",60);
+        isiTeksPasienRujukan(Kabupaten,"kabupaten",60);
+        isiTeksPasienRujukan(Propinsi,"propinsi",30);
+        isiTeksPasienRujukan(Saudara,"namakeluarga",50);
+        isiTeksPasienRujukan(AlamatPj,"alamatpj",100);
+        isiTeksPasienRujukan(KelurahanPj,"kelurahanpj",60);
+        isiTeksPasienRujukan(KecamatanPj,"kecamatanpj",60);
+        isiTeksPasienRujukan(KabupatenPj,"kabupatenpj",60);
+        isiTeksPasienRujukan(PropinsiPj,"propinsipj",30);
+    }
+    private void isiTanggalLahirPasienRujukan() {
+        String birth=nilaiPasienRujukan("tgl_lahir");
+        if (bridging.SatuSehatRujukanMasukPasien.validBirth(birth)) Valid.SetTgl(DTPLahir,birth);
+        else DTPLahir.setSelectedIndex(-1);
+        DTPLahirItemStateChanged(null);
+    }
     private String nilaiPasienRujukan(String key) {
         return bridging.SatuSehatRujukanMasukPasien.value(dataPasienRujukanMasuk,key);
+    }
+    private boolean identitasRujukanKosong() {
+        return dataPasienRujukanMasuk!=null && TKtp.getText().trim().isEmpty();
     }
     private void isiTeksPasienRujukan(javax.swing.JTextField field,String key,int max) {
         String value=nilaiPasienRujukan(key);
         if (value.isEmpty()) return;
+        String local=field.getText().trim();
+        if (!rmPasienRujukanMasuk.isEmpty() && !local.isEmpty() && !"-".equals(local)) return;
         field.setToolTipText(value);
         if (value.length()>max) {value=value.substring(0,max);isianRujukanDipotong=true;}
         field.setText(value);
@@ -10302,7 +10321,7 @@ private void KabupatenMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:eve
         for (int i=0;i<field.getItemCount();i++) if (value.equalsIgnoreCase(String.valueOf(field.getItemAt(i)))) {field.setSelectedIndex(i);return;}
         if (!fallback.isEmpty()) field.setSelectedItem(fallback);else field.setSelectedIndex(-1);
     }
-    private void isiBahasaPasienRujukan() throws java.sql.SQLException {
+    private void isiBahasaPasienRujukan() {
         String language=nilaiPasienRujukan("bahasa");
         if (language.isEmpty()) return;
         try (java.sql.PreparedStatement query=koneksi.prepareStatement("SELECT id,nama_bahasa FROM bahasa_pasien WHERE LOWER(nama_bahasa)=LOWER(?) LIMIT 2")) {
@@ -10313,8 +10332,10 @@ private void KabupatenMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:eve
                     if (!result.next()) {kdbahasa.setText(id);nmbahasa.setText(name);return;}
                 }
             }
+        } catch (java.sql.SQLException ex) {
+            System.err.println("Master bahasa pasien rujukan belum dapat dimuat: "+ex.getSQLState());
         }
-        dataPasienRujukanMasuk.put("catatan",nilaiPasienRujukan("catatan")+" Bahasa dari rujukan: "+language+"; pilih padanannya pada master Bahasa.");
+        dataPasienRujukanMasuk.put("catatan",nilaiPasienRujukan("catatan")+" Bahasa dari rujukan: "+language+". Pilih padanannya pada master Bahasa.");
     }
     private void tampilkanInfoPasienRujukanMasuk(String message) {
         if (infoPasienRujukanMasuk==null) {

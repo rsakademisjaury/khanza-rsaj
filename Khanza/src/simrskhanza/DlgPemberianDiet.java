@@ -621,7 +621,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         panelGlass10.add(jLabel19);
 
         DTPCari1.setForeground(new java.awt.Color(50, 70, 50));
-        DTPCari1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-10-2026" }));
+        DTPCari1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         DTPCari1.setDisplayFormat("dd-MM-yyyy");
         DTPCari1.setName("DTPCari1"); // NOI18N
         DTPCari1.setOpaque(false);
@@ -635,7 +635,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         panelGlass10.add(jLabel21);
 
         DTPCari2.setForeground(new java.awt.Color(50, 70, 50));
-        DTPCari2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-10-2026" }));
+        DTPCari2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         DTPCari2.setDisplayFormat("dd-MM-yyyy");
         DTPCari2.setName("DTPCari2"); // NOI18N
         DTPCari2.setOpaque(false);
@@ -738,7 +738,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         TPasien.setBounds(205, 12, 290, 23);
 
         DTPTgl.setForeground(new java.awt.Color(50, 70, 50));
-        DTPTgl.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-10-2026" }));
+        DTPTgl.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "09-11-2026" }));
         DTPTgl.setDisplayFormat("dd-MM-yyyy");
         DTPTgl.setName("DTPTgl"); // NOI18N
         DTPTgl.setOpaque(false);
@@ -837,7 +837,7 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
         FormInput.add(KamarReal);
         KamarReal.setBounds(80, 80, 230, 23);
 
-        Status_Titipan.setModel(new javax.swing.DefaultComboBoxModel(new String[] { " ", "Titipan Kelas I", "Titipan Kelas II", "Titipan Kelas III" }));
+        Status_Titipan.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "-", "VIP", "Titipan Kelas I", "Titipan Kelas II", "Titipan Kelas III" }));
         Status_Titipan.setName("Status_Titipan"); // NOI18N
         Status_Titipan.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
@@ -1115,7 +1115,8 @@ public class DlgPemberianDiet extends javax.swing.JDialog {
                 param.put("logo",Sequel.cariGambar("select setting.logo from setting")); 
                 Valid.MyReportqry("rptBrDiet.jasper","report","::[ Data Pemberian Diet ]::",
                     "select detail_beri_diet1.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien,concat(detail_beri_diet1.kd_kamar,', ',bangsal.nm_bangsal) as namakamar,"+
-                    "detail_beri_diet1.tanggal,detail_beri_diet1.waktu,jam_diet_pasien.jam,diet.nama_diet,detail_beri_diet1.kd_kamar,detail_beri_diet1.kd_diet,detail_beri_diet1.kd_kamar_real " +
+                    "detail_beri_diet1.tanggal,detail_beri_diet1.waktu,jam_diet_pasien.jam,diet.nama_diet,detail_beri_diet1.kd_kamar,detail_beri_diet1.kd_diet,detail_beri_diet1.kd_kamar_real,"+
+                    "detail_beri_diet1.status as status_titipan " +
                     "from detail_beri_diet1 inner join reg_periksa on detail_beri_diet1.no_rawat=reg_periksa.no_rawat "+
                     "inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis "+
                     "inner join diet on detail_beri_diet1.kd_diet=diet.kd_diet "+

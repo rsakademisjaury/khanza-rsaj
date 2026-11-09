@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.8.0.final using JasperReports Library version 6.8.0-2ed8dfabb690ff337a5797129f2cd92902b0c87b  -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="null" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="c482ae7c-edf6-4053-86a6-1fc7ebd84ac2">
 	<property name="ireport.zoom" value="2.0"/>
@@ -15,35 +15,36 @@
 	<parameter name="kontakrs" class="java.lang.String"/>
 	<parameter name="emailrs" class="java.lang.String"/>
 	<parameter name="logo" class="java.io.InputStream"/>
-	<queryString><![CDATA[
-		select detail_beri_diet1.no_rawat,reg_periksa.no_rkm_medis,pasien.nm_pasien, 
-concat(detail_beri_diet1.kd_kamar,', ',bangsal.nm_bangsal) as namakamar,
-detail_beri_diet1.tanggal,detail_beri_diet1.waktu,jam_diet_pasien.jam,diet.nama_diet,detail_beri_diet1.kd_kamar_real 
-from detail_beri_diet1 inner join reg_periksa inner join pasien inner join diet inner join kamar inner join bangsal inner join jam_diet_pasien 
-on detail_beri_diet1.no_rawat=reg_periksa.no_rawat 
-and detail_beri_diet1.kd_kamar=kamar.kd_kamar
-and kamar.kd_bangsal=bangsal.kd_bangsal 
-and reg_periksa.no_rkm_medis=pasien.no_rkm_medis 
-and detail_beri_diet1.kd_diet=diet.kd_diet 
-and detail_beri_diet1.waktu=jam_diet_pasien.waktu
-	]]></queryString>
+	<queryString>
+		<![CDATA[select detail_beri_diet1.no_rawat, reg_periksa.no_rkm_medis, pasien.nm_pasien,
+       concat(detail_beri_diet1.kd_kamar, ', ', bangsal.nm_bangsal) as namakamar,
+       detail_beri_diet1.tanggal, detail_beri_diet1.waktu, jam_diet_pasien.jam, diet.nama_diet,
+       detail_beri_diet1.kd_kamar_real, detail_beri_diet1.status as status_titipan
+from detail_beri_diet1
+inner join reg_periksa on detail_beri_diet1.no_rawat=reg_periksa.no_rawat
+inner join pasien on reg_periksa.no_rkm_medis=pasien.no_rkm_medis
+inner join diet on detail_beri_diet1.kd_diet=diet.kd_diet
+inner join kamar on detail_beri_diet1.kd_kamar=kamar.kd_kamar
+inner join bangsal on kamar.kd_bangsal=bangsal.kd_bangsal
+inner join jam_diet_pasien on detail_beri_diet1.waktu=jam_diet_pasien.waktu]]>
+	</queryString>
 	<field name="no_rawat" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="no_rawat"/>
 		<property name="com.jaspersoft.studio.field.label" value="no_rawat"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="detail_beri_diet1"/>
-		<fieldDescription></fieldDescription>
+		<fieldDescription><![CDATA[]]></fieldDescription>
 	</field>
 	<field name="no_rkm_medis" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="no_rkm_medis"/>
 		<property name="com.jaspersoft.studio.field.label" value="no_rkm_medis"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="reg_periksa"/>
-		<fieldDescription></fieldDescription>
+		<fieldDescription><![CDATA[]]></fieldDescription>
 	</field>
 	<field name="nm_pasien" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="nm_pasien"/>
 		<property name="com.jaspersoft.studio.field.label" value="nm_pasien"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="pasien"/>
-		<fieldDescription></fieldDescription>
+		<fieldDescription><![CDATA[]]></fieldDescription>
 	</field>
 	<field name="namakamar" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="namakamar"/>
@@ -53,93 +54,87 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu
 		<property name="com.jaspersoft.studio.field.name" value="tanggal"/>
 		<property name="com.jaspersoft.studio.field.label" value="tanggal"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="detail_beri_diet1"/>
-		<fieldDescription></fieldDescription>
+		<fieldDescription><![CDATA[]]></fieldDescription>
 	</field>
 	<field name="waktu" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="waktu"/>
 		<property name="com.jaspersoft.studio.field.label" value="waktu"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="detail_beri_diet1"/>
-		<fieldDescription></fieldDescription>
+		<fieldDescription><![CDATA[]]></fieldDescription>
 	</field>
 	<field name="jam" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="jam"/>
 		<property name="com.jaspersoft.studio.field.label" value="jam"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="jam_diet_pasien"/>
-		<fieldDescription></fieldDescription>
+		<fieldDescription><![CDATA[]]></fieldDescription>
 	</field>
 	<field name="nama_diet" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="nama_diet"/>
 		<property name="com.jaspersoft.studio.field.label" value="nama_diet"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="diet"/>
-		<fieldDescription></fieldDescription>
+		<fieldDescription><![CDATA[]]></fieldDescription>
 	</field>
 	<field name="kd_kamar_real" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="kd_kamar_real"/>
 		<property name="com.jaspersoft.studio.field.label" value="kd_kamar_real"/>
 		<property name="com.jaspersoft.studio.field.tree.path" value="detail_beri_diet1"/>
 	</field>
+	<field name="status_titipan" class="java.lang.String"/>
 	<sortField name="DietNamaKamar" type="Variable"/>
 	<sortField name="tanggal"/>
 	<variable name="DietNamaKamar" class="java.lang.String">
-		<variableExpression>($F{namakamar} == null ? "" : ($F{namakamar}.indexOf(", ") &gt;= 0 ? $F{namakamar}.substring($F{namakamar}.indexOf(", ") + 2) : $F{namakamar}))</variableExpression>
+		<variableExpression><![CDATA[($F{namakamar} == null ? "" : ($F{namakamar}.indexOf(", ") >= 0 ? $F{namakamar}.substring($F{namakamar}.indexOf(", ") + 2) : $F{namakamar}))]]></variableExpression>
 	</variable>
 	<group name="DietKamar">
-		<groupExpression>$V{DietNamaKamar}</groupExpression>
+		<groupExpression><![CDATA[$V{DietNamaKamar}]]></groupExpression>
 	</group>
 	<group name="DietTanggal">
-		<groupExpression>$F{tanggal}</groupExpression>
+		<groupExpression><![CDATA[$F{tanggal}]]></groupExpression>
 		<groupHeader>
 			<band height="48" splitType="Prevent">
 				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
 					<reportElement x="0" y="0" width="310" height="20" uuid="0c13ddec-5a28-4c11-a003-6f35dcf868fd">
-						<printWhenExpression>$V{DietKamar_COUNT}.intValue() == 0</printWhenExpression>
+						<printWhenExpression><![CDATA[$V{DietKamar_COUNT}.intValue() == 0]]></printWhenExpression>
 					</reportElement>
 					<textElement textAlignment="Left" verticalAlignment="Middle">
 						<font fontName="Segoe UI Semibold" size="12" isBold="false"/>
 					</textElement>
-					<textFieldExpression>"Kamar : " + ($F{namakamar} == null ? "" : ($F{namakamar}.indexOf(", ") &gt;= 0 ? $F{namakamar}.substring($F{namakamar}.indexOf(", ") + 2) : $F{namakamar}))</textFieldExpression>
+					<textFieldExpression><![CDATA["Kamar : " + ($F{namakamar} == null ? "" : ($F{namakamar}.indexOf(", ") >= 0 ? $F{namakamar}.substring($F{namakamar}.indexOf(", ") + 2) : $F{namakamar}))]]></textFieldExpression>
 				</textField>
 				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
 					<reportElement x="315" y="0" width="240" height="20" uuid="2a5b5aa2-3d56-4bf1-9306-a6a9c3c0b138"/>
 					<textElement textAlignment="Right" verticalAlignment="Middle">
 						<font fontName="Segoe UI Semibold" size="12" isBold="false"/>
 					</textElement>
-					<textFieldExpression>"Tanggal : " + ($F{tanggal} == null ? "" : new java.text.SimpleDateFormat("dd MMMM yyyy", new java.util.Locale("id", "ID")).format($F{tanggal}))</textFieldExpression>
+					<textFieldExpression><![CDATA["Tanggal : " + ($F{tanggal} == null ? "" : new java.text.SimpleDateFormat("dd MMMM yyyy", new java.util.Locale("id", "ID")).format($F{tanggal}))]]></textFieldExpression>
 				</textField>
 				<staticText>
-					<reportElement mode="Opaque" x="0" y="27" width="65" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="1dcc41f5-d69f-4389-a17f-f13333b73141"/>
+					<reportElement mode="Opaque" x="0" y="27" width="250" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="e25026c0-77b0-4414-9301-83bff23f93f8"/>
 					<textElement verticalAlignment="Middle">
 						<font fontName="Segoe UI Semibold" size="9" isBold="false"/>
 					</textElement>
-					<text> No. RM</text>
+					<text><![CDATA[ No. RM / Nama Pasien]]></text>
 				</staticText>
 				<staticText>
-					<reportElement mode="Opaque" x="65" y="27" width="195" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="e25026c0-77b0-4414-9301-83bff23f93f8"/>
+					<reportElement mode="Opaque" x="250" y="27" width="84" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="7fd39895-c3a3-457b-99b8-11c8583ab2dc"/>
 					<textElement verticalAlignment="Middle">
 						<font fontName="Segoe UI Semibold" size="9" isBold="false"/>
 					</textElement>
-					<text> Nama Pasien</text>
+					<text><![CDATA[ Kamar Real]]></text>
 				</staticText>
 				<staticText>
-					<reportElement mode="Opaque" x="315" y="27" width="55" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="aed9a6e0-16e7-45ff-a903-4be6cb15ed3d"/>
-					<textElement verticalAlignment="Middle">
+					<reportElement mode="Opaque" x="334" y="27" width="74" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="aed9a6e0-16e7-45ff-a903-4be6cb15ed3d"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
 						<font fontName="Segoe UI Semibold" size="9" isBold="false"/>
 					</textElement>
-					<text> Waktu</text>
+					<text><![CDATA[ Waktu / Jam]]></text>
 				</staticText>
 				<staticText>
-					<reportElement mode="Opaque" x="370" y="27" width="40" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="e724abb5-bca8-4737-b5f8-66e54882b6a6"/>
+					<reportElement mode="Opaque" x="408" y="27" width="146" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="c81f072a-fc26-4c0e-a3f6-235bd45f61eb"/>
 					<textElement verticalAlignment="Middle">
 						<font fontName="Segoe UI Semibold" size="9" isBold="false"/>
 					</textElement>
-					<text> Jam</text>
-				</staticText>
-				<staticText>
-					<reportElement mode="Opaque" x="410" y="27" width="144" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="c81f072a-fc26-4c0e-a3f6-235bd45f61eb"/>
-					<textElement verticalAlignment="Middle">
-						<font fontName="Segoe UI Semibold" size="9" isBold="false"/>
-					</textElement>
-					<text> Diet</text>
+					<text><![CDATA[ Diet]]></text>
 				</staticText>
 				<line>
 					<reportElement x="0" y="26" width="555" height="1" uuid="cd467caa-8de5-467a-8d40-377fd4288ce1"/>
@@ -153,13 +148,6 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu
 						<pen lineWidth="0.5"/>
 					</graphicElement>
 				</line>
-				<staticText>
-					<reportElement mode="Opaque" x="260" y="27" width="55" height="20" forecolor="#000000" backcolor="#F0F0DC" uuid="7fd39895-c3a3-457b-99b8-11c8583ab2dc"/>
-					<textElement verticalAlignment="Middle">
-						<font fontName="Segoe UI Semibold" size="9" isBold="false"/>
-					</textElement>
-					<text>Kamar Real</text>
-				</staticText>
 			</band>
 		</groupHeader>
 	</group>
@@ -167,56 +155,56 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu
 		<band splitType="Stretch"/>
 	</background>
 	<title>
-		<band height="91" splitType="Stretch">
+		<band height="49" splitType="Stretch">
 			<textField>
-				<reportElement x="2" y="0" width="553" height="17" uuid="5b75bfa3-7a44-4781-8229-23d207248870"/>
+				<reportElement x="610" y="0" width="553" height="17" uuid="5b75bfa3-7a44-4781-8229-23d207248870"/>
 				<textElement textAlignment="Center">
 					<font fontName="Segoe UI Semibold" size="12" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>$P{namars}</textFieldExpression>
+				<textFieldExpression><![CDATA[$P{namars}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="65" y="56" width="424" height="23" uuid="68ae4e1a-9010-4dd4-847f-62e9d491cf80"/>
+				<reportElement x="65" y="0" width="424" height="43" uuid="68ae4e1a-9010-4dd4-847f-62e9d491cf80"/>
 				<textElement textAlignment="Center" verticalAlignment="Middle">
 					<font fontName="Segoe UI Semibold" size="14" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<text>DATA PEMBERIAN DIET</text>
+				<text><![CDATA[DATA PEMBERIAN DIET]]></text>
 			</staticText>
 			<textField>
-				<reportElement x="2" y="35" width="553" height="14" uuid="f0376c4c-e726-4983-b179-ccdcaa1cc5e7"/>
+				<reportElement x="610" y="35" width="553" height="14" uuid="f0376c4c-e726-4983-b179-ccdcaa1cc5e7"/>
 				<textElement textAlignment="Center">
 					<font fontName="Segoe UI" size="9" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>"E-mail : "+$P{emailrs}</textFieldExpression>
+				<textFieldExpression><![CDATA["E-mail : "+$P{emailrs}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="2" y="14" width="553" height="14" uuid="4f55f2de-dffa-4d77-a7b7-bdd080542ff3"/>
+				<reportElement x="610" y="14" width="553" height="14" uuid="4f55f2de-dffa-4d77-a7b7-bdd080542ff3"/>
 				<textElement textAlignment="Center">
 					<font fontName="Segoe UI" size="9" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>$P{alamatrs}+", "+$P{kotars}+", "+$P{propinsirs}</textFieldExpression>
+				<textFieldExpression><![CDATA[$P{alamatrs}+", "+$P{kotars}+", "+$P{propinsirs}]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement x="2" y="25" width="553" height="14" uuid="b83c4fb5-d91e-42c9-b80b-6de4f7881cc8"/>
+				<reportElement x="610" y="25" width="553" height="14" uuid="b83c4fb5-d91e-42c9-b80b-6de4f7881cc8"/>
 				<textElement textAlignment="Center">
 					<font fontName="Segoe UI" size="9" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>$P{kontakrs}</textFieldExpression>
+				<textFieldExpression><![CDATA[$P{kontakrs}]]></textFieldExpression>
 			</textField>
 			<line>
-				<reportElement x="0" y="48" width="555" height="1" uuid="fa792f44-be8c-4fe7-87e5-9eb82b98f03d"/>
+				<reportElement x="608" y="48" width="555" height="1" uuid="fa792f44-be8c-4fe7-87e5-9eb82b98f03d"/>
 				<graphicElement>
 					<pen lineWidth="2.0" lineStyle="Double"/>
 				</graphicElement>
 			</line>
 			<image scaleImage="FillFrame" onErrorType="Blank">
-				<reportElement x="0" y="2" width="48" height="45" uuid="5c8088b5-d7d3-488d-9767-02e9bacbc707"/>
-				<imageExpression>$P{logo}</imageExpression>
+				<reportElement x="0" y="-1" width="48" height="45" uuid="5c8088b5-d7d3-488d-9767-02e9bacbc707"/>
+				<imageExpression><![CDATA[$P{logo}]]></imageExpression>
 			</image>
 		</band>
 	</title>
@@ -227,63 +215,46 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu
 		<band splitType="Stretch"/>
 	</columnHeader>
 	<detail>
-		<band height="23" splitType="Stretch">
+		<band height="33" splitType="Prevent">
 			<textField isStretchWithOverflow="true">
-				<reportElement positionType="Float" mode="Transparent" x="2" y="0" width="61" height="18" uuid="ef8139be-bfc7-4c42-948d-e5a3cca41eeb"/>
-				<textElement>
-					<font fontName="Segoe UI" size="11" isBold="false"/>
+				<reportElement positionType="Float" mode="Transparent" x="2" y="0" width="248" height="32" uuid="eaa86363-6e98-4384-b877-ee6d721bc78e"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>$F{no_rkm_medis}</textFieldExpression>
+				<textFieldExpression><![CDATA[($F{no_rkm_medis} + "   " + $F{nm_pasien})]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true">
-				<reportElement positionType="Float" mode="Transparent" x="67" y="0" width="191" height="18" uuid="eaa86363-6e98-4384-b877-ee6d721bc78e"/>
-				<textElement>
-					<font fontName="Segoe UI" size="11" isBold="false"/>
+				<reportElement positionType="Float" mode="Transparent" x="250" y="0" width="84" height="32" uuid="3cb8dc5e-4c33-47c3-bf0e-87e7634fd39c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>$F{nm_pasien}</textFieldExpression>
+				<textFieldExpression><![CDATA["Kamar : "+($F{kd_kamar_real} == null ? "" : ($F{kd_kamar_real}.trim().split("-", -1).length >= 3 ? $F{kd_kamar_real}.trim().split("-", -1)[$F{kd_kamar_real}.trim().split("-", -1).length - 2].trim() : $F{kd_kamar_real}.trim()))
++ ($F{status_titipan} == null || $F{status_titipan}.trim().isEmpty() ? "" : "\n" + $F{status_titipan}.trim())]]></textFieldExpression>
 			</textField>
-			<textField isStretchWithOverflow="true" pattern="">
-				<reportElement positionType="Float" mode="Transparent" x="317" y="0" width="51" height="18" uuid="4018588f-c4e8-4d47-85c1-6f5fd4126be6"/>
-				<textElement>
-					<font fontName="Segoe UI" size="11" isBold="false"/>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" mode="Transparent" x="334" y="0" width="74" height="32" uuid="4018588f-c4e8-4d47-85c1-6f5fd4126be6"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>$F{waktu}</textFieldExpression>
+				<textFieldExpression><![CDATA[($F{waktu} == null ? "" : $F{waktu}) + ($F{jam} == null || $F{jam}.trim().isEmpty() ? "" : " " + $F{jam}.trim())]]></textFieldExpression>
 			</textField>
-			<textField isStretchWithOverflow="true" pattern="">
-				<reportElement positionType="Float" mode="Transparent" x="412" y="0" width="140" height="18" uuid="66bd6602-e133-438c-b13f-dfc2207897ba"/>
-				<textElement>
-					<font fontName="Segoe UI" size="11" isBold="false"/>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" mode="Transparent" x="408" y="0" width="142" height="32" uuid="66bd6602-e133-438c-b13f-dfc2207897ba"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Segoe UI" size="10" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>$F{nama_diet}</textFieldExpression>
-			</textField>
-			<textField isStretchWithOverflow="true" pattern="">
-				<reportElement positionType="Float" mode="Transparent" x="372" y="0" width="36" height="18" uuid="471b2081-eb31-4fd3-b60e-3fbc9bcecca4"/>
-				<textElement>
-					<font fontName="Segoe UI" size="11" isBold="false"/>
-					<paragraph lineSpacing="Single"/>
-				</textElement>
-				<textFieldExpression>$F{jam}</textFieldExpression>
+				<textFieldExpression><![CDATA[$F{nama_diet}]]></textFieldExpression>
 			</textField>
 			<line>
-				<reportElement positionType="Float" x="0" y="21" width="555" height="1" uuid="0f3cd135-2967-4ca0-b957-dd6dcbf15ef6">
-					<property name="com.jaspersoft.studio.unit.y" value="px"/>
-				</reportElement>
+				<reportElement positionType="Float" x="0" y="32" width="555" height="1" uuid="0f3cd135-2967-4ca0-b957-dd6dcbf15ef6"/>
 				<graphicElement>
 					<pen lineWidth="0.25" lineStyle="Solid"/>
 				</graphicElement>
 			</line>
-			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
-				<reportElement positionType="Float" mode="Transparent" x="262" y="0" width="51" height="18" uuid="3cb8dc5e-4c33-47c3-bf0e-87e7634fd39c"/>
-				<textElement>
-					<font fontName="Segoe UI" size="11" isBold="false"/>
-					<paragraph lineSpacing="Single"/>
-				</textElement>
-				<textFieldExpression><![CDATA[($F{kd_kamar_real} == null ? "" : ($F{kd_kamar_real}.trim().split("-", -1).length >= 3 ? $F{kd_kamar_real}.trim().split("-", -1)[$F{kd_kamar_real}.trim().split("-", -1).length - 2].trim() : $F{kd_kamar_real}.trim()))]]></textFieldExpression>
-			</textField>
 		</band>
 	</detail>
 	<columnFooter>
@@ -303,7 +274,7 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu
 					<font fontName="Segoe UI" size="8" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>"" + $V{PAGE_NUMBER}</textFieldExpression>
+				<textFieldExpression><![CDATA["" + $V{PAGE_NUMBER}]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField" x="305" y="6" width="170" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="96f6240a-fcb9-4cc7-a342-39e1ddce7c3e"/>
@@ -317,7 +288,7 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu
 					<font fontName="Segoe UI" size="8" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>"Page " + $V{PAGE_NUMBER} + " of "</textFieldExpression>
+				<textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER} + " of "]]></textFieldExpression>
 			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement key="textField" x="5" y="6" width="209" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="d7be1edf-792e-47b0-bac4-496859d07482"/>
@@ -331,7 +302,7 @@ and detail_beri_diet1.waktu=jam_diet_pasien.waktu
 					<font fontName="Segoe UI" size="8" isBold="false"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression>new Date()</textFieldExpression>
+				<textFieldExpression><![CDATA[new Date()]]></textFieldExpression>
 			</textField>
 			<line>
 				<reportElement x="0" y="0" width="555" height="1" uuid="1cc79d2c-4d6a-45fa-b93b-46f0f70989af"/>

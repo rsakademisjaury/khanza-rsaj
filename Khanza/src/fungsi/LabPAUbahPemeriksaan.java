@@ -88,7 +88,9 @@ public final class LabPAUbahPemeriksaan {
             p.setString(1,d.kunci.kode);try(ResultSet r=p.executeQuery()){
                 while(r.next()){
                     String kode=r.getString(1),nama=r.getString(2),jenis=LabPAData.jenis(c,kode,nama);
-                    if(d.jenis.equals(jenis)&&(!filter||d.payer.equals(text(r.getString(4)))))list.add(new Pilihan(kode,nama,jenis,money(r.getObject(3))));
+                    if(d.jenis.equals(jenis)&&tarifSesuaiPenjamin(filter,d.payer,r.getString(4))){
+                        list.add(new Pilihan(kode,nama,jenis,money(r.getObject(3))));
+                    }
                 }
             }
         }return list;
@@ -96,6 +98,11 @@ public final class LabPAUbahPemeriksaan {
     private static boolean filterPayer(Connection c)throws SQLException{
         Map<String,Object> setting=one(c,"select cara_bayar_lab from set_tarif limit 1");
         return setting==null||!"No".equalsIgnoreCase(text(setting.get("cara_bayar_lab")));
+    }
+    private static boolean tarifSesuaiPenjamin(boolean filter,String penjaminPasien,Object kodePenjaminTarif){
+        // Seperti pada permintaan Lab PA, '-' adalah tarif untuk semua penjamin.
+        String penjaminTarif=text(kodePenjaminTarif);
+        return !filter||"-".equals(penjaminTarif)||penjaminPasien.equals(penjaminTarif);
     }
 
     private static final class Table {
@@ -176,7 +183,7 @@ public final class LabPAUbahPemeriksaan {
                 require(tariff!=null,"Pemeriksaan pengganti sudah tidak aktif atau bukan PA.");
                 String jenis=LabPAData.jenis(c,target.kode,text(tariff.get("nm_perawatan")));
                 require(d.jenis.equals(jenis),"Penggantian hanya boleh dalam jenis PA yang sama: H ke H, S ke S, atau IHC ke IHC.");
-                require(!filterPayer(c)||d.payer.equals(text(tariff.get("kd_pj"))),"Cara bayar tarif pengganti tidak sesuai pasien.");
+                require(tarifSesuaiPenjamin(filterPayer(c),d.payer,tariff.get("kd_pj")),"Cara bayar tarif pengganti tidak sesuai pasien.");
                 require(target.biaya!=null&&target.biaya.compareTo(money(tariff.get("total_byr")))==0,"Tarif pengganti berubah. Buka kembali pilihan pemeriksaan.");
                 Object[] newkey={k.noRawat,target.kode,k.tanggal,k.jam};
                 Map<Table,Integer> resultTables=new LinkedHashMap<>(),orderTables=new LinkedHashMap<>();

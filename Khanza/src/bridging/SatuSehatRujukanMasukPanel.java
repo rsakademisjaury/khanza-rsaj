@@ -3,7 +3,15 @@ package bridging;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.swing.*;
@@ -17,6 +25,9 @@ import javax.swing.plaf.basic.BasicScrollBarUI;
 public final class SatuSehatRujukanMasukPanel extends JPanel {
     private static final Color INK=new Color(25,49,69),MUTED=new Color(91,113,131),BLUE=new Color(10,112,182),BG=new Color(244,247,251),LINE=new Color(219,229,238),LIGHT=new Color(233,244,252),GREEN=new Color(26,111,79),AMBER=new Color(142,86,16);
     private static final Font BODY=new Font("Segoe UI",Font.PLAIN,13),SMALL=new Font("Segoe UI",Font.PLAIN,12),STRONG=new Font("Segoe UI Semibold",Font.BOLD,14);
+    private static final int SENT_COLUMN=7,ACTION_COLUMN=8;
+    private static final Instant NO_SENT_TIME=Instant.MIN;
+    private static final DateTimeFormatter SENT_FORMAT=DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(ZoneId.of("Asia/Makassar"));
     private final SatuSehatRujukanMasukService service;
     private final SatuSehatRujukanIGDRanapApi apiClient=new SatuSehatRujukanIGDRanapApi();
     private final JPanel pages=new JPanel(new CardLayout()),detailHost=new JPanel(new BorderLayout(0,12)),apiHost=new JPanel(new BorderLayout(0,10));
@@ -24,12 +35,13 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
     private final JTextArea message=readOnly(2);private final JPanel notice=new JPanel(new BorderLayout());
     private final Timer toastTimer=new Timer(6500,e->notice.setVisible(false));
     private final List<SatuSehatRujukanMasukService.Row> rows=new ArrayList<SatuSehatRujukanMasukService.Row>();
-    private final DefaultTableModel tableModel=new DefaultTableModel(new String[]{"No.","Task ID","Pasien","Fasyankes perujuk","Jenis","Status","Keputusan","Aksi"},0){
-        @Override public boolean isCellEditable(int r,int c){return c==7&&!busy;}
+    private final DefaultTableModel tableModel=new DefaultTableModel(new String[]{"No.","Task ID","Pasien","Fasyankes perujuk","Jenis","Status","Keputusan","Waktu Rujukan Dikirim","Aksi"},0){
+        @Override public boolean isCellEditable(int r,int c){return c==ACTION_COLUMN&&!busy;}
+        @Override public Class<?> getColumnClass(int c){return c==SENT_COLUMN?Instant.class:super.getColumnClass(c);}
     };
     private final JTable table=workflowTable(tableModel);
     private final TableRowSorter<DefaultTableModel> sorter=new TableRowSorter<DefaultTableModel>(tableModel);
-    private final JTextField search=new JTextField();
+    private final JTextField search=new SearchField();
     private final JButton reload=button("Perbarui",Color.WHITE,BLUE),close=button("Keluar",Color.WHITE,MUTED);
     private JButton register;private JLabel registrationStatus;
     private Runnable onClose;private boolean busy,disposed;private long detailGeneration;
@@ -53,25 +65,43 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
     public void shutdown(){disposed=true;detailGeneration++;toastTimer.stop();service.removeListener(listener);SatuSehatRujukanMasukPasien.closeFor(this);}
     private JPanel listPage(){
         JPanel p=new JPanel(new BorderLayout(0,12));p.setOpaque(false);
-        JPanel bar=new JPanel(new BorderLayout(12,0));bar.setOpaque(false);bar.add(label("Rujukan menunggu keputusan ditampilkan lebih dahulu",BODY,MUTED),BorderLayout.WEST);
-        search.setFont(BODY);search.setPreferredSize(new Dimension(340,36));search.setToolTipText("Cari RS, pasien, Task ID, atau jenis rujukan");search.getAccessibleContext().setAccessibleName("Cari rujukan masuk");
+        JPanel bar=new JPanel(new BorderLayout(12,0));bar.setOpaque(false);bar.add(label("Urutan awal berdasarkan waktu kirim • WITA",BODY,MUTED),BorderLayout.WEST);
+        search.setFont(BODY);search.setPreferredSize(new Dimension(340,36));search.setToolTipText("Cari RS, pasien, Task ID, jenis, atau waktu kirim");search.getAccessibleContext().setAccessibleName("Cari rujukan masuk");
         JPanel searchBox=new JPanel(new BorderLayout(8,0));searchBox.setOpaque(false);searchBox.add(label("Cari",SMALL,MUTED),BorderLayout.WEST);searchBox.add(search,BorderLayout.CENTER);bar.add(searchBox,BorderLayout.EAST);p.add(bar,BorderLayout.NORTH);
         table.setName("tabel_rujukan_masuk");table.setRowSorter(sorter);table.setRowHeight(46);table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.setSelectionBackground(BLUE);table.setSelectionForeground(Color.WHITE);
-        int[] widths={55,200,210,265,110,120,120,245};for(int i=0;i<widths.length;i++)table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-        DefaultTableCellRenderer numberRenderer=new DefaultTableCellRenderer();numberRenderer.setHorizontalAlignment(SwingConstants.CENTER);table.getColumnModel().getColumn(0).setCellRenderer(numberRenderer);
-        TableColumn action=table.getColumnModel().getColumn(7);action.setMinWidth(240);action.setCellRenderer(new ActionCell());action.setCellEditor(new ActionCell());sorter.setSortable(0,false);sorter.setSortable(7,false);
+        int[] widths={48,170,185,210,90,105,105,170,245};for(int i=0;i<widths.length;i++)table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
+        DefaultTableCellRenderer numberRenderer=new DefaultTableCellRenderer(){
+            @Override public Component getTableCellRendererComponent(JTable t,Object value,boolean selected,boolean focus,int row,int col){
+                return super.getTableCellRendererComponent(t,row+1,selected,focus,row,col);
+            }
+        };numberRenderer.setHorizontalAlignment(SwingConstants.CENTER);table.getColumnModel().getColumn(0).setCellRenderer(numberRenderer);
+        table.getColumnModel().getColumn(SENT_COLUMN).setCellRenderer(new DefaultTableCellRenderer(){
+            @Override protected void setValue(Object value){setText(formatSentTime((Instant)value));}
+        });
+        TableColumn action=table.getColumnModel().getColumn(ACTION_COLUMN);action.setMinWidth(240);action.setCellRenderer(new ActionCell());action.setCellEditor(new ActionCell());sorter.setSortable(0,false);sorter.setSortable(ACTION_COLUMN,false);
+        sorter.setSortKeys(Collections.singletonList(new RowSorter.SortKey(SENT_COLUMN,SortOrder.DESCENDING)));
+        sorter.setSortsOnUpdates(true);
         search.getDocument().addDocumentListener(new DocumentListener(){public void insertUpdate(DocumentEvent e){filter();}public void removeUpdate(DocumentEvent e){filter();}public void changedUpdate(DocumentEvent e){filter();}});
         table.addMouseListener(new java.awt.event.MouseAdapter(){@Override public void mouseClicked(java.awt.event.MouseEvent e){if(e.getClickCount()==2&&table.getSelectedRow()>=0){int row=table.convertRowIndexToModel(table.getSelectedRow());if(row<rows.size()&&rows.get(row).accepted())loadDetail(rows.get(row).id);}}});
-        table.getInputMap().put(KeyStroke.getKeyStroke("ENTER"),"rujukanAction");table.getActionMap().put("rujukanAction",new AbstractAction(){@Override public void actionPerformed(java.awt.event.ActionEvent e){int vr=table.getSelectedRow();if(vr<0||busy)return;SatuSehatRujukanMasukService.Row r=rows.get(table.convertRowIndexToModel(vr));if(r.accepted())loadDetail(r.id);else if(r.pending()){int vc=table.convertColumnIndexToView(7);table.editCellAt(vr,vc);Component editor=table.getEditorComponent();if(editor instanceof Container&&((Container)editor).getComponentCount()>0)((Container)editor).getComponent(0).requestFocusInWindow();}}});
+        table.getInputMap().put(KeyStroke.getKeyStroke("ENTER"),"rujukanAction");table.getActionMap().put("rujukanAction",new AbstractAction(){@Override public void actionPerformed(java.awt.event.ActionEvent e){int vr=table.getSelectedRow();if(vr<0||busy)return;SatuSehatRujukanMasukService.Row r=rows.get(table.convertRowIndexToModel(vr));if(r.accepted())loadDetail(r.id);else if(r.pending()){int vc=table.convertColumnIndexToView(ACTION_COLUMN);table.editCellAt(vr,vc);Component editor=table.getEditorComponent();if(editor instanceof Container&&((Container)editor).getComponentCount()>0)((Container)editor).getComponent(0).requestFocusInWindow();}}});
         JScrollPane listScroll=scroll(table);listScroll.setColumnHeaderView(table.getTableHeader());p.add(listScroll,BorderLayout.CENTER);return p;
     }
-    private void filter(){final String key=search.getText().trim().toLowerCase(java.util.Locale.ROOT);sorter.setRowFilter(key.isEmpty()?null:new RowFilter<DefaultTableModel,Integer>(){@Override public boolean include(Entry<? extends DefaultTableModel,? extends Integer> e){for(int i=1;i<=6;i++)if(String.valueOf(e.getValue(i)).toLowerCase(java.util.Locale.ROOT).contains(key))return true;return false;}});}
+    private void filter(){final String key=search.getText().trim().toLowerCase(java.util.Locale.ROOT);sorter.setRowFilter(key.isEmpty()?null:new RowFilter<DefaultTableModel,Integer>(){@Override public boolean include(Entry<? extends DefaultTableModel,? extends Integer> e){for(int i=1;i<SENT_COLUMN;i++)if(String.valueOf(e.getValue(i)).toLowerCase(java.util.Locale.ROOT).contains(key))return true;return formatSentTime((Instant)e.getValue(SENT_COLUMN)).contains(key);}});}
+    static Instant sentTime(JsonNode task){
+        Instant authored=parseSentTime(task.path("authoredOn").asText());
+        return authored.equals(NO_SENT_TIME)?parseSentTime(task.path("executionPeriod").path("start").asText()):authored;
+    }
+    private static Instant parseSentTime(String text){
+        try{return OffsetDateTime.parse(text.trim()).toInstant();}
+        catch(DateTimeParseException ex){return NO_SENT_TIME;}
+    }
+    static String formatSentTime(Instant time){return time==null||NO_SENT_TIME.equals(time)?"—":SENT_FORMAT.format(time);}
     private void updateList(SatuSehatRujukanMasukService.Snapshot snapshot,String error){
         if(disposed)return;if(table.isEditing())table.getCellEditor().cancelCellEditing();
         if(snapshot!=null){String selected="";int vr=table.getSelectedRow();if(vr>=0){int mr=table.convertRowIndexToModel(vr);if(mr<rows.size())selected=rows.get(mr).id;}
             rows.clear();rows.addAll(snapshot.rows);tableModel.setRowCount(0);
-            for(int i=0;i<rows.size();i++){SatuSehatRujukanMasukService.Row r=rows.get(i);tableModel.addRow(new Object[]{i+1,r.id,r.patient,r.referrer,r.kind,r.status,r.decision.isEmpty()?(r.pending()?"Menunggu":"Belum ada keputusan"):r.accepted()?"Diterima":"Ditolak",r.id});}
+            for(int i=0;i<rows.size();i++){SatuSehatRujukanMasukService.Row r=rows.get(i);tableModel.addRow(new Object[]{i+1,r.id,r.patient,r.referrer,r.kind,r.status,r.decision.isEmpty()?(r.pending()?"Menunggu":"Belum ada keputusan"):r.accepted()?"Diterima":"Ditolak",sentTime(r.task),r.id});}
             for(int i=0;i<rows.size();i++)if(rows.get(i).id.equals(selected)){int view=table.convertRowIndexToView(i);if(view>=0)table.setRowSelectionInterval(view,view);break;}
             if(!busy)status.setText(snapshot.pending+" menunggu keputusan • "+rows.size()+" rujukan • Diperbarui "+new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date(snapshot.time)));
         }
@@ -284,6 +314,27 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
     private static final class RoundPanel extends JPanel {
         final Color fill,stroke;final int radius;RoundPanel(Color fill,Color stroke,int radius){this.fill=fill;this.stroke=stroke;this.radius=radius;setOpaque(false);}
         @Override protected void paintComponent(Graphics g){Graphics2D p=(Graphics2D)g.create();p.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);p.setColor(fill);p.fillRoundRect(0,0,getWidth()-1,getHeight()-1,radius,radius);p.setColor(stroke);p.drawRoundRect(0,0,getWidth()-1,getHeight()-1,radius,radius);p.dispose();super.paintComponent(g);}
+    }
+    private static final class SearchField extends JTextField {
+        SearchField(){
+            setOpaque(false);
+            setBorder(BorderFactory.createEmptyBorder(2,11,2,11));
+            addFocusListener(new FocusAdapter(){
+                @Override public void focusGained(FocusEvent e){repaint();}
+                @Override public void focusLost(FocusEvent e){repaint();}
+            });
+        }
+        @Override protected void paintComponent(Graphics graphics){
+            Graphics2D g=(Graphics2D)graphics.create();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(getBackground());
+            g.fillRoundRect(1,1,getWidth()-3,getHeight()-3,10,10);
+            g.setColor(hasFocus()?BLUE:LINE);
+            g.setStroke(new BasicStroke(hasFocus()?2f:1f));
+            g.drawRoundRect(1,1,getWidth()-3,getHeight()-3,10,10);
+            g.dispose();
+            super.paintComponent(graphics);
+        }
     }
     private static final class LineIcon implements Icon {
         final String kind;final Color color;final int size;LineIcon(String kind,Color color,int size){this.kind=kind;this.color=color;this.size=size;}

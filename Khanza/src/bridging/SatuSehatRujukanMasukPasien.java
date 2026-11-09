@@ -1,15 +1,24 @@
 package bridging;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fungsi.akses;
 import fungsi.koneksiDB;
 import java.awt.*;
-import java.lang.reflect.*;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URLEncoder;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Consumer;
 import javax.swing.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
 import simrskhanza.DlgPasien;
 
 /** Membuka master pasien. Tidak membuat kunjungan atau menulis reg_periksa. */
@@ -23,7 +32,7 @@ public final class SatuSehatRujukanMasukPasien {
         public String message(){
             if(!allowed())return "Akun ini tidak memiliki hak Data Pasien atau registrasi IGD.";
             return found()?"Pasien sudah memiliki No. RM "+noRm+". Buka data pasien untuk diperiksa."
-                    :"Data rujukan akan diisikan ke DlgPasien. Periksa identitas dan kelengkapan sebelum Simpan.";
+                    :"Periksa data yang tersedia dari rujukan sebelum membuat nomor RM.";
         }
     }
     private static final class Prepared {
@@ -33,7 +42,7 @@ public final class SatuSehatRujukanMasukPasien {
     /** Khusus alur rujukan masuk: hak Data Pasien ATAU hak registrasi IGD. Tidak membuka menu Data Pasien umum. */
     public static boolean allowed(){return akses.getpasien()||SatuSehatRujukanMasukRegistrasi.allowed();}
     public static State state(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail detail)throws SQLException{
-        return match(mapPatient(detail.patient));
+        return match(mapDetailPatient(detail,detail.task));
     }
     private static Connection connection()throws SQLException{
         Connection c=koneksiDB.condb();
@@ -62,9 +71,16 @@ public final class SatuSehatRujukanMasukPasien {
             collect(c,"SELECT DISTINCT p.no_rkm_medis,p.no_ktp FROM satu_sehat_pasien s JOIN pasien p ON p.no_rkm_medis=s.no_rkm_medis WHERE s.ihs_pasien=? LIMIT 2",ihs,identity,matches);
         }catch(SQLException ex){
             if(isMissingTable(ex))return;
-            throw ex;
+            if(!isUnknownColumn(ex))throw ex;
+        }
+        // Cache lama bisa berisi IHS dan NIK sementara No. RM kosong atau sudah berubah.
+        try{
+            collect(c,"SELECT DISTINCT p.no_rkm_medis,p.no_ktp FROM satu_sehat_pasien s JOIN pasien p ON p.no_ktp=s.no_ktp WHERE s.ihs_pasien=? AND s.no_ktp REGEXP '^[0-9]{16}$' AND s.no_ktp<>'0000000000000000' LIMIT 2",ihs,identity,matches);
+        }catch(SQLException ex){
+            if(!isMissingTable(ex)&&!isUnknownColumn(ex))throw ex;
         }
     }
+    private static boolean isUnknownColumn(SQLException ex){return "42S22".equals(ex.getSQLState())||ex.getErrorCode()==1054;}
     private static boolean isMissingTable(SQLException ex){
         for(SQLException current=ex;current!=null;current=current.getNextException()){
             String state=safe(current.getSQLState());
@@ -77,10 +93,12 @@ public final class SatuSehatRujukanMasukPasien {
         try(PreparedStatement p=prepare(c,sql)){
             p.setString(1,key);try(ResultSet r=p.executeQuery()){
                 while(r.next()){
+                    String rm=safe(r.getString(1));
+                    if(rm.isEmpty()||"-".equals(rm))continue;
                     String localIdentity=safe(r.getString(2));
                     if(!identity.isEmpty()&&!localIdentity.isEmpty()&&!"-".equals(localIdentity)&&!identity.equals(localIdentity))
                         throw new SQLException("IHS/nomor peserta rujukan terhubung ke pasien dengan identitas berbeda. Periksa master pasien.");
-                    matches.add(safe(r.getString(1)));
+                    matches.add(rm);
                 }
             }
         }
@@ -98,18 +116,10 @@ public final class SatuSehatRujukanMasukPasien {
     }
     public static void closeFor(Component parent){DlgPasien dialog=OPEN.remove(parent);if(dialog!=null)closeDialog(dialog);}
     private static void closeDialog(DlgPasien dialog){
-        try{dialog.getClass().getMethod("tutupPasienRujukanMasuk").invoke(dialog);}
+        try{dialog.tutupPasienRujukanMasuk();}
         catch(Exception ex){System.err.println("Penutupan form pasien rujukan belum lengkap: "+ex.getClass().getSimpleName());}
         catch(LinkageError ex){System.err.println("Versi form pasien rujukan belum cocok.");}
         finally{dialog.dispose();}
-    }
-    static Method patientHook(Class<?> type)throws SQLException{
-        try{
-            Method hook=type.getMethod("isiPasienRujukanMasuk",Map.class,String.class);
-            if(hook.getReturnType()!=Void.TYPE||Modifier.isStatic(hook.getModifiers()))throw new NoSuchMethodException();
-            return hook;
-        }catch(NoSuchMethodException ex){throw incompatible(ex);}
-        catch(LinkageError ex){throw incompatible(ex);}
     }
     private static SQLException incompatible(Throwable ex){return new SQLException("DlgPasien dan modul rujukan belum satu versi. Pasang sumber revisi lalu Clean and Build proyek lengkap.",ex);}
     public static void open(final Component parent,final SatuSehatRujukanIGDRanapApi.IncomingReferralDetail detail,final Runnable finished,final Consumer<String> failed){
@@ -121,30 +131,42 @@ public final class SatuSehatRujukanMasukPasien {
                 SatuSehatRujukanIGDRanapApi api=new SatuSehatRujukanIGDRanapApi();
                 JsonNode task=api.cekTask(detail.taskId);api.validateIncomingTask(task);
                 if(!"accepted".equals(SatuSehatRujukanIGDRanapApi.parseDecision(task)))throw new SQLException("Rujukan belum diterima atau status telah berubah.");
-                Map<String,String> data=mapPatient(detail.patient);
-                String ref=SatuSehatRujukanMasukService.reference(task.path("for"));
-                if(value(data,"ihs").isEmpty()||!ref.equals("Patient/"+value(data,"ihs")))throw new SQLException("Identitas pasien pada Task belum cocok. Muat ulang detail rujukan.");
-                data.put("task_id",detail.taskId);return new Prepared(data,match(data));
+                Map<String,String> data=mapDetailPatient(detail,task);
+                SatuSehatRujukanMasukPasien.State state=match(data);
+                String nik=value(data,"no_ktp");
+                if(!state.found()&&needsDemographics(data)&&isNik(nik)){
+                    JsonNode result=null;
+                    try{result=searchPatientByNik(nik,value(data,"ihs"));}
+                    catch(Exception ex){
+                        note(data,"Pencarian demografi melalui NIK belum berhasil.");
+                    }
+                    if(result!=null){
+                        Map<String,String> verified=mapPatient(result);
+                        String resultNik=value(verified,"no_ktp");
+                        if(isNik(resultNik)&&!nik.equals(resultNik))throw new SQLException("NIK pada hasil SATUSEHAT berbeda. Periksa identitas pasien rujukan.");
+                        verified.remove("no_ktp");
+                        mergePatientData(data,verified);
+                        data.put("no_ktp",nik);
+                        state=match(data);
+                    }
+                }
+                addMissingFieldNotes(data);
+                data.put("task_id",detail.taskId);return new Prepared(data,state);
             }
             @Override protected void done(){
                 if(!parent.isShowing()){finished.run();return;}
                 DlgPasien dialog=null;java.awt.event.WindowAdapter listener=null;boolean opened=false;
                 try{
                     Prepared p=get();if(!allowed()||!operator.equals(safe(akses.getkode())))throw new SQLException("Sesi/hak akses Data Pasien/registrasi IGD berubah. Buka kembali rujukan.");
-                    Method hook=patientHook(DlgPasien.class);
                     Window w=SwingUtilities.getWindowAncestor(parent);while(w!=null&&!(w instanceof Frame))w=w.getOwner();
                     dialog=new DlgPasien(w instanceof Frame?(Frame)w:null,false);
                     Window inbox=SwingUtilities.getWindowAncestor(parent);Component anchor=inbox instanceof RootPaneContainer?((RootPaneContainer)inbox).getContentPane():parent;
                     Point point=anchor.getLocationOnScreen();dialog.setBounds(point.x,point.y,anchor.getWidth(),anchor.getHeight());
                     final DlgPasien current=dialog;
                     listener=new java.awt.event.WindowAdapter(){@Override public void windowClosed(java.awt.event.WindowEvent e){if(OPEN.get(parent)==current)OPEN.remove(parent);finished.run();}};
+                    dialog.isiPasienRujukanMasuk(p.data,p.state.noRm);
                     OPEN.put(parent,dialog);dialog.addWindowListener(listener);dialog.setVisible(true);
-                    // Terapkan data SETELAH window benar-benar tampil. Beberapa komponen Khanza
-                    // melakukan normalisasi saat first-show; pengisian sebelum setVisible dapat
-                    // terlihat kosong walaupun Map sudah berisi data.
-                    try{hook.invoke(dialog,p.data,p.state.noRm);}
-                    catch(InvocationTargetException ex){Throwable cause=ex.getCause();if(cause instanceof LinkageError)throw incompatible(cause);if(cause instanceof Exception)throw (Exception)cause;if(cause instanceof Error)throw (Error)cause;throw ex;}
-                    dialog.revalidate();dialog.repaint();dialog.toFront();opened=true;
+                    dialog.toFront();opened=true;
                 }catch(Exception ex){Throwable cause=ex instanceof java.util.concurrent.ExecutionException&&ex.getCause()!=null?ex.getCause():ex;failed.accept(safe(cause.getMessage()).isEmpty()?"Data pasien belum dapat dibuka.":cause.getMessage());}
                 catch(LinkageError ex){failed.accept(incompatible(ex).getMessage());}
                 finally{if(!opened&&dialog!=null){if(OPEN.get(parent)==dialog)OPEN.remove(parent);if(listener!=null)dialog.removeWindowListener(listener);closeDialog(dialog);}}
@@ -152,25 +174,136 @@ public final class SatuSehatRujukanMasukPasien {
         }.execute();
     }
 
+    static Map<String,String> mapDetailPatient(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail detail,JsonNode task)throws SQLException{
+        if(task==null)throw new SQLException("Task rujukan belum tersedia. Muat ulang detail rujukan.");
+        JsonNode taskPatient=task.path("for");
+        String ref=SatuSehatRujukanMasukService.reference(taskPatient);
+        if(ref.isEmpty()&&detail.carePlan!=null){
+            // Gunakan subjek CarePlan hanya jika Task yang dimuat ulang masih merujuk CarePlan tersebut.
+            String carePlanRef="CarePlan/"+text(detail.carePlan,"id");
+            for(JsonNode basedOn:task.path("basedOn"))if(carePlanRef.equals(SatuSehatRujukanMasukService.reference(basedOn))){
+                taskPatient=detail.carePlan.path("subject");
+                ref=SatuSehatRujukanMasukService.reference(taskPatient);
+                break;
+            }
+        }
+        if(!ref.matches("Patient/[A-Za-z0-9.\\-]{1,64}"))throw new SQLException("IHS pasien pada rujukan belum tersedia. Muat ulang detail rujukan.");
+        String ihs=ref.substring("Patient/".length());
+        Map<String,String> data=new LinkedHashMap<String,String>();
+        data.put("ihs",ihs);
+        if("Patient".equals(text(detail.patient,"resourceType"))){
+            Map<String,String> primary=mapPatient(detail.patient);
+            if(!ihs.equals(value(primary,"ihs")))throw new SQLException("Identitas pasien pada rujukan belum cocok. Muat ulang detail rujukan.");
+            mergePatientData(data,primary);
+        }
+        for(SatuSehatRujukanIGDRanapApi.IncomingReferencedResource resource:detail.references){
+            if("Patient".equals(text(resource.resource,"resourceType"))&&ihs.equals(text(resource.resource,"id"))&&resource.resource!=detail.patient){
+                mergePatientData(data,mapPatient(resource.resource));
+            }
+        }
+        mergePatientReference(data,ref,taskPatient);
+        if(detail.carePlan!=null)mergePatientReference(data,ref,detail.carePlan.path("subject"));
+        if(detail.serviceRequest!=null)mergePatientReference(data,ref,detail.serviceRequest.path("subject"));
+        if(detail.encounter!=null)mergePatientReference(data,ref,detail.encounter.path("subject"));
+        return data;
+    }
+
+    private static void mergePatientData(Map<String,String> data,Map<String,String> source)throws SQLException{
+        for(Map.Entry<String,String> entry:source.entrySet()){
+            String key=entry.getKey(),current=value(data,key),candidate=entry.getValue();
+            if(current.isEmpty())data.put(key,candidate);
+            else if("no_ktp".equals(key)&&isNik(current)!=isNik(candidate)){
+                if(isNik(candidate))data.put(key,candidate);
+            }
+            else if(("no_ktp".equals(key)||"no_peserta".equals(key))&&!current.equals(candidate))
+                throw new SQLException("Identitas dari sumber rujukan berbeda. Periksa data pasien sebelum melanjutkan.");
+        }
+    }
+
+    private static void mergePatientReference(Map<String,String> data,String ref,JsonNode patientRef)throws SQLException{
+        if(!ref.equals(SatuSehatRujukanMasukService.reference(patientRef)))return;
+        JsonNode identifier=patientRef.path("identifier");
+        String system=text(identifier,"system").toLowerCase(Locale.ROOT);
+        String identity=identifierValue(identifier);
+        Map<String,String> source=new LinkedHashMap<String,String>();
+        String display=usable(text(patientRef,"display"));
+        if(!display.equals(ref)&&!display.equals(value(data,"ihs"))&&!display.startsWith("Patient/"))put(source,"nm_pasien",display);
+        if(system.endsWith("/nik")&&isNik(identity))put(source,"no_ktp",identity);
+        if(system.endsWith("/bpjs")||system.endsWith("/jkn"))put(source,"no_peserta",identity);
+        mergePatientData(data,source);
+    }
+
+    private static JsonNode searchPatientByNik(String nik,String expectedIhs)throws Exception{
+        ApiSatuSehat api=new ApiSatuSehat();
+        HttpHeaders headers=new HttpHeaders();
+        headers.add("Accept","application/fhir+json, application/json");
+        String token=safe(api.getValidToken());
+        if(token.isEmpty())throw new IOException("Token SATUSEHAT belum tersedia.");
+        headers.add("Authorization","Bearer "+token);
+        String base=koneksiDB.URLFHIRSATUSEHAT().replaceFirst("/+$","");
+        String identifier=URLEncoder.encode("https://fhir.kemkes.go.id/id/nik|"+nik,"UTF-8");
+        URI uri=URI.create(base+"/Patient?identifier="+identifier);
+        if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getHost()==null)throw new IOException("URL FHIR SATUSEHAT harus memakai HTTPS.");
+        SimpleClientHttpRequestFactory factory=new SimpleClientHttpRequestFactory(){
+            @Override protected void prepareConnection(HttpURLConnection connection,String method)throws IOException{
+                super.prepareConnection(connection,method);
+                // Spring 3.1.0.M2 belum menyediakan setter timeout pada factory.
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(12000);
+            }
+        };
+        String body=new RestTemplate(factory).exchange(uri,HttpMethod.GET,new HttpEntity<String>(headers),String.class).getBody();
+        return body==null?null:patientFromNikSearch(new ObjectMapper().readTree(body),expectedIhs);
+    }
+
+    static JsonNode patientFromNikSearch(JsonNode bundle,String expectedIhs){
+        if(!"Bundle".equals(text(bundle,"resourceType"))||expectedIhs.isEmpty())return null;
+        for(JsonNode link:bundle.path("link"))if("next".equals(text(link,"relation")))return null;
+        JsonNode match=null;
+        for(JsonNode entry:bundle.path("entry")){
+            JsonNode patient=entry.path("resource");
+            if(!"Patient".equals(text(patient,"resourceType")))continue;
+            if(!expectedIhs.equals(text(patient,"id"))||match!=null)return null;
+            match=patient;
+        }
+        return match;
+    }
+
+    private static boolean needsDemographics(Map<String,String> data){
+        return value(data,"nm_pasien").isEmpty()||value(data,"jk").isEmpty()||value(data,"tgl_lahir").isEmpty();
+    }
+
+    private static void addMissingFieldNotes(Map<String,String> data){
+        if(value(data,"nm_pasien").isEmpty())note(data,"Nama pasien belum tersedia.");
+        if(value(data,"jk").isEmpty())note(data,"Jenis kelamin perlu diisi sesuai identitas pasien.");
+        if(value(data,"tgl_lahir").isEmpty())note(data,"Tanggal lahir perlu diisi sesuai identitas pasien.");
+        if(value(data,"no_ktp").isEmpty())note(data,"NIK belum tersedia dari rujukan.");
+        if(value(data,"no_peserta").isEmpty())note(data,"Nomor peserta belum tersedia.");
+    }
+
     /** Nilai demografi yang tersedia saja; nomor RM pengirim tidak menjadi RM lokal. */
     public static Map<String,String> mapPatient(JsonNode patient)throws SQLException{
         if(patient==null||!"Patient".equals(text(patient,"resourceType")))throw new SQLException("Resource Patient belum tersedia. Muat ulang detail rujukan.");
         Map<String,String> m=new LinkedHashMap<String,String>();
-        put(m,"ihs",text(patient,"id"));put(m,"nm_pasien",name(preferred(patient.path("name"),"official")));
+        put(m,"ihs",text(patient,"id"));
+        String patientName=name(preferred(patient.path("name"),"official"));
+        if(patientName.isEmpty())for(JsonNode n:patient.path("name"))if(!"old".equals(text(n,"use"))){
+            patientName=name(n);if(!patientName.isEmpty())break;
+        }
+        put(m,"nm_pasien",patientName);
         String nik=identifier(patient,"https://fhir.kemkes.go.id/id/nik");
         if(nik.isEmpty())nik=identifierBySystemHint(patient,"nik");
-        if(nik.isEmpty())nik=identifierByPattern(patient,"[0-9]{16}");
-        if(!nik.isEmpty()&&!nik.matches("[0-9]{16}")){note(m,"NIK rujukan tidak berformat 16 digit; periksa identitas.");nik="";}
+        if(!isNik(nik))nik="";
         String passport=identifier(patient,"https://fhir.kemkes.go.id/id/paspor");
         if(passport.isEmpty())passport=identifierBySystemHint(patient,"passport","paspor");
         put(m,"no_ktp",nik.isEmpty()?passport:nik);
         String insurance=identifier(patient,"https://fhir.kemkes.go.id/id/bpjs");
-        if(insurance.isEmpty())insurance=identifierBySystemHint(patient,"bpjs","jkn","insurance");
+        if(insurance.isEmpty())insurance=identifierBySystemHint(patient,"bpjs","jkn","insurance","no-peserta","no_peserta","nomor-peserta","nomor_peserta");
         put(m,"no_peserta",insurance);
         if(value(m,"ihs").isEmpty())put(m,"ihs",first(identifier(patient,"https://fhir.kemkes.go.id/id/patient-ihs-number"),identifierBySystemHint(patient,"ihs-number","ihs_number")));
         String gender=text(patient,"gender").toLowerCase(Locale.ENGLISH);
         put(m,"jk",("male".equals(gender)||"m".equals(gender)||"l".equals(gender)||gender.contains("laki"))?"LAKI-LAKI":("female".equals(gender)||"f".equals(gender)||"p".equals(gender)||gender.contains("perempuan"))?"PEREMPUAN":"");
-        String birth=text(patient,"birthDate");if(validBirth(birth))put(m,"tgl_lahir",birth);else note(m,"Tanggal lahir belum lengkap/valid; isi tanggal yang benar.");
+        String birth=text(patient,"birthDate");if(validBirth(birth))put(m,"tgl_lahir",birth);
         put(m,"no_tlp",telecom(patient,"phone"));put(m,"email",telecom(patient,"email"));
         address(preferred(patient.path("address"),"home"),m,"");
         put(m,"stts_nikah",marital(patient.path("maritalStatus"),gender));
@@ -190,15 +323,12 @@ public final class SatuSehatRujukanMasukPasien {
         JsonNode language=null;
         for(JsonNode c:patient.path("communication")){if(language==null)language=c.path("language");if(c.path("preferred").asBoolean()){language=c.path("language");break;}}
         if(language!=null)put(m,"bahasa",concept(language));
-        if(value(m,"no_ktp").isEmpty())note(m,"NIK/identitas belum tersedia; cari pasien lama sebelum membuat RM baru.");
-        if(value(m,"jk").isEmpty())note(m,"Jenis kelamin perlu diverifikasi.");
-        if(value(m,"nm_pasien").isEmpty())note(m,"Nama pasien belum tersedia pada resource Patient; periksa Detail Rujukan/JSON.");
         return m;
     }
     private static String identifier(JsonNode patient,String system)throws SQLException{
         String value="";
         for(JsonNode id:patient.path("identifier"))if(system.equals(text(id,"system"))&&!"old".equals(text(id,"use"))){
-            String candidate=text(id,"value");if(candidate.isEmpty())continue;
+            String candidate=identifierValue(id);if(candidate.isEmpty())continue;
             if(!value.isEmpty()&&!value.equals(candidate))throw new SQLException("Ada lebih dari satu identitas aktif untuk sistem "+system+". Periksa data pasien rujukan.");
             value=candidate;
         }return value;
@@ -207,7 +337,7 @@ public final class SatuSehatRujukanMasukPasien {
         String value="";
         for(JsonNode id:patient.path("identifier")){
             if("old".equals(text(id,"use")))continue;
-            String system=text(id,"system").toLowerCase(Locale.ENGLISH),candidate=text(id,"value");
+            String system=text(id,"system").toLowerCase(Locale.ENGLISH),candidate=identifierValue(id);
             if(candidate.isEmpty())continue;
             boolean match=false;for(String hint:hints)if(!safe(hint).isEmpty()&&system.contains(hint.toLowerCase(Locale.ENGLISH))){match=true;break;}
             if(!match)continue;
@@ -216,17 +346,9 @@ public final class SatuSehatRujukanMasukPasien {
         }
         return value;
     }
-    private static String identifierByPattern(JsonNode patient,String regex)throws SQLException{
-        String value="";
-        for(JsonNode id:patient.path("identifier")){
-            if("old".equals(text(id,"use")))continue;String candidate=text(id,"value");
-            if(candidate.isEmpty()||!candidate.matches(regex))continue;
-            String system=text(id,"system").toLowerCase(Locale.ENGLISH);
-            if(system.contains("ihs"))continue;
-            if(!value.isEmpty()&&!value.equals(candidate))throw new SQLException("Ada lebih dari satu identitas aktif dengan format yang sama. Periksa data pasien rujukan.");
-            value=candidate;
-        }
-        return value;
+    private static String identifierValue(JsonNode identifier){
+        String v=usable(text(identifier,"value"));
+        return "old".equals(text(identifier,"use"))||v.indexOf('*')>=0||v.indexOf('#')>=0?"":v;
     }
     private static JsonNode preferred(JsonNode list,String use){
         JsonNode first=null;
@@ -235,11 +357,11 @@ public final class SatuSehatRujukanMasukPasien {
     }
     private static String name(JsonNode n){
         if(n==null)return "";
-        return first(text(n,"text"),joinWords(join(n.path("prefix")," "),join(n.path("given")," "),text(n,"family"),join(n.path("suffix")," ")));
+        return first(usable(text(n,"text")),usable(joinWords(join(n.path("prefix")," "),join(n.path("given")," "),text(n,"family"),join(n.path("suffix")," "))));
     }
     private static String telecom(JsonNode p,String system){
         String result="";
-        for(JsonNode t:p.path("telecom"))if(system.equals(text(t,"system"))&&!"old".equals(text(t,"use"))){String v=text(t,"value");if(v.isEmpty())continue;if(result.isEmpty())result=v;if("mobile".equals(text(t,"use")))return v;}
+        for(JsonNode t:p.path("telecom"))if(system.equals(text(t,"system"))&&!"old".equals(text(t,"use"))){String v=usable(text(t,"value"));if(v.isEmpty())continue;if(result.isEmpty())result=v;if("mobile".equals(text(t,"use")))return v;}
         return result;
     }
     private static void address(JsonNode a,Map<String,String> m,String suffix){
@@ -293,7 +415,13 @@ public final class SatuSehatRujukanMasukPasien {
     private static String concept(JsonNode c){if(c==null)return "";String t=text(c,"text");if(!t.isEmpty())return t;for(JsonNode code:c.path("coding")){t=text(code,"display");if(!t.isEmpty())return t;}return "";}
     public static boolean validBirth(String date){try{if(!date.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}"))return false;LocalDate birth=LocalDate.parse(date);return birth.getYear()>0&&!birth.isAfter(LocalDate.now());}catch(RuntimeException ex){return false;}}
     public static String value(Map<String,String> data,String key){return safe(data.get(key));}
-    private static void put(Map<String,String> m,String key,String v){if(!safe(v).isEmpty())m.put(key,safe(v));}
+    private static boolean isNik(String value){return value.matches("[0-9]{16}")&&!"0000000000000000".equals(value);}
+    private static String usable(String value){
+        String v=safe(value);
+        if(v.contains("**")||v.contains("##")||v.matches("(?i)(-|—|unknown|null|redacted|masked|x{3,})"))return "";
+        return v;
+    }
+    private static void put(Map<String,String> m,String key,String v){String clean=usable(v);if(!clean.isEmpty())m.put(key,clean);}
     private static void note(Map<String,String> m,String v){m.put("catatan",joinWords(value(m,"catatan"),v));}
     private static String text(JsonNode n,String key){if(n==null)return "";JsonNode v=n.path(key);return v.isMissingNode()||v.isNull()?"":safe(v.asText());}
     private static String first(String... values){for(String v:values)if(!safe(v).isEmpty())return safe(v);return "";}
