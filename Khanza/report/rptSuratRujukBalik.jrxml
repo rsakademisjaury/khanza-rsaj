@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+	name="rptSuratRujukBalik" pageWidth="612" pageHeight="936" columnWidth="574"
+	leftMargin="19" rightMargin="19" topMargin="19" bottomMargin="19">
+	<parameter name="kop" class="java.lang.String"/>
+	<parameter name="logo" class="java.io.InputStream"/>
+	<parameter name="namaRs" class="java.lang.String"/>
+	<parameter name="alamatRs" class="java.lang.String"/>
+	<parameter name="kontakRs" class="java.lang.String"/>
+	<parameter name="nomorSurat" class="java.lang.String"/>
+	<parameter name="tujuan" class="java.lang.String"/>
+	<parameter name="namaPasien" class="java.lang.String"/>
+	<parameter name="noRm" class="java.lang.String"/>
+	<parameter name="noRawat" class="java.lang.String"/>
+	<parameter name="alamat" class="java.lang.String"/>
+	<parameter name="tglLahir" class="java.lang.String"/>
+	<parameter name="jenisKelamin" class="java.lang.String"/>
+	<parameter name="diagnosa" class="java.lang.String"/>
+	<parameter name="terapi" class="java.lang.String"/>
+	<parameter name="tindakLanjut" class="java.lang.String">
+		<defaultValueExpression><![CDATA["Konsultasi selesai"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tempatTanggal" class="java.lang.String"/>
+	<parameter name="dpjp" class="java.lang.String"/>
+	<queryString><![CDATA[SELECT 1]]></queryString>
+	<title>
+		<band height="149" splitType="Stretch">
+			<image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement x="18" y="0" width="538" height="97">
+					<printWhenExpression><![CDATA[$P{kop} != null]]></printWhenExpression>
+				</reportElement>
+				<imageExpression><![CDATA[$P{kop}]]></imageExpression>
+			</image>
+			<image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+				<reportElement x="35" y="9" width="68" height="67">
+					<printWhenExpression><![CDATA[$P{kop} == null && $P{logo} != null]]></printWhenExpression>
+				</reportElement>
+				<imageExpression><![CDATA[$P{logo}]]></imageExpression>
+			</image>
+			<textField isBlankWhenNull="true">
+				<reportElement x="110" y="16" width="430" height="25">
+					<printWhenExpression><![CDATA[$P{kop} == null]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="17" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{namaRs}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="110" y="45" width="430" height="15">
+					<printWhenExpression><![CDATA[$P{kop} == null]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{alamatRs}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="110" y="63" width="430" height="15">
+					<printWhenExpression><![CDATA[$P{kop} == null]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{kontakRs}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="24" y="97" width="526" height="1"/>
+			</line>
+			<staticText>
+				<reportElement x="24" y="110" width="526" height="24"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="16" isBold="true"/>
+				</textElement>
+				<text><![CDATA[SURAT RUJUK BALIK]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="24" y="134" width="526" height="15"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="10" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Nomor " + $P{nomorSurat}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<detail>
+		<band height="26" splitType="Stretch">
+			<staticText>
+				<reportElement x="32" y="7" width="510" height="17"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Kepada Yth. Dokter di]]></text>
+			</staticText>
+		</band>
+		<band height="28" splitType="Stretch">
+			<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<reportElement x="32" y="0" width="510" height="22"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tujuan}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="26" splitType="Stretch">
+			<staticText>
+				<reportElement x="32" y="2" width="510" height="16"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Dengan hormat,]]></text>
+			</staticText>
+		</band>
+		<band height="21" splitType="Stretch">
+			<staticText>
+				<reportElement x="48" y="0" width="112" height="18"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Nama pasien]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<reportElement x="165" y="0" width="363" height="18"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{namaPasien}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="42" splitType="Stretch">
+			<staticText>
+				<reportElement x="48" y="0" width="112" height="18"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[No. RM / No. Rawat]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="165" y="0" width="363" height="18"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{noRm} + " / " + $P{noRawat}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="48" y="21" width="112" height="18"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Tanggal lahir / JK]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="165" y="21" width="363" height="18"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tglLahir} + " / " + $P{jenisKelamin}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="25" splitType="Stretch">
+			<staticText>
+				<reportElement x="48" y="0" width="112" height="18"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Alamat]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<reportElement x="165" y="0" width="363" height="19"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{alamat}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="44" splitType="Stretch">
+			<staticText>
+				<reportElement x="32" y="5" width="510" height="35"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Berikut ringkasan pelayanan pasien di rumah sakit kami dan tindak lanjut yang dianjurkan.]]></text>
+			</staticText>
+		</band>
+		<band height="52" splitType="Stretch">
+			<staticText>
+				<reportElement x="32" y="4" width="495" height="17"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Diagnosa]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<reportElement x="32" y="23" width="510" height="26"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{diagnosa}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="52" splitType="Stretch">
+			<staticText>
+				<reportElement x="32" y="4" width="495" height="17"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Terapi yang Diberikan]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<reportElement x="32" y="23" width="510" height="26"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{terapi}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="52" splitType="Stretch">
+			<staticText>
+				<reportElement x="32" y="4" width="495" height="17"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Tindak Lanjut yang Dianjurkan]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<reportElement x="32" y="23" width="510" height="26"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tindakLanjut}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="152" splitType="Prevent">
+			<staticText>
+				<reportElement x="32" y="7" width="510" height="20"/>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Atas perhatian dan kerja sama Dokter, kami ucapkan terima kasih.]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="285" y="43" width="255" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tempatTanggal}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="285" y="65" width="255" height="17"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Dokter Penanggung Jawab Pelayanan]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true" isStretchWithOverflow="true">
+				<reportElement x="257" y="125" width="311" height="23"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="DejaVu Sans" size="11" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{dpjp}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

@@ -1484,6 +1484,7 @@ public final class DlgReg extends javax.swing.JDialog {
         MnRujukan = new javax.swing.JMenu();
         MnRujukMasuk = new javax.swing.JMenuItem();
         MnRujuk = new javax.swing.JMenuItem();
+        MnRujukBalik = new javax.swing.JMenuItem();
         MnPoliInternal = new javax.swing.JMenuItem();
         MnBridging = new javax.swing.JMenu();
         MnSEP = new javax.swing.JMenuItem();
@@ -4889,6 +4890,22 @@ public final class DlgReg extends javax.swing.JDialog {
             }
         });
         MnRujukan.add(MnRujuk);
+
+        MnRujukBalik.setBackground(new java.awt.Color(255, 255, 254));
+        MnRujukBalik.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
+        MnRujukBalik.setForeground(new java.awt.Color(50, 50, 50));
+        MnRujukBalik.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/category.png"))); // NOI18N
+        MnRujukBalik.setText("Surat Rujuk Balik");
+        MnRujukBalik.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        MnRujukBalik.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        MnRujukBalik.setName("MnRujukBalik"); // NOI18N
+        MnRujukBalik.setPreferredSize(new java.awt.Dimension(150, 26));
+        MnRujukBalik.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                MnRujukBalikActionPerformed(evt);
+            }
+        });
+        MnRujukan.add(MnRujukBalik);
 
         MnPoliInternal.setBackground(new java.awt.Color(255, 255, 254));
         MnPoliInternal.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
@@ -10771,6 +10788,12 @@ private void MnRujukActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST
             this.setCursor(Cursor.getDefaultCursor());
         }
 }//GEN-LAST:event_MnRujukActionPerformed
+
+    private void MnRujukBalikActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnRujukBalikActionPerformed
+        int baris = tbPetugas.getSelectedRow();
+        String noRawat = baris < 0 ? "" : java.util.Objects.toString(tbPetugas.getValueAt(baris, 2), "");
+        DlgRujukBalik.buka(internalFrame1, noRawat);
+    }//GEN-LAST:event_MnRujukBalikActionPerformed
 
 private void MnPemberianObatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnPemberianObatActionPerformed
         if(tabMode.getRowCount()==0){
@@ -17701,6 +17724,7 @@ private void MnSudahTerbitSEPActionPerformed(java.awt.event.ActionEvent evt) {
     private javax.swing.JMenuItem MnRiwayatPerawatanICareNoKartu;
     private javax.swing.JMenuItem MnRiwayatPerawatanICareNoKartu1;
     private javax.swing.JMenuItem MnRujuk;
+    private javax.swing.JMenuItem MnRujukBalik;
     private javax.swing.JMenuItem MnRujukMasuk;
     private javax.swing.JMenuItem MnRujukSisrute;
     private javax.swing.JMenu MnRujukan;
@@ -19785,6 +19809,7 @@ private void MnSudahTerbitSEPActionPerformed(java.awt.event.ActionEvent evt) {
         MnNoResep.setEnabled(akses.getresep_obat());
         MnNoResep1.setEnabled(akses.getresep_obat());
         MnRujuk.setEnabled(akses.getrujukan_keluar());
+        MnRujukBalik.setEnabled(akses.getrujukan_keluar());
         MnRujukMasuk.setEnabled(akses.getrujukan_masuk());
         MnDiagnosa.setEnabled(akses.getdiagnosa_pasien());
         MnDiagnosa1.setEnabled(akses.getdiagnosa_pasien());

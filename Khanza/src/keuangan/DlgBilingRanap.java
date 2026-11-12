@@ -45,6 +45,7 @@ import java.awt.event.WindowListener;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
@@ -767,6 +768,8 @@ public class DlgBilingRanap extends javax.swing.JDialog {
     TabRawat.setIconAt(0, IKON_TAB_TAGIHAN);
     TabRawat.setIconAt(1, IKON_TAB_PEMBAYARAN);
     TabRawat.setIconAt(2, IKON_TAB_STATUS);
+    billingInacbg = new BillingInacbgPanel(this, TabRawat, TNoRw, koneksi, true, () -> ttl,
+            this::pasangBadgeInacbg, () -> BtnNota.isEnabled() && BtnNota.isVisible(), Valid::panggilUrl);
     }
 
     //================ LAZY INITIALIZATION DIALOG PENDUKUNG ================
@@ -3645,6 +3648,7 @@ private void MnHapusTagihanActionPerformed(java.awt.event.ActionEvent evt) {//GE
                 }
                 // ==============================================================================
                              
+             if (sukses && !billingInacbg.removeForCancellation()) sukses = false;
              if(sukses==true){
                  Valid.editTable(tabModeRwJlDr,"reg_periksa","no_rawat",TNoRw,"status_bayar='Belum Bayar'");
                  if(!norawatbayi.equals("")){
@@ -3932,14 +3936,14 @@ private void BtnCariKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_B
                         if(ChkPiutang.isSelected()==true){
                             JOptionPane.showMessageDialog(null,"Maaf, matikan centang di piutang ...!!!");
                         }else{
-                            isSimpan();
+                            simpanDenganInacbg();
                         }                            
                     }                        
                 }else if(kekurangan==0){
                     if(ChkPiutang.isSelected()==true){
                         JOptionPane.showMessageDialog(null,"Maaf, matikan centang di piutang ...!!!");
                     }else{
-                        isSimpan();
+                        simpanDenganInacbg();
                     } 
                 }                
             }else if(piutang>=1){
@@ -3949,7 +3953,7 @@ private void BtnCariKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_B
                     }else if(kekurangan>0){
                         JOptionPane.showMessageDialog(null,"Maaf, terjadi kelebihan piutang ...!!!");
                     }else{
-                        isSimpan();
+                        simpanDenganInacbg();
                     }    
                 }else if(ChkPiutang.isSelected()==false){
                     JOptionPane.showMessageDialog(rootPane,"Silahkan centang terlebih dahulu pada pilihan piutang...!!");
@@ -5262,6 +5266,7 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
     private widget.panelisi panelGlass1;
     private widget.panelisi panelGlass2;
     private widget.panelisi panelGlass8;
+    private BillingInacbgPanel billingInacbg;
     private widget.panelisi panelPermintaan;
     private widget.panelisi panelisi1;
     private widget.panelisi panelisi2;
@@ -5340,16 +5345,24 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
         TabRawat.addChangeListener(new javax.swing.event.ChangeListener(){
             @Override
             public void stateChanged(javax.swing.event.ChangeEvent e){
-                perbaruiBadgeTabRawat(badgeTab);
+                perbaruiBadgeTabRawat();
             }
         });
-        perbaruiBadgeTabRawat(badgeTab);
+        perbaruiBadgeTabRawat();
     }
 
-    private void perbaruiBadgeTabRawat(BadgeTabRawat[] badgeTab){
-        int indeksAktif=TabRawat.getSelectedIndex();
-        for(BadgeTabRawat badge:badgeTab){
-            badge.setAktif(badge.getIndeksTab()==indeksAktif);
+    private void pasangBadgeInacbg(int indeks) {
+        TabRawat.setTabComponentAt(indeks, new BadgeTabRawat(indeks, "INACBG", IKON_TAB_TAGIHAN));
+        perbaruiBadgeTabRawat();
+    }
+
+    private void perbaruiBadgeTabRawat() {
+        int aktif = TabRawat.getSelectedIndex();
+        for (int i = 0; i < TabRawat.getTabCount(); i++) {
+            Component header = TabRawat.getTabComponentAt(i);
+            if (header instanceof BadgeTabRawat) {
+                ((BadgeTabRawat) header).setAktif(i == aktif);
+            }
         }
     }
 
@@ -5365,7 +5378,7 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
             setOpaque(false);
             setLayout(new BorderLayout());
             //Ruang sebelum dan sesudah separator dibuat seimbang.
-            setBorder(BorderFactory.createEmptyBorder(3,3,3,indeksTab<2?14:3));
+            setBorder(BorderFactory.createEmptyBorder(3,3,3,adaTabBerikutnya()?14:3));
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
             labelTab=new JLabel(judul,SwingConstants.CENTER);
@@ -5402,7 +5415,15 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
             return indeksTab;
         }
 
+        private boolean adaTabBerikutnya(){
+            return indeksTab < TabRawat.getTabCount()-1;
+        }
+
         void setAktif(boolean aktif){
+            int ruangKanan = adaTabBerikutnya() ? 14 : 3;
+            if (getInsets().right != ruangKanan) {
+                setBorder(BorderFactory.createEmptyBorder(3,3,3,ruangKanan));
+            }
             this.aktif=aktif;
             perbaruiTampilanBadge();
         }
@@ -5426,7 +5447,7 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
             super.paintComponent(g);
             Graphics2D g2=(Graphics2D)g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
-            int ruangKanan=indeksTab<2?14:3;
+            int ruangKanan=adaTabBerikutnya()?14:3;
             int lebar=Math.max(0,getWidth()-3-ruangKanan);
             int tinggi=Math.max(0,getHeight()-7);
             g2.setColor(aktif?new Color(37,99,235):
@@ -5435,7 +5456,7 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
             g2.setColor(aktif?new Color(29,78,216):
                     (hover?new Color(96,165,250):new Color(203,213,225)));
             g2.drawRoundRect(3,3,lebar,tinggi,tinggi,tinggi);
-            if(indeksTab<2){
+            if(adaTabBerikutnya()){
                 int xSeparator=getWidth()-5;
                 g2.setColor(new Color(203,213,225));
                 g2.drawLine(xSeparator,7,xSeparator,Math.max(7,getHeight()-8));
@@ -5996,6 +6017,7 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
             System.out.println(ex);
          } 
          isKembali();
+         if (billingInacbg != null) billingInacbg.refresh();
     }
     
     /*private void isRawat2(){
@@ -8531,8 +8553,18 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
          }
     }
 
-    private void isSimpan() {
+    private void simpanDenganInacbg() {
+        billingInacbg.beforeSave(() -> BtnSimpanActionPerformed(null), this::isSimpan);
+    }
+
+    private void isSimpan(BillingInacbgPanel.Save dataInacbg) {
+        boolean transaksiInacbg = false;
         try {  
+            if (dataInacbg != null) {
+                koneksi.setAutoCommit(false);
+                transaksiInacbg = true;
+                billingInacbg.lockForSave(dataInacbg);
+            }
             try {
                 Sequel.meghapus("nota_inap","no_rawat",TNoRw.getText());    
                 psnota=koneksi.prepareStatement(sqlpsnota);
@@ -8588,7 +8620,7 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
                 
             }
             
-            Sequel.AutoComitFalse();
+            if (dataInacbg == null) Sequel.AutoComitFalse();
             sukses=true;              
             for(i=0;i<tbBilling.getRowCount();i++){  
                 psbiling=koneksi.prepareStatement(sqlpsbiling);
@@ -8889,7 +8921,14 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
                     Sequel.mengedit("reg_periksa","no_rawat='"+norawatbayi+"'","status_bayar='Sudah Bayar'");
                 }  
                 Sequel.meghapus("temporary_tambahan_potongan","no_rawat",TNoRw.getText());
-                Sequel.Commit();
+                if (dataInacbg != null) {
+                    billingInacbg.persist(dataInacbg, no_nota, ttl, akses.getkode());
+                    koneksi.commit();
+                    transaksiInacbg = false;
+                    Sequel.AutoComitTrue();
+                } else {
+                    Sequel.Commit();
+                }
                 
                 // 🔹 AUTO UPLOAD BILLING KE INACBG SETELAH BERHASIL SIMPAN
                 try {
@@ -8904,8 +8943,9 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
                 JOptionPane.showMessageDialog(null,"Proses simpan selesai...!"); 
                 BtnNotaActionPerformed(null);
             }else{
+                if (transaksiInacbg) koneksi.rollback();
                 JOptionPane.showMessageDialog(null,"Terjadi kesalahan saat pemrosesan data, transaksi dibatalkan.\nPeriksa kembali data sebelum melanjutkan menyimpan..!!");
-                Sequel.RollBack();
+                if (!transaksiInacbg) Sequel.RollBack();
             }
 
             Sequel.AutoComitTrue();
@@ -8916,6 +8956,16 @@ i=Sequel.cariInteger("select count(billing.no_rawat) from billing where billing.
                 }
             }
         }catch (Exception ex) {
+            if (transaksiInacbg) {
+                try {
+                    koneksi.rollback();
+                    koneksi.setAutoCommit(true);
+                } catch (SQLException rollback) {
+                    System.err.println("Rollback Billing INACBG: " + rollback.getSQLState());
+                }
+                JOptionPane.showMessageDialog(this, "Billing BPJS gagal disimpan. Periksa data nota dan INACBG, lalu coba lagi.");
+                return;
+            }
             System.out.println("Notifikasi : "+ex);            
             JOptionPane.showMessageDialog(null,"Maaf, gagal menyimpan data. Data yang sama dimasukkan sebelumnya...!");
         }              

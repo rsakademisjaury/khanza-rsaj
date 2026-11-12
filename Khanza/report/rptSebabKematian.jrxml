@@ -596,7 +596,7 @@ LEFT JOIN
 					<font fontName="Arial" size="10"/>
 					<paragraph lineSpacing="Single"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{LahirMati}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{Doa}]]></textFieldExpression>
 			</textField>
 			<staticText>
 				<reportElement x="450" y="108" width="10" height="17" uuid="9b5db562-9ca3-4bbb-abba-01a98ee0271a"/>
