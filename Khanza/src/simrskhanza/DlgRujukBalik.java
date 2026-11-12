@@ -1,6 +1,5 @@
 package simrskhanza;
 
-import com.toedter.calendar.JDateChooser;
 import fungsi.akses;
 import fungsi.koneksiDB;
 import fungsi.sekuel;
@@ -31,6 +30,8 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -76,7 +77,7 @@ public final class DlgRujukBalik extends JDialog {
     private final JTextArea diagnosa = new JTextArea(3, 30);
     private final JTextArea terapi = new JTextArea(4, 30);
     private final JComboBox<TindakLanjut> tindakLanjut = new JComboBox<>(TindakLanjut.values());
-    private final JDateChooser tanggalKontrol = new JDateChooser();
+    private final Tanggal tanggalKontrol = new Tanggal();
     private final JTextField keteranganLain = new JTextField();
     private final JButton cetak = tombol("Cetak", false);
     private String noRm, namaPasien, alamatPasien, jenisKelamin;
@@ -231,8 +232,6 @@ public final class DlgRujukBalik extends JDialog {
         tindakLanjut.setForeground(TEKS);
         tindakLanjut.setSelectedItem(tersimpan == null
                 ? TindakLanjut.KONSULTASI_SELESAI : tersimpan.tindakLanjut);
-        tanggalKontrol.setLocale(Locale.forLanguageTag("id-ID"));
-        tanggalKontrol.setDateFormatString("dd/MM/yyyy");
         JPanel kontrol = bidang("Tanggal Kontrol", gayaTanggal(tanggalKontrol));
         JPanel lain = bidang("Keterangan Lain-lain", inputTeks(keteranganLain, true));
         JPanel tambahan = new JPanel(new BorderLayout());
@@ -371,7 +370,9 @@ public final class DlgRujukBalik extends JDialog {
                     tujuan.setText(tersimpan.tujuan);
                     isiBidangKlinis(diagnosa, tersimpan.diagnosa);
                     isiBidangKlinis(terapi, tersimpan.terapi);
-                    tanggalKontrol.setDate(tersimpan.tanggalKontrol);
+                    if (tersimpan.tanggalKontrol != null) {
+                        tanggalKontrol.setDate(tersimpan.tanggalKontrol);
+                    }
                     keteranganLain.setText(tersimpan.keteranganLain);
                     return;
                 }
@@ -531,9 +532,18 @@ public final class DlgRujukBalik extends JDialog {
                 LocalDate.ofInstant(Instant.ofEpochMilli(pilihan.getTime()), ZoneId.systemDefault()));
     }
 
+    private Date bacaTanggalKontrol() {
+        String teks = Objects.toString(tanggalKontrol.getEditor().getItem(), "").strip();
+        SimpleDateFormat format = new SimpleDateFormat(tanggalKontrol.getDisplayFormat());
+        format.setLenient(false);
+        ParsePosition posisi = new ParsePosition(0);
+        java.util.Date pilihan = format.parse(teks, posisi);
+        return posisi.getIndex() == teks.length() ? tanggalSql(pilihan) : null;
+    }
+
     private Surat isiForm() {
         TindakLanjut pilihan = (TindakLanjut) tindakLanjut.getSelectedItem();
-        Date kontrol = pilihan == TindakLanjut.KONTROL_RS ? tanggalSql(tanggalKontrol.getDate()) : null;
+        Date kontrol = pilihan == TindakLanjut.KONTROL_RS ? bacaTanggalKontrol() : null;
         String lain = pilihan == TindakLanjut.LAIN_LAIN ? keteranganLain.getText().strip() : null;
         return new Surat(kodeDokter, tanggalSql(tanggal.getDate()), tujuan.getText().trim(), diagnosa.getText().trim(),
                 terapi.getText().trim(), pilihan, kontrol, lain, tersimpan == null ? 0 : tersimpan.revisi);
