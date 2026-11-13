@@ -528,8 +528,8 @@ public final class DlgReg extends javax.swing.JDialog {
         otomatisRefresh();
         initCekRujukanNikMandiri();
         initCekSuratKontrolMandiri();
-        // SSRME RSAJ: inisialisasi UI saja; jaringan/database hanya saat tombol diklik.
-        bridging.SsrmeLauncher.pasang(this, internalFrame1, () -> TabRawat.getSelectedIndex()==0 ? bridging.SsrmeLauncher.dariTabel(tbPetugas, 2, 7) : bridging.SsrmeLauncher.dariTabel(tbPetugas2, 1, 6), true, false);
+        bridging.SsrmeLauncher.pasangMenuTabel(this, jPopupMenu1, tbPetugas, 2, 7, true, false);
+        bridging.SsrmeLauncher.pasangMenuTabel(this, jPopupMenu2, tbPetugas2, 1, 6, true, false);
 
         this.setLocation(8,1);
         setSize(885,674);       

@@ -1,10 +1,17 @@
 package simrskhanza;
 
+import bridging.ApiBPJS;
+import bridging.BPJSCekReferensiFaskes;
+import bridging.BPJSCekReferensiPenyakit;
+import bridging.BPJSCekReferensiPoli;
+import bridging.VClaimRujukBalik;
+import bridging.VClaimRujukBalik.Faskes;
+import bridging.VClaimRujukBalik.Tipe;
 import fungsi.akses;
+import fungsi.batasInput;
 import fungsi.koneksiDB;
 import fungsi.sekuel;
 import fungsi.validasi;
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -15,33 +22,33 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.KeyboardFocusManager;
 import java.awt.RenderingHints;
 import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.io.File;
-import java.sql.Connection;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.ParsePosition;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.HashMap;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.StringJoiner;
+import java.util.concurrent.ExecutionException;
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -50,131 +57,647 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
 import javax.swing.JTable;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.border.AbstractBorder;
 import javax.swing.plaf.basic.BasicButtonUI;
-import javax.swing.plaf.basic.BasicTextAreaUI;
 import javax.swing.plaf.basic.BasicTextFieldUI;
-import kepegawaian.DlgCariDokter;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
 import widget.Tanggal;
 
 public final class DlgRujukBalik extends JDialog {
-    private static final DateTimeFormatter FORMAT_TANGGAL =
-            DateTimeFormatter.ofPattern("d MMMM uuuu", Locale.forLanguageTag("id-ID"));
+    private static final String RAWAT_INAP = "1. Rawat Inap";
+    private static final String RAWAT_JALAN = "2. Rawat Jalan";
+    private static final String JUDUL = "Surat Rujuk Balik BPJS";
+    private static final String FORMAT_TANGGAL = "dd-MM-yyyy";
+    private static final DateTimeFormatter PEMBACA_TANGGAL =
+            DateTimeFormatter.ofPattern("dd-MM-uuuu").withResolverStyle(ResolverStyle.STRICT);
     private static final Color BIRU = new Color(29, 96, 202);
     private static final Color TEKS = new Color(28, 47, 73);
     private static final Color GARIS = new Color(187, 202, 220);
     private static final Color LATAR = new Color(243, 247, 252);
-    private static final int SUDUT = 10;
 
-    private final String noRawat;
-    private final JTextField pasien = new JTextField();
-    private final JTextField tujuan = new JTextField();
-    private final JTextField dpjp = new JTextField();
-    private final Tanggal tanggal = new Tanggal();
-    private final JTextArea diagnosa = new JTextArea(3, 30);
-    private final JTextArea terapi = new JTextArea(4, 30);
-    private final JComboBox<TindakLanjut> tindakLanjut = new JComboBox<>(TindakLanjut.values());
-    private final Tanggal tanggalKontrol = new Tanggal();
-    private final JTextField keteranganLain = new JTextField();
+    private final VClaimRujukBalik.Sep sep;
+    private final Tanggal tanggalRujukan = tanggal("Tanggal Rujukan");
+    private final Tanggal rencanaKunjungan = tanggal("Rencana Kunjungan");
+    private final JComboBox<Tipe> tipeRujukan = new JComboBox<>(Tipe.values());
+    private final JComboBox<String> jenisPelayanan = new JComboBox<>(new String[]{RAWAT_JALAN});
+    private final JTextField catatan = new JTextField();
+    private final Referensi ppk = new Referensi();
+    private final JButton cekFktp = tombol("Cek FKTP", false);
+    private final Referensi diagnosa = new Referensi();
+    private final Referensi poli = new Referensi();
+    private final JButton simpan = tombol("Simpan", true);
     private final JButton cetak = tombol("Cetak", false);
-    private String noRm, namaPasien, alamatPasien, jenisKelamin;
-    private Date tanggalLahir;
-    private boolean rawatInap;
-    private String kodeDokter = "";
-    private Surat tersimpan;
+    private final JButton tutup = tombol("Tutup", false);
+    private final JLabel status = label("", 12, Font.PLAIN);
+    private final Map<Tipe, List<String>> riwayat;
+    private final JPanel bidangKunjungan = bidang("Rencana Kunjungan", rencanaKunjungan);
+    private final JPanel bidangPoli = bidang("Poli Tujuan", poli.panel);
+    private boolean perluCekVClaim;
+    private Faskes fktp;
+    private boolean sedangCekFktp;
+    private String pesanFktp = "";
+    private String kodePpkManual = "", namaPpkManual = "";
+    private String pelayananManual = RAWAT_JALAN;
 
     public static void buka(Component induk, String noRawat) {
-        if (!akses.getrujukan_keluar()) {
+        if (!akses.getbpjs_rujukan_keluar()) {
             return;
         }
         if (noRawat == null || noRawat.trim().isEmpty()) {
             JOptionPane.showMessageDialog(induk, "Silakan pilih kunjungan pasien terlebih dahulu.");
             return;
         }
-        Window pemilik = SwingUtilities.getWindowAncestor(induk);
-        induk.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        DlgRujukBalik dialog;
+
         try {
-            dialog = new DlgRujukBalik(pemilik, noRawat.trim());
+            List<VClaimRujukBalik.Sep> daftar = VClaimRujukBalik.cariSep(noRawat.trim(), null);
+            if (daftar.isEmpty()) {
+                JOptionPane.showMessageDialog(induk, "Belum ada SEP BPJS untuk kunjungan ini.");
+                return;
+            }
+            VClaimRujukBalik.Sep sep = daftar.size() == 1 ? daftar.get(0)
+                    : (VClaimRujukBalik.Sep) JOptionPane.showInputDialog(induk, "Pilih SEP untuk rujuk balik.",
+                            JUDUL, JOptionPane.QUESTION_MESSAGE, null, daftar.toArray(), daftar.get(0));
+            if (sep == null) {
+                return;
+            }
+
+            Window pemilik = induk instanceof Window ? (Window) induk
+                    : induk == null ? null : SwingUtilities.getWindowAncestor(induk);
+            DlgRujukBalik dialog = new DlgRujukBalik(pemilik, sep, VClaimRujukBalik.riwayat(sep.nomor));
+            dialog.setLocationRelativeTo(induk);
+            dialog.setVisible(true);
+            dialog.cekFktpJikaDiperlukan();
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(induk, pesanDatabase(e, "membuka"));
-            return;
-        } finally {
-            induk.setCursor(Cursor.getDefaultCursor());
+            JOptionPane.showMessageDialog(induk, "Data SEP atau riwayat rujukan tidak dapat dibaca. Periksa koneksi database.");
         }
-        dialog.setLocationRelativeTo(induk);
-        dialog.setVisible(true);
-        SwingUtilities.invokeLater(dialog.tujuan::requestFocusInWindow);
     }
 
-    private DlgRujukBalik(Window pemilik, String noRawat) throws SQLException {
-        super(pemilik, "Surat Rujuk Balik", ModalityType.MODELESS);
-        this.noRawat = noRawat;
-        muatKunjungan();
-        buatTampilan();
-    }
+    private DlgRujukBalik(Window pemilik, VClaimRujukBalik.Sep sep, Map<Tipe, List<String>> riwayat) {
+        super(pemilik, JUDUL, ModalityType.MODELESS);
+        this.sep = sep;
+        this.riwayat = riwayat;
 
-    private void buatTampilan() {
+        diagnosa.isi(sep.kodeDiagnosa, sep.namaDiagnosa);
+        tipeRujukan.setSelectedItem(Tipe.RUJUK_BALIK);
+        catatan.setName("Catatan");
+        catatan.setDocument(new batasInput((byte) 50).getKata(catatan));
+        cekFktp.addActionListener(e -> cekFktpJikaDiperlukan());
+        ppk.pilih.addActionListener(e -> {
+            BPJSCekReferensiFaskes dialog = new BPJSCekReferensiFaskes(null, true);
+            pilihReferensi(dialog, dialog.getTable(), "diagnosa", "Pilih PPK Rujukan", ppk);
+        });
+        diagnosa.pilih.addActionListener(e -> {
+            BPJSCekReferensiPenyakit dialog = new BPJSCekReferensiPenyakit(null, true);
+            pilihReferensi(dialog, dialog.getTable(), "diagnosa", "Pilih Diagnosa Rujuk", diagnosa);
+        });
+        poli.pilih.addActionListener(e -> {
+            BPJSCekReferensiPoli dialog = new BPJSCekReferensiPoli(null, true);
+            pilihReferensi(dialog, dialog.getTable(), "Poli", "Pilih Poli Tujuan", poli);
+        });
+
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        JPanel isi = panelDialog(JUDUL);
 
-        JPanel isi = new JPanel(new BorderLayout(0, 14));
-        isi.setBackground(LATAR);
-        isi.setBorder(BorderFactory.createEmptyBorder(16, 20, 15, 20));
-        JButton tarik = tombol("Tarik Data Klinis", false);
-        tarik.setToolTipText("Ambil diagnosa dan Plan / Instruksi dari CPPT kunjungan ini");
-        tarik.addActionListener(e -> tarikDataKlinis());
-        JPanel judul = new JPanel(new BorderLayout(12, 0));
-        judul.setOpaque(false);
-        judul.add(label("Surat Rujuk Balik", 20, Font.BOLD), BorderLayout.CENTER);
-        judul.add(tarik, BorderLayout.EAST);
-        isi.add(judul, BorderLayout.NORTH);
-        JPanel form = new JPanel(new GridBagLayout());
+        for (JComboBox<?> pilihan : List.of(tipeRujukan, jenisPelayanan)) {
+            pilihan.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            pilihan.setForeground(TEKS);
+            pilihan.setPreferredSize(new Dimension(180, 32));
+        }
+
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setBackground(Color.WHITE);
-        form.setBorder(BorderFactory.createEmptyBorder(11, 14, 11, 14));
-        JTextField rawat = new JTextField(noRawat);
-        JPanel identitas = duaKolom(
-                bidang("No. Rawat", inputTeks(rawat, false)),
-                bidang("Pasien / No. RM", inputTeks(pasien, false)));
-        JPanel tujuanSurat = duaKolom(
-                bidang("Tanggal Surat", gayaTanggal(tanggal)),
-                bidang("Faskes / Dokter Tujuan", inputTeks(tujuan, true)));
-        JButton pilihDokter = tombol("Pilih DPJP", false);
-        pilihDokter.addActionListener(e -> pilihDpjp());
-        JPanel dokter = new JPanel(new BorderLayout(8, 0));
-        dokter.setOpaque(false);
-        dokter.add(inputTeks(dpjp, false), BorderLayout.CENTER);
-        dokter.add(pilihDokter, BorderLayout.EAST);
-
-        baris(form, 0, identitas, 0);
-        baris(form, 1, tujuanSurat, 0);
-        baris(form, 2, bidang("Dokter Penanggung Jawab", dokter), 0);
-        baris(form, 3, bidang("Diagnosa", bidangKlinis(diagnosa)), 1);
-        baris(form, 4, bidang("Terapi yang Diberikan", bidangKlinis(terapi)), 2);
-        baris(form, 5, bidangTindakLanjut(), 0);
+        form.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+        baris(form, duaKolom(bidang("No. Rawat", identitas(sep.noRawat)), bidang("No. SEP", identitas(sep.nomor))));
+        baris(form, duaKolom(bidang("Pasien / No. RM", identitas(sep.namaPasien + " / " + sep.noRm)),
+                bidang("Tipe Rujukan", tipeRujukan)));
+        JPanel tempatKunjungan = new JPanel(new BorderLayout());
+        tempatKunjungan.setOpaque(false);
+        tempatKunjungan.add(bidangKunjungan);
+        baris(form, duaKolom(bidang("Tanggal Rujukan", tanggalRujukan), tempatKunjungan));
+        JPanel tindakanPpk = new JPanel(new BorderLayout());
+        tindakanPpk.setOpaque(false);
+        tindakanPpk.add(ppk.pilih, BorderLayout.WEST);
+        tindakanPpk.add(cekFktp, BorderLayout.EAST);
+        ppk.panel.add(tindakanPpk, BorderLayout.EAST);
+        baris(form, bidang("PPK Rujukan", ppk.panel));
+        baris(form, bidang("Diagnosa Rujuk", diagnosa.panel));
+        baris(form, duaKolom(bidang("Jenis Pelayanan", jenisPelayanan), bidang("Catatan", input(catatan, true))));
+        baris(form, bidangPoli);
+        tipeRujukan.addActionListener(e -> {
+            if (tipeTerpilih() == Tipe.RUJUK_BALIK) {
+                if (jenisPelayanan.getItemCount() > 1) {
+                    kodePpkManual = ppk.kode.getText();
+                    namaPpkManual = ppk.nama.getText();
+                    pelayananManual = (String) jenisPelayanan.getSelectedItem();
+                    jenisPelayanan.setModel(new DefaultComboBoxModel<>(new String[]{RAWAT_JALAN}));
+                    isiPpkDariFktp();
+                }
+            } else if (jenisPelayanan.getItemCount() == 1) {
+                jenisPelayanan.setModel(new DefaultComboBoxModel<>(new String[]{RAWAT_INAP, RAWAT_JALAN}));
+                jenisPelayanan.setSelectedItem(pelayananManual);
+                ppk.isi(kodePpkManual, namaPpkManual);
+            }
+            tampilkanIsianPelayanan();
+            tampilkanStatus();
+            cekFktpJikaDiperlukan();
+        });
+        jenisPelayanan.addActionListener(e -> tampilkanIsianPelayanan());
+        tampilkanIsianPelayanan();
         isi.add(form, BorderLayout.CENTER);
 
-        JButton simpan = tombol("Simpan", true);
-        simpan.setMnemonic('S');
         simpan.addActionListener(e -> simpan());
-        cetak.setMnemonic('T');
-        cetak.setEnabled(tersimpan != null);
         cetak.addActionListener(e -> cetak());
-        JButton tutup = tombol("Tutup", false);
         tutup.addActionListener(e -> dispose());
-        JPanel tindakan = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel tombol = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        tombol.setOpaque(false);
+        tombol.add(simpan);
+        tombol.add(cetak);
+        tombol.add(tutup);
+        JPanel tindakan = new JPanel(new BorderLayout(8, 0));
         tindakan.setOpaque(false);
-        tindakan.add(simpan);
-        tindakan.add(cetak);
-        tindakan.add(tutup);
+        tindakan.add(status, BorderLayout.CENTER);
+        tindakan.add(tombol, BorderLayout.EAST);
         isi.add(tindakan, BorderLayout.SOUTH);
 
+        tampilkanStatus();
         setContentPane(isi);
-        setPreferredSize(new Dimension(770, 645));
-        setMinimumSize(new Dimension(620, 605));
         pack();
+        setMinimumSize(new Dimension(640, 0));
+        setSize(Math.max(760, getWidth()), getHeight());
+    }
+
+    private static void baris(JPanel form, JPanel baris) {
+        baris.setBorder(BorderFactory.createEmptyBorder(0, 0, 9, 0));
+        baris.setMaximumSize(new Dimension(Integer.MAX_VALUE, baris.getPreferredSize().height));
+        form.add(baris);
+    }
+
+    private Tipe tipeTerpilih() {
+        return (Tipe) tipeRujukan.getSelectedItem();
+    }
+
+    private String kodePelayanan() {
+        return RAWAT_INAP.equals(jenisPelayanan.getSelectedItem()) ? "1" : "2";
+    }
+
+    private void tampilkanIsianPelayanan() {
+        Tipe tipe = tipeTerpilih();
+        String pelayanan = kodePelayanan();
+        bidangKunjungan.setVisible(tipe.tampilKunjungan(pelayanan));
+        bidangPoli.setVisible(tipe.tampilPoli(pelayanan));
+        if (isDisplayable()) {
+            int lebar = getWidth();
+            pack();
+            setSize(Math.max(lebar, getWidth()), getHeight());
+        }
+    }
+
+    private void pilihReferensi(JDialog sumber, JTable tabelSumber, String namaInput, String judul, Referensi referensi) {
+        Container kontrol = sumber.getContentPane();
+        JTextField inputSumber = cariKomponen(kontrol, namaInput, JTextField.class);
+        JButton cariSumber = cariKomponen(kontrol, "BtnCari", JButton.class);
+        JButton cetakSumber = cariKomponen(kontrol, "BtnPrint", JButton.class);
+        if (inputSumber == null || cariSumber == null || cetakSumber == null) {
+            sumber.dispose();
+            JOptionPane.showMessageDialog(this, "Kontrol pencarian referensi BPJS tidak ditemukan.");
+            return;
+        }
+        JDialog dialog = new JDialog(this, judul, ModalityType.DOCUMENT_MODAL);
+        dialog.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        dialog.setResizable(false);
+
+        // Gunakan dokumen pencarian dan model tabel dari dialog referensi BPJS.
+        JTextField kataKunci = new JTextField(inputSumber.getDocument(), "", 25);
+        kataKunci.getAccessibleContext().setAccessibleName("Kode atau nama");
+        JTable tabel = tabelReferensi(tabelSumber);
+        JScrollPane gulir = new JScrollPane(tabel);
+        gulir.setBorder(BorderFactory.createLineBorder(GARIS));
+        gulir.getViewport().setBackground(Color.WHITE);
+
+        JButton cari = tombol("Cari", true);
+        cari.setMnemonic('6');
+        cari.addActionListener(e -> {
+            tabel.clearSelection();
+            dialog.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            try {
+                cariSumber.doClick(0);
+            } finally {
+                dialog.setCursor(Cursor.getDefaultCursor());
+            }
+        });
+        kataKunci.addActionListener(e -> cari.doClick(0));
+        JPanel pencarian = new JPanel(new BorderLayout(8, 0));
+        pencarian.setOpaque(false);
+        pencarian.add(bidang("Kode atau nama", input(kataKunci, true)), BorderLayout.CENTER);
+        JPanel tombolCari = new JPanel(new BorderLayout());
+        tombolCari.setOpaque(false);
+        tombolCari.add(cari, BorderLayout.SOUTH);
+        pencarian.add(tombolCari, BorderLayout.EAST);
+
+        JPanel daftar = new JPanel(new BorderLayout(0, 12));
+        daftar.setBackground(Color.WHITE);
+        daftar.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+        daftar.add(pencarian, BorderLayout.NORTH);
+        daftar.add(gulir, BorderLayout.CENTER);
+
+        JButton pilih = tombol("Pilih", true);
+        pilih.setEnabled(false);
+        Runnable pilihBaris = () -> {
+            int baris = tabel.getSelectedRow();
+            if (baris >= 0) {
+                String kode = Objects.toString(tabel.getValueAt(baris, 1), "").trim();
+                String nama = Objects.toString(tabel.getValueAt(baris, 2), "").trim();
+                if (!kode.isEmpty() && !nama.isEmpty()) {
+                    referensi.isi(kode, nama);
+                    dialog.dispose();
+                }
+            }
+        };
+        pilih.addActionListener(e -> pilihBaris.run());
+        tabel.getSelectionModel().addListSelectionListener(e -> {
+            int baris = tabel.getSelectedRow();
+            pilih.setEnabled(baris >= 0 && !Objects.toString(tabel.getValueAt(baris, 2), "").trim().isEmpty());
+        });
+        pasangTombol(tabel, JComponent.WHEN_FOCUSED, KeyEvent.VK_ENTER, "pilihEnter", pilihBaris);
+        pasangTombol(tabel, JComponent.WHEN_FOCUSED, KeyEvent.VK_SPACE, "pilihSpasi", pilihBaris);
+        tabel.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2
+                        && tabel.rowAtPoint(e.getPoint()) >= 0) {
+                    pilihBaris.run();
+                }
+            }
+        });
+
+        JButton cetakDaftar = tombol("Cetak", false);
+        cetakDaftar.setMnemonic('T');
+        cetakDaftar.addActionListener(e -> cetakSumber.doClick(0));
+        JButton keluar = tombol("Keluar", false);
+        keluar.setMnemonic('K');
+        keluar.addActionListener(e -> dialog.dispose());
+        JPanel tombol = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        tombol.setOpaque(false);
+        tombol.add(pilih);
+        tombol.add(keluar);
+        JPanel tindakan = new JPanel(new BorderLayout(8, 0));
+        tindakan.setOpaque(false);
+        tindakan.add(cetakDaftar, BorderLayout.WEST);
+        tindakan.add(tombol, BorderLayout.EAST);
+
+        JPanel isi = panelDialog(judul);
+        isi.add(daftar, BorderLayout.CENTER);
+        isi.add(tindakan, BorderLayout.SOUTH);
+        dialog.setContentPane(isi);
+        pasangTombol(dialog.getRootPane(), JComponent.WHEN_IN_FOCUSED_WINDOW,
+                KeyEvent.VK_ESCAPE, "keluar", dialog::dispose);
+        ComponentAdapter ikutiInduk = new ComponentAdapter() {
+            @Override public void componentMoved(ComponentEvent e) {
+                dialog.setBounds(getBounds());
+            }
+
+            @Override public void componentResized(ComponentEvent e) {
+                dialog.setBounds(getBounds());
+            }
+        };
+        addComponentListener(ikutiInduk);
+        dialog.setBounds(getBounds());
+        SwingUtilities.invokeLater(kataKunci::requestFocusInWindow);
+        try {
+            dialog.setVisible(true);
+        } finally {
+            removeComponentListener(ikutiInduk);
+            dialog.dispose();
+            sumber.dispose();
+        }
+    }
+
+    private static JPanel panelDialog(String judul) {
+        JPanel isi = new JPanel(new BorderLayout(0, 15));
+        isi.setBackground(LATAR);
+        isi.setBorder(BorderFactory.createEmptyBorder(19, 20, 14, 20));
+        isi.add(label(judul, 20, Font.BOLD), BorderLayout.NORTH);
+        return isi;
+    }
+
+    private static JTable tabelReferensi(JTable sumber) {
+        JTable tabel = new JTable(sumber.getModel());
+        tabel.setAutoCreateRowSorter(true);
+        tabel.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabel.setFillsViewportHeight(true);
+        tabel.setRowHeight(32);
+        tabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        tabel.setForeground(TEKS);
+        tabel.setBackground(Color.WHITE);
+        tabel.setSelectionBackground(new Color(221, 235, 255));
+        tabel.setSelectionForeground(TEKS);
+        tabel.setShowGrid(false);
+        tabel.setIntercellSpacing(new Dimension(0, 0));
+        tabel.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable daftar, Object nilai,
+                    boolean dipilih, boolean fokus, int baris, int kolom) {
+                super.getTableCellRendererComponent(daftar, nilai, dipilih, fokus, baris, kolom);
+                setBackground(dipilih ? daftar.getSelectionBackground() : baris % 2 == 0 ? Color.WHITE : LATAR);
+                setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+                return this;
+            }
+        });
+        tabel.getColumnModel().getColumn(0).setMaxWidth(54);
+        tabel.getColumnModel().getColumn(1).setMinWidth(138);
+        tabel.getColumnModel().getColumn(1).setPreferredWidth(145);
+        tabel.getColumnModel().getColumn(1).setMaxWidth(170);
+        tabel.getColumnModel().getColumn(2).setPreferredWidth(460);
+
+        JTableHeader header = tabel.getTableHeader();
+        header.setReorderingAllowed(false);
+        header.setPreferredSize(new Dimension(0, 33));
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        TableCellRenderer bawaan = header.getDefaultRenderer();
+        header.setDefaultRenderer((daftar, nilai, dipilih, fokus, baris, kolom) -> {
+            Component sel = bawaan.getTableCellRendererComponent(daftar, nilai, dipilih, fokus, baris, kolom);
+            if (sel instanceof JLabel) {
+                JLabel judul = (JLabel) sel;
+                judul.setHorizontalAlignment(JLabel.LEADING);
+                judul.setOpaque(true);
+                judul.setBackground(LATAR);
+                judul.setForeground(TEKS);
+                judul.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 0, GARIS),
+                        BorderFactory.createEmptyBorder(0, 10, 0, 10)));
+            }
+            return sel;
+        });
+        return tabel;
+    }
+
+    private static void pasangTombol(JComponent komponen, int lingkup, int tombol, String nama, Runnable aksi) {
+        komponen.getInputMap(lingkup).put(KeyStroke.getKeyStroke(tombol, 0), nama);
+        komponen.getActionMap().put(nama, new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) {
+                aksi.run();
+            }
+        });
+    }
+
+    private static <T extends Component> T cariKomponen(Container wadah, String nama, Class<T> tipe) {
+        for (Component komponen : wadah.getComponents()) {
+            if (nama.equals(komponen.getName()) && tipe.isInstance(komponen)) {
+                return tipe.cast(komponen);
+            }
+            if (komponen instanceof Container) {
+                T hasil = cariKomponen((Container) komponen, nama, tipe);
+                if (hasil != null) {
+                    return hasil;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void cekFktpJikaDiperlukan() {
+        if (tipeTerpilih() != Tipe.RUJUK_BALIK || sedangCekFktp || fktp != null
+                || perluCekVClaim || !nomorRujukanTerpilih().isEmpty()) {
+            return;
+        }
+        sedangCekFktp = true;
+        pesanFktp = "Mencari FKTP terdaftar di BPJS…";
+        tampilkanStatus();
+        new SwingWorker<Faskes, Void>() {
+            @Override protected Faskes doInBackground() throws Exception {
+                String link = Objects.toString(koneksiDB.URLAPIBPJS(), "").trim();
+                return VClaimRujukBalik.cariFaskesPeserta(sep, link, new ApiBPJS());
+            }
+
+            @Override protected void done() {
+                sedangCekFktp = false;
+                try {
+                    fktp = get();
+                    pesanFktp = "";
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    pesanFktp = "Pencarian FKTP terhenti. Klik Cek FKTP untuk mencoba lagi.";
+                } catch (ExecutionException e) {
+                    Throwable sebab = e.getCause();
+                    pesanFktp = sebab instanceof VClaimRujukBalik.Ditolak ? sebab.getMessage()
+                            : "Gagal mengambil FKTP dari BPJS. Klik Cek FKTP untuk mencoba lagi.";
+                }
+                if (isDisplayable() && tipeTerpilih() == Tipe.RUJUK_BALIK) {
+                    isiPpkDariFktp();
+                    tampilkanStatus();
+                }
+            }
+        }.execute();
+    }
+
+    private void isiPpkDariFktp() {
+        ppk.isi(fktp == null ? "" : fktp.kode, fktp == null ? "" : fktp.nama);
+    }
+
+    private void simpan() {
+        if (!akses.getbpjs_rujukan_keluar() || !simpan.isEnabled()) {
+            return;
+        }
+        if (sep.namaPasien.trim().isEmpty() || sep.kartu.trim().isEmpty() || sep.kodePpkPelayanan.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Pilih SEP dengan data pasien, kartu, dan PPK pelayanan yang lengkap.");
+            return;
+        }
+        String isiCatatan = catatan.getText().trim();
+        if (ppk.kosong() || diagnosa.kosong() || isiCatatan.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Isi PPK rujukan, diagnosa rujuk, dan catatan.");
+            return;
+        }
+
+        if (isiCatatan.length() > 50) {
+            JOptionPane.showMessageDialog(this, "Catatan maksimal 50 karakter.");
+            return;
+        }
+
+        Tipe tipe = tipeTerpilih();
+        String pelayanan = kodePelayanan();
+        boolean adaRencana = tipe.tampilKunjungan(pelayanan);
+        Date tanggal;
+        Date kunjungan;
+        try {
+            tanggal = bacaTanggal(tanggalRujukan);
+            kunjungan = adaRencana ? bacaTanggal(rencanaKunjungan) : tanggal;
+        } catch (DateTimeParseException e) {
+            JOptionPane.showMessageDialog(this, adaRencana
+                    ? "Isi tanggal rujukan dan rencana kunjungan dengan benar."
+                    : "Isi tanggal rujukan dengan benar.");
+            return;
+        }
+
+        String link = Objects.toString(koneksiDB.URLAPIBPJS(), "").trim();
+        if (link.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Alamat layanan BPJS VClaim belum tersedia.");
+            return;
+        }
+        String user = akses.getkode();
+        String tanpaSpasi = user.replace(" ", "");
+        if (tanpaSpasi.length() >= 9) {
+            user = tanpaSpasi.substring(0, 9);
+        }
+        VClaimRujukBalik.Data data = new VClaimRujukBalik.Data(tipe, tanggal, kunjungan, ppk.kode.getText(),
+                ppk.nama.getText(), pelayanan, isiCatatan,
+                diagnosa.kode.getText(), diagnosa.nama.getText(), poli.kode.getText(), poli.nama.getText(), user);
+        setFormAktif(false);
+        tipeRujukan.setEnabled(false);
+        simpan.setEnabled(false);
+        tutup.setEnabled(false);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        status.setText("Mengirim rujukan ke BPJS…");
+        new SwingWorker<String, Void>() {
+            @Override protected String doInBackground() throws Exception {
+                return VClaimRujukBalik.kirim(sep, data, link, new ApiBPJS());
+            }
+
+            @Override protected void done() {
+                setCursor(Cursor.getDefaultCursor());
+                setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+                tutup.setEnabled(true);
+                try {
+                    riwayat.put(tipe, List.of(get()));
+                    tampilkanStatus();
+                    cetak();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    statusTidakPasti("");
+                } catch (ExecutionException e) {
+                    tanganiGagalKirim(tipe, e.getCause());
+                }
+            }
+        }.execute();
+    }
+
+    private void tanganiGagalKirim(Tipe tipe, Throwable sebab) {
+        if (sebab instanceof VClaimRujukBalik.SudahTerbit) {
+            riwayat.put(tipe, ((VClaimRujukBalik.SudahTerbit) sebab).nomor);
+            tampilkanStatus();
+            JOptionPane.showMessageDialog(this, "Rujukan dengan tipe ini sudah terbit. Gunakan Cetak untuk mencetak ulang.");
+        } else if (sebab instanceof VClaimRujukBalik.PeriksaVClaim) {
+            statusTidakPasti(((VClaimRujukBalik.PeriksaVClaim) sebab).nomor);
+        } else {
+            tampilkanStatus();
+            JOptionPane.showMessageDialog(this, sebab instanceof VClaimRujukBalik.Ditolak
+                    ? "BPJS menolak rujukan. " + sebab.getMessage()
+                    : "Rujukan gagal diproses. Periksa koneksi dan konfigurasi.");
+        }
+    }
+
+    private void statusTidakPasti(String nomor) {
+        perluCekVClaim = true;
+        tampilkanStatus();
+        String pesan = nomor.isEmpty() ? "Status pengiriman belum dapat dipastikan."
+                : "BPJS memberi nomor " + nomor + ". Periksa penyimpanan lokal.";
+        JOptionPane.showMessageDialog(this, pesan + "\nPeriksa VClaim sebelum mengirim ulang.");
+    }
+
+    private void setFormAktif(boolean aktif) {
+        tanggalRujukan.setEnabled(aktif);
+        rencanaKunjungan.setEnabled(aktif);
+        boolean balik = tipeTerpilih() == Tipe.RUJUK_BALIK;
+        jenisPelayanan.setEnabled(aktif && !balik);
+        catatan.setEditable(aktif);
+        ppk.pilih.setEnabled(aktif && !balik);
+        cekFktp.setEnabled(aktif && balik && fktp == null && !sedangCekFktp);
+        diagnosa.pilih.setEnabled(aktif);
+        poli.pilih.setEnabled(aktif);
+    }
+
+    private List<String> nomorRujukanTerpilih() {
+        return riwayat.getOrDefault(tipeTerpilih(), List.of());
+    }
+
+    private void tampilkanStatus() {
+        List<String> nomorRujukan = nomorRujukanTerpilih();
+        boolean terbit = !nomorRujukan.isEmpty();
+        boolean aktif = !terbit && !perluCekVClaim;
+        boolean balik = tipeTerpilih() == Tipe.RUJUK_BALIK;
+        tipeRujukan.setEnabled(true);
+        ppk.pilih.setVisible(!balik);
+        cekFktp.setVisible(balik && !terbit && fktp == null);
+        setFormAktif(aktif);
+        simpan.setEnabled(aktif && (!balik || fktp != null));
+        cetak.setEnabled(terbit);
+        if (terbit) {
+            status.setText("No. Rujukan BPJS  " + nomorRujukan.get(0));
+        } else if (perluCekVClaim) {
+            status.setText("Periksa status rujukan di VClaim.");
+        } else {
+            status.setText(balik ? pesanFktp : "");
+        }
+        status.setToolTipText(status.getText().isEmpty() ? null : status.getText());
+    }
+
+    private void cetak() {
+        List<String> nomorRujukan = nomorRujukanTerpilih();
+        if (!akses.getbpjs_rujukan_keluar() || nomorRujukan.isEmpty()) {
+            return;
+        }
+        String nomor = nomorRujukan.size() == 1 ? nomorRujukan.get(0)
+                : (String) JOptionPane.showInputDialog(this, "Pilih nomor rujukan untuk mencetak ulang.",
+                        JUDUL, JOptionPane.QUESTION_MESSAGE, null, nomorRujukan.toArray(), nomorRujukan.get(0));
+        if (nomor == null) {
+            return;
+        }
+        Map<String, Object> param = new HashMap<>();
+        param.put("namars", akses.getnamars());
+        param.put("alamatrs", akses.getalamatrs());
+        param.put("kotars", akses.getkabupatenrs());
+        param.put("propinsirs", akses.getpropinsirs());
+        param.put("kontakrs", akses.getkontakrs());
+        param.put("norujuk", nomor);
+        param.put("logo", new sekuel().cariGambar("select gambar.bpjs from gambar"));
+        new validasi().MyReport("rptBridgingRujukanBPJS.jasper", param, "::[ Surat Rujukan BPJS VClaim ]::");
+    }
+
+    private static Tanggal tanggal(String nama) {
+        Tanggal tanggal = new Tanggal();
+        tanggal.setName(nama);
+        tanggal.setDisplayFormat(FORMAT_TANGGAL);
+        tanggal.setDate(new java.util.Date());
+        tanggal.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        tanggal.setForeground(TEKS);
+        tanggal.setPreferredSize(new Dimension(130, 32));
+        tanggal.setBorder(new AbstractBorder() {
+            @Override public Insets getBorderInsets(Component c, Insets insets) {
+                insets.set(1, 1, 1, 1);
+                return insets;
+            }
+
+            @Override public void paintBorder(Component c, Graphics g, int x, int y, int w, int h) {
+                Component fokus = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+                boolean aktif = fokus == c || fokus != null && SwingUtilities.isDescendingFrom(fokus, c);
+                Graphics2D garis = (Graphics2D) g.create();
+                garis.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                garis.setColor(aktif ? BIRU : GARIS);
+                garis.drawRoundRect(x, y, w - 1, h - 1, 8, 8);
+                garis.dispose();
+            }
+        });
+        FocusAdapter segarkanBingkai = new FocusAdapter() {
+            @Override public void focusGained(FocusEvent e) { tanggal.repaint(); }
+            @Override public void focusLost(FocusEvent e) { tanggal.repaint(); }
+        };
+        tanggal.addFocusListener(segarkanBingkai);
+        if (tanggal.isEditable()) {
+            tanggal.getEditor().getEditorComponent().addFocusListener(segarkanBingkai);
+        }
+        return tanggal;
+    }
+
+    private static Date bacaTanggal(Tanggal tanggal) {
+        Object nilai = tanggal.isEditable() ? tanggal.getEditor().getItem() : tanggal.getSelectedItem();
+        return Date.valueOf(LocalDate.parse(Objects.toString(nilai, "").trim(), PEMBACA_TANGGAL));
     }
 
     private static JLabel label(String teks, int ukuran, int gaya) {
@@ -185,14 +708,16 @@ public final class DlgRujukBalik extends JDialog {
     }
 
     private static JPanel bidang(String teks, JComponent input) {
-        JPanel bidang = new JPanel(new BorderLayout(0, 4));
-        bidang.setOpaque(false);
-        bidang.add(label(teks, 12, Font.BOLD), BorderLayout.NORTH);
-        bidang.add(input, BorderLayout.CENTER);
-        return bidang;
+        JPanel panel = new JPanel(new BorderLayout(0, 4));
+        panel.setOpaque(false);
+        JLabel judul = label(teks, 12, Font.BOLD);
+        judul.setLabelFor(input);
+        panel.add(judul, BorderLayout.NORTH);
+        panel.add(input, BorderLayout.CENTER);
+        return panel;
     }
 
-    private static JPanel duaKolom(JPanel kiri, JPanel kanan) {
+    private static JPanel duaKolom(JComponent kiri, JComponent kanan) {
         JPanel panel = new JPanel(new GridLayout(1, 2, 12, 0));
         panel.setOpaque(false);
         panel.add(kiri);
@@ -200,547 +725,87 @@ public final class DlgRujukBalik extends JDialog {
         return panel;
     }
 
-    private static void baris(JPanel form, int nomor, JComponent isi, int bobot) {
-        GridBagConstraints posisi = new GridBagConstraints();
-        posisi.gridx = 0;
-        posisi.gridy = nomor;
-        posisi.insets = new Insets(4, 0, 4, 0);
-        posisi.weightx = 1;
-        posisi.weighty = bobot;
-        posisi.fill = GridBagConstraints.BOTH;
-        form.add(isi, posisi);
+    private static JPanel identitas(String teks) {
+        return input(new JTextField(teks), false);
     }
 
-    private static JPanel inputTeks(JTextField input, boolean bisaDiedit) {
-        input.setUI(new BasicTextFieldUI());
-        input.setEditable(bisaDiedit);
-        input.setBorder(BorderFactory.createEmptyBorder());
-        input.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        input.setForeground(TEKS);
-        input.setOpaque(false);
-        return bingkaiInput(input, bisaDiedit ? Color.WHITE : LATAR, 7, 10);
-    }
-
-    private static JComponent gayaTanggal(JComponent pemilih) {
-        pemilih.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        pemilih.setForeground(TEKS);
-        return pemilih;
-    }
-
-    private JPanel bidangTindakLanjut() {
-        tindakLanjut.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        tindakLanjut.setForeground(TEKS);
-        tindakLanjut.setSelectedItem(tersimpan == null
-                ? TindakLanjut.KONSULTASI_SELESAI : tersimpan.tindakLanjut);
-        JPanel kontrol = bidang("Tanggal Kontrol", gayaTanggal(tanggalKontrol));
-        JPanel lain = bidang("Keterangan Lain-lain", inputTeks(keteranganLain, true));
-        JPanel tambahan = new JPanel(new BorderLayout());
-        tambahan.setOpaque(false);
-        tindakLanjut.addActionListener(e -> tampilkanRincianTindakLanjut(tambahan, kontrol, lain));
-        tampilkanRincianTindakLanjut(tambahan, kontrol, lain);
-        return duaKolom(bidang("Tindak Lanjut yang Dianjurkan", tindakLanjut), tambahan);
-    }
-
-    private void tampilkanRincianTindakLanjut(JPanel tempat, JPanel kontrol, JPanel lain) {
-        tempat.removeAll();
-        TindakLanjut pilihan = (TindakLanjut) tindakLanjut.getSelectedItem();
-        if (pilihan == TindakLanjut.KONTROL_RS) {
-            tempat.add(kontrol);
-        } else if (pilihan == TindakLanjut.LAIN_LAIN) {
-            tempat.add(lain);
-        }
-        tempat.revalidate();
-        tempat.repaint();
-    }
-
-    private static JPanel bidangKlinis(JTextArea input) {
-        input.setUI(new BasicTextAreaUI());
-        input.setBorder(BorderFactory.createEmptyBorder());
-        input.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        input.setForeground(TEKS);
-        input.setOpaque(false);
-        input.setLineWrap(true);
-        input.setWrapStyleWord(true);
-        JScrollPane scroll = new JScrollPane(input,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.setOpaque(false);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setMinimumSize(new Dimension(80, 36));
-        scroll.getViewport().setOpaque(false);
-        return bingkaiInput(scroll, Color.WHITE, 8, 10);
-    }
-
-    private static JPanel bingkaiInput(JComponent input, Color latar, int vertikal, int horizontal) {
+    private static JPanel input(JTextField teks, boolean bisaDiedit) {
+        teks.setUI(new BasicTextFieldUI());
+        teks.setEditable(bisaDiedit);
+        teks.setOpaque(false);
+        teks.setBorder(BorderFactory.createEmptyBorder());
+        teks.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        teks.setForeground(TEKS);
         JPanel panel = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
-                Component pemilikFokus = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-                boolean fokus = pemilikFokus != null && SwingUtilities.isDescendingFrom(pemilikFokus, this);
-                gambarBingkai(g, getWidth(), getHeight(), latar, fokus ? BIRU : GARIS);
+                bingkai(g, getWidth(), getHeight(), teks.isEditable() ? Color.WHITE : LATAR,
+                        teks.isFocusOwner() ? BIRU : GARIS);
             }
         };
         panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createEmptyBorder(vertikal, horizontal, vertikal, horizontal));
-        panel.add(input);
-        FocusAdapter penyegar = new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) { panel.repaint(); }
-            @Override public void focusLost(FocusEvent e) { panel.repaint(); }
-        };
-        amatiFokus(input, penyegar);
-        return panel;
-    }
-
-    private static void amatiFokus(Component komponen, FocusAdapter penyegar) {
-        komponen.addFocusListener(penyegar);
-        if (komponen instanceof Container) {
-            for (Component anak : ((Container) komponen).getComponents()) {
-                amatiFokus(anak, penyegar);
+        panel.setBorder(BorderFactory.createEmptyBorder(6, 9, 6, 9));
+        panel.add(teks);
+        teks.addFocusListener(new FocusAdapter() {
+            @Override public void focusGained(FocusEvent e) {
+                panel.repaint();
             }
-        }
-    }
-
-    private static void gambarBingkai(Graphics graphics, int lebar, int tinggi, Color isi,
-            Color garis) {
-        Graphics2D g = (Graphics2D) graphics.create();
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setColor(isi);
-        g.fillRoundRect(1, 1, lebar - 2, tinggi - 2, SUDUT, SUDUT);
-        g.setColor(garis);
-        g.setStroke(new BasicStroke(1f));
-        g.drawRoundRect(1, 1, lebar - 3, tinggi - 3, SUDUT, SUDUT);
-        g.dispose();
+            @Override public void focusLost(FocusEvent e) {
+                panel.repaint();
+            }
+        });
+        return panel;
     }
 
     private static JButton tombol(String teks, boolean utama) {
         JButton tombol = new JButton(teks) {
             @Override protected void paintComponent(Graphics g) {
-                Color latar = utama ? BIRU : Color.WHITE;
-                if (!isEnabled()) {
-                    latar = LATAR;
-                } else if (getModel().isRollover() || getModel().isPressed()) {
-                    latar = utama ? BIRU.darker() : LATAR;
-                }
-                gambarBingkai(g, getWidth(), getHeight(), latar,
-                        utama || isFocusOwner() ? BIRU : GARIS);
+                boolean aktif = isEnabled();
+                Color isi = utama && aktif ? BIRU : aktif ? Color.WHITE : LATAR;
+                bingkai(g, getWidth(), getHeight(), isi, aktif && (utama || isFocusOwner()) ? BIRU : GARIS);
                 super.paintComponent(g);
             }
         };
         tombol.setUI(new BasicButtonUI());
         tombol.setFont(new Font("Segoe UI", Font.BOLD, 12));
         tombol.setForeground(utama ? Color.WHITE : BIRU);
-        tombol.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 14));
-        tombol.setContentAreaFilled(false);
         tombol.setOpaque(false);
-        tombol.setFocusPainted(utama);
-        tombol.setRolloverEnabled(true);
+        tombol.setContentAreaFilled(false);
+        tombol.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 14));
+        tombol.setFocusPainted(false);
         return tombol;
     }
 
-    private void muatKunjungan() throws SQLException {
-        String sql = "select p.no_rkm_medis, p.nm_pasien, p.alamat, p.jk, p.tgl_lahir, r.status_lanjut, "
-                + "r.kd_dokter as kode_reg, dr.nm_dokter as dokter_reg, rm.perujuk, "
-                + "s.kd_dokter, ds.nm_dokter as dokter_surat, s.tanggal_surat, s.tujuan, s.diagnosa, s.terapi, "
-                + "s.tindak_lanjut, s.tanggal_kontrol, s.keterangan_lain, s.revisi "
-                + "from reg_periksa r join pasien p on p.no_rkm_medis=r.no_rkm_medis "
-                + "left join dokter dr on dr.kd_dokter=r.kd_dokter "
-                + "left join rujuk_masuk rm on rm.no_rawat=r.no_rawat "
-                + "left join surat_rujuk_balik s on s.no_rawat=r.no_rawat "
-                + "left join dokter ds on ds.kd_dokter=s.kd_dokter where r.no_rawat=?";
-        try (Connection koneksi = koneksiDB.condbTransaksi();
-             PreparedStatement ps = koneksi.prepareStatement(sql)) {
-            ps.setString(1, noRawat);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    throw new SQLException("Kunjungan pasien tidak ditemukan.", "02000");
-                }
-                noRm = rs.getString("no_rkm_medis");
-                namaPasien = rs.getString("nm_pasien");
-                alamatPasien = rs.getString("alamat");
-                jenisKelamin = rs.getString("jk");
-                tanggalLahir = rs.getDate("tgl_lahir");
-                pasien.setText(namaPasien + " / " + noRm);
-                rawatInap = "Ranap".equalsIgnoreCase(rs.getString("status_lanjut"));
-                int revisi = rs.getInt("revisi");
-                if (revisi > 0) {
-                    tersimpan = new Surat(rs.getString("kd_dokter"), rs.getDate("tanggal_surat"),
-                            rs.getString("tujuan"), rs.getString("diagnosa"), rs.getString("terapi"),
-                            TindakLanjut.valueOf(rs.getString("tindak_lanjut")), rs.getDate("tanggal_kontrol"),
-                            rs.getString("keterangan_lain"), revisi);
-                    setDpjp(tersimpan.kodeDokter, rs.getString("dokter_surat"));
-                    tanggal.setDate(tersimpan.tanggal);
-                    tujuan.setText(tersimpan.tujuan);
-                    isiBidangKlinis(diagnosa, tersimpan.diagnosa);
-                    isiBidangKlinis(terapi, tersimpan.terapi);
-                    if (tersimpan.tanggalKontrol != null) {
-                        tanggalKontrol.setDate(tersimpan.tanggalKontrol);
-                    }
-                    keteranganLain.setText(tersimpan.keteranganLain);
-                    return;
-                }
-                setDpjp(rs.getString("kode_reg"), rs.getString("dokter_reg"));
-                tanggal.setDate(Date.valueOf(LocalDate.now()));
-                tujuan.setText(rs.getString("perujuk"));
-            }
-            if (rawatInap) {
-                muatDpjpRanap(koneksi);
-            }
-            DataKlinis data = bacaDataKlinis(koneksi);
-            isiBidangKlinis(diagnosa, data.diagnosa);
-            isiBidangKlinis(terapi, data.terapi);
-        }
+    private static void bingkai(Graphics g, int lebar, int tinggi, Color isi, Color garis) {
+        Graphics2D gambar = (Graphics2D) g.create();
+        gambar.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        gambar.setColor(isi);
+        gambar.fillRoundRect(0, 0, lebar, tinggi, 9, 9);
+        gambar.setColor(garis);
+        gambar.drawRoundRect(0, 0, lebar - 1, tinggi - 1, 9, 9);
+        gambar.dispose();
     }
 
-    private void muatDpjpRanap(Connection koneksi) throws SQLException {
-        String sql = "select d.kd_dokter,d.nm_dokter from dpjp_ranap p "
-                + "join dokter d on d.kd_dokter=p.kd_dokter where p.no_rawat=?";
-        try (PreparedStatement ps = koneksi.prepareStatement(sql)) {
-            ps.setString(1, noRawat);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    setDpjp(rs.getString(1), rs.getString(2));
-                    if (rs.next()) {
-                        setDpjp("", "");
-                    }
-                }
-            }
-        }
-    }
+    private static final class Referensi {
+        final JTextField kode = new JTextField(9);
+        final JTextField nama = new JTextField();
+        final JButton pilih = tombol("Pilih", false);
+        final JPanel panel = new JPanel(new BorderLayout(7, 0));
 
-    private DataKlinis bacaDataKlinis(Connection koneksi) throws SQLException {
-        String hasilDiagnosa = bacaDiagnosa(koneksi, rawatInap ? "Ranap" : "Ralan");
-        if (hasilDiagnosa.isEmpty()) {
-            hasilDiagnosa = bacaDiagnosa(koneksi, rawatInap ? "Ralan" : "Ranap");
-        }
-        String hasilTerapi = bacaTerapiCppt(koneksi, rawatInap);
-        if (hasilTerapi.isEmpty()) {
-            hasilTerapi = bacaTerapiCppt(koneksi, !rawatInap);
-        }
-        return new DataKlinis(hasilDiagnosa, hasilTerapi);
-    }
-
-    private String bacaDiagnosa(Connection koneksi, String status) throws SQLException {
-        String sql = "select concat(d.kd_penyakit,' - ',p.nm_penyakit) "
-                + "from diagnosa_pasien d join penyakit p on p.kd_penyakit=d.kd_penyakit "
-                + "where d.no_rawat=? and d.status=? order by d.prioritas,d.kd_penyakit";
-        StringJoiner hasil = new StringJoiner("\n");
-        try (PreparedStatement ps = koneksi.prepareStatement(sql)) {
-            ps.setString(1, noRawat);
-            ps.setString(2, status);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    hasil.add(rs.getString(1));
-                }
-            }
-        }
-        return hasil.toString();
-    }
-
-    private String bacaTerapiCppt(Connection koneksi, boolean ranap) throws SQLException {
-        String tabel = ranap ? "pemeriksaan_ranap" : "pemeriksaan_ralan";
-        String sql = "select rtl,instruksi from " + tabel + " where no_rawat=? "
-                + "order by tgl_perawatan desc,jam_rawat desc,nip";
-        try (PreparedStatement ps = koneksi.prepareStatement(sql)) {
-            ps.setString(1, noRawat);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String plan = teksCppt(rs.getString("rtl"));
-                    String instruksi = teksCppt(rs.getString("instruksi"));
-                    if (!plan.isEmpty()) {
-                        return instruksi.isEmpty() || plan.equals(instruksi)
-                                ? plan : plan + "\n\nInstruksi: " + instruksi;
-                    }
-                    if (!instruksi.isEmpty()) {
-                        return instruksi;
-                    }
-                }
-            }
-        }
-        return "";
-    }
-
-    private static String teksCppt(String teks) {
-        String isi = Objects.toString(teks, "").strip();
-        return "-".equals(isi) || "–".equals(isi) || "—".equals(isi) ? "" : isi;
-    }
-
-    private void tarikDataKlinis() {
-        if (!akses.getrujukan_keluar()) {
-            return;
-        }
-        DataKlinis data;
-        try (Connection koneksi = koneksiDB.condbTransaksi()) {
-            data = bacaDataKlinis(koneksi);
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, pesanDatabase(e, "membaca"));
-            return;
-        }
-        if (data.diagnosa.isEmpty() && data.terapi.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Diagnosa dan terapi CPPT belum tercatat pada kunjungan ini.");
-            return;
-        }
-        boolean gantiDiagnosa = !data.diagnosa.isEmpty() && !data.diagnosa.equals(diagnosa.getText().trim());
-        boolean gantiTerapi = !data.terapi.isEmpty() && !data.terapi.equals(terapi.getText().trim());
-        boolean adaIsian = (gantiDiagnosa && !diagnosa.getText().isBlank())
-                || (gantiTerapi && !terapi.getText().isBlank());
-        if (adaIsian && JOptionPane.showConfirmDialog(this,
-                "Ganti isian yang berbeda dengan diagnosa dan terapi CPPT terbaru?",
-                "Tarik Data Klinis", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
-            return;
-        }
-        if (gantiDiagnosa) {
-            isiBidangKlinis(diagnosa, data.diagnosa);
-        }
-        if (gantiTerapi) {
-            isiBidangKlinis(terapi, data.terapi);
-        }
-    }
-
-    private static void isiBidangKlinis(JTextArea bidang, String isi) {
-        bidang.setText(isi);
-        bidang.setCaretPosition(0);
-    }
-
-    private static final class DataKlinis {
-        final String diagnosa;
-        final String terapi;
-
-        DataKlinis(String diagnosa, String terapi) {
-            this.diagnosa = diagnosa;
-            this.terapi = terapi;
-        }
-    }
-
-    private void pilihDpjp() {
-        DlgCariDokter pilihan = new DlgCariDokter(null, true);
-        pilihan.setLocationRelativeTo(this);
-        pilihan.isCek();
-        pilihan.setVisible(true);
-        JTable tabel = pilihan.getTable();
-        int baris = tabel.getSelectedRow();
-        if (baris >= 0) {
-            setDpjp(tabel.getValueAt(baris, 0).toString(), tabel.getValueAt(baris, 1).toString());
-        }
-        pilihan.dispose();
-    }
-
-    private void setDpjp(String kode, String nama) {
-        kodeDokter = Objects.toString(kode, "");
-        dpjp.setText(nama);
-    }
-
-    private static Date tanggalSql(java.util.Date pilihan) {
-        return pilihan == null ? null : Date.valueOf(
-                LocalDate.ofInstant(Instant.ofEpochMilli(pilihan.getTime()), ZoneId.systemDefault()));
-    }
-
-    private Date bacaTanggalKontrol() {
-        String teks = Objects.toString(tanggalKontrol.getEditor().getItem(), "").strip();
-        SimpleDateFormat format = new SimpleDateFormat(tanggalKontrol.getDisplayFormat());
-        format.setLenient(false);
-        ParsePosition posisi = new ParsePosition(0);
-        java.util.Date pilihan = format.parse(teks, posisi);
-        return posisi.getIndex() == teks.length() ? tanggalSql(pilihan) : null;
-    }
-
-    private Surat isiForm() {
-        TindakLanjut pilihan = (TindakLanjut) tindakLanjut.getSelectedItem();
-        Date kontrol = pilihan == TindakLanjut.KONTROL_RS ? bacaTanggalKontrol() : null;
-        String lain = pilihan == TindakLanjut.LAIN_LAIN ? keteranganLain.getText().strip() : null;
-        return new Surat(kodeDokter, tanggalSql(tanggal.getDate()), tujuan.getText().trim(), diagnosa.getText().trim(),
-                terapi.getText().trim(), pilihan, kontrol, lain, tersimpan == null ? 0 : tersimpan.revisi);
-    }
-
-    private void simpan() {
-        if (!akses.getrujukan_keluar()) {
-            return;
-        }
-        Surat isi = isiForm();
-        if (isi.kodeDokter.isEmpty() || dpjp.getText().trim().isEmpty() || isi.tanggal == null
-                || isi.tujuan.isEmpty() || isi.diagnosa.isEmpty() || isi.terapi.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Isi tanggal, tujuan, DPJP, diagnosa, dan terapi yang diberikan.");
-            return;
-        }
-        if (isi.tujuan.length() > 150 || isi.diagnosa.length() > 5000 || isi.terapi.length() > 5000) {
-            JOptionPane.showMessageDialog(this, "Tujuan maksimal 150 karakter. Diagnosa dan terapi masing-masing maksimal 5.000 karakter.");
-            return;
-        }
-        String pesan = isi.periksaTindakLanjut();
-        if (pesan != null) {
-            JOptionPane.showMessageDialog(this, pesan);
-            return;
-        }
-        String sql = isi.revisi == 0
-                ? "insert into surat_rujuk_balik (kd_dokter,tanggal_surat,tujuan,diagnosa,terapi,"
-                  + "tindak_lanjut,tanggal_kontrol,keterangan_lain,no_rawat) values (?,?,?,?,?,?,?,?,?)"
-                : "update surat_rujuk_balik set kd_dokter=?,tanggal_surat=?,tujuan=?,diagnosa=?,terapi=?,"
-                  + "tindak_lanjut=?,tanggal_kontrol=?,keterangan_lain=?,revisi=revisi+1 "
-                  + "where no_rawat=? and revisi=?";
-        try (Connection koneksi = koneksiDB.condbTransaksi();
-             PreparedStatement ps = koneksi.prepareStatement(sql)) {
-            ps.setString(1, isi.kodeDokter);
-            ps.setDate(2, isi.tanggal);
-            ps.setString(3, isi.tujuan);
-            ps.setString(4, isi.diagnosa);
-            ps.setString(5, isi.terapi);
-            ps.setString(6, isi.tindakLanjut.name());
-            ps.setDate(7, isi.tanggalKontrol);
-            ps.setString(8, isi.keteranganLain);
-            ps.setString(9, noRawat);
-            if (isi.revisi > 0) {
-                ps.setInt(10, isi.revisi);
-            }
-            if (ps.executeUpdate() == 0) {
-                tampilkanKonflik();
-                return;
-            }
-        } catch (SQLException e) {
-            if (e.getErrorCode() == 1062) {
-                tampilkanKonflik();
-            } else {
-                JOptionPane.showMessageDialog(this, pesanDatabase(e, "menyimpan"));
-            }
-            return;
-        }
-        isi.revisi++;
-        tersimpan = isi;
-        cetak.setEnabled(true);
-        JOptionPane.showMessageDialog(this, "Surat Rujuk Balik berhasil disimpan.");
-    }
-
-    private void cetak() {
-        if (!akses.getrujukan_keluar() || tersimpan == null) {
-            return;
-        }
-        if (!tersimpan.isiSama(isiForm())) {
-            JOptionPane.showMessageDialog(this, "Simpan perubahan surat sebelum mencetak.");
-            return;
-        }
-        String pesan = tersimpan.periksaTindakLanjut();
-        if (pesan != null) {
-            JOptionPane.showMessageDialog(this, pesan);
-            return;
-        }
-        try (Connection koneksi = koneksiDB.condbTransaksi();
-             PreparedStatement ps = koneksi.prepareStatement("select revisi from surat_rujuk_balik where no_rawat=?")) {
-            ps.setString(1, noRawat);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next() || rs.getInt(1) != tersimpan.revisi) {
-                    tampilkanKonflik();
-                    return;
-                }
-            }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, pesanDatabase(e, "membaca"));
-            return;
+        Referensi() {
+            panel.setOpaque(false);
+            panel.add(input(kode, false), BorderLayout.WEST);
+            panel.add(input(nama, false), BorderLayout.CENTER);
+            panel.add(pilih, BorderLayout.EAST);
         }
 
-        Map<String, Object> data = new HashMap<>();
-        File kop = new File("setting", "logo2.png");
-        data.put("kop", kop.isFile() ? kop.getAbsolutePath() : null);
-        data.put("logo", kop.isFile() ? null : new sekuel().cariGambar("select setting.logo from setting"));
-        data.put("namaRs", akses.getnamars());
-        data.put("alamatRs", akses.getalamatrs());
-        data.put("kontakRs", akses.getkontakrs());
-        data.put("nomorSurat", "SRB/" + noRawat);
-        data.put("tujuan", tersimpan.tujuan);
-        data.put("namaPasien", namaPasien);
-        data.put("noRm", noRm);
-        data.put("noRawat", noRawat);
-        data.put("alamat", alamatPasien);
-        data.put("tglLahir", tanggalLahir == null ? "-" : tanggalLahir.toLocalDate().format(FORMAT_TANGGAL));
-        data.put("jenisKelamin", "L".equals(jenisKelamin) ? "Laki-laki" : "P".equals(jenisKelamin) ? "Perempuan" : "-");
-        data.put("diagnosa", tersimpan.diagnosa);
-        data.put("terapi", tersimpan.terapi);
-        data.put("tindakLanjut", tersimpan.teksTindakLanjut());
-        data.put("tempatTanggal", akses.getkabupatenrs() + ", " + tersimpan.tanggal.toLocalDate().format(FORMAT_TANGGAL));
-        data.put("dpjp", dpjp.getText());
-        new validasi().MyReport("rptSuratRujukBalik.jasper", "report", "Surat Rujuk Balik", data);
-    }
-
-    private void tampilkanKonflik() {
-        JOptionPane.showMessageDialog(this, "Surat sudah disimpan atau diubah di jendela lain. Buka kembali surat untuk memuat data terbaru.");
-    }
-
-    private static String pesanDatabase(SQLException e, String tindakan) {
-        if ("02000".equals(e.getSQLState())) {
-            return "Kunjungan pasien tidak ditemukan.";
-        }
-        if ("42S02".equals(e.getSQLState()) || "42S22".equals(e.getSQLState())) {
-            return "Struktur tabel Surat Rujuk Balik perlu diperbarui. Jalankan rsaj_surat_rujuk_balik.sql.";
-        }
-        System.out.println("Gagal " + tindakan + " Surat Rujuk Balik (" + e.getSQLState() + "/" + e.getErrorCode() + ").");
-        return "Gagal " + tindakan + " Surat Rujuk Balik. Periksa koneksi dan coba lagi.";
-    }
-
-    private enum TindakLanjut {
-        KONTROL_RS("Kontrol Kembali ke RS"),
-        RAWAT_INAP("Perlu Rawat Inap"),
-        KONSULTASI_SELESAI("Konsultasi Selesai"),
-        LAIN_LAIN("Lain-lain");
-
-        private final String label;
-
-        TindakLanjut(String label) {
-            this.label = label;
+        void isi(String kode, String nama) {
+            this.kode.setText(Objects.toString(kode, "").trim());
+            this.nama.setText(Objects.toString(nama, "").trim());
+            this.nama.setCaretPosition(0);
         }
 
-        @Override public String toString() {
-            return label;
-        }
-    }
-
-    private static final class Surat {
-        final String kodeDokter;
-        final Date tanggal;
-        final String tujuan, diagnosa, terapi;
-        final TindakLanjut tindakLanjut;
-        final Date tanggalKontrol;
-        final String keteranganLain;
-        int revisi;
-
-        Surat(String kodeDokter, Date tanggal, String tujuan, String diagnosa, String terapi,
-                TindakLanjut tindakLanjut, Date tanggalKontrol, String keteranganLain, int revisi) {
-            this.kodeDokter = kodeDokter;
-            this.tanggal = tanggal;
-            this.tujuan = tujuan;
-            this.diagnosa = diagnosa;
-            this.terapi = terapi;
-            this.tindakLanjut = tindakLanjut;
-            this.tanggalKontrol = tanggalKontrol;
-            this.keteranganLain = keteranganLain;
-            this.revisi = revisi;
-        }
-
-        boolean isiSama(Surat lain) {
-            return kodeDokter.equals(lain.kodeDokter) && Objects.equals(tanggal, lain.tanggal)
-                    && tujuan.equals(lain.tujuan) && diagnosa.equals(lain.diagnosa) && terapi.equals(lain.terapi)
-                    && tindakLanjut == lain.tindakLanjut && Objects.equals(tanggalKontrol, lain.tanggalKontrol)
-                    && Objects.equals(keteranganLain, lain.keteranganLain);
-        }
-
-        String periksaTindakLanjut() {
-            if (tindakLanjut == TindakLanjut.KONTROL_RS && tanggalKontrol == null) {
-                return "Isi tanggal kontrol kembali ke RS.";
-            }
-            if (tindakLanjut == TindakLanjut.LAIN_LAIN && (keteranganLain == null || keteranganLain.isBlank())) {
-                return "Isi keterangan tindak lanjut Lain-lain.";
-            }
-            if (keteranganLain != null && keteranganLain.length() > 500) {
-                return "Keterangan Lain-lain maksimal 500 karakter.";
-            }
-            return null;
-        }
-
-        String teksTindakLanjut() {
-            switch (tindakLanjut) {
-                case KONTROL_RS:
-                    return "Kontrol kembali ke RS pada tanggal " + tanggalKontrol.toLocalDate().format(FORMAT_TANGGAL);
-                case RAWAT_INAP:
-                    return "Perlu rawat inap";
-                case LAIN_LAIN:
-                    return keteranganLain;
-                default:
-                    return "Konsultasi selesai";
-            }
+        boolean kosong() {
+            return kode.getText().isEmpty() || nama.getText().isEmpty();
         }
     }
 }

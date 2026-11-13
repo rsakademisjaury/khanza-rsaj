@@ -767,8 +767,6 @@ import rekammedis.RMRiwayatPerawatan;
      public DlgKamarInap(java.awt.Frame parent, boolean modal) {
          super(parent, modal);
          initComponents();
-        // SSRME RSAJ: inisialisasi UI saja; jaringan/database hanya saat tombol diklik.
-        bridging.SsrmeLauncher.pasang(this, internalFrame1, () -> bridging.SsrmeLauncher.dariTabel(tbKamIn, 0, 1), false, false);
          // RSAJ: pintu masuk terpisah; handler surat dan SKDP lama tetap dipakai.
          javax.swing.JMenuItem lepasRawatMandiri = new javax.swing.JMenuItem("Surat Lepas Rawat");
          lepasRawatMandiri.setFont(new java.awt.Font("Segoe UI", 0, 12));
@@ -777,6 +775,7 @@ import rekammedis.RMRiwayatPerawatan;
 
          // RSAJ: form readmisi dibuat saat dipanggil, tanpa query di pemuatan tabel ranap.
          initMenuReadmisi();
+         bridging.SsrmeLauncher.pasangMenuTabel(this, jPopupMenu1, tbKamIn, 0, 1, false, false);
 
          LblKelasRawat.setIcon(iconKelasRawat);
          tampilkanKelasRawat("");

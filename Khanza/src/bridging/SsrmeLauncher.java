@@ -2,14 +2,18 @@ package bridging;
 
 import fungsi.akses;
 import fungsi.koneksiDB;
+import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Point;
 import java.awt.Window;
+import java.awt.event.MouseEvent;
 import java.beans.Beans;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -22,13 +26,19 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 
 /** Satu alur SSRME untuk seluruh form. Tidak melakukan query saat form/tabel dimuat. */
 public final class SsrmeLauncher {
@@ -60,10 +70,103 @@ public final class SsrmeLauncher {
     public static SsrmeClient.Context dariTabel(JTable table, int visitColumn, int rmColumn) {
         int row = table == null ? -1 : table.getSelectedRow();
         if (row < 0) throw new IllegalArgumentException("Pilih pasien pada tabel terlebih dahulu.");
-        int modelRow = table.convertRowIndexToModel(row);
+        return dariBarisModel(table, table.convertRowIndexToModel(row), visitColumn, rmColumn);
+    }
+
+    private static SsrmeClient.Context dariBarisModel(JTable table, int modelRow, int visitColumn, int rmColumn) {
         Object visit = table.getModel().getValueAt(modelRow, visitColumn);
         Object rm = table.getModel().getValueAt(modelRow, rmColumn);
         return new SsrmeClient.Context(visit == null ? "" : visit.toString(), rm == null ? "" : rm.toString());
+    }
+
+    public static void pasangMenuTabel(Component owner, JPopupMenu popup, JTable table,
+            int visitColumn, int rmColumn, boolean admission, boolean emergency) {
+        if (Beans.isDesignTime()) return;
+        JMenuItem item = menuItem(admission);
+        item.setEnabled(false);
+        popup.insert(item, 0);
+
+        class PilihanPasien implements PopupMenuListener {
+            private int modelRow = -1;
+            private SsrmeClient.Context pasien;
+
+            @Override public void popupMenuWillBecomeVisible(PopupMenuEvent event) {
+                modelRow = barisModelPopup(table);
+                pasien = modelRow < 0 ? null : dariBarisModel(table, modelRow, visitColumn, rmColumn);
+                item.setEnabled(pasien != null && (!pasien.noRawat.isEmpty() || !pasien.noRm.isEmpty()));
+            }
+
+            @Override public void popupMenuWillBecomeInvisible(PopupMenuEvent event) { }
+            @Override public void popupMenuCanceled(PopupMenuEvent event) { }
+
+            void bukaPasien() {
+                SsrmeClient.Context tujuan = pasien;
+                if (tujuan == null) return;
+                int row = modelRow < table.getModel().getRowCount() ? table.convertRowIndexToView(modelRow) : -1;
+                if (row < 0 || !pasienSama(tujuan, dariBarisModel(table, modelRow, visitColumn, rmColumn))) {
+                    javax.swing.JOptionPane.showMessageDialog(owner, "Daftar pasien berubah. Klik kanan kembali pada baris pasien.",
+                            "SSRME", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+                // Pemilihan baris ini hanya terjadi saat aksi SSRME dipilih.
+                if (table.getSelectedRow() != row) table.setRowSelectionInterval(row, row);
+                buka(owner, () -> {
+                    SsrmeClient.Context current = dariTabel(table, visitColumn, rmColumn);
+                    if (!pasienSama(tujuan, current)) throw new IllegalArgumentException("Pilihan pasien berubah.");
+                    return current;
+                }, admission, emergency);
+            }
+        }
+
+        PilihanPasien pilihan = new PilihanPasien();
+        popup.addPopupMenuListener(pilihan);
+        item.addActionListener(event -> pilihan.bukaPasien());
+    }
+
+    private static int barisModelPopup(JTable table) {
+        AWTEvent event = EventQueue.getCurrentEvent();
+        if (event instanceof MouseEvent) {
+            MouseEvent mouse = (MouseEvent) event;
+            Component hit = mouse.getComponent();
+            if (hit instanceof JTable && ((JTable) hit).getModel() == table.getModel()) {
+                // Tabel utama dan kolom beku memakai model yang sama.
+                JTable clicked = (JTable) hit;
+                int row = clicked.rowAtPoint(mouse.getPoint());
+                return row < 0 ? -1 : clicked.convertRowIndexToModel(row);
+            }
+            JScrollPane scroll = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, table);
+            if (scroll != null && scroll.getRowHeader() != null && SwingUtilities.isDescendingFrom(hit, scroll.getRowHeader())) {
+                Point point = SwingUtilities.convertPoint(hit, mouse.getPoint(), table);
+                int row = table.rowAtPoint(new Point(0, point.y));
+                return row < 0 ? -1 : table.convertRowIndexToModel(row);
+            }
+            return -1;
+        }
+        // Menu yang dibuka lewat keyboard memakai pilihan tabel saat ini.
+        int row = table.getSelectedRow();
+        return row < 0 ? -1 : table.convertRowIndexToModel(row);
+    }
+
+    private static boolean pasienSama(SsrmeClient.Context expected, SsrmeClient.Context actual) {
+        return expected.noRawat.equals(actual.noRawat) && expected.noRm.equals(actual.noRm);
+    }
+
+    public static void pasangMenuIdentitas(Component owner, Supplier<SsrmeClient.Context> source, JComponent... components) {
+        if (Beans.isDesignTime()) return;
+        JPopupMenu popup = new JPopupMenu();
+        JMenuItem item = menuItem(false);
+        item.addActionListener(event -> buka(owner, source, false, false));
+        popup.add(item);
+        for (JComponent component : components) {
+            if (component.getComponentPopupMenu() == null) component.setComponentPopupMenu(popup);
+        }
+    }
+
+    private static JMenuItem menuItem(boolean admission) {
+        JMenuItem item = new JMenuItem(admission ? "Persetujuan SSRME" : "SSRME");
+        item.setFont(NORMAL);
+        item.setToolTipText(admission ? "Persetujuan akses riwayat nasional pasien" : "Buka riwayat rekam medis nasional pasien");
+        return item;
     }
 
     private static void buka(Component owner, Supplier<SsrmeClient.Context> source, boolean admission, boolean allowEmergency) {

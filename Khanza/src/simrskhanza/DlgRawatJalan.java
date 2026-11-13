@@ -255,8 +255,8 @@ public final class DlgRawatJalan extends javax.swing.JDialog {
         super(parent, modal);
         initComponents();
         initRawatJalan();
-        // SSRME RSAJ: inisialisasi UI saja; jaringan/database hanya saat tombol diklik.
-        bridging.SsrmeLauncher.pasang(this, internalFrame1, () -> new bridging.SsrmeClient.Context(TNoRw.getText(), TNoRM.getText()), false, false);
+        bridging.SsrmeLauncher.pasangMenuIdentitas(this, () -> new bridging.SsrmeClient.Context(TNoRw.getText(), TNoRM.getText()),
+                FormInput, TNoRM, TPasien);
         
         try {
             if (!Beans.isDesignTime()) {
