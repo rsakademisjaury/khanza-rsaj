@@ -20391,7 +20391,7 @@ import rekammedis.RMRiwayatPerawatan;
                                 if (rs.next()) {
                                     // Jika query mengembalikan data, lanjutkan membuka BPJSSuratKontrol
                                     this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                                    BPJSSuratKontrol form = new BPJSSuratKontrol(null, false);
+                                    BPJSSuratKontrol form = BPJSSuratKontrol.untukRawatInap();
                                     form.setNoRm(
                                         rs.getString("no_rawat"),
                                         rs.getString("no_sep"),
@@ -20471,7 +20471,7 @@ import rekammedis.RMRiwayatPerawatan;
                         if (rs.next()) {
                             // Jika query mengembalikan data, lanjutkan membuka BPJSSuratKontrol
                             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                            BPJSSuratKontrol form = new BPJSSuratKontrol(null, false);
+                            BPJSSuratKontrol form = BPJSSuratKontrol.untukRawatInap();
                             form.setNoRm(
                                 rs.getString("no_rawat"),
                                 rs.getString("no_sep"),
@@ -25201,7 +25201,7 @@ import rekammedis.RMRiwayatPerawatan;
                                 if (rs.next()) {
                                     // Jika query mengembalikan data, lanjutkan membuka BPJSSuratKontrol
                                     this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                                    BPJSSuratKontrol form = new BPJSSuratKontrol(null, false);
+                                    BPJSSuratKontrol form = BPJSSuratKontrol.untukRawatInap();
                                     form.setNoRm(
                                         rs.getString("no_rawat"),
                                         rs.getString("no_sep"),
@@ -25281,7 +25281,7 @@ import rekammedis.RMRiwayatPerawatan;
                         if (rs.next()) {
                             // Jika query mengembalikan data, lanjutkan membuka BPJSSuratKontrol
                             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                            BPJSSuratKontrol form = new BPJSSuratKontrol(null, false);
+                            BPJSSuratKontrol form = BPJSSuratKontrol.untukRawatInap();
                             form.setNoRm(
                                 rs.getString("no_rawat"),
                                 rs.getString("no_sep"),

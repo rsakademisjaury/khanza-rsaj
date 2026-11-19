@@ -1341,7 +1341,7 @@ public class INACBGDataIDRG1 extends javax.swing.JDialog {
 
         tgl_masuk.setEditable(false);
         tgl_masuk.setForeground(new java.awt.Color(0, 0, 0));
-        tgl_masuk.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "2026-07-15" }));
+        tgl_masuk.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "2026-05-06" }));
         tgl_masuk.setDisplayFormat("yyyy-MM-dd");
         tgl_masuk.setFont(new java.awt.Font("Segoe UI", 0, 12)); // NOI18N
         tgl_masuk.setName("tgl_masuk"); // NOI18N
@@ -1396,6 +1396,7 @@ public class INACBGDataIDRG1 extends javax.swing.JDialog {
         sistole.setBounds(600, 800, 60, 30);
 
         jenis_rawat.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "1 : RAWAT INAP", "2 : RAWAT JALAN", "3 : IGD" }));
+        jenis_rawat.setSelectedIndex(1);
         jenis_rawat.setName("jenis_rawat"); // NOI18N
         jenis_rawat.addItemListener(new java.awt.event.ItemListener() {
             public void itemStateChanged(java.awt.event.ItemEvent evt) {
@@ -1433,7 +1434,7 @@ public class INACBGDataIDRG1 extends javax.swing.JDialog {
 
         tgl_keluar.setEditable(false);
         tgl_keluar.setForeground(new java.awt.Color(0, 0, 0));
-        tgl_keluar.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "2026-07-15" }));
+        tgl_keluar.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "2026-05-06" }));
         tgl_keluar.setDisplayFormat("yyyy-MM-dd");
         tgl_keluar.setFont(new java.awt.Font("Segoe UI", 0, 12)); // NOI18N
         tgl_keluar.setName("tgl_keluar"); // NOI18N
@@ -1557,7 +1558,7 @@ public class INACBGDataIDRG1 extends javax.swing.JDialog {
 
         tgl_intubasi.setEditable(false);
         tgl_intubasi.setForeground(new java.awt.Color(50, 70, 50));
-        tgl_intubasi.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "2026-07-15" }));
+        tgl_intubasi.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "2026-05-06" }));
         tgl_intubasi.setDisplayFormat("yyyy-MM-dd");
         tgl_intubasi.setFont(new java.awt.Font("Segoe UI", 0, 12)); // NOI18N
         tgl_intubasi.setName("tgl_intubasi"); // NOI18N
@@ -1587,7 +1588,7 @@ public class INACBGDataIDRG1 extends javax.swing.JDialog {
 
         tgl_ekstubasi.setEditable(false);
         tgl_ekstubasi.setForeground(new java.awt.Color(50, 70, 50));
-        tgl_ekstubasi.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "2026-07-15" }));
+        tgl_ekstubasi.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "2026-05-06" }));
         tgl_ekstubasi.setDisplayFormat("yyyy-MM-dd");
         tgl_ekstubasi.setFont(new java.awt.Font("Segoe UI", 0, 12)); // NOI18N
         tgl_ekstubasi.setName("tgl_ekstubasi"); // NOI18N
@@ -11271,8 +11272,10 @@ public void setDiagnosa(String norw, String norm, String pasien) {
 
         if (sudahAdaSimpan) {
             // ---- KALAU SUDAH PERNAH DISIMPAN: PAKAI SNAPSHOT YANG ADA ----
-            // Ini akan mengisi hak_kelas, tgl/jam masuk keluar, check_hd, rawat intensif, TB, dll
+            // Snapshot tetap dibaca untuk field manual, tetapi jenis_rawat dan tanggal/jam
+            // harus selalu mengikuti data kunjungan terbaru dari reg_periksa/kamar_inap.
             loadDataFormInacbg(norw);
+            applyJenisRawatTanggalJamOtomatis(ctx, true);
             
             // mode VIEW: terkunci, user harus klik "Edit Data" dulu
             setFormEditable(false);
@@ -11283,6 +11286,9 @@ public void setDiagnosa(String norw, String norm, String pasien) {
         } else {
 
             // ---- BELUM PERNAH DISIMPAN: PAKAI LOGIKA LAMA (SETTEXT EXISTING) ----
+
+            // jenis_rawat wajib mengikuti reg_periksa.status_lanjut
+            setJenisRawatDariStatusLanjut(ctx.statusLanjut);
 
             // mapping hak kelas (klsrawat / jns_pelayanan)
             if ("2".equals(ctx.jnsPelayanan)) { // Ralan
@@ -11393,6 +11399,7 @@ public void setDiagnosa(String norw, String norm, String pasien) {
         // Nilai obat utama tetap hasil hitung billing terbaru, bukan nilai snapshot lama.
         if (sudahAdaSimpan) {
             loadDataFormInacbg(norw);
+            applyJenisRawatTanggalJamOtomatis(ctx, false);
             refreshObatSplitAndTotal();
         }
 
@@ -16355,16 +16362,18 @@ private EklaimContext loadEklaimContext(String noRawat) {
         "     JOIN reg_periksa rp_bayi ON rp_bayi.no_rkm_medis = pb.no_rkm_medis " +
         "    WHERE rp_bayi.no_rawat = rp.no_rawat " +
         "    LIMIT 1)                             AS berat_bayi, " +
-        "  (SELECT DISTINCT CONCAT(ki2.tgl_masuk,' ',ki2.jam_masuk) " +
+        "  (SELECT DISTINCT CONCAT(ki2.tgl_masuk,' ',IFNULL(NULLIF(ki2.jam_masuk,''),'00:00:00')) " +
         "     FROM kamar_inap ki2 " +
         "    WHERE ki2.no_rawat = rp.no_rawat " +
-        "    ORDER BY ki2.tgl_masuk ASC " +
+        "      AND ki2.tgl_masuk <> '0000-00-00' " +
+        "    ORDER BY ki2.tgl_masuk ASC, IFNULL(NULLIF(ki2.jam_masuk,''),'00:00:00') ASC " +
         "    LIMIT 1)                             AS tgl_masuk_ranap, " +
-        "  (SELECT DISTINCT CONCAT(ki3.tgl_keluar,' ',ki3.jam_keluar) " +
+        "  (SELECT DISTINCT CONCAT(ki3.tgl_keluar,' ',IFNULL(NULLIF(ki3.jam_keluar,''),'00:00:00')) " +
         "     FROM kamar_inap ki3 " +
         "    WHERE ki3.no_rawat = rp.no_rawat " +
         "      AND ki3.tgl_keluar <> '0000-00-00' " +
-        "    ORDER BY ki3.tgl_masuk DESC " +
+        "      AND ki3.stts_pulang NOT IN ('-', 'Pindah Kamar') " +
+        "    ORDER BY ki3.tgl_keluar DESC, IFNULL(NULLIF(ki3.jam_keluar,''),'00:00:00') DESC " +
         "    LIMIT 1)                             AS tgl_keluar_ranap, " +
         "  (SELECT IFNULL(d.nm_dokter,'') " +
         "     FROM resume_pasien r " +
@@ -16432,6 +16441,97 @@ private EklaimContext loadEklaimContext(String noRawat) {
     }
 
     return ctx;
+}
+
+
+private boolean pilihComboDenganAwalan(javax.swing.JComboBox combo, String kodeAwal) {
+    if (combo == null || kodeAwal == null) {
+        return false;
+    }
+
+    String kode = kodeAwal.trim();
+    String prefix = kode + " :";
+    for (int x = 0; x < combo.getItemCount(); x++) {
+        Object item = combo.getItemAt(x);
+        if (item == null) {
+            continue;
+        }
+        String teks = item.toString().trim();
+        if (teks.equals(kode) || teks.startsWith(prefix)) {
+            combo.setSelectedItem(item);
+            return true;
+        }
+    }
+    return false;
+}
+
+private void setJenisRawatDariStatusLanjut(String statusLanjut) {
+    if ("Ranap".equalsIgnoreCase(statusLanjut)) {
+        pilihComboDenganAwalan(jenis_rawat, "1"); // 1 : RAWAT INAP
+    } else if ("Ralan".equalsIgnoreCase(statusLanjut)) {
+        pilihComboDenganAwalan(jenis_rawat, "2"); // 2 : RAWAT JALAN
+    }
+}
+
+private void setJamMenitDariString(javax.swing.JComboBox jamCombo,
+        javax.swing.JComboBox menitCombo, String jamLengkap) {
+    if (jamLengkap == null) {
+        return;
+    }
+
+    String jam = jamLengkap.trim();
+    if (jam.length() >= 5) {
+        jamCombo.setSelectedItem(jam.substring(0, 2));
+        menitCombo.setSelectedItem(jam.substring(3, 5));
+    }
+}
+
+private void setTanggalJamDariString(String tanggalJam, widget.Tanggal tanggal,
+        javax.swing.JComboBox jamCombo, javax.swing.JComboBox menitCombo) {
+    if (tanggalJam == null) {
+        return;
+    }
+
+    String nilai = tanggalJam.trim();
+    if (nilai.length() >= 16) {
+        Valid.SetTgl(tanggal, nilai.substring(0, 10));
+        jamCombo.setSelectedItem(nilai.substring(11, 13));
+        menitCombo.setSelectedItem(nilai.substring(14, 16));
+    }
+}
+
+private void applyJenisRawatTanggalJamOtomatis(EklaimContext ctx, boolean tampilkanNotifBelumPulang) {
+    if (ctx == null) {
+        return;
+    }
+
+    setJenisRawatDariStatusLanjut(ctx.statusLanjut);
+
+    if ("Ralan".equalsIgnoreCase(ctx.statusLanjut)) {
+        if (ctx.tglRegistrasi != null) {
+            tgl_masuk.setDate(ctx.tglRegistrasi);
+            tgl_keluar.setDate(ctx.tglRegistrasi);
+        }
+        setJamMenitDariString(jam_masuk, menit_masuk, ctx.jamReg);
+        setJamMenitDariString(jam_keluar, menit_keluar, ctx.jamReg);
+        return;
+    }
+
+    if ("Ranap".equalsIgnoreCase(ctx.statusLanjut)) {
+        tgl_masuk_ranap  = ctx.tglMasukRanap;
+        tgl_keluar_ranap = ctx.tglKeluarRanap;
+
+        if ((tgl_keluar_ranap == null || tgl_keluar_ranap.trim().isEmpty())
+                && tgl_masuk_ranap != null && !tgl_masuk_ranap.trim().isEmpty()) {
+            tgl_keluar_ranap = tgl_masuk_ranap;
+            if (tampilkanNotifBelumPulang) {
+                JOptionPane.showMessageDialog(null, "PASIEN INI BELUM DIPULANGKAN !!!!!!");
+            }
+        }
+
+        setTanggalJamDariString(tgl_masuk_ranap, tgl_masuk, jam_masuk, menit_masuk);
+        setTanggalJamDariString(tgl_keluar_ranap, tgl_keluar, jam_keluar, menit_keluar);
+    }
 }
 
 private void mapStatusPulangRalan(String stts) {
@@ -16758,12 +16858,22 @@ public void loadDataFormInacbg(String noRawat) {
         return;
     }
 
-    // Ambil SEP dari bridging_sep
-    String sep = Sequel.cariIsi(
-        "SELECT bs.no_sep " +
-        "FROM bridging_sep bs " +
-        "WHERE bs.no_rawat = ?", noRawat
-    );
+    // Pakai SEP yang sudah dipilih oleh loadEklaimContext().
+    // Fallback query tetap disiapkan jika method ini dipanggil dari tempat lain.
+    String sep = (Tsep.getText() == null ? "" : Tsep.getText().trim());
+    if (sep.isEmpty()) {
+        sep = Sequel.cariIsi(
+            "SELECT bs.no_sep " +
+            "FROM bridging_sep bs " +
+            "JOIN reg_periksa rp ON rp.no_rawat = bs.no_rawat " +
+            "WHERE bs.no_rawat = ? " +
+            "  AND bs.jnspelayanan = CASE rp.status_lanjut " +
+            "                           WHEN 'Ralan' THEN '2' " +
+            "                           WHEN 'Ranap' THEN '1' " +
+            "                         END " +
+            "LIMIT 1", noRawat
+        );
+    }
 
     if (sep == null || sep.trim().isEmpty()) {
         System.out.println("[INACBG] loadDataFormInacbg: SEP tidak ditemukan untuk no_rawat " + noRawat);
@@ -16791,7 +16901,8 @@ public void loadDataFormInacbg(String noRawat) {
             cob.setSelectedItem(rs.getString("cob"));
 
             // 4. jenis_rawat
-            jenis_rawat.setSelectedItem(rs.getString("jenis_rawat"));
+            // Jangan diambil dari inacbg_simpan_data.
+            // Nilai ini wajib otomatis dari reg_periksa.status_lanjut.
 
             // 5. check_naik_turun
             naik_turun_kelas.setSelected(rs.getInt("check_naik_turun") == 1);
@@ -16805,23 +16916,10 @@ public void loadDataFormInacbg(String noRawat) {
             // 8. hak_kelas
             hak_kelas.setSelectedItem(rs.getString("hak_kelas"));
 
-            // 9. tgl_masuk
-            if (rs.getDate("tgl_masuk") != null) {
-                tgl_masuk.setDate(rs.getDate("tgl_masuk"));
-            }
-
-            // 10–11 jam / menit masuk
-            jam_masuk.setSelectedItem(rs.getString("jam_masuk"));
-            menit_masuk.setSelectedItem(rs.getString("menit_masuk"));
-
-            // 12. tgl_keluar
-            if (rs.getDate("tgl_keluar") != null) {
-                tgl_keluar.setDate(rs.getDate("tgl_keluar"));
-            }
-
-            // 13–14 jam / menit keluar
-            jam_keluar.setSelectedItem(rs.getString("jam_keluar"));
-            menit_keluar.setSelectedItem(rs.getString("menit_keluar"));
+            // 9–14. tgl/jam/menit masuk-keluar
+            // Jangan diambil dari inacbg_simpan_data.
+            // Field ini wajib otomatis dari reg_periksa/kamar_inap agar tidak terkunci
+            // pada nilai snapshot lama/tanggal hari ini.
 
             // 15. berat_lahir
             berat_bayi.setText(rs.getString("berat_lahir"));

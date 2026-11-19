@@ -15171,6 +15171,7 @@ private static final class ImageCanvas extends javax.swing.JPanel {
     private final String pathOrUrl;
     private volatile int targetWidth;
     private volatile java.lang.ref.SoftReference<java.awt.image.BufferedImage> imgRef;
+    private String loadError;
 
     ImageCanvas(String pathOrUrl, int targetWidth) {
         super(null);
@@ -15198,16 +15199,28 @@ private static final class ImageCanvas extends javax.swing.JPanel {
         new Thread(() -> {
             try {
                 java.awt.image.BufferedImage img = readScaledToWidth(pathOrUrl, targetWidth);
-                imgRef = new java.lang.ref.SoftReference<>(img);
-                int h = (img != null) ? img.getHeight() : Math.max(120, (int)(targetWidth * 0.6));
-                final int fh = h + 2;
                 javax.swing.SwingUtilities.invokeLater(() -> {
-                    setPreferredSize(new java.awt.Dimension(targetWidth, fh));
+                    imgRef = new java.lang.ref.SoftReference<>(img);
+                    loadError = null;
+                    setPreferredSize(new java.awt.Dimension(targetWidth, img.getHeight() + 2));
                     revalidate();
                     repaint();
                 });
             } catch (Exception ex) {
-                System.out.println("decode img fail: " + pathOrUrl + " => " + ex.getMessage());
+                String message = "Gagal memuat gambar.";
+                if (ex instanceof java.io.FileNotFoundException) {
+                    message = "File gambar tidak ditemukan.";
+                } else if (ex instanceof java.net.SocketTimeoutException) {
+                    message = "Waktu tunggu pemuatan gambar habis.";
+                } else if (ex instanceof javax.imageio.IIOException) {
+                    message = "Gambar rusak atau formatnya tidak didukung.";
+                }
+                final String previewError = message;
+                System.err.println("Pratinjau Berkas Digital: " + ex.getClass().getSimpleName());
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    loadError = previewError;
+                    repaint();
+                });
             }
         }, "accor-img-decode").start();
     }
@@ -15229,7 +15242,7 @@ private static final class ImageCanvas extends javax.swing.JPanel {
             g2.fillRect(0,0,getWidth(),getHeight());
             g2.setColor(new java.awt.Color(180,180,180));
             g2.drawRect(0,0,getWidth()-1,getHeight()-1);
-            String t = "Memuat gambar...";
+            String t = loadError == null ? "Memuat gambar..." : loadError;
             java.awt.Font f = getFont().deriveFont(java.awt.Font.PLAIN, 12f);
             g2.setFont(f);
             java.awt.FontMetrics fm = g2.getFontMetrics();
@@ -15278,12 +15291,10 @@ private static final class ImageCanvas extends javax.swing.JPanel {
             }
 
             iis = javax.imageio.ImageIO.createImageInputStream(in);
+            if (iis == null) throw new java.io.IOException("Stream gambar tidak tersedia.");
             java.util.Iterator<javax.imageio.ImageReader> it = javax.imageio.ImageIO.getImageReaders(iis);
             if (!it.hasNext()) {
-                // fallback sederhana
-                java.awt.image.BufferedImage raw = javax.imageio.ImageIO.read(new java.io.File(path));
-                if (raw == null) throw new RuntimeException("Gagal membaca gambar: " + path);
-                return scaleToWidth(raw, targetW);
+                throw new javax.imageio.IIOException("Data gambar tidak dapat dikenali.");
             }
             reader = it.next();
             reader.setInput(iis, true, true);
@@ -15711,6 +15722,8 @@ private void collapseAccor() {
 
         try (PreparedStatement ps = koneksi.prepareStatement(sql)) {
             ps.setString(1, noRawat);
+            String previewBase = "http://" + koneksiDB.HOSTHYBRIDWEB() + ":" + koneksiDB.PORTWEB()
+                    + "/" + koneksiDB.HYBRIDWEB();
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String kode = nz(rs.getString("kode"));
@@ -15722,8 +15735,8 @@ private void collapseAccor() {
                     String ext  = name.contains(".") ? name.substring(name.lastIndexOf('.')+1).toLowerCase() : "";
                     if (!ACCOR_IMG_EXT2.contains(ext)) continue; // hanya gambar
 
-                    // bangun URL http agar bisa diambil meskipun file bukan lokal path
-                    String url  = joinUrl(getWebBase(), "berkasrawat/" + rel2).replace(" ", "%20");
+                    // Gunakan alamat Hybrid Web yang sama dengan upload berkas.
+                    String url = joinUrl(previewBase, "berkasrawat/" + rel2).replace(" ", "%20");
                     String nama = nz(rs.getString("nama_berkas"));
                     list.add(new BerkasItem(kode, (nama.isEmpty() ? name : nama), url));
                 }

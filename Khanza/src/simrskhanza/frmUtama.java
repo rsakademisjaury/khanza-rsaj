@@ -17468,16 +17468,17 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         }
     }
 
-    private void catatGangguanPengamanLogin(Exception exception) {
-        Throwable penyebab = exception.getCause() == null ? exception : exception.getCause();
-        // Tidak mencetak pesan SQL/parameter yang mungkin berisi data sensitif.
-        if (penyebab instanceof java.sql.SQLException) {
-            java.sql.SQLException sql = (java.sql.SQLException) penyebab;
-            System.out.println("[Pengaman Login] SQLState=" + sql.getSQLState()
-                    + ", kode=" + sql.getErrorCode());
-        } else {
-            System.out.println("[Pengaman Login] " + penyebab.getClass().getSimpleName());
-        }
+     private void catatGangguanPengamanLogin(Exception exception) {
+//        Throwable penyebab = exception.getCause() == null ? exception : exception.getCause();
+//        // Tidak mencetak pesan SQL/parameter yang mungkin berisi data sensitif.
+//        if (penyebab instanceof java.sql.SQLException) {
+//            java.sql.SQLException sql = (java.sql.SQLException) penyebab;
+//            System.out.println("[Pengaman Login] SQLState=" + sql.getSQLState()
+//                    + ", kode=" + sql.getErrorCode());
+//        } else {
+//            System.out.println("[Pengaman Login] " + penyebab.getClass().getSimpleName());
+//        }
+          fungsi.LoginFailureDiagnostics.log(exception);
     }
 
     /** Mulai hitungan baru hanya sesudah login biasa benar-benar berhasil. */

@@ -1162,12 +1162,6 @@ public final class DlgIGD extends javax.swing.JDialog {
         BtnPantauFingerBPJS = new widget.Button();
         PanelInput = new javax.swing.JPanel();
         FormInput = new widget.PanelBiasa();
-        LblFotoKTP = new widget.Label();
-        BtnZoomFotoKTP = new widget.Button();
-        BtnUnduhFotoKTP = new widget.Button();
-        BtnAmbilFotoKTP = new widget.Button();
-        BtnUnggahFotoKTP = new widget.Button();
-        BtnRefreshFotoKTP = new widget.Button();
         jLabel3 = new widget.Label();
         jLabel4 = new widget.Label();
         TDokter = new widget.TextBox();
@@ -1204,6 +1198,12 @@ public final class DlgIGD extends javax.swing.JDialog {
         btnPenjab1 = new widget.Button();
         ChkTracker = new widget.CekBox();
         MnRujukSatuSehat = new widget.Button();
+        LblFotoKTP = new widget.Label();
+        BtnZoomFotoKTP = new widget.Button();
+        BtnUnduhFotoKTP = new widget.Button();
+        BtnAmbilFotoKTP = new widget.Button();
+        BtnUnggahFotoKTP = new widget.Button();
+        BtnRefreshFotoKTP = new widget.Button();
         ChkInput = new widget.CekBox();
 
         jPopupMenu1.setName("jPopupMenu1"); // NOI18N
@@ -3969,6 +3969,7 @@ public final class DlgIGD extends javax.swing.JDialog {
         MnRujuk.setForeground(new java.awt.Color(50, 50, 50));
         MnRujuk.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/category.png"))); // NOI18N
         MnRujuk.setText("Rujukan Keluar");
+        MnRujuk.setEnabled(false);
         MnRujuk.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         MnRujuk.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
         MnRujuk.setName("MnRujuk"); // NOI18N
@@ -3984,11 +3985,11 @@ public final class DlgIGD extends javax.swing.JDialog {
         MnRujukBalik.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
         MnRujukBalik.setForeground(new java.awt.Color(50, 50, 50));
         MnRujukBalik.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/category.png"))); // NOI18N
-        MnRujukBalik.setText("Surat Rujuk Balik");
+        MnRujukBalik.setText("Rujuk Balik / Ke RS Lain");
         MnRujukBalik.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         MnRujukBalik.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
         MnRujukBalik.setName("MnRujukBalik"); // NOI18N
-        MnRujukBalik.setPreferredSize(new java.awt.Dimension(150, 26));
+        MnRujukBalik.setPreferredSize(new java.awt.Dimension(160, 26));
         MnRujukBalik.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 MnRujukBalikActionPerformed(evt);
@@ -4933,7 +4934,7 @@ public final class DlgIGD extends javax.swing.JDialog {
         panelGlass7.add(jLabel15);
 
         DTPCari1.setForeground(new java.awt.Color(50, 70, 50));
-        DTPCari1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "26-05-2026" }));
+        DTPCari1.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "17-11-2026" }));
         DTPCari1.setDisplayFormat("dd-MM-yyyy");
         DTPCari1.setName("DTPCari1"); // NOI18N
         DTPCari1.setOpaque(false);
@@ -4947,7 +4948,7 @@ public final class DlgIGD extends javax.swing.JDialog {
         panelGlass7.add(jLabel17);
 
         DTPCari2.setForeground(new java.awt.Color(50, 70, 50));
-        DTPCari2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "26-05-2026" }));
+        DTPCari2.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "17-11-2026" }));
         DTPCari2.setDisplayFormat("dd-MM-yyyy");
         DTPCari2.setName("DTPCari2"); // NOI18N
         DTPCari2.setOpaque(false);
@@ -5005,8 +5006,8 @@ public final class DlgIGD extends javax.swing.JDialog {
         PanelInput.setOpaque(false);
         PanelInput.setLayout(new java.awt.BorderLayout(1, 1));
 
-        FormInput.setName("FormInput"); // NOI18N
         FormInput.setMinimumSize(new java.awt.Dimension(1420, 167));
+        FormInput.setName("FormInput"); // NOI18N
         FormInput.setPreferredSize(new java.awt.Dimension(1420, 167));
         FormInput.setLayout(null);
 
@@ -5022,7 +5023,6 @@ public final class DlgIGD extends javax.swing.JDialog {
         FormInput.add(jLabel4);
         jLabel4.setBounds(160, 10, 60, 23);
 
-        TDokter.setEditable(true);
         TDokter.setName("TDokter"); // NOI18N
         FormInput.add(TDokter);
         TDokter.setBounds(183, 70, 200, 23);
@@ -5056,7 +5056,7 @@ public final class DlgIGD extends javax.swing.JDialog {
         jLabel9.setBounds(190, 40, 36, 23);
 
         DTPReg.setForeground(new java.awt.Color(50, 70, 50));
-        DTPReg.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "26-05-2026" }));
+        DTPReg.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "17-11-2026" }));
         DTPReg.setDisplayFormat("dd-MM-yyyy");
         DTPReg.setName("DTPReg"); // NOI18N
         DTPReg.setOpaque(false);
@@ -5072,13 +5072,13 @@ public final class DlgIGD extends javax.swing.JDialog {
         jLabel20.setText("Penanggung Jawab ");
         jLabel20.setName("jLabel20"); // NOI18N
         FormInput.add(jLabel20);
-        jLabel20.setBounds(510, 40, 110, 23);
+        jLabel20.setBounds(500, 40, 120, 23);
 
         jLabel21.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         jLabel21.setText("Alamat Png Jawab");
         jLabel21.setName("jLabel21"); // NOI18N
         FormInput.add(jLabel21);
-        jLabel21.setBounds(510, 70, 90, 23);
+        jLabel21.setBounds(500, 70, 100, 23);
 
         TPngJwb.setHighlighter(null);
         TPngJwb.setName("TPngJwb"); // NOI18N
@@ -5141,10 +5141,10 @@ public final class DlgIGD extends javax.swing.JDialog {
         CmbDetik.setBounds(342, 40, 50, 23);
 
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        jLabel7.setText("Nomor Rekam Medik");
+        jLabel7.setText("No.  Rekam Medik");
         jLabel7.setName("jLabel7"); // NOI18N
         FormInput.add(jLabel7);
-        jLabel7.setBounds(510, 10, 100, 23);
+        jLabel7.setBounds(500, 10, 110, 23);
 
         TAlmt.setHighlighter(null);
         TAlmt.setName("TAlmt"); // NOI18N
@@ -5232,7 +5232,8 @@ public final class DlgIGD extends javax.swing.JDialog {
             }
         });
         FormInput.add(BtnDokter);
-        BtnDokter.setBounds(390, 70, 110, 23);
+        BtnDokter.setBounds(390, 70, 30, 23);
+        BtnDokter.getAccessibleContext().setAccessibleName("");
 
         jLabel30.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         jLabel30.setText("Status");
@@ -5250,7 +5251,7 @@ public final class DlgIGD extends javax.swing.JDialog {
         jLabel18.setText("Jenis Bayar");
         jLabel18.setName("jLabel18"); // NOI18N
         FormInput.add(jLabel18);
-        jLabel18.setBounds(510, 100, 90, 23);
+        jLabel18.setBounds(500, 100, 100, 23);
 
         kdpnj.setHighlighter(null);
         kdpnj.setName("kdpnj"); // NOI18N
@@ -5262,7 +5263,6 @@ public final class DlgIGD extends javax.swing.JDialog {
         FormInput.add(kdpnj);
         kdpnj.setBounds(620, 100, 70, 23);
 
-        nmpnj.setEditable(true);
         nmpnj.setName("nmpnj"); // NOI18N
         FormInput.add(nmpnj);
         nmpnj.setBounds(693, 100, 265, 23);
@@ -5280,7 +5280,7 @@ public final class DlgIGD extends javax.swing.JDialog {
             }
         });
         FormInput.add(btnPenjab);
-        btnPenjab.setBounds(960, 100, 140, 23);
+        btnPenjab.setBounds(965, 100, 30, 23);
 
         AsalRujukan.setName("AsalRujukan"); // NOI18N
         AsalRujukan.addKeyListener(new java.awt.event.KeyAdapter() {
@@ -5295,7 +5295,7 @@ public final class DlgIGD extends javax.swing.JDialog {
         jLabel23.setText("Asal Rujukan");
         jLabel23.setName("jLabel23"); // NOI18N
         FormInput.add(jLabel23);
-        jLabel23.setBounds(510, 130, 90, 23);
+        jLabel23.setBounds(500, 130, 100, 23);
 
         btnPenjab1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/190.png"))); // NOI18N
         btnPenjab1.setMnemonic('2');
@@ -5310,7 +5310,7 @@ public final class DlgIGD extends javax.swing.JDialog {
             }
         });
         FormInput.add(btnPenjab1);
-        btnPenjab1.setBounds(960, 130, 150, 23);
+        btnPenjab1.setBounds(965, 130, 30, 23);
 
         ChkTracker.setBackground(new java.awt.Color(255, 255, 255));
         ChkTracker.setBorder(null);
@@ -12926,19 +12926,19 @@ private void MnLaporanRekapKunjunganBulananPoliActionPerformed(java.awt.event.Ac
     private widget.Button BtnAmbilFotoKTP;
     private widget.Button BtnBatal;
     private widget.Button BtnCari;
-    private widget.Button BtnPantauFingerBPJS;
-    private widget.Button BtnRefreshFotoKTP;
     private widget.Button BtnDokter;
     private widget.Button BtnEdit;
     private widget.Button BtnHapus;
     private widget.Button BtnKeluar;
     private widget.Button BtnKeluar3;
     private widget.Button BtnKeluar4;
+    private widget.Button BtnPantauFingerBPJS;
     private widget.Button BtnPasien;
     private widget.Button BtnPrint;
     private widget.Button BtnPrint3;
     private widget.Button BtnPrint4;
     private widget.Button BtnPrint5;
+    private widget.Button BtnRefreshFotoKTP;
     private widget.Button BtnSeek5;
     private widget.Button BtnSimpan;
     private widget.Button BtnUnduhFotoKTP;
@@ -12965,8 +12965,8 @@ private void MnLaporanRekapKunjunganBulananPoliActionPerformed(java.awt.event.Ac
     private widget.TextBox Kecamatan2;
     private widget.TextBox Kelurahan2;
     private widget.Label LCount;
-    private widget.Label LblFotoKTP;
     private widget.Label LabelCatatan;
+    private widget.Label LblFotoKTP;
     private javax.swing.JMenu MenuInputData;
     private javax.swing.JMenuItem MnBarcode;
     private javax.swing.JMenuItem MnBarcode1;
@@ -13765,7 +13765,7 @@ private void MnLaporanRekapKunjunganBulananPoliActionPerformed(java.awt.event.Ac
         MnBillingParsial.setEnabled(akses.getbilling_parsial());
         MnOperasi.setEnabled(akses.getoperasi());
         MnRujuk.setEnabled(akses.getrujukan_keluar());
-        MnRujukBalik.setEnabled(akses.getrujukan_keluar());
+        MnRujukBalik.setEnabled(akses.getrujukan_keluar() || akses.getbpjs_rujukan_keluar());
         MnRujukMasuk.setEnabled(akses.getrujukan_masuk());
         MnPoliInternal.setEnabled(akses.getrujukan_poli_internal());
         MnDiagnosa.setEnabled(akses.getdiagnosa_pasien());

@@ -44,6 +44,7 @@ import fungsi.koneksiDBWA;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.cert.X509Certificate;
@@ -66,7 +67,9 @@ import java.io.PrintWriter;
 import java.net.ProtocolException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -95,6 +98,17 @@ import org.apache.pdfbox.rendering.PDFRenderer;
  */
 public class BPJSSuratKontrol extends javax.swing.JDialog {
     private final DefaultTableModel tabMode;
+    private final SuratKontrolRanapPanel panelRanap;
+    private String noRawatRanap = "";
+    private LepasRawatRanap.Data lepasRawatRanap;
+    private javax.swing.Timer timerKuotaRanap;
+    private javax.swing.JButton tombolSimpanRanap;
+    private long versiKuotaRanap;
+    private JadwalKontrolRanap.Hasil jadwalRanap;
+    private String pilihanKuotaRanap = "";
+    private String peringatanKuotaRanap = "";
+    private boolean mengisiTanggalKontrolRanap;
+    private boolean tanggalKontrolDipilihRanap;
     private Connection koneksi=koneksiDB.condb();
     private sekuel Sequel=new sekuel();
     private validasi Valid=new validasi();
@@ -125,7 +139,16 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
      * @param parent
      * @param modal */
     public BPJSSuratKontrol(java.awt.Frame parent, boolean modal) {
+        this(parent, modal, false);
+    }
+
+    public static BPJSSuratKontrol untukRawatInap() {
+        return new BPJSSuratKontrol(null, false, true);
+    }
+
+    private BPJSSuratKontrol(java.awt.Frame parent, boolean modal, boolean rawatInap) {
         super(parent, modal);
+        panelRanap = rawatInap ? new SuratKontrolRanapPanel() : null;
         initComponents();
 
         tabMode=new DefaultTableModel(null,new Object[]{
@@ -304,8 +327,563 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             JADIKANBOOKINGSURATKONTROLAPIBPJS="no";
         }
         inisialisasiPulangBPJS();
+        if (panelRanap != null) {
+            pasangTampilanRanap();
+        }
     }
     
+    private void pasangTampilanRanap() {
+        javax.swing.JButton editTelepon = SuratKontrolRanapPanel.tombolIkon(
+                "Ubah nomor telepon", SuratKontrolRanapPanel.Ikon.EDIT);
+        editTelepon.setPreferredSize(new java.awt.Dimension(24, 20));
+        editTelepon.addActionListener(e -> ubahTeleponRanap());
+        SuratKontrolRanapPanel.Kartu pasien = SuratKontrolRanapPanel.kartu(null);
+        pasien.getAccessibleContext().setAccessibleName("Data pasien");
+        pasien.tambah(SuratKontrolRanapPanel.barisIdentitasPasien(Diagnosa,
+                SuratKontrolRanapPanel.identitas("Nama pasien", NmPasien,
+                        SuratKontrolRanapPanel.ikonKasir("nama_pasien.png", 24, SuratKontrolRanapPanel.Ikon.PASIEN)),
+                SuratKontrolRanapPanel.identitas("No. rawat", NoRawat,
+                        SuratKontrolRanapPanel.ikonKasir("no_rawat.png", 24, SuratKontrolRanapPanel.Ikon.BERKAS)),
+                SuratKontrolRanapPanel.identitas("No. rekam medis", NoRM,
+                        SuratKontrolRanapPanel.ikonKasir("no_rm.png", 24, SuratKontrolRanapPanel.Ikon.KARTU)),
+                SuratKontrolRanapPanel.identitas("Tanggal lahir", TglLahir,
+                        SuratKontrolRanapPanel.ikonKasir("expire.png", 24, SuratKontrolRanapPanel.Ikon.KALENDER)),
+                SuratKontrolRanapPanel.identitas("Jenis kelamin", JK, null),
+                SuratKontrolRanapPanel.identitas("No. telepon", NoHp, null, editTelepon)));
+
+        SuratKontrolRanapPanel.Kartu kontrol = SuratKontrolRanapPanel.kartu("Surat Rencana Kontrol BPJS");
+        kontrol.tambah(SuratKontrolRanapPanel.barisNomor(
+                SuratKontrolRanapPanel.ruas("No. SEP", SuratKontrolRanapPanel.denganAksi(
+                        SuratKontrolRanapPanel.input(NoSEP, 185, false),
+                        SuratKontrolRanapPanel.aksi(BtnSetSEPRalan, "Set SEP Ralan", SuratKontrolRanapPanel.Ikon.MUAT_ULANG)),
+                        SuratKontrolRanapPanel.ikonKasir("no_sep.png", 14, SuratKontrolRanapPanel.Ikon.KARTU)),
+                ruasRanap("No. surat", NoSurat, false)));
+        TanggalSurat.setEnabled(false);
+        kontrol.tambah(SuratKontrolRanapPanel.sejajar(
+                SuratKontrolRanapPanel.ruas("Tanggal entri", SuratKontrolRanapPanel.tanggal(TanggalSurat)),
+                SuratKontrolRanapPanel.ruas("Tanggal kontrol", SuratKontrolRanapPanel.tanggal(TanggalKontrol))));
+        kontrol.tambah(SuratKontrolRanapPanel.ruas("Poliklinik tujuan",
+                SuratKontrolRanapPanel.pilihan(KdPoli, NmPoli, BtnPoli, "Pilih poli", SuratKontrolRanapPanel.Ikon.POLI)));
+        kontrol.tambah(SuratKontrolRanapPanel.ruas("Dokter tujuan",
+                SuratKontrolRanapPanel.pilihan(KdDokter, NmDokter, BtnDokter, "Pilih dokter", SuratKontrolRanapPanel.Ikon.DOKTER)));
+        kontrol.tambah(panelRanap.barKuota());
+        kontrol.tambah(ruasRanap("Alasan kontrol", KeteranganKontrol, true));
+        BtnSetSEPRalan.setToolTipText("Gunakan SEP rawat jalan jika SKDP kelanjutan belum dibuat saat pasien masuk rawat inap.");
+
+        javax.swing.JComponent riwayat = SuratKontrolRanapPanel.riwayat(Scroll, tbObat,
+                SuratKontrolRanapPanel.barisIdentitas(
+                        SuratKontrolRanapPanel.filterTanggal(R1, "Tanggal surat", DTPTanggalSurat1, DTPTanggalSurat2),
+                        SuratKontrolRanapPanel.filterTanggal(R2, "Tanggal kontrol", DTPTanggalKontrol1, DTPTanggalKontrol2)),
+                SuratKontrolRanapPanel.barisAksi(
+                        SuratKontrolRanapPanel.label("Cari SKDP", 12, true),
+                        SuratKontrolRanapPanel.input(TCari, 165, true, SuratKontrolRanapPanel.TINGGI_FILTER),
+                        SuratKontrolRanapPanel.aksi(BtnCari, "Cari", SuratKontrolRanapPanel.Ikon.CARI),
+                        SuratKontrolRanapPanel.aksi(BtnAll, "Semua", SuratKontrolRanapPanel.Ikon.CENTANG),
+                        SuratKontrolRanapPanel.aksiUtama(BtnTarikVClaim, "Tarik SKDP VClaim", SuratKontrolRanapPanel.Ikon.MUAT_ULANG),
+                        SuratKontrolRanapPanel.label("Jumlah", 12, false), LCount),
+                SuratKontrolRanapPanel.barisAksi(
+                        SuratKontrolRanapPanel.aksiBahaya(BtnHapus, "Hapus SKDP", SuratKontrolRanapPanel.Ikon.HAPUS),
+                        SuratKontrolRanapPanel.aksi(BtnUpload, "Upload SKDP", SuratKontrolRanapPanel.Ikon.UPLOAD),
+                        SuratKontrolRanapPanel.aksi(BtnUploadLepasRawat, "Upload Lepas Rawat", SuratKontrolRanapPanel.Ikon.UPLOAD),
+                        SuratKontrolRanapPanel.aksi(BtnKirimPesan, "Kirim pesan", SuratKontrolRanapPanel.Ikon.PESAN)));
+
+        tombolSimpanRanap = SuratKontrolRanapPanel.tombol("Simpan dokumen", true, SuratKontrolRanapPanel.Ikon.SIMPAN);
+        javax.swing.JButton simpan = tombolSimpanRanap;
+        javax.swing.JButton cetakSkdp = SuratKontrolRanapPanel.tombol("Cetak SKDP", false, SuratKontrolRanapPanel.Ikon.CETAK);
+        javax.swing.JButton cetakLepasRawat = SuratKontrolRanapPanel.tombol("Cetak Lepas Rawat", false, SuratKontrolRanapPanel.Ikon.CETAK);
+        boolean berwenang = akses.getbpjs_surat_kontrol();
+        simpan.setEnabled(berwenang);
+        cetakSkdp.setEnabled(berwenang);
+        cetakLepasRawat.setEnabled(berwenang);
+        simpan.addActionListener(this::BtnSimpanActionPerformed);
+        cetakSkdp.addActionListener(this::MnSuratActionPerformed);
+        cetakLepasRawat.addActionListener(this::MnSuratLepasRawatActionPerformed);
+
+        panelRanap.ambilObat.addActionListener(e -> ambilObatRanap());
+        panelRanap.ambilLab.addActionListener(e -> ambilPenunjangRanap(true));
+        panelRanap.ambilRadiologi.addActionListener(e -> ambilPenunjangRanap(false));
+        panelRanap.muatUlang.addActionListener(e -> {
+            if (lepasRawatRanap == null || panelRanap.baca().samaDengan(lepasRawatRanap.isi)
+                    || JOptionPane.showConfirmDialog(this, "Muat ulang dan abaikan perubahan Formulir Lepas Rawat?",
+                            "Muat ulang", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                muatLepasRawatRanap();
+            }
+        });
+
+        pasangPemeriksaanKuotaRanap();
+        internalFrame1.removeAll();
+        internalFrame1.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        internalFrame1.add(panelRanap.buat(pasien, kontrol, riwayat,
+                SuratKontrolRanapPanel.barisAksi(simpan, cetakSkdp, cetakLepasRawat,
+                        SuratKontrolRanapPanel.aksi(BtnUpdatePulangBPJS, "Update Pulang BPJS", SuratKontrolRanapPanel.Ikon.PULANG)),
+                SuratKontrolRanapPanel.aksiBahaya(BtnKeluar, "Keluar", SuratKontrolRanapPanel.Ikon.KELUAR), LblStatusPulangBPJS),
+                java.awt.BorderLayout.CENTER);
+    }
+
+    private void ubahTeleponRanap() {
+        String nomor = JOptionPane.showInputDialog(this, "No. telepon pasien", NoHp.getText());
+        if (nomor != null) {
+            NoHp.setText(nomor.trim());
+        }
+    }
+
+    private void pasangPemeriksaanKuotaRanap() {
+        panelRanap.lihatJadwal.setEnabled(false);
+        timerKuotaRanap = new javax.swing.Timer(220, e -> periksaKuotaRanap(null));
+        timerKuotaRanap.setRepeats(false);
+        javax.swing.event.DocumentListener pantau = new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { jadwalkanKuotaRanap(); }
+            @Override public void removeUpdate(DocumentEvent e) { jadwalkanKuotaRanap(); }
+            @Override public void changedUpdate(DocumentEvent e) { jadwalkanKuotaRanap(); }
+        };
+        KdDokter.getDocument().addDocumentListener(pantau);
+        KdPoli.getDocument().addDocumentListener(pantau);
+        NoSurat.getDocument().addDocumentListener(pantau);
+        NoSEP.getDocument().addDocumentListener(pantau);
+        TanggalKontrol.addItemListener(e -> {
+            if (e.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
+                tanggalKontrolDipilihRanap = !mengisiTanggalKontrolRanap;
+                jadwalkanKuotaRanap();
+            }
+        });
+        panelRanap.lihatJadwal.addActionListener(e -> {
+            if (jadwalRanap != null) {
+                panelRanap.tampilJadwal(this, jadwalRanap, tanggalKuotaRanap());
+            }
+        });
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override public void windowClosed(WindowEvent e) {
+                timerKuotaRanap.stop();
+                versiKuotaRanap++;
+            }
+        });
+    }
+
+    private String tanggalKuotaRanap() {
+        return Valid.SetTgl(TanggalKontrol.getSelectedItem() + "");
+    }
+
+    private void isiTanggalKontrol(Runnable pengisian) {
+        mengisiTanggalKontrolRanap = true;
+        tanggalKontrolDipilihRanap = false;
+        try {
+            pengisian.run();
+        } finally {
+            mengisiTanggalKontrolRanap = false;
+        }
+    }
+
+    private LocalDate validasiTanggalKontrolRanap(boolean tampilkan) {
+        tanggalKontrolDipilihRanap = false;
+        String pesan;
+        try {
+            LocalDate tanggal = LocalDate.parse(tanggalKuotaRanap());
+            String rawat = NoRawat.getText().trim();
+            if (rawat.isEmpty()) {
+                return tanggal;
+            }
+            LocalDate pulang = LepasRawatRanap.tanggalPulang(koneksi, rawat);
+            if (pulang == null || !tanggal.isBefore(pulang)) {
+                return tanggal;
+            }
+            pesan = "Maaf tanggal kontrol tidak boleh lebih kecil dari tanggal pulang";
+        } catch (java.time.format.DateTimeParseException ex) {
+            pesan = "Pilih tanggal kontrol yang valid.";
+        } catch (SQLException ex) {
+            System.out.println("Gagal memeriksa tanggal pulang rawat inap: " + ex.getMessage());
+            pesan = "Tanggal pulang gagal diperiksa. Silakan coba lagi.";
+        }
+        panelRanap.kuota(pesan, true);
+        if (tampilkan) {
+            timerKuotaRanap.stop();
+            pesanTanggalRanap(pesan);
+        }
+        return null;
+    }
+
+    private void jadwalkanKuotaRanap() {
+        versiKuotaRanap++;
+        jadwalRanap = null;
+        panelRanap.lihatJadwal.setEnabled(false);
+        timerKuotaRanap.restart();
+    }
+
+    private void periksaKuotaRanap(Runnable lanjutSimpan) {
+        boolean saatSimpan = lanjutSimpan != null;
+        if (saatSimpan && !tombolSimpanRanap.isEnabled()) {
+            return;
+        }
+        LocalDate tanggal = validasiTanggalKontrolRanap(saatSimpan
+                || (tanggalKontrolDipilihRanap && isShowing() && panelRanap.tab.getSelectedIndex() == 0));
+        if (tanggal == null) {
+            return;
+        }
+        String dokter = KdDokter.getText().trim();
+        String poli = KdPoli.getText().trim();
+        if (dokter.isEmpty() || poli.isEmpty()) {
+            panelRanap.kuota("Pilih dokter dan poli untuk cek kuota.", false);
+            return;
+        }
+
+        boolean tanggalAkanDatang = tanggal.isAfter(LocalDate.now(ZoneId.of("Asia/Makassar")));
+        if (saatSimpan && !tanggalAkanDatang) {
+            JOptionPane.showMessageDialog(this, "Pilih tanggal kontrol setelah hari ini.");
+            TanggalKontrol.requestFocusInWindow();
+            return;
+        }
+
+        if (saatSimpan) {
+            timerKuotaRanap.stop();
+            tombolSimpanRanap.setEnabled(false);
+        }
+        String pilihan = dokter + "|" + poli + "|" + tanggal;
+        if (!pilihan.equals(pilihanKuotaRanap)) {
+            pilihanKuotaRanap = pilihan;
+            peringatanKuotaRanap = "";
+        }
+        long versi = ++versiKuotaRanap;
+        panelRanap.kuota("Memeriksa jadwal dan kuota…", false);
+        new SwingWorker<JadwalKontrolRanap.Hasil, Void>() {
+            @Override protected JadwalKontrolRanap.Hasil doInBackground() throws Exception {
+                java.util.List<JadwalKontrolRanap.Sesi> hfis = JadwalKontrolHfis.ambil(dokter, poli, tanggal);
+                try (Connection db = koneksiDB.condbTransaksi()) {
+                    return JadwalKontrolRanap.cek(db, dokter, poli, tanggal, hfis);
+                }
+            }
+
+            @Override protected void done() {
+                if (saatSimpan) {
+                    tombolSimpanRanap.setEnabled(akses.getbpjs_surat_kontrol());
+                }
+                if (versi != versiKuotaRanap || !isShowing()) {
+                    return;
+                }
+                try {
+                    jadwalRanap = get();
+                    panelRanap.lihatJadwal.setEnabled(!jadwalRanap.jadwalTanggal.isEmpty()
+                            || !jadwalRanap.jadwalMingguan.isEmpty());
+                    String sumber = jadwalRanap.dariHfis ? "HFIS" : "Jadwal praktik";
+                    if (!jadwalRanap.adaPraktik()) {
+                        panelRanap.kuota("Tidak ada praktik · " + sumber, true);
+                        if (saatSimpan) {
+                            pesanTanggalRanap("Dokter tidak berpraktik di poli ini pada " + tanggalKuotaRanap() + ".");
+                        }
+                    } else {
+                        boolean penuh = jadwalRanap.sisa() == 0;
+                        panelRanap.kuota("Kuota " + jadwalRanap.kuota + " / Terisi " + jadwalRanap.terisi
+                                + " / Sisa " + jadwalRanap.sisa() + " · " + sumber, penuh);
+                        if (penuh) {
+                            boolean tampilkan = saatSimpan || (tanggalAkanDatang && jadwalBerubahRanap()
+                                    && panelRanap.tab.getSelectedIndex() == 0 && !pilihan.equals(peringatanKuotaRanap));
+                            if (tampilkan) {
+                                peringatanKuotaRanap = pilihan;
+                                pesanTanggalRanap("Kuota penuh untuk " + tanggalKuotaRanap()
+                                        + ". Terisi " + jadwalRanap.terisi + " dari kuota " + jadwalRanap.kuota + ".");
+                            }
+                        } else if (saatSimpan) {
+                            lanjutSimpan.run();
+                        }
+                    }
+                } catch (InterruptedException | java.util.concurrent.ExecutionException ex) {
+                    Throwable sebab = ex.getCause();
+                    boolean mapping = sebab instanceof SQLException && "02000".equals(((SQLException) sebab).getSQLState());
+                    String pesan = mapping ? sebab.getMessage() : "Kuota belum dapat diperiksa. Coba lagi.";
+                    panelRanap.kuota(pesan, true);
+                    if (saatSimpan) {
+                        JOptionPane.showMessageDialog(BPJSSuratKontrol.this, pesan);
+                    }
+                }
+            }
+        }.execute();
+    }
+
+    private boolean jadwalBerubahRanap() {
+        if (NoSurat.getText().isEmpty()) {
+            return true;
+        }
+        for (int baris = 0; baris < tbObat.getRowCount(); baris++) {
+            if (NoSurat.getText().equals(tbObat.getValueAt(baris, 9))) {
+                return jadwalBerbedaDariRiwayat(baris);
+            }
+        }
+        return false;
+    }
+
+    private boolean jadwalBerbedaDariRiwayat(int baris) {
+        return !tanggalKuotaRanap().equals(tbObat.getValueAt(baris, 10))
+                || !KdDokter.getText().equals(tbObat.getValueAt(baris, 11))
+                || !KdPoli.getText().equals(tbObat.getValueAt(baris, 13));
+    }
+
+    private void pesanTanggalRanap(String pesan) {
+        JOptionPane.showOptionDialog(this, pesan, "Jadwal kontrol", JOptionPane.DEFAULT_OPTION,
+                JOptionPane.WARNING_MESSAGE, null, new Object[]{"Pilih tanggal lain"}, "Pilih tanggal lain");
+        TanggalKontrol.requestFocusInWindow();
+    }
+
+    private void ambilObatRanap() {
+        try {
+            String obat = LepasRawatRanap.obatPulang(koneksi, noRawatRanap);
+            if (obat.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Resep pulang belum tersedia untuk kunjungan ini.");
+            } else if (panelRanap.obat.getText().trim().isEmpty() || panelRanap.obat.getText().equals(obat)
+                    || JOptionPane.showConfirmDialog(this, "Ganti isian obat dengan resep pulang terbaru?",
+                            "Ambil resep pulang", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                panelRanap.obat.setText(obat);
+                panelRanap.obat.setCaretPosition(0);
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Resep pulang gagal dimuat. Silakan coba lagi.");
+        }
+    }
+
+    private javax.swing.JComponent ruasRanap(String label, javax.swing.JComponent input, boolean editable) {
+        return SuratKontrolRanapPanel.ruas(label, SuratKontrolRanapPanel.input(input, 140, editable));
+    }
+
+    private void siapkanFilterRanap() {
+        resetTanggalHariIni();
+        if (noRawatRanap.matches("[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]+")) {
+            String masuk = noRawatRanap.substring(0, 10).replace('/', '-');
+            Valid.SetTgl(DTPTanggalSurat1, masuk);
+        }
+        R1.setSelected(true);
+    }
+
+    private void kosongkanSkdpRanap() {
+        tbObat.clearSelection();
+        NoSurat.setText("");
+        TanggalSurat.setDate(new Date());
+        isiTanggalKontrol(() -> TanggalKontrol.setDate(new Date()));
+        KdDokter.setText("");
+        NmDokter.setText("");
+        KdPoli.setText("");
+        NmPoli.setText("");
+        KeteranganKontrol.setText("");
+    }
+
+    private void pilihSkdpUntukSepRanap() {
+        String sep = NoSEP.getText();
+        String surat = Sequel.cariIsi("select no_surat from bridging_surat_kontrol_bpjs "
+                + "where no_sep=? order by tgl_surat desc,no_surat desc limit 1", sep);
+        if (!surat.isEmpty()) {
+            if (pilihSuratRanap(surat) || muatRiwayatSuratRanap(surat)) {
+                getData();
+            }
+        }
+    }
+
+    private boolean muatRiwayatSuratRanap(String noSurat) {
+        siapkanFilterRanap();
+        TCari.setText("");
+        tampil();
+        if (pilihSuratRanap(noSurat)) {
+            return true;
+        }
+        String tanggal = Sequel.cariIsi("select tgl_surat from bridging_surat_kontrol_bpjs where no_surat=?", noSurat);
+        if (tanggal.isEmpty()) {
+            return false;
+        }
+        Valid.SetTgl(DTPTanggalSurat1, tanggal);
+        Valid.SetTgl(DTPTanggalSurat2, tanggal);
+        TCari.setText(noSurat);
+        tampil();
+        return pilihSuratRanap(noSurat);
+    }
+
+    private boolean pilihSuratRanap(String noSurat) {
+        if (!noSurat.isEmpty()) {
+            for (int i = 0; i < tbObat.getRowCount(); i++) {
+                if (noSurat.equals(tbObat.getValueAt(i, 9))) {
+                    tbObat.setRowSelectionInterval(i, i);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean pastikanSkdpRanap() {
+        String noSurat = NoSurat.getText();
+        if (!akses.getbpjs_surat_kontrol() || noSurat.isEmpty()) {
+            pesanPilihSkdpRanap();
+            return false;
+        }
+        if (pilihSuratRanap(noSurat) || muatRiwayatSuratRanap(noSurat)) {
+            return true;
+        }
+        pesanPilihSkdpRanap();
+        return false;
+    }
+
+    private void pesanPilihSkdpRanap() {
+        JOptionPane.showMessageDialog(this, "Simpan SKDP terlebih dahulu atau pilih surat yang tersimpan pada Riwayat SKDP.");
+    }
+
+    private void muatLepasRawatRanap() {
+        try {
+            lepasRawatRanap = LepasRawatRanap.baca(koneksi, noRawatRanap);
+            panelRanap.isi(lepasRawatRanap.isi);
+            panelRanap.setSiap(akses.getbpjs_surat_kontrol());
+            panelRanap.status(lepasRawatRanap.revisi != 0 ? "Formulir Lepas Rawat tersimpan"
+                    : lepasRawatRanap.isi.obat.isEmpty() ? "Resep pulang belum tersedia. Isian obat dapat diketik."
+                            : "Obat dimuat dari resep pulang", false);
+        } catch (SQLException ex) {
+            lepasRawatRanap = null;
+            panelRanap.setSiap(false);
+            panelRanap.status("Data Lepas Rawat gagal dimuat. Klik Muat ulang.", true);
+            System.out.println("Gagal memuat data Lepas Rawat: " + ex);
+        }
+    }
+
+    private void ambilPenunjangRanap(boolean lab) {
+        String judul = lab ? "Hasil laboratorium" : "Hasil radiologi";
+        try {
+            panelRanap.pilihHasil(this, judul,
+                    lab ? LepasRawatRanap.hasilLab(koneksi, noRawatRanap)
+                            : LepasRawatRanap.hasilRadiologi(koneksi, noRawatRanap),
+                    lab ? panelRanap.lab : panelRanap.pemeriksaan);
+        } catch (SQLException ex) {
+            System.out.println("Gagal membaca penunjang Lepas Rawat: " + ex);
+            JOptionPane.showMessageDialog(this, "Hasil pemeriksaan gagal dimuat. Silakan coba lagi.");
+        }
+    }
+
+    private boolean simpanLepasRawatRanap() {
+        if (lepasRawatRanap == null || !noRawatRanap.equals(NoRawat.getText())) {
+            JOptionPane.showMessageDialog(this, "Muat ulang data Lepas Rawat sebelum menyimpan.");
+            return false;
+        }
+        try {
+            LepasRawatRanap.Isi isi = panelRanap.baca();
+            long revisi = LepasRawatRanap.simpan(koneksi, noRawatRanap, lepasRawatRanap, isi, akses.getkode());
+            lepasRawatRanap = new LepasRawatRanap.Data(isi, revisi);
+            panelRanap.status("Formulir Lepas Rawat tersimpan", false);
+            return true;
+        } catch (SQLException ex) {
+            System.out.println("Gagal menyimpan data Lepas Rawat: " + ex);
+            String pesan = "40001".equals(ex.getSQLState()) ? ex.getMessage() : "Formulir Lepas Rawat gagal disimpan.";
+            JOptionPane.showMessageDialog(this, pesan);
+            return false;
+        }
+    }
+
+    private boolean simpanAlasanRanap() {
+        String sql = "update keterangan_kontrol_bpjs set keterangan_kontrol=?,petugas=?,waktu=NOW() where no_rawat=?";
+        String sisip = "insert into keterangan_kontrol_bpjs (keterangan_kontrol,petugas,no_rawat,waktu) "
+                + "select ?,?,?,NOW() where not exists "
+                + "(select 1 from keterangan_kontrol_bpjs where no_rawat=?)";
+        try (PreparedStatement update = koneksi.prepareStatement(sql);
+                PreparedStatement insert = koneksi.prepareStatement(sisip)) {
+            for (PreparedStatement ps : new PreparedStatement[]{update, insert}) {
+                ps.setString(1, KeteranganKontrol.getText());
+                ps.setString(2, akses.getkode());
+                ps.setString(3, noRawatRanap);
+            }
+            if (update.executeUpdate() == 0) {
+                insert.setString(4, noRawatRanap);
+                insert.executeUpdate();
+            }
+            return true;
+        } catch (SQLException ex) {
+            System.out.println("Gagal menyimpan alasan kontrol rawat inap: " + ex);
+            return false;
+        }
+    }
+
+    private void simpanPerubahanRanap(boolean kuotaDiperiksa) {
+        String noSurat = NoSurat.getText();
+        if (!pilihSuratRanap(noSurat) && !muatRiwayatSuratRanap(noSurat)) {
+            JOptionPane.showMessageDialog(this, "SKDP belum tersedia di data lokal. Gunakan Tarik SKDP VClaim.");
+            return;
+        }
+        int baris = tbObat.getSelectedRow();
+        if (!NoSEP.getText().equals(tbObat.getValueAt(baris, 1))) {
+            JOptionPane.showMessageDialog(this, "Pilih ulang SKDP untuk SEP yang aktif.");
+            return;
+        }
+        boolean ubahTanggalDokterPoli = jadwalBerbedaDariRiwayat(baris);
+        boolean ubahSkdp = ubahTanggalDokterPoli
+                || !Valid.SetTgl(TanggalSurat.getSelectedItem() + "").equals(tbObat.getValueAt(baris, 8));
+        if (ubahSkdp && (KdDokter.getText().isEmpty() || KdPoli.getText().isEmpty())) {
+            JOptionPane.showMessageDialog(this, "Lengkapi poli dan dokter tujuan kontrol.");
+            return;
+        }
+        if (ubahTanggalDokterPoli && !kuotaDiperiksa) {
+            periksaKuotaRanap(() -> simpanPerubahanRanap(true));
+            return;
+        }
+        if (ubahSkdp && validasiTanggalKontrolRanap(true) == null) {
+            return;
+        }
+        if (!simpanLepasRawatRanap()) {
+            return;
+        }
+        if (ubahSkdp) {
+            BtnEditActionPerformed(null);
+        } else {
+            boolean alasanSama = KeteranganKontrol.getText().equals(
+                    java.util.Objects.toString(tbObat.getValueAt(baris, 15), ""));
+            selesaiSimpanRanap(noSurat, alasanSama || simpanAlasanRanap());
+        }
+    }
+
+    private void buatBookingRanap() {
+        try {
+            if (isBooking()) {
+                return;
+            }
+        } catch (RuntimeException ex) {
+            System.out.println("Gagal membuat booking SKDP rawat inap: " + ex);
+        }
+        JOptionPane.showMessageDialog(this, "SKDP tersimpan. Booking registrasi gagal disimpan.");
+    }
+
+    private void selesaiSimpanRanap(String noSurat, boolean alasanTersimpan) {
+        String alasan = KeteranganKontrol.getText();
+        NoSurat.setText(noSurat);
+        if (muatRiwayatSuratRanap(noSurat)) {
+            getData();
+        }
+        if (!alasanTersimpan) {
+            KeteranganKontrol.setText(alasan);
+        }
+        panelRanap.status(alasanTersimpan
+                ? "SKDP dan Formulir Lepas Rawat tersimpan"
+                : "SKDP dan Formulir Lepas Rawat tersimpan. Simpan ulang alasan kontrol.", !alasanTersimpan);
+        panelRanap.tab.setSelectedIndex(0);
+        jadwalkanCekPulangBPJS();
+    }
+
+    private LepasRawatRanap.Isi isiLepasRawatUntukCetak() {
+        if (!pastikanSkdpRanap()) {
+            return null;
+        }
+        if (lepasRawatRanap != null && !panelRanap.baca().samaDengan(lepasRawatRanap.isi)) {
+            JOptionPane.showMessageDialog(this, "Simpan perubahan Formulir Lepas Rawat terlebih dahulu.");
+            return null;
+        }
+        try {
+            return LepasRawatRanap.baca(koneksi, noRawatRanap).isi;
+        } catch (SQLException ex) {
+            System.out.println("Gagal membaca data cetak Lepas Rawat: " + ex);
+            JOptionPane.showMessageDialog(this, "Data cetak Formulir Lepas Rawat gagal dimuat.");
+            return null;
+        }
+    }
+
+    private void tambahIsiLepasRawat(Map<String, Object> param, String noRawat, LepasRawatRanap.Isi isi) {
+        if (isi == null) {
+            param.put("obatpulang", Sequel.cariIsi("SELECT obat_pulang FROM resume_pasien_ranap WHERE no_rawat =?", noRawat));
+            param.put("hasillab", Sequel.cariIsi("SELECT hasil_laborat FROM resume_pasien_ranap WHERE no_rawat =?", noRawat));
+            param.put("hasilrab", Sequel.cariIsi("SELECT pemeriksaan_penunjang FROM resume_pasien_ranap WHERE no_rawat =?", noRawat));
+        } else {
+            param.put("obatpulang", isi.obat);
+            param.put("hasillab", isi.lab);
+            param.put("hasilrab", isi.pemeriksaan);
+        }
+    }
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -1406,6 +1984,14 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
 }//GEN-LAST:event_TanggalSuratKeyPressed
 
     private void BtnSimpanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnSimpanActionPerformed
+        simpanSkdp(evt, false);
+    }//GEN-LAST:event_BtnSimpanActionPerformed
+
+    private void simpanSkdp(java.awt.event.ActionEvent evt, boolean kuotaDiperiksa) {
+    if (panelRanap != null && !NoSurat.getText().isEmpty()) {
+        simpanPerubahanRanap(kuotaDiperiksa);
+        return;
+    }
     if(NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")){
         Valid.textKosong(NoRawat, "pasien");
     } else if(NmDokter.getText().trim().equals("") || KdDokter.getText().trim().equals("")){
@@ -1415,9 +2001,13 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
     } else if (KeteranganKontrol.getText().trim().equals("")) {
         Valid.textKosong(KeteranganKontrol, "Alasan Kontrol");  
     } else if(NoHp.getText().trim().equals("")||NoHp.getText().trim().equals("-")){
-            Valid.textKosong(NoHp,"No. HP");    
+        if (panelRanap != null) {
+            ubahTeleponRanap();
+        } else {
+            Valid.textKosong(NoHp, "No. HP");
+        }
     //validasi skdp 
-    } else if(Valid.SetTgl(TanggalKontrol.getSelectedItem()+"").equals(
+    } else if(panelRanap == null && Valid.SetTgl(TanggalKontrol.getSelectedItem()+"").equals(
             new SimpleDateFormat("yyyy-MM-dd").format(new Date()))){
         JOptionPane.showMessageDialog(null,
                 "Tanggal kontrol tidak boleh sama dengan tanggal hari ini. "
@@ -1425,6 +2015,13 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         TanggalKontrol.requestFocus();
     //end validasi
     } else {
+        if (panelRanap != null && !kuotaDiperiksa) {
+            periksaKuotaRanap(() -> simpanSkdp(evt, true));
+            return;
+        }
+        if (panelRanap != null && (validasiTanggalKontrolRanap(true) == null || !simpanLepasRawatRanap())) {
+            return;
+        }
         try {
             headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -1451,36 +2048,63 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             System.out.println("message : " + nameNode.path("message").asText());
             if(nameNode.path("code").asText().equals("200")){
                 response = mapper.readTree(api.Decrypt(root.path("response").asText(), utc)).path("noSuratKontrol");
+                if (panelRanap != null && response.asText().trim().isEmpty()) {
+                    throw new IllegalStateException("VClaim tidak mengembalikan nomor surat.");
+                }
                 if(Sequel.menyimpantf("bridging_surat_kontrol_bpjs", "?,?,?,?,?,?,?,?", "No.Surat", 8, new String[]{
                         NoSEP.getText(), Valid.SetTgl(TanggalSurat.getSelectedItem() + ""), response.asText(), 
                         Valid.SetTgl(TanggalKontrol.getSelectedItem() + ""), KdDokter.getText(), NmDokter.getText(), 
                         KdPoli.getText(), NmPoli.getText()
                     }) == true) {
                     
-                    // Simpan keterangan kontrol ke tabel "keterangan_kontrol_bpjs"
-                    Sequel.menyimpantf("keterangan_kontrol_bpjs", "?,?,?,NOW()", "Keterangan Kontrol", 3, new String[]{
-                        NoRawat.getText(), KeteranganKontrol.getText(), akses.getkode()
-                    });
-                    BtnCari1ActionPerformed(null);
-                    emptTeks();
-                    tampil();
-                    if(JADIKANBOOKINGSURATKONTROLAPIBPJS.equals("yes")){
-                        if(isBooking() == false){
-                            JOptionPane.showMessageDialog(null, "Gagal menyimpan booking, silahkan hubungi administrator...!!!!");
+                    if (panelRanap != null) {
+                        String nomorSurat = response.asText();
+                        NoSurat.setText(nomorSurat);
+                        boolean alasanTersimpan = simpanAlasanRanap();
+                        if (JADIKANBOOKINGSURATKONTROLAPIBPJS.equals("yes")) {
+                            buatBookingRanap();
+                        }
+                        if (alasanTersimpan) {
+                            BtnCari1ActionPerformed(null);
+                        }
+                        selesaiSimpanRanap(nomorSurat, alasanTersimpan);
+                    } else {
+                        // Simpan keterangan kontrol ke tabel "keterangan_kontrol_bpjs"
+                        Sequel.menyimpantf("keterangan_kontrol_bpjs", "?,?,?,NOW()", "Keterangan Kontrol", 3, new String[]{
+                            NoRawat.getText(), KeteranganKontrol.getText(), akses.getkode()
+                        });
+                        BtnCari1ActionPerformed(null);
+                        emptTeks();
+                        tampil();
+                        if(JADIKANBOOKINGSURATKONTROLAPIBPJS.equals("yes")){
+                            if(isBooking() == false){
+                                JOptionPane.showMessageDialog(null, "Gagal menyimpan booking, silahkan hubungi administrator...!!!!");
+                            }
                         }
                     }
+                } else if (panelRanap != null) {
+                    NoSurat.setText(response.asText());
+                    JOptionPane.showMessageDialog(this,
+                            "VClaim menerbitkan SKDP " + response.asText()
+                            + " dan Formulir Lepas Rawat tersimpan. Gunakan Tarik SKDP VClaim untuk melengkapi data lokal.");
                 }
             } else {
-                JOptionPane.showMessageDialog(null, nameNode.path("message").asText());
-            }   
+                String pesan = nameNode.path("message").asText();
+                JOptionPane.showMessageDialog(null, panelRanap == null ? pesan
+                        : "Formulir Lepas Rawat tersimpan. SKDP ditolak VClaim.\n" + pesan);
+            }
         } catch (Exception ex) {
             System.out.println("Notifikasi Bridging : " + ex);
-            if(ex.toString().contains("UnknownHostException")){
+            if (panelRanap != null) {
+                JOptionPane.showMessageDialog(this,
+                        "Formulir Lepas Rawat tersimpan. Hasil penerbitan SKDP belum dapat dipastikan."
+                        + "\nPeriksa VClaim sebelum mengirim ulang. Gunakan Tarik SKDP VClaim jika nomor surat sudah terbit.");
+            } else if(ex.toString().contains("UnknownHostException")){
                 JOptionPane.showMessageDialog(null, "Koneksi ke server BPJS terputus...!");
             }
         }
     }    
-}//GEN-LAST:event_BtnSimpanActionPerformed
+    }
 
     private void BtnSimpanKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_BtnSimpanKeyPressed
         if(evt.getKeyCode()==KeyEvent.VK_SPACE){
@@ -1503,6 +2127,10 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
 }//GEN-LAST:event_BtnBatalKeyPressed
 
     private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnHapusActionPerformed
+        if (panelRanap != null && !pilihSuratRanap(NoSurat.getText())) {
+            pesanPilihSkdpRanap();
+            return;
+        }
 //        if(tbObat.getSelectedRow()!= -1){
 //            try {
 //                bodyWithDeleteRequest();
@@ -1767,20 +2395,32 @@ if (NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")) {
                                 NmPoli.getText(), NoSurat.getText()
                     }) == true) {
                         
-                        Sequel.mengedittf("keterangan_kontrol_bpjs", "no_rawat=?,keterangan_kontrol=?,petugas=?,waktu=NOW()", 
-                        "Keterangan Kontrol", 4, new String[]{
-                            NoRawat.getText(), KeteranganKontrol.getText(), akses.getkode(), Valid.SetTgl(TanggalKontrol.getSelectedItem() + "")
-                    });
-
-                        emptTeks();
-                        tampil();
+                        if (panelRanap != null) {
+                            boolean alasanTersimpan = simpanAlasanRanap();
+                            selesaiSimpanRanap(NoSurat.getText(), alasanTersimpan);
+                        } else {
+                            Sequel.mengedittf("keterangan_kontrol_bpjs", "no_rawat=?,keterangan_kontrol=?,petugas=?,waktu=NOW()",
+                                    "Keterangan Kontrol", 4, new String[]{
+                                        NoRawat.getText(), KeteranganKontrol.getText(), akses.getkode(), Valid.SetTgl(TanggalKontrol.getSelectedItem() + "")
+                                    });
+                            emptTeks();
+                            tampil();
+                        }
+                    } else if (panelRanap != null) {
+                        JOptionPane.showMessageDialog(this,
+                                "VClaim menerima perubahan SKDP. Gunakan Tarik SKDP VClaim untuk memperbarui data lokal.");
                     }
                 } else {
-                    JOptionPane.showMessageDialog(null, nameNode.path("message").asText());
-                }   
+                    String pesan = nameNode.path("message").asText();
+                    JOptionPane.showMessageDialog(null, panelRanap == null ? pesan
+                            : "Formulir Lepas Rawat tersimpan. Perubahan SKDP ditolak VClaim.\n" + pesan);
+                }
             } catch (Exception ex) {
                 System.out.println("Notifikasi Bridging : " + ex);
-                if (ex.toString().contains("UnknownHostException")) {
+                if (panelRanap != null) {
+                    JOptionPane.showMessageDialog(this,
+                            "Formulir Lepas Rawat tersimpan. Hasil perubahan SKDP belum dapat dipastikan. Periksa VClaim.");
+                } else if (ex.toString().contains("UnknownHostException")) {
                     JOptionPane.showMessageDialog(null, "Koneksi ke server BPJS terputus...!");
                 }
             }
@@ -1883,6 +2523,9 @@ if (NoRawat.getText().trim().equals("") || NoSEP.getText().trim().equals("")) {
     }//GEN-LAST:event_BtnPoliActionPerformed
 
     private void MnSuratActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnSuratActionPerformed
+        if (panelRanap != null && !pastikanSkdpRanap()) {
+            return;
+        }
         if(tbObat.getSelectedRow()!= -1){
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)); 
             Map<String, Object> param = new HashMap<>();
@@ -2057,7 +2700,9 @@ private File findFolderRecursively(File dir, String folderName) {
             Sequel.queryu("insert into wa_report values('"+jsonNode.get("id").get(0).asText()+"','"+NoRM.getText()+"','"+NoHp.getText()+"','"+akses.getkode()+"','SIMRS Khanza','"+jsonNode.get("target").get(0).asText()+"','"+pesan+"','','"+jsonNode.get("status").asText()+"','','"+DateNow+"','"+DateNow+"')");
             //pesan sukses     
             JOptionPane.showMessageDialog(null, "Berhasil Mengirim Pesan !!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            BtnKeluarActionPerformed(evt);
+            if (panelRanap == null) {
+                BtnKeluarActionPerformed(evt);
+            }
             }
                 } catch (IOException ex) {
                     Logger.getLogger(WhatsappKirimFonnte.class.getName()).log(Level.SEVERE, null, ex);
@@ -2268,6 +2913,13 @@ private File findFolderRecursively(File dir, String folderName) {
     }//GEN-LAST:event_MnSuratKirimWAActionPerformed
 
     private void MnSuratLepasRawatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnSuratLepasRawatActionPerformed
+            LepasRawatRanap.Isi isiRanap = null;
+            if (panelRanap != null) {
+                isiRanap = isiLepasRawatUntukCetak();
+                if (isiRanap == null) {
+                    return;
+                }
+            }
             if(tbObat.getSelectedRow()!= -1){
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)); 
             Map<String, Object> param = new HashMap<>();
@@ -2277,9 +2929,7 @@ private File findFolderRecursively(File dir, String folderName) {
             param.put("tglmasuk",Sequel.cariIsi("SELECT MIN( tgl_masuk ) AS tgl_terawal FROM kamar_inap WHERE no_rawat =? GROUP BY no_rawat",NoRawat.getText()));
             param.put("tglkeluar",Sequel.cariIsi("SELECT tgl_keluar FROM kamar_inap WHERE stts_pulang <> 'Pindah Kamar' AND no_rawat =?",NoRawat.getText()));
             param.put("diagnosa",Sequel.cariIsi("SELECT COALESCE(NULLIF(TRIM(diagnosa_utama),''),NULLIF(TRIM(kd_diagnosa_utama),''),'') FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
-            param.put("obatpulang",Sequel.cariIsi("SELECT obat_pulang FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
-            param.put("hasillab",Sequel.cariIsi("SELECT hasil_laborat FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
-            param.put("hasilrab",Sequel.cariIsi("SELECT pemeriksaan_penunjang FROM resume_pasien_ranap WHERE no_rawat =?",NoRawat.getText()));
+            tambahIsiLepasRawat(param, NoRawat.getText(), isiRanap);
             param.put("namars",akses.getnamars());
             param.put("namars",akses.getnamars());
             param.put("alamatrs",akses.getalamatrs());
@@ -2289,7 +2939,7 @@ private File findFolderRecursively(File dir, String folderName) {
             param.put("logo",Sequel.cariGambar("select setting.logo from setting")); 
             param.put("parameter",tbObat.getValueAt(tbObat.getSelectedRow(),0).toString());
             param.put("alasan", Sequel.cariIsi("select keterangan_kontrol_bpjs.keterangan_kontrol from keterangan_kontrol_bpjs where no_rawat=?",tbObat.getValueAt(tbObat.getSelectedRow(), 0).toString()));
-            param.put("finger","Dikeluarkan di "+akses.getnamars()+", Kabupaten/Kota "+akses.getkabupatenrs()+"\nDitandatangani secara elektronik oleh "+tbObat.getValueAt(tbObat.getSelectedRow(),12).toString()+"\nID "+tbObat.getValueAt(tbObat.getSelectedRow(),8).toString()+"\n"+Valid.SetTgl3(tbObat.getValueAt(tbObat.getSelectedRow(),10).toString()));
+            param.put("ttd", LepasRawatRanap.urlTandaTanganDokter(koneksi, NoSurat.getText()));
             Valid.MyReportqry("rptBridgingSuratLepasRawat.jasper","report","::[ Data Surat Lepas Rawat ]::",
                     "select bridging_sep.no_rawat,bridging_sep.no_sep,bridging_sep.no_kartu,bridging_sep.nomr,bridging_sep.nama_pasien,bridging_sep.tanggal_lahir,"+
                     "bridging_sep.jkel,bridging_sep.diagawal,bridging_sep.nmdiagnosaawal,bridging_surat_kontrol_bpjs.tgl_surat,bridging_surat_kontrol_bpjs.no_surat,"+
@@ -2447,6 +3097,13 @@ private File findFolderRecursively(File dir, String folderName) {
     }//GEN-LAST:event_BtnUploadKeyPressed
 
     private void BtnUploadLepasRawatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnUploadLepasRawatActionPerformed
+        LepasRawatRanap.Isi isiRanap = null;
+        if (panelRanap != null) {
+            isiRanap = isiLepasRawatUntukCetak();
+            if (isiRanap == null) {
+                return;
+            }
+        }
         if (tbObat.getSelectedRow() == -1) {
             JOptionPane.showMessageDialog(null, "Silahkan pilih dulu data Surat Kontrol yang Surat Lepas Rawat-nya mau di-upload...!!!!");
             return;
@@ -2475,7 +3132,7 @@ private File findFolderRecursively(File dir, String folderName) {
         String timestamp = sdf.format(new Date());
         FileName = timestamp + "_" + noRawatUploadLepasRawat.replace("/", "") + "_LepasRawat";
 
-        CreatePDFLepasRawat(FileName);
+        CreatePDFLepasRawat(FileName, isiRanap);
         ConvertPDFtoJPGLepasRawat(FileName);
         UploadJPGLepasRawat(FileName, "berkasrawat/pages/upload/", noRawatUploadLepasRawat, kodeBerkasLepasRawat);
         HapusJPGLepasRawat(FileName);
@@ -3161,7 +3818,13 @@ private File findFolderRecursively(File dir, String folderName) {
         }
         
         if(!sep.equals("")){
+            if (panelRanap != null && !sep.equals(NoSEP.getText()) && !NoSurat.getText().isEmpty()) {
+                kosongkanSkdpRanap();
+            }
             NoSEP.setText(sep);
+            if (panelRanap != null) {
+                pilihSkdpUntukSepRanap();
+            }
             JOptionPane.showMessageDialog(null,"No.SEP " + namaPelayanan + " berhasil di-set : " + sep);
         }else{
             JOptionPane.showMessageDialog(null,"No.SEP " + namaPelayanan + " tidak ditemukan untuk No.Rawat " + NoRawat.getText());
@@ -3230,6 +3893,10 @@ private File findFolderRecursively(File dir, String folderName) {
                     Valid.SetTgl(DTPTanggalKontrol2,hasil.tanggalKontrol);
                     TCari.setText(hasil.nomorSurat);
                     tampil();
+                    if (panelRanap != null && pilihSuratRanap(hasil.nomorSurat)) {
+                        getData();
+                        panelRanap.tab.setSelectedIndex(0);
+                    }
                     JOptionPane.showMessageDialog(null,
                             "Surat Kontrol berhasil " + (hasil.diperbarui ? "diperbarui" : "ditarik") + " dari VClaim.\n\n" +
                             "No. Surat  : " + hasil.nomorSurat + "\n" +
@@ -3282,11 +3949,19 @@ private File findFolderRecursively(File dir, String folderName) {
         }
 
         boolean sepTersedia;
-        try (PreparedStatement cekSEP = koneksi.prepareStatement("select 1 from bridging_sep where no_sep=? limit 1")) {
+        String sqlSep = "select 1 from bridging_sep where no_sep=?"
+                + (panelRanap == null ? "" : " and no_rawat=?") + " limit 1";
+        try (PreparedStatement cekSEP = koneksi.prepareStatement(sqlSep)) {
             cekSEP.setString(1,nomorSEP);
+            if (panelRanap != null) {
+                cekSEP.setString(2, noRawatRanap);
+            }
             try (ResultSet hasilCek = cekSEP.executeQuery()) {
                 sepTersedia = hasilCek.next();
             }
+        }
+        if (!sepTersedia && panelRanap != null) {
+            throw new Exception("SEP asal SKDP belum terhubung dengan kunjungan rawat inap ini.");
         }
         if(!sepTersedia){
             throw new Exception("SEP asal " + nomorSEP + " belum tersedia di SIMRS. Tarik SEP tersebut terlebih dahulu, lalu ulangi penarikan Surat Kontrol.");
@@ -3365,6 +4040,7 @@ private void tampil() {
                 (TCari.getText().trim().equals("") ? "" : "and (bridging_sep.no_rawat like ? or bridging_sep.no_sep like ? or bridging_sep.no_kartu like ? or " +
                 "bridging_sep.nomr like ? or bridging_sep.nama_pasien like ? or bridging_surat_kontrol_bpjs.no_surat like ? or " +
                 "bridging_surat_kontrol_bpjs.nm_poli_bpjs like ? or bridging_surat_kontrol_bpjs.nm_dokter_bpjs like ?)") +
+                (panelRanap == null ? "" : " and bridging_sep.no_rawat=?") +
                 " order by bridging_surat_kontrol_bpjs.tgl_surat");
             try {
                 ps.setString(1, Valid.SetTgl(DTPTanggalSurat1.getSelectedItem() + ""));
@@ -3380,6 +4056,9 @@ private void tampil() {
                     ps.setString(10, "%" + TCari.getText().trim() + "%");                    
                 }
 
+                if (panelRanap != null) {
+                    ps.setString(TCari.getText().trim().isEmpty() ? 3 : 11, noRawatRanap);
+                }
                 rs = ps.executeQuery();
                 while(rs.next()) {
                     tabMode.addRow(new Object[]{
@@ -3412,6 +4091,7 @@ private void tampil() {
                 (TCari.getText().trim().equals("") ? "" : "and (bridging_sep.no_rawat like ? or bridging_sep.no_sep like ? or bridging_sep.no_kartu like ? or " +
                 "bridging_sep.nomr like ? or bridging_sep.nama_pasien like ? or bridging_surat_kontrol_bpjs.no_surat like ? or " +
                 "bridging_surat_kontrol_bpjs.nm_poli_bpjs like ? or bridging_surat_kontrol_bpjs.nm_dokter_bpjs like ?)") +
+                (panelRanap == null ? "" : " and bridging_sep.no_rawat=?") +
                 " order by bridging_surat_kontrol_bpjs.tgl_rencana");
             try {
                 ps.setString(1, Valid.SetTgl(DTPTanggalKontrol1.getSelectedItem() + ""));
@@ -3427,6 +4107,9 @@ private void tampil() {
                     ps.setString(10, "%" + TCari.getText().trim() + "%");
                 }
 
+                if (panelRanap != null) {
+                    ps.setString(TCari.getText().trim().isEmpty() ? 3 : 11, noRawatRanap);
+                }
                 rs = ps.executeQuery();
                 while(rs.next()) {
                     tabMode.addRow(new Object[]{
@@ -3560,7 +4243,7 @@ private void tampil() {
         Diagnosa.setText("");
         TanggalSurat.setDate(new Date());
         NoSurat.setText("");
-        TanggalKontrol.setDate(new Date());
+        isiTanggalKontrol(() -> TanggalKontrol.setDate(new Date()));
         KdDokter.setText("");
         NmDokter.setText("");
         KdPoli.setText("");
@@ -3586,15 +4269,22 @@ private void tampil() {
             NmDokter.setText(tbObat.getValueAt(tbObat.getSelectedRow(),12).toString());
             KdPoli.setText(tbObat.getValueAt(tbObat.getSelectedRow(),13).toString());
             NmPoli.setText(tbObat.getValueAt(tbObat.getSelectedRow(),14).toString());
-            KeteranganKontrol.setText(tbObat.getValueAt(tbObat.getSelectedRow(),15).toString());
+            Object alasan = tbObat.getValueAt(tbObat.getSelectedRow(),15);
+            KeteranganKontrol.setText(panelRanap == null ? alasan.toString() : java.util.Objects.toString(alasan, ""));
             Valid.SetTgl(TanggalSurat,tbObat.getValueAt(tbObat.getSelectedRow(),8).toString());
-            Valid.SetTgl(TanggalKontrol,tbObat.getValueAt(tbObat.getSelectedRow(),10).toString());
+            String tanggalKontrol = tbObat.getValueAt(tbObat.getSelectedRow(),10).toString();
+            isiTanggalKontrol(() -> Valid.SetTgl(TanggalKontrol, tanggalKontrol));
             NoHp.setText(Sequel.cariIsi("select no_tlp from pasien where no_rkm_medis=?",NoRM.getText()));
             aturTombolSetSEP();
         }
     }
     
     public void setNoRm(String norawat,String nosep,String nokartu,String norm,String namapasien,String tanggallahir,String jk,String diagnosa) {
+        if (panelRanap != null) {
+            noRawatRanap = norawat;
+            TanggalSurat.setDate(new Date());
+            siapkanFilterRanap();
+        }
         NoRawat.setText(norawat);
         NoSEP.setText(nosep);
         NoKartu.setText(nokartu);
@@ -3603,12 +4293,16 @@ private void tampil() {
         TglLahir.setText(tanggallahir);
         JK.setText(jk.replaceAll("L","LAKI-LAKI").replaceAll("P","PEREMPUAN"));
         Diagnosa.setText(diagnosa);
-        TCari.setText(nosep);
+        TCari.setText(panelRanap == null ? nosep : "");
         ChkInput.setSelected(true);
         NoHp.setText(Sequel.cariIsi("select no_tlp from pasien where no_rkm_medis=?",NoRM.getText()));
         aturTombolSetSEP();
         isForm();
         tampil();
+        if (panelRanap != null) {
+            pilihSkdpUntukSepRanap();
+            muatLepasRawatRanap();
+        }
     }
     
     public void setNoRm(String norm) {
@@ -3707,8 +4401,13 @@ private void tampil() {
             System.out.println("message : "+nameNode.path("message").asText());
             if(nameNode.path("code").asText().equals("200")){
                 Sequel.meghapus("bridging_surat_kontrol_bpjs","no_surat",NoSurat.getText());
-                tabMode.removeRow(tbObat.getSelectedRow());
-                emptTeks();
+                if (panelRanap != null) {
+                    kosongkanSkdpRanap();
+                    tampil();
+                } else {
+                    tabMode.removeRow(tbObat.getSelectedRow());
+                    emptTeks();
+                }
             }else{
                 JOptionPane.showMessageDialog(null,nameNode.path("message").asText());
             }
@@ -4095,7 +4794,7 @@ private void HapusJPG() {
 }
 
 
-private void CreatePDFLepasRawat(String FileName) {
+private void CreatePDFLepasRawat(String FileName, LepasRawatRanap.Isi isiRanap) {
     if(tbObat.getSelectedRow()!= -1){
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         String noRawatAsal = tbObat.getValueAt(tbObat.getSelectedRow(), 0).toString();
@@ -4107,9 +4806,7 @@ private void CreatePDFLepasRawat(String FileName) {
         param.put("tglmasuk",Sequel.cariIsi("SELECT MIN(tgl_masuk) AS tgl_terawal FROM kamar_inap WHERE no_rawat =? GROUP BY no_rawat",noRawatAsal));
         param.put("tglkeluar",Sequel.cariIsi("SELECT tgl_keluar FROM kamar_inap WHERE stts_pulang <> 'Pindah Kamar' AND no_rawat =?",noRawatAsal));
         param.put("diagnosa",Sequel.cariIsi("SELECT COALESCE(NULLIF(TRIM(diagnosa_utama),''),NULLIF(TRIM(kd_diagnosa_utama),''),'') FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));
-        param.put("obatpulang",Sequel.cariIsi("SELECT obat_pulang FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));
-        param.put("hasillab",Sequel.cariIsi("SELECT hasil_laborat FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));
-        param.put("hasilrab",Sequel.cariIsi("SELECT pemeriksaan_penunjang FROM resume_pasien_ranap WHERE no_rawat =?",noRawatAsal));
+        tambahIsiLepasRawat(param, noRawatAsal, isiRanap);
         param.put("namars",akses.getnamars());
         param.put("alamatrs",akses.getalamatrs());
         param.put("kotars",akses.getkabupatenrs());
@@ -4118,7 +4815,7 @@ private void CreatePDFLepasRawat(String FileName) {
         param.put("logo",Sequel.cariGambar("select setting.logo from setting"));
         param.put("parameter",noRawatAsal);
         param.put("alasan",Sequel.cariIsi("select keterangan_kontrol_bpjs.keterangan_kontrol from keterangan_kontrol_bpjs where no_rawat=?",noRawatAsal));
-        param.put("finger","Dikeluarkan di "+akses.getnamars()+", Kabupaten/Kota "+akses.getkabupatenrs()+"\nDitandatangani secara elektronik oleh "+tbObat.getValueAt(tbObat.getSelectedRow(),12).toString()+"\nID "+tbObat.getValueAt(tbObat.getSelectedRow(),8).toString()+"\n"+Valid.SetTgl3(tbObat.getValueAt(tbObat.getSelectedRow(),10).toString()));
+        param.put("ttd", LepasRawatRanap.urlTandaTanganDokter(koneksi, tbObat.getValueAt(tbObat.getSelectedRow(), 9).toString()));
         Valid.MyReportPDFqryUpload("rptBridgingSuratLepasRawat.jasper","report","::[ Data Surat Lepas Rawat ]::",
                 "select bridging_sep.no_rawat,bridging_sep.no_sep,bridging_sep.no_kartu,bridging_sep.nomr,bridging_sep.nama_pasien,bridging_sep.tanggal_lahir,"
                 + "bridging_sep.jkel,bridging_sep.diagawal,bridging_sep.nmdiagnosaawal,bridging_surat_kontrol_bpjs.tgl_surat,bridging_surat_kontrol_bpjs.no_surat,"
