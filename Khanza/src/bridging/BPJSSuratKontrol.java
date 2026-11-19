@@ -71,9 +71,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -89,6 +92,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 
 
@@ -132,6 +136,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
     private long versiPulang = 0;
     private String identitasPulang = "|";
     private boolean kirimPulang = false;
+    private boolean memeriksaTanggalKontrolVClaim;
 
     
 
@@ -382,6 +387,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
                         SuratKontrolRanapPanel.aksiUtama(BtnTarikVClaim, "Tarik SKDP VClaim", SuratKontrolRanapPanel.Ikon.MUAT_ULANG),
                         SuratKontrolRanapPanel.label("Jumlah", 12, false), LCount),
                 SuratKontrolRanapPanel.barisAksi(
+                        SuratKontrolRanapPanel.aksi(BtnUpdateData, "Update Data", SuratKontrolRanapPanel.Ikon.MUAT_ULANG),
                         SuratKontrolRanapPanel.aksiBahaya(BtnHapus, "Hapus SKDP", SuratKontrolRanapPanel.Ikon.HAPUS),
                         SuratKontrolRanapPanel.aksi(BtnUpload, "Upload SKDP", SuratKontrolRanapPanel.Ikon.UPLOAD),
                         SuratKontrolRanapPanel.aksi(BtnUploadLepasRawat, "Upload Lepas Rawat", SuratKontrolRanapPanel.Ikon.UPLOAD),
@@ -667,7 +673,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         String surat = Sequel.cariIsi("select no_surat from bridging_surat_kontrol_bpjs "
                 + "where no_sep=? order by tgl_surat desc,no_surat desc limit 1", sep);
         if (!surat.isEmpty()) {
-            if (pilihSuratRanap(surat) || muatRiwayatSuratRanap(surat)) {
+            if (pilihSurat(surat) || muatRiwayatSuratRanap(surat)) {
                 getData();
             }
         }
@@ -677,7 +683,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         siapkanFilterRanap();
         TCari.setText("");
         tampil();
-        if (pilihSuratRanap(noSurat)) {
+        if (pilihSurat(noSurat)) {
             return true;
         }
         String tanggal = Sequel.cariIsi("select tgl_surat from bridging_surat_kontrol_bpjs where no_surat=?", noSurat);
@@ -688,13 +694,13 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         Valid.SetTgl(DTPTanggalSurat2, tanggal);
         TCari.setText(noSurat);
         tampil();
-        return pilihSuratRanap(noSurat);
+        return pilihSurat(noSurat);
     }
 
-    private boolean pilihSuratRanap(String noSurat) {
+    private boolean pilihSurat(String noSurat) {
         if (!noSurat.isEmpty()) {
             for (int i = 0; i < tbObat.getRowCount(); i++) {
-                if (noSurat.equals(tbObat.getValueAt(i, 9))) {
+                if (noSurat.equals(tabMode.getValueAt(tbObat.convertRowIndexToModel(i), 9))) {
                     tbObat.setRowSelectionInterval(i, i);
                     return true;
                 }
@@ -709,7 +715,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             pesanPilihSkdpRanap();
             return false;
         }
-        if (pilihSuratRanap(noSurat) || muatRiwayatSuratRanap(noSurat)) {
+        if (pilihSurat(noSurat) || muatRiwayatSuratRanap(noSurat)) {
             return true;
         }
         pesanPilihSkdpRanap();
@@ -793,7 +799,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
 
     private void simpanPerubahanRanap(boolean kuotaDiperiksa) {
         String noSurat = NoSurat.getText();
-        if (!pilihSuratRanap(noSurat) && !muatRiwayatSuratRanap(noSurat)) {
+        if (!pilihSurat(noSurat) && !muatRiwayatSuratRanap(noSurat)) {
             JOptionPane.showMessageDialog(this, "SKDP belum tersedia di data lokal. Gunakan Tarik SKDP VClaim.");
             return;
         }
@@ -931,6 +937,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
         BtnBatal = new widget.Button();
         BtnHapus = new widget.Button();
         BtnEdit = new widget.Button();
+        BtnUpdateData = new widget.Button();
         BtnPrint = new widget.Button();
         BtnAll = new widget.Button();
         BtnUpload = new widget.Button();
@@ -1329,6 +1336,18 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             }
         });
         panelGlass8.add(BtnEdit);
+
+        BtnUpdateData.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/accept.png"))); // NOI18N
+        BtnUpdateData.setText("Update Data");
+        BtnUpdateData.setToolTipText("Cek tanggal kontrol SKDP terpilih di VClaim");
+        BtnUpdateData.setName("BtnUpdateData"); // NOI18N
+        BtnUpdateData.setPreferredSize(new java.awt.Dimension(125, 30));
+        BtnUpdateData.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnUpdateDataActionPerformed(evt);
+            }
+        });
+        panelGlass8.add(BtnUpdateData);
 
         BtnPrint.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/b_print.png"))); // NOI18N
         BtnPrint.setMnemonic('T');
@@ -2127,7 +2146,7 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
 }//GEN-LAST:event_BtnBatalKeyPressed
 
     private void BtnHapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnHapusActionPerformed
-        if (panelRanap != null && !pilihSuratRanap(NoSurat.getText())) {
+        if (panelRanap != null && !pilihSurat(NoSurat.getText())) {
             pesanPilihSkdpRanap();
             return;
         }
@@ -2271,6 +2290,10 @@ public class BPJSSuratKontrol extends javax.swing.JDialog {
             BtnTarikVClaimActionPerformed(null);
         }
     }//GEN-LAST:event_BtnTarikVClaimKeyPressed
+
+    private void BtnUpdateDataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnUpdateDataActionPerformed
+        cekPerubahanTanggalKontrol();
+    }//GEN-LAST:event_BtnUpdateDataActionPerformed
 
     private void BtnAllActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnAllActionPerformed
         TCari.setText("");
@@ -3281,6 +3304,7 @@ private File findFolderRecursively(File dir, String folderName) {
     private widget.Button BtnSimpan;
     private widget.Button BtnSimpanAlasan;
     private widget.Button BtnTarikVClaim;
+    private widget.Button BtnUpdateData;
     private widget.Button BtnUpdatePulangBPJS;
     private widget.Button BtnUpload;
     private widget.Button BtnUploadLepasRawat;
@@ -3831,6 +3855,169 @@ private File findFolderRecursively(File dir, String folderName) {
         }
     }
 
+    private void cekPerubahanTanggalKontrol() {
+        if (memeriksaTanggalKontrolVClaim || !akses.getbpjs_surat_kontrol()) {
+            return;
+        }
+        int baris = tbObat.getSelectedRow();
+        if (baris < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih satu SKDP pada tabel terlebih dahulu.");
+            return;
+        }
+        int barisModel = tbObat.convertRowIndexToModel(baris);
+        String nomorSurat = Objects.toString(tabMode.getValueAt(barisModel, 9), "");
+        String nomorSEP = Objects.toString(tabMode.getValueAt(barisModel, 1), "");
+        if (!nomorSurat.matches("[A-Za-z0-9._-]+") || nomorSEP.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Nomor surat atau SEP asal pada SKDP terpilih tidak valid.");
+            return;
+        }
+
+        memeriksaTanggalKontrolVClaim = true;
+        BtnUpdateData.setEnabled(false);
+        new SwingWorker<LocalDate, Void>() {
+            @Override
+            protected LocalDate doInBackground() throws Exception {
+                SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory() {
+                    @Override
+                    protected void prepareConnection(HttpURLConnection connection, String method) throws IOException {
+                        super.prepareConnection(connection, method);
+                        // Spring 3.1.0.M2 belum mempunyai setter timeout pada factory.
+                        connection.setConnectTimeout(10000);
+                        connection.setReadTimeout(20000);
+                        connection.setInstanceFollowRedirects(false);
+                    }
+                };
+                JsonNode detail = ambilDetailSuratKontrolVClaim(nomorSurat, new RestTemplate(factory), new ApiBPJS());
+                if (!"2".equals(detail.path("jnsKontrol").asText())
+                        || !nomorSurat.equals(detail.path("noSuratKontrol").asText().trim())
+                        || !nomorSEP.equals(nomorSepAsalKontrol(detail))) {
+                    throw new IOException("Identitas SKDP dari VClaim tidak sesuai.");
+                }
+                return LocalDate.parse(normalisasiTanggalVClaim(detail.path("tglRencanaKontrol").asText()));
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    if (!isShowing() || !akses.getbpjs_surat_kontrol()) {
+                        return;
+                    }
+                    if (!skdpMasihDipilih(nomorSurat, nomorSEP)) {
+                        JOptionPane.showMessageDialog(BPJSSuratKontrol.this,
+                                "Pilihan SKDP berubah. Klik Update Data lagi untuk memeriksa surat yang dipilih.");
+                        return;
+                    }
+                    konfirmasiTanggalKontrol(nomorSurat, nomorSEP, get());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException e) {
+                    JOptionPane.showMessageDialog(BPJSSuratKontrol.this,
+                            "Tanggal kontrol gagal dibaca dari VClaim. Periksa nomor surat dan koneksi, lalu coba lagi.");
+                } finally {
+                    memeriksaTanggalKontrolVClaim = false;
+                    BtnUpdateData.setEnabled(akses.getbpjs_surat_kontrol());
+                }
+            }
+        }.execute();
+    }
+
+    private boolean skdpMasihDipilih(String nomorSurat, String nomorSEP) {
+        int baris = tbObat.getSelectedRow();
+        if (baris < 0) {
+            return false;
+        }
+        int barisModel = tbObat.convertRowIndexToModel(baris);
+        return nomorSurat.equals(tabMode.getValueAt(barisModel, 9))
+                && nomorSEP.equals(tabMode.getValueAt(barisModel, 1));
+    }
+
+    private void konfirmasiTanggalKontrol(String nomorSurat, String nomorSEP, LocalDate tanggalVClaim) {
+        final LocalDate tanggalLokal;
+        try (PreparedStatement cek = koneksi.prepareStatement(
+                "select tgl_rencana from bridging_surat_kontrol_bpjs where no_surat=? and no_sep=?")) {
+            cek.setString(1, nomorSurat);
+            cek.setString(2, nomorSEP);
+            try (ResultSet data = cek.executeQuery()) {
+                tanggalLokal = data.next() ? LocalDate.parse(Objects.toString(data.getString("tgl_rencana"), "")) : null;
+            }
+        } catch (SQLException | DateTimeParseException e) {
+            JOptionPane.showMessageDialog(this, "Tanggal kontrol di SIMRS gagal dibaca.");
+            return;
+        }
+        if (tanggalLokal == null) {
+            JOptionPane.showMessageDialog(this, "Data SKDP tidak ditemukan di SIMRS. Muat ulang daftar terlebih dahulu.");
+            return;
+        }
+        if (tanggalLokal.equals(tanggalVClaim)) {
+            JOptionPane.showMessageDialog(this, "Tanggal kontrol di SIMRS sudah sama dengan VClaim.");
+            return;
+        }
+        DateTimeFormatter format = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        Object[] pilihan = {"Update", "Tidak"};
+        int jawaban = JOptionPane.showOptionDialog(this,
+                "Ada Perubahan Tgl. Kontrol dari tgl. " + tanggalLokal.format(format)
+                + " menjadi tgl. " + tanggalVClaim.format(format)
+                + ".\nKlik Update untuk memperbarui data, klik Tidak untuk mengabaikan.",
+                "Update Data SKDP", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, pilihan, pilihan[1]);
+        if (jawaban != JOptionPane.YES_OPTION || !isShowing() || !akses.getbpjs_surat_kontrol()
+                || !skdpMasihDipilih(nomorSurat, nomorSEP)) {
+            return;
+        }
+
+        try (PreparedStatement update = koneksi.prepareStatement(
+                "update bridging_surat_kontrol_bpjs set tgl_rencana=? where no_surat=? and no_sep=? and tgl_rencana=?")) {
+            update.setString(1, tanggalVClaim.toString());
+            update.setString(2, nomorSurat);
+            update.setString(3, nomorSEP);
+            update.setString(4, tanggalLokal.toString());
+            if (update.executeUpdate() == 0) {
+                JOptionPane.showMessageDialog(this, "Data SKDP sudah berubah di SIMRS. Muat ulang daftar sebelum mencoba lagi.");
+                return;
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Tanggal kontrol gagal disimpan di SIMRS.");
+            return;
+        }
+
+        if (nomorSurat.equals(NoSurat.getText()) && nomorSEP.equals(NoSEP.getText())) {
+            isiTanggalKontrol(() -> Valid.SetTgl(TanggalKontrol, tanggalVClaim.toString()));
+        }
+        tampil();
+        boolean masihTerlihat = pilihSurat(nomorSurat);
+        JOptionPane.showMessageDialog(this, "Tanggal kontrol di SIMRS berhasil diperbarui."
+                + (masihTerlihat ? "" : "\nSesuaikan filter untuk menampilkan surat di daftar."));
+    }
+
+    private JsonNode ambilDetailSuratKontrolVClaim(String nomorSurat, RestTemplate rest, ApiBPJS layanan) throws Exception {
+        String consId = koneksiDB.CONSIDAPIBPJS();
+        String waktuUTC = String.valueOf(layanan.GetUTCdatetimeAsString());
+        HttpHeaders headerTarik = new HttpHeaders();
+        headerTarik.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headerTarik.add("X-Cons-ID", consId);
+        headerTarik.add("X-Timestamp", waktuUTC);
+        headerTarik.add("X-Signature", layanan.getHmac(waktuUTC));
+        headerTarik.add("user_key", koneksiDB.USERKEYAPIBPJS());
+
+        String alamat = link + "/RencanaKontrol/noSuratKontrol/" + nomorSurat;
+        JsonNode hasilAPI = mapper.readTree(rest.exchange(
+                alamat, HttpMethod.GET, new HttpEntity<Void>(headerTarik), String.class).getBody());
+        JsonNode metadata = hasilAPI.path("metaData");
+        if (!"200".equals(metadata.path("code").asText())) {
+            String pesan = metadata.path("message").asText();
+            throw new IOException(pesan.isEmpty() ? "Data Surat Kontrol tidak ditemukan di VClaim." : pesan);
+        }
+
+        ApiBPJSAesKeySpec kunci = ApiBPJSEnc.generateKey(consId + koneksiDB.SECRETKEYAPIBPJS() + waktuUTC);
+        String data = ApiBPJSEnc.decrypt(hasilAPI.path("response").asText(), kunci.getKey(), kunci.getIv());
+        return mapper.readTree(ApiBPJSLZString.decompressFromEncodedURIComponent(data));
+    }
+
+    private String nomorSepAsalKontrol(JsonNode detail) {
+        String nomorSEP = detail.path("sep").path("noSep").asText().trim();
+        return nomorSEP.isEmpty() ? detail.path("noSepAsalKontrol").asText().trim() : nomorSEP;
+    }
+
     private void tarikSuratKontrolVClaim() {
         Object input = JOptionPane.showInputDialog(this,
                 "Masukkan nomor Surat Kontrol/SKDP yang diterbitkan di VClaim:",
@@ -3859,24 +4046,8 @@ private File findFolderRecursively(File dir, String folderName) {
         new SwingWorker<HasilTarikSuratKontrol, Void>() {
             @Override
             protected HasilTarikSuratKontrol doInBackground() throws Exception {
-                HttpHeaders headerTarik = new HttpHeaders();
-                headerTarik.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-                headerTarik.add("X-Cons-ID",koneksiDB.CONSIDAPIBPJS());
-                String waktuUTC = String.valueOf(api.GetUTCdatetimeAsString());
-                headerTarik.add("X-Timestamp",waktuUTC);
-                headerTarik.add("X-Signature",api.getHmac(waktuUTC));
-                headerTarik.add("user_key",koneksiDB.USERKEYAPIBPJS());
-
-                String alamat = link + "/RencanaKontrol/noSuratKontrol/" + nomorSurat;
-                JsonNode hasilAPI = mapper.readTree(api.getRest().exchange(
-                        alamat, HttpMethod.GET, new HttpEntity(headerTarik), String.class).getBody());
-                JsonNode metadata = hasilAPI.path("metaData");
-                if(!"200".equals(metadata.path("code").asText())){
-                    String pesan = metadata.path("message").asText();
-                    throw new Exception(pesan.equals("") ? "Data Surat Kontrol tidak ditemukan di VClaim." : pesan);
-                }
-
-                JsonNode detail = mapper.readTree(api.Decrypt(hasilAPI.path("response").asText(),waktuUTC));
+                ApiBPJS layanan = new ApiBPJS();
+                JsonNode detail = ambilDetailSuratKontrolVClaim(nomorSurat, layanan.getRest(), layanan);
                 return simpanSuratKontrolVClaim(detail, nomorSurat);
             }
 
@@ -3893,7 +4064,7 @@ private File findFolderRecursively(File dir, String folderName) {
                     Valid.SetTgl(DTPTanggalKontrol2,hasil.tanggalKontrol);
                     TCari.setText(hasil.nomorSurat);
                     tampil();
-                    if (panelRanap != null && pilihSuratRanap(hasil.nomorSurat)) {
+                    if (panelRanap != null && pilihSurat(hasil.nomorSurat)) {
                         getData();
                         panelRanap.tab.setSelectedIndex(0);
                     }
@@ -3927,10 +4098,7 @@ private File findFolderRecursively(File dir, String folderName) {
         if(nomorSurat.equals("")){
             nomorSurat = nomorInput;
         }
-        String nomorSEP = detail.path("sep").path("noSep").asText().trim();
-        if(nomorSEP.equals("")){
-            nomorSEP = detail.path("noSepAsalKontrol").asText().trim();
-        }
+        String nomorSEP = nomorSepAsalKontrol(detail);
         String tanggalSurat = normalisasiTanggalVClaim(detail.path("tglTerbit").asText());
         if(tanggalSurat.equals("")){
             tanggalSurat = normalisasiTanggalVClaim(detail.path("tglTerbitKontrol").asText());
@@ -4334,6 +4502,7 @@ private void tampil() {
     BtnSimpan.setEnabled(aksesSuratKontrol);
     BtnPrint.setEnabled(aksesSuratKontrol);
     BtnEdit.setEnabled(aksesSuratKontrol);
+    BtnUpdateData.setEnabled(aksesSuratKontrol && !memeriksaTanggalKontrolVClaim);
     BtnTarikVClaim.setEnabled(aksesSuratKontrol);
 
     // Tombol ini diaktifkan jika pengguna memiliki level akses Admin Utama

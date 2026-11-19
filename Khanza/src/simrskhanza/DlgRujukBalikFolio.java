@@ -119,8 +119,7 @@ final class DlgRujukBalikFolio extends JPanel {
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setContentPane(folio);
             dialog.pack();
-            dialog.setMinimumSize(new Dimension(660, 600));
-            dialog.setLocationRelativeTo(induk);
+            DlgRujukBalik.aturUkuranLayar(dialog);
             dialog.setVisible(true);
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(induk, pesanDatabase(e, "membuka"));

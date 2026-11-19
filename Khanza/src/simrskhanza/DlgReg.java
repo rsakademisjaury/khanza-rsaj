@@ -7325,30 +7325,6 @@ public final class DlgReg extends javax.swing.JDialog {
             }
         });
 
-        Scroll1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255)));
-        Scroll1.setToolTipText("Klik data di table, kemudian klik kanan untuk memilih menu yang diinginkan");
-        Scroll1.setAutoscrolls(true);
-        Scroll1.setComponentPopupMenu(jPopupMenu2);
-        Scroll1.setName("Scroll1"); // NOI18N
-
-        tbPetugas2.setAutoCreateRowSorter(true);
-        tbPetugas2.setToolTipText("Klik data di table, kemudian klik kanan untuk memilih menu yang diinginkan");
-        tbPetugas2.setComponentPopupMenu(jPopupMenu2);
-        tbPetugas2.setName("tbPetugas2"); // NOI18N
-        tbPetugas2.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                tbPetugas2MouseClicked(evt);
-            }
-        });
-        tbPetugas2.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyPressed(java.awt.event.KeyEvent evt) {
-                tbPetugas2KeyPressed(evt);
-            }
-        });
-        Scroll1.setViewportView(tbPetugas2);
-
-        TabRawat.addTab("Rujukan Internal Poli", Scroll1);
-
         Scroll.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255)));
         Scroll.setToolTipText("Klik data di table, kemudian klik kanan untuk memilih menu yang diinginkan");
         Scroll.setAutoscrolls(true);
@@ -7375,6 +7351,30 @@ public final class DlgReg extends javax.swing.JDialog {
         Scroll.setViewportView(tbPetugas);
 
         TabRawat.addTab("Registrasi Awal", Scroll);
+
+        Scroll1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255)));
+        Scroll1.setToolTipText("Klik data di table, kemudian klik kanan untuk memilih menu yang diinginkan");
+        Scroll1.setAutoscrolls(true);
+        Scroll1.setComponentPopupMenu(jPopupMenu2);
+        Scroll1.setName("Scroll1"); // NOI18N
+
+        tbPetugas2.setAutoCreateRowSorter(true);
+        tbPetugas2.setToolTipText("Klik data di table, kemudian klik kanan untuk memilih menu yang diinginkan");
+        tbPetugas2.setComponentPopupMenu(jPopupMenu2);
+        tbPetugas2.setName("tbPetugas2"); // NOI18N
+        tbPetugas2.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tbPetugas2MouseClicked(evt);
+            }
+        });
+        tbPetugas2.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                tbPetugas2KeyPressed(evt);
+            }
+        });
+        Scroll1.setViewportView(tbPetugas2);
+
+        TabRawat.addTab("Rujukan Internal Poli", Scroll1);
 
         internalFrame1.add(TabRawat, java.awt.BorderLayout.CENTER);
 
@@ -19785,6 +19785,11 @@ private void MnSudahTerbitSEPActionPerformed(java.awt.event.ActionEvent evt) {
             sedangMenyiapkanPembukaan=false;
         }
         isNumber();
+        if(TabRawat.getSelectedIndex()==0){
+            tampil();
+        }else{
+            tampil2();
+        }
     }
 
     public void isCek(){

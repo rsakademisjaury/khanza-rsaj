@@ -163,7 +163,6 @@ public final class DlgRujukBalik extends JDialog {
             Window pemilik = induk instanceof Window ? (Window) induk
                     : induk == null ? null : SwingUtilities.getWindowAncestor(induk);
             DlgRujukBalik dialog = new DlgRujukBalik(pemilik, sep, VClaimRujukBalik.riwayat(sep.nomor));
-            dialog.setLocationRelativeTo(induk);
             dialog.setVisible(true);
             dialog.cekFktpJikaDiperlukan();
         } catch (SQLException e) {
@@ -256,15 +255,12 @@ public final class DlgRujukBalik extends JDialog {
         rujukan.add(form, BorderLayout.CENTER);
         rujukan.add(status, BorderLayout.SOUTH);
 
-        Rectangle layar = getGraphicsConfiguration().getBounds();
-        Insets tepi = Toolkit.getDefaultToolkit().getScreenInsets(getGraphicsConfiguration());
-        int lebarLayar = layar.width - tepi.left - tepi.right;
-        int tinggiLayar = layar.height - tepi.top - tepi.bottom;
-        boolean duaPanel = lebarLayar >= 1100;
+        aturUkuranLayar(this);
+        boolean duaPanel = getWidth() >= 1100;
         JPanel bagian = new JPanel(new GridBagLayout());
         bagian.setBackground(LATAR);
         GridBagConstraints posisi = new GridBagConstraints();
-        posisi.fill = GridBagConstraints.HORIZONTAL;
+        posisi.fill = GridBagConstraints.BOTH;
         posisi.anchor = GridBagConstraints.NORTH;
         posisi.weightx = 1;
         posisi.weighty = duaPanel ? 1 : 0;
@@ -295,8 +291,17 @@ public final class DlgRujukBalik extends JDialog {
 
         tampilkanStatus();
         setContentPane(isi);
-        setSize(Math.min(lebarLayar, duaPanel ? 1160 : 780), Math.min(tinggiLayar, 715));
-        setMinimumSize(new Dimension(Math.min(lebarLayar, duaPanel ? 1040 : 640), Math.min(tinggiLayar, 470)));
+    }
+
+    static void aturUkuranLayar(JDialog dialog) {
+        Rectangle layar = new Rectangle(dialog.getGraphicsConfiguration().getBounds());
+        Insets tepi = Toolkit.getDefaultToolkit().getScreenInsets(dialog.getGraphicsConfiguration());
+        layar.x += tepi.left;
+        layar.y += tepi.top;
+        layar.width -= tepi.left + tepi.right;
+        layar.height -= tepi.top + tepi.bottom;
+        dialog.setMinimumSize(new Dimension(Math.min(layar.width, 640), Math.min(layar.height, 470)));
+        dialog.setBounds(layar);
     }
 
     void aturSibuk(boolean sibuk) {
