@@ -1260,6 +1260,7 @@ public final class DlgRawatInap extends javax.swing.JDialog {
         TCari = new widget.TextBox();
         BtnCari = new widget.Button();
         BtnRiwayatSOAP = new widget.Button();
+        BtnFilterSoapCppt = new widget.Button();
         TabRawat = new javax.swing.JTabbedPane();
         internalFrame2 = new widget.InternalFrame();
         Scroll = new widget.ScrollPane();
@@ -1877,13 +1878,24 @@ public final class DlgRawatInap extends javax.swing.JDialog {
             }
         });
 
+        BtnFilterSoapCppt.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/open.png"))); // NOI18N
+        BtnFilterSoapCppt.setText("Filter & Unggah");
+        BtnFilterSoapCppt.setToolTipText("Filter & Unggah SOAP/CPPT");
+        BtnFilterSoapCppt.setName("BtnFilterSoapCppt"); // NOI18N
+        BtnFilterSoapCppt.setPreferredSize(new java.awt.Dimension(130, 23));
+        BtnFilterSoapCppt.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BtnFilterSoapCpptActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout panelGlass10Layout = new javax.swing.GroupLayout(panelGlass10);
         panelGlass10.setLayout(panelGlass10Layout);
         panelGlass10Layout.setHorizontalGroup(
             panelGlass10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panelGlass10Layout.createSequentialGroup()
                 .addGap(5, 5, 5)
-                .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabel19, 55, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(5, 5, 5)
                 .addComponent(DTPCari1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(5, 5, 5)
@@ -1891,20 +1903,22 @@ public final class DlgRawatInap extends javax.swing.JDialog {
                 .addGap(5, 5, 5)
                 .addComponent(DTPCari2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(5, 5, 5)
-                .addComponent(jLabel20, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabel20, 45, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(TCariPasien, javax.swing.GroupLayout.PREFERRED_SIZE, 63, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(TCariPasien, 50, 63, 63)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btnPasien, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(TCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(TCari, 40, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(BtnCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(BtnRiwayatSOAP, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(620, 620, 620))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(BtnFilterSoapCppt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 620, Short.MAX_VALUE))
         );
         panelGlass10Layout.setVerticalGroup(
             panelGlass10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1921,7 +1935,8 @@ public final class DlgRawatInap extends javax.swing.JDialog {
                     .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(TCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(BtnCari, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(BtnRiwayatSOAP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(BtnRiwayatSOAP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(BtnFilterSoapCppt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(9, 9, 9))
         );
 
@@ -9480,6 +9495,10 @@ if(TPasien.getText().trim().equals("")||TNoRw.getText().trim().equals("")){
         // TODO add your handling code here:
     }//GEN-LAST:event_BtnRiwayatSOAPKeyPressed
 
+    private void BtnFilterSoapCpptActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnFilterSoapCpptActionPerformed
+        rekammedis.DlgFilterSoapCppt.buka(this, TNoRw.getText(), () -> BtnBerkasDigitalActionPerformed(null));
+    }//GEN-LAST:event_BtnFilterSoapCpptActionPerformed
+
     private void searchFieldFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_searchFieldFocusGained
         searchField.getText().equals("Pencarian Cepat");
         searchField.setText("");
@@ -9790,6 +9809,7 @@ private boolean simpanValidasi(String noRawat, String tglPerawatan, String jamRa
     private widget.Button BtnResume;
     private widget.Button BtnRiwayat;
     private widget.Button BtnRiwayatSOAP;
+    private widget.Button BtnFilterSoapCppt;
     private widget.Button BtnRujukKeluar;
     private widget.Button BtnSKDP;
     private widget.Button BtnSeekDPJP;

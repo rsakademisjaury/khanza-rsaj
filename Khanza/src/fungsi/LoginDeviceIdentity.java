@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -80,7 +81,7 @@ public final class LoginDeviceIdentity {
         Files.createDirectories(common.getParent());
         try (FileChannel channel = FileChannel.open(common, StandardOpenOption.CREATE,
                 StandardOpenOption.READ, StandardOpenOption.WRITE);
-             FileLock lock = channel.lock()) {
+             FileLock lock = acquireLock(channel)) {
             if (channel.size() > 1024) throw new IOException("Identitas komputer tidak valid.");
             ByteBuffer buffer = ByteBuffer.allocate((int) channel.size());
             while (buffer.hasRemaining() && channel.read(buffer) > 0) { }
@@ -99,6 +100,25 @@ public final class LoginDeviceIdentity {
             if (!value.matches("[0-9a-f]{64}")) throw new IOException("Identitas komputer tidak valid.");
             return value;
         }
+    }
+
+    /** Proses lain tidak boleh menahan transaksi login tanpa batas waktu. */
+    private static FileLock acquireLock(FileChannel channel) throws IOException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        while (System.nanoTime() < deadline) {
+            try {
+                FileLock lock = channel.tryLock();
+                if (lock != null) return lock;
+            } catch (OverlappingFileLockException busy) {
+                // Instance SIMRS lain pada JVM yang sama sedang menulis ID.
+            }
+            try { Thread.sleep(50); }
+            catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new java.io.InterruptedIOException("Pemeriksaan identitas komputer dibatalkan.");
+            }
+        }
+        throw new IOException("Batas waktu menunggu identitas komputer terlampaui.");
     }
 
     private static String hash(String value) throws Exception {

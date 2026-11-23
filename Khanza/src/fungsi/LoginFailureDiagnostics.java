@@ -65,7 +65,8 @@ public final class LoginFailureDiagnostics {
                     && (item instanceof AccessDeniedException || item instanceof SecurityException)) {
                 return Reason.DEVICE_PERMISSION;
             }
-            timeout |= item instanceof SocketTimeoutException || item instanceof SQLTimeoutException;
+            timeout |= item instanceof SocketTimeoutException || item instanceof SQLTimeoutException
+                    || item.getClass().getSimpleName().equals("MySQLTimeoutException");
             network |= item instanceof ConnectException || item instanceof NoRouteToHostException
                     || item instanceof UnknownHostException
                     || item.getClass().getSimpleName().equals("CommunicationsException");

@@ -316,7 +316,7 @@
                   <Group type="103" groupAlignment="0" attributes="0">
                       <Group type="102" attributes="0">
                           <EmptySpace min="5" pref="5" max="-2" attributes="0"/>
-                          <Component id="jLabel19" min="-2" max="-2" attributes="0"/>
+                          <Component id="jLabel19" min="55" max="-2" attributes="0"/>
                           <EmptySpace min="5" pref="5" max="-2" attributes="0"/>
                           <Component id="DTPCari1" min="-2" max="-2" attributes="0"/>
                           <EmptySpace min="5" pref="5" max="-2" attributes="0"/>
@@ -324,20 +324,22 @@
                           <EmptySpace min="5" pref="5" max="-2" attributes="0"/>
                           <Component id="DTPCari2" min="-2" max="-2" attributes="0"/>
                           <EmptySpace min="5" pref="5" max="-2" attributes="0"/>
-                          <Component id="jLabel20" min="-2" max="-2" attributes="0"/>
+                          <Component id="jLabel20" min="45" max="-2" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
-                          <Component id="TCariPasien" min="-2" pref="63" max="-2" attributes="0"/>
+                          <Component id="TCariPasien" min="50" pref="63" max="63" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="btnPasien" min="-2" max="-2" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="jLabel6" min="-2" max="-2" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
-                          <Component id="TCari" min="-2" max="-2" attributes="0"/>
+                          <Component id="TCari" min="40" max="-2" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="BtnCari" min="-2" max="-2" attributes="0"/>
                           <EmptySpace max="-2" attributes="0"/>
                           <Component id="BtnRiwayatSOAP" min="-2" pref="127" max="-2" attributes="0"/>
-                          <EmptySpace min="-2" pref="620" max="-2" attributes="0"/>
+                          <EmptySpace max="-2" attributes="0"/>
+                          <Component id="BtnFilterSoapCppt" min="-2" max="-2" attributes="0"/>
+                          <EmptySpace min="0" pref="620" max="32767" attributes="0"/>
                       </Group>
                   </Group>
                 </DimensionLayout>
@@ -357,6 +359,7 @@
                               <Component id="TCari" alignment="2" min="-2" max="-2" attributes="0"/>
                               <Component id="BtnCari" alignment="2" min="-2" max="-2" attributes="0"/>
                               <Component id="BtnRiwayatSOAP" alignment="2" min="-2" max="-2" attributes="0"/>
+                              <Component id="BtnFilterSoapCppt" alignment="2" min="-2" max="-2" attributes="0"/>
                           </Group>
                           <EmptySpace min="-2" pref="9" max="-2" attributes="0"/>
                       </Group>
@@ -507,6 +510,22 @@
                   <Events>
                     <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="BtnRiwayatSOAPActionPerformed"/>
                     <EventHandler event="keyPressed" listener="java.awt.event.KeyListener" parameters="java.awt.event.KeyEvent" handler="BtnRiwayatSOAPKeyPressed"/>
+                  </Events>
+                </Component>
+                <Component class="widget.Button" name="BtnFilterSoapCppt">
+                  <Properties>
+                    <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
+                      <Image iconType="3" name="/picture/open.png"/>
+                    </Property>
+                    <Property name="text" type="java.lang.String" value="Filter &amp; Unggah"/>
+                    <Property name="toolTipText" type="java.lang.String" value="Filter &amp; Unggah SOAP/CPPT"/>
+                    <Property name="name" type="java.lang.String" value="BtnFilterSoapCppt" noResource="true"/>
+                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+                      <Dimension value="[130, 23]"/>
+                    </Property>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="BtnFilterSoapCpptActionPerformed"/>
                   </Events>
                 </Component>
               </SubComponents>

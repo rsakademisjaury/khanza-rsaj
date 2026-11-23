@@ -23,6 +23,7 @@ public class koneksiDB {
     private static final Properties propVer = new Properties();
     private static final MysqlDataSource dataSource=new MysqlDataSource();
     private static final MysqlDataSource monitorSource=new MysqlDataSource();
+    private static final MysqlDataSource loginSource=new MysqlDataSource();
     private static final IdleDatabaseSession sesiDatabase = new IdleDatabaseSession(() -> dataSource.getConnection());
     private static String var="";
     
@@ -40,6 +41,12 @@ public class koneksiDB {
 //                dataSource.setURL("jdbc:mysql://"+EnkripsiAES.decrypt(prop.getProperty("HOST"))+":"+EnkripsiAES.decrypt(prop.getProperty("PORT"))+"/"+EnkripsiAES.decrypt(prop.getProperty("DATABASE"))+"?zeroDateTimeBehavior=convertToNull&autoReconnect=true&useCompression=true");
                 dataSource.setUser(EnkripsiAES.decrypt(prop.getProperty("USER")));
                 dataSource.setPassword(EnkripsiAES.decrypt(prop.getProperty("PAS")));
+                // Koneksi singkat khusus transaksi login dan registry sesi.
+                loginSource.setURL(jdbcUrl.replace("&autoReconnect=true", "")
+                        + "&autoReconnect=false&connectTimeout=5000&socketTimeout=15000"
+                        + "&queryTimeoutKillsConnection=true");
+                loginSource.setUser(EnkripsiAES.decrypt(prop.getProperty("USER")));
+                loginSource.setPassword(EnkripsiAES.decrypt(prop.getProperty("PAS")));
                 connection=sesiDatabase.connection();
                 System.out.println(""+                        
                         "      _                            _             _                _     \n"+
@@ -79,6 +86,24 @@ public class koneksiDB {
     /** Hanya untuk verifikasi password; tidak menghidupkan koneksi pekerjaan. */
     public static Connection condbVerifikasiSesi() throws SQLException {
         return bukaKoneksiKhusus();
+    }
+
+    /** Transaksi pengaman berakhir ketika koneksi idle atau query timeout. */
+    public static Connection condbPengamanLogin() throws SQLException {
+        if (condb() == null) throw new SQLException("Konfigurasi database tidak tersedia.");
+        Connection login = loginSource.getConnection();
+        try {
+            try (java.sql.PreparedStatement setting = login.prepareStatement(
+                    "set session innodb_lock_wait_timeout=5, wait_timeout=60")) {
+                setting.setQueryTimeout(5);
+                setting.execute();
+            }
+            return login;
+        } catch (SQLException | RuntimeException failure) {
+            try { login.close(); }
+            catch (SQLException closeFailure) { failure.addSuppressed(closeFailure); }
+            throw failure;
+        }
     }
 
     /** Alarm membuka koneksi singkat; caller WAJIB try-with-resources. */

@@ -1372,9 +1372,9 @@ public class frmUtama extends javax.swing.JFrame {
     private SwingWorker<LoginAttemptGuard.Result, Void> workerBukaSesi;
     // RSAJ - Tahap 1 pengamanan login. Koneksi terpisah dari pelayanan/alarm.
     private final LoginAttemptGuard pengamanLogin =
-            new LoginAttemptGuard(koneksiDB::condbVerifikasiSesi);
+            new LoginAttemptGuard(koneksiDB::condbPengamanLogin);
     private final LoginSessionGuard pengamanSesiTunggal = new LoginSessionGuard(
-            koneksiDB::condbVerifikasiSesi, koneksiDB::condbPemantauan);
+            koneksiDB::condbPengamanLogin, koneksiDB::condbPemantauan);
     private final LoginSessionMonitor pemantauSesiTunggal = new LoginSessionMonitor(
             pengamanSesiTunggal, this::akhiriSesiTunggal);
     private SwingWorker<LoginAttemptGuard.Result, Void> workerLoginAwal;

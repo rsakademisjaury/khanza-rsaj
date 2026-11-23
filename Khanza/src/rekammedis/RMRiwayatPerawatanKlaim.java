@@ -97,6 +97,11 @@ public final class RMRiwayatPerawatanKlaim extends javax.swing.JDialog {
     public RMRiwayatPerawatanKlaim(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+        javax.swing.JPanel tabSoap = new javax.swing.JPanel(new java.awt.BorderLayout());
+        TabRawat.setComponentAt(TabRawat.indexOfComponent(Scroll2), tabSoap);
+        tabSoap.add(DlgFilterSoapCppt.toolbar(this, NoRawat::getText,
+                () -> BtnBerkasDigitalActionPerformed(null)), java.awt.BorderLayout.PAGE_START);
+        tabSoap.add(Scroll2, java.awt.BorderLayout.CENTER);
         this.setLocation(8,1);
         setSize(885,674);
         
