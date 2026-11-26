@@ -2166,6 +2166,7 @@ private File findFolderRecursively(File dir, String folderName) {
             param.put("parameter",tbObat.getValueAt(tbObat.getSelectedRow(),0).toString());
             param.put("alasan", Sequel.cariIsi("select keterangan_kontrol_bpjs.keterangan_kontrol from keterangan_kontrol_bpjs where no_rawat=?",tbObat.getValueAt(tbObat.getSelectedRow(), 0).toString()));
             param.put("ttd", LepasRawatRanap.urlTandaTanganDokter(koneksi, NoSurat.getText()));
+            param.put("jamPraktikKontrol", JadwalKontrolRanap.jamPraktikSurat(koneksi, NoSurat.getText()));
             Valid.MyReportqry("rptBridgingSuratLepasRawat.jasper","report","::[ Data Surat Lepas Rawat ]::",
                     "select bridging_sep.no_rawat,bridging_sep.no_sep,bridging_sep.no_kartu,bridging_sep.nomr,bridging_sep.nama_pasien,bridging_sep.tanggal_lahir,"+
                     "bridging_sep.jkel,bridging_sep.diagawal,bridging_sep.nmdiagnosaawal,bridging_surat_kontrol_bpjs.tgl_surat,bridging_surat_kontrol_bpjs.no_surat,"+

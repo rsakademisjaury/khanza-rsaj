@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="rptSensusHarianRanapRSAJ" pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="802" leftMargin="20" rightMargin="20" topMargin="18" bottomMargin="16">
+    <style name="Dasar" isDefault="true" fontName="DejaVu Sans" fontSize="8" forecolor="#141414"/>
+    <style name="Judul" style="Dasar" fontSize="14" isBold="true"/>
+    <style name="Label" style="Dasar" fontSize="9"/>
+    <style name="Garis" style="Dasar">
+        <box leftPadding="1" rightPadding="1"><pen lineWidth="0.5" lineColor="#404040"/></box>
+    </style>
+    <style name="Kepala" style="Garis" fontSize="7" isBold="true" mode="Opaque" backcolor="#EFEFF0"/>
+    <style name="Nomor" style="Garis" fontSize="7" mode="Opaque" backcolor="#F5F5F5"/>
+    <style name="Data" style="Garis"/>
+    <style name="Jumlah" style="Garis" mode="Opaque" backcolor="#F3F3F3"/>
+    <style name="Catatan" style="Dasar" fontSize="7"/>
+    <parameter name="RUMAH_SAKIT" class="java.lang.String"/>
+    <parameter name="DATA_BULAN" class="java.lang.String"/>
+    <parameter name="RUANG_RAWAT" class="java.lang.String"/>
+    <parameter name="TT_TERSEDIA" class="java.lang.Integer"/>
+    <parameter name="CATATAN" class="java.lang.String"/>
+    <parameter name="VERIFIKASI" class="java.lang.String"/>
+    <field name="kolom1" class="java.lang.Integer"/>
+    <field name="kolom2" class="java.lang.Integer"/>
+    <field name="kolom3" class="java.lang.Integer"/>
+    <field name="kolom4" class="java.lang.Integer"/>
+    <field name="kolom5" class="java.lang.Integer"/>
+    <field name="kolom6" class="java.lang.Integer"/>
+    <field name="kolom7" class="java.lang.Integer"/>
+    <field name="kolom8" class="java.lang.Integer"/>
+    <field name="kolom9" class="java.lang.Integer"/>
+    <field name="kolom10" class="java.lang.Integer"/>
+    <field name="kolom11" class="java.lang.Integer"/>
+    <field name="kolom12" class="java.lang.Integer"/>
+    <field name="kolom13" class="java.lang.Integer"/>
+    <field name="kolom14" class="java.lang.Integer"/>
+    <field name="kolom15" class="java.lang.Integer"/>
+    <field name="kolom16" class="java.lang.Integer"/>
+    <field name="kolom17" class="java.lang.Integer"/>
+    <field name="kolom18" class="java.lang.Integer"/>
+    <field name="kolom19" class="java.lang.Integer"/>
+    <title>
+        <band height="62" splitType="Prevent">
+        <staticText>
+            <reportElement style="Judul" x="0" y="0" width="802" height="22"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>REKAPITULASI HARIAN PASIEN RAWAT INAP</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Label" x="4" y="29" width="88" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <text>RUMAH SAKIT</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Label" x="92" y="29" width="9" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <text>:</text>
+        </staticText>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Label" x="101" y="29" width="362" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$P{RUMAH_SAKIT}]]></textFieldExpression>
+        </textField>
+        <staticText>
+            <reportElement style="Label" x="4" y="44" width="88" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <text>DATA BULAN</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Label" x="92" y="44" width="9" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <text>:</text>
+        </staticText>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Label" x="101" y="44" width="362" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$P{DATA_BULAN}]]></textFieldExpression>
+        </textField>
+        <staticText>
+            <reportElement style="Label" x="477" y="29" width="88" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <text>RUANG RAWAT</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Label" x="565" y="29" width="9" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <text>:</text>
+        </staticText>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Label" x="574" y="29" width="227" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$P{RUANG_RAWAT}]]></textFieldExpression>
+        </textField>
+        <staticText>
+            <reportElement style="Label" x="477" y="44" width="88" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <text>TT TERSEDIA</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Label" x="565" y="44" width="9" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <text>:</text>
+        </staticText>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Label" x="574" y="44" width="227" height="15"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$P{TT_TERSEDIA}]]></textFieldExpression>
+        </textField>
+        </band>
+    </title>
+    <columnHeader>
+        <band height="66" splitType="Prevent">
+        <staticText>
+            <reportElement style="Kepala" x="0" y="0" width="26" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Tgl.</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="0" y="53" width="26" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>1</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="26" y="0" width="38" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Pasien
+Awal</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="26" y="53" width="38" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>2</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="64" y="0" width="39" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Pasien
+Masuk</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="64" y="53" width="39" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>3</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="103" y="0" width="43" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Pasien
+Pindahan</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="103" y="53" width="43" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>4</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="146" y="0" width="44" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Jumlah
+(2+3+4)</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="146" y="53" width="44" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>5</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="190" y="0" width="47" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Pasien
+Keluar
+Hidup</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="190" y="53" width="47" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>6</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="237" y="0" width="56" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Pasien
+Dipindahkan</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="237" y="53" width="56" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>7</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="293" y="0" width="42" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Pasien
+Mati
+(9+10)</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="293" y="53" width="42" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>8</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="335" y="0" width="84" height="18"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Perincian Pasien Mati</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="335" y="18" width="42" height="35"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>&lt; 48 jam</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="335" y="53" width="42" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>9</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="377" y="18" width="42" height="35"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>≥ 48 jam</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="377" y="53" width="42" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>10</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="419" y="0" width="44" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Jumlah
+(6+7+8)</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="419" y="53" width="44" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>11</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="463" y="0" width="39" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Lama
+Rawat</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="463" y="53" width="39" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>12</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="502" y="0" width="81" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Pasien Masuk /
+Keluar Hidup
+pada Hari
+yang Sama</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="502" y="53" width="81" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>13</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="583" y="0" width="57" height="53"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Pasien Sisa
+(yang masih
+dirawat)
+(5−11)</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="583" y="53" width="57" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>14</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="640" y="0" width="162" height="18"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Perincian Pasien Sisa</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="640" y="18" width="29" height="35"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>VIP</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="640" y="53" width="29" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>15</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="669" y="18" width="27" height="35"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>I</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="669" y="53" width="27" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>16</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="696" y="18" width="27" height="35"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>II</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="696" y="53" width="27" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>17</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="723" y="18" width="29" height="35"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>III</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="723" y="53" width="29" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>18</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Kepala" x="752" y="18" width="50" height="35"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>Tanpa Kelas
+(Bangsal)</text>
+        </staticText>
+        <staticText>
+            <reportElement style="Nomor" x="752" y="53" width="50" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <text>19</text>
+        </staticText>
+        </band>
+    </columnHeader>
+    <detail>
+        <band height="13" splitType="Prevent">
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="0" y="0" width="26" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom1}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="26" y="0" width="38" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom2}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="64" y="0" width="39" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom3}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="103" y="0" width="43" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom4}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Jumlah" x="146" y="0" width="44" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom5}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="190" y="0" width="47" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom6}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="237" y="0" width="56" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom7}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Jumlah" x="293" y="0" width="42" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom8}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="335" y="0" width="42" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom9}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="377" y="0" width="42" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom10}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Jumlah" x="419" y="0" width="44" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom11}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="463" y="0" width="39" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom12}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="502" y="0" width="81" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom13}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Jumlah" x="583" y="0" width="57" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom14}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="640" y="0" width="29" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom15}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="669" y="0" width="27" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom16}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="696" y="0" width="27" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom17}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="723" y="0" width="29" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom18}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Data" x="752" y="0" width="50" height="13"/>
+            <textElement textAlignment="Center" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$F{kolom19}]]></textFieldExpression>
+        </textField>
+        </band>
+    </detail>
+    <summary>
+        <band height="24" splitType="Prevent">
+        <textField isBlankWhenNull="true">
+            <reportElement style="Catatan" x="0" y="3" width="802" height="10"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$P{CATATAN}]]></textFieldExpression>
+        </textField>
+        <textField isBlankWhenNull="true">
+            <reportElement style="Catatan" x="0" y="13" width="802" height="10"/>
+            <textElement textAlignment="Left" verticalAlignment="Middle"/>
+            <textFieldExpression><![CDATA[$P{VERIFIKASI}]]></textFieldExpression>
+        </textField>
+        </band>
+    </summary>
+</jasperReport>

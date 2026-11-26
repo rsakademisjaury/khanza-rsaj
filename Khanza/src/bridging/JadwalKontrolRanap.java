@@ -56,6 +56,40 @@ final class JadwalKontrolRanap {
         return HARI.get(tanggal.getDayOfWeek().getValue() - 1);
     }
 
+    static String jamPraktikSurat(Connection db, String noSurat) {
+        String sql = "select s.tgl_rencana,s.kd_dokter_bpjs,s.kd_poli_bpjs from bridging_surat_kontrol_bpjs s "
+                + "where s.no_surat=? and (select count(*) from maping_dokter_dpjpvclaim m "
+                + "where m.kd_dokter_bpjs=s.kd_dokter_bpjs)=1";
+        try {
+            LocalDate tanggal;
+            String dokter;
+            String poli;
+            try (PreparedStatement ps = db.prepareStatement(sql)) {
+                ps.setString(1, noSurat);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next() || rs.getDate("tgl_rencana") == null) {
+                        return "";
+                    }
+                    tanggal = rs.getDate("tgl_rencana").toLocalDate();
+                    dokter = rs.getString("kd_dokter_bpjs");
+                    poli = rs.getString("kd_poli_bpjs");
+                }
+            }
+            String hariKontrol = hari(tanggal);
+            return mingguan(db, dokter, poli).stream()
+                    .filter(sesi -> hariKontrol.equals(sesi.hari))
+                    .map(sesi -> sesi.jam)
+                    .filter(jam -> jam.matches("(?:[01][0-9]|2[0-3]):[0-5][0-9]–(?:[01][0-9]|2[0-3]):[0-5][0-9]"))
+                    .filter(jam -> !jam.substring(0, 5).equals(jam.substring(6)))
+                    .distinct()
+                    .map(jam -> jam.replace(':', '.').replace("–", " - ") + " Wita")
+                    .collect(java.util.stream.Collectors.joining("\n"));
+        } catch (SQLException ex) {
+            System.out.println("Jam praktik pada report Lepas Rawat gagal dimuat: " + ex.getMessage());
+            return "";
+        }
+    }
+
     static Hasil cek(Connection db, String dokter, String poli, LocalDate tanggal, List<Sesi> hfis) throws SQLException {
         pastikanMapping(db, dokter, poli);
         List<Sesi> mingguan = mingguan(db, dokter, poli);

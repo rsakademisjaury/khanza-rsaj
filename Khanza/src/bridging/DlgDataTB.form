@@ -74,7 +74,7 @@
             <Property name="name" type="java.lang.String" value="jPanel3" noResource="true"/>
             <Property name="opaque" type="boolean" value="false"/>
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-              <Dimension value="[44, 100]"/>
+              <Dimension value="[44, 134]"/>
             </Property>
           </Properties>
           <Constraints>
@@ -97,7 +97,7 @@
               </Properties>
               <Constraints>
                 <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">
-                  <BorderConstraints direction="Center"/>
+                  <BorderConstraints direction="Last"/>
                 </Constraint>
               </Constraints>
 
@@ -116,7 +116,7 @@
                     <Property name="toolTipText" type="java.lang.String" value="Alt+S"/>
                     <Property name="name" type="java.lang.String" value="BtnSimpan" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[100, 30]"/>
+                      <Dimension value="[80, 30]"/>
                     </Property>
                   </Properties>
                   <Events>
@@ -134,7 +134,7 @@
                     <Property name="toolTipText" type="java.lang.String" value="Alt+B"/>
                     <Property name="name" type="java.lang.String" value="BtnBatal" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[100, 30]"/>
+                      <Dimension value="[80, 30]"/>
                     </Property>
                   </Properties>
                   <Events>
@@ -152,7 +152,7 @@
                     <Property name="toolTipText" type="java.lang.String" value="Alt+H"/>
                     <Property name="name" type="java.lang.String" value="BtnHapus" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[100, 30]"/>
+                      <Dimension value="[80, 30]"/>
                     </Property>
                   </Properties>
                   <Events>
@@ -170,7 +170,7 @@
                     <Property name="toolTipText" type="java.lang.String" value="Alt+G"/>
                     <Property name="name" type="java.lang.String" value="BtnEdit" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[100, 30]"/>
+                      <Dimension value="[80, 30]"/>
                     </Property>
                   </Properties>
                   <Events>
@@ -185,10 +185,10 @@
                     </Property>
                     <Property name="mnemonic" type="int" value="84"/>
                     <Property name="text" type="java.lang.String" value="Cetak"/>
-                    <Property name="toolTipText" type="java.lang.String" value="Alt+T"/>
+                    <Property name="toolTipText" type="java.lang.String" value="Cetak / ekspor Excel (Alt+T)"/>
                     <Property name="name" type="java.lang.String" value="BtnPrint" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[100, 30]"/>
+                      <Dimension value="[80, 30]"/>
                     </Property>
                   </Properties>
                   <Events>
@@ -206,7 +206,7 @@
                     <Property name="toolTipText" type="java.lang.String" value="Alt+M"/>
                     <Property name="name" type="java.lang.String" value="BtnAll" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[100, 30]"/>
+                      <Dimension value="[80, 30]"/>
                     </Property>
                   </Properties>
                   <Events>
@@ -224,7 +224,7 @@
                     <Property name="toolTipText" type="java.lang.String" value="Alt+K"/>
                     <Property name="name" type="java.lang.String" value="BtnKeluar" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-                      <Dimension value="[100, 30]"/>
+                      <Dimension value="[80, 30]"/>
                     </Property>
                   </Properties>
                   <Events>
@@ -255,6 +255,7 @@
                 <Component class="widget.Label" name="jLabel58">
                   <Properties>
                     <Property name="text" type="java.lang.String" value="Periode :"/>
+                    <Property name="toolTipText" type="java.lang.String" value="Tanggal laporan di Daftar TB, tanggal register/masuk di Format Dinas"/>
                     <Property name="name" type="java.lang.String" value="jLabel58" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[55, 23]"/>
@@ -301,6 +302,50 @@
                     </Property>
                   </Properties>
                 </Component>
+                <Component class="widget.Label" name="LStatusRawatCari">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="Status Rawat :"/>
+                    <Property name="name" type="java.lang.String" value="LStatusRawatCari" noResource="true"/>
+                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+                      <Dimension value="[85, 23]"/>
+                    </Property>
+                  </Properties>
+                </Component>
+                <Component class="widget.ComboBox" name="CmbStatusRawatCari">
+                  <Properties>
+                    <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
+                      <StringArray count="3">
+                        <StringItem index="0" value="Semua"/>
+                        <StringItem index="1" value="Rawat Inap"/>
+                        <StringItem index="2" value="Rawat Jalan"/>
+                      </StringArray>
+                    </Property>
+                    <Property name="name" type="java.lang.String" value="CmbStatusRawatCari" noResource="true"/>
+                    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+                      <Dimension value="[120, 23]"/>
+                    </Property>
+                  </Properties>
+                </Component>
+              </SubComponents>
+            </Container>
+            <Container class="widget.panelisi" name="panelKataKunci">
+              <Properties>
+                <Property name="name" type="java.lang.String" value="panelKataKunci" noResource="true"/>
+                <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
+                  <Dimension value="[44, 44]"/>
+                </Property>
+              </Properties>
+              <Constraints>
+                <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">
+                  <BorderConstraints direction="Center"/>
+                </Constraint>
+              </Constraints>
+
+              <Layout class="org.netbeans.modules.form.compat2.layouts.DesignFlowLayout">
+                <Property name="alignment" type="int" value="0"/>
+                <Property name="verticalGap" type="int" value="9"/>
+              </Layout>
+              <SubComponents>
                 <Component class="widget.Label" name="jLabel6">
                   <Properties>
                     <Property name="text" type="java.lang.String" value="Key Word :"/>
@@ -327,7 +372,7 @@
                       <Image iconType="3" name="/picture/accept.png"/>
                     </Property>
                     <Property name="mnemonic" type="int" value="50"/>
-                    <Property name="toolTipText" type="java.lang.String" value="Alt+2"/>
+                    <Property name="toolTipText" type="java.lang.String" value="Terapkan filter (Alt+2)"/>
                     <Property name="name" type="java.lang.String" value="BtnCari" noResource="true"/>
                     <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
                       <Dimension value="[28, 23]"/>

@@ -40,6 +40,7 @@
 	<parameter name="hasilrab" class="java.lang.String"/>
 	<parameter name="alamat" class="java.lang.String"/>
 	<parameter name="umur" class="java.lang.String"/>
+	<parameter name="jamPraktikKontrol" class="java.lang.String" isForPrompting="false"/>
 	<queryString>
 		<![CDATA[select bridging_sep.no_rawat,bridging_sep.no_sep,bridging_sep.no_kartu,bridging_sep.nomr,bridging_sep.nama_pasien,bridging_sep.tanggal_lahir,
 bridging_sep.jkel,bridging_sep.diagawal,bridging_sep.nmdiagnosaawal,bridging_surat_kontrol_bpjs.tgl_surat,bridging_surat_kontrol_bpjs.no_surat,
@@ -304,7 +305,7 @@ on bridging_surat_kontrol_bpjs.no_sep=bridging_sep.no_sep]]>
 				<textElement textAlignment="Left">
 					<font fontName="Segoe UI"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{tgl_rencana} == null ? "—" : new java.text.SimpleDateFormat("d MMMM yyyy", new java.util.Locale("id","ID")).format($F{tgl_rencana})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{tgl_rencana} == null ? "—" : new java.text.SimpleDateFormat("d MMMM yyyy", new java.util.Locale("id","ID")).format($F{tgl_rencana}) + ($P{jamPraktikKontrol} == null || $P{jamPraktikKontrol}.trim().isEmpty() ? "" : "   " + $P{jamPraktikKontrol})]]></textFieldExpression>
 			</textField>
 		</band>
 		<band height="40" splitType="Prevent">

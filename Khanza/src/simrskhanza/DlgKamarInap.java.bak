@@ -739,12 +739,45 @@ import rekammedis.RMRiwayatPerawatan;
      // TODO DOBEL BED INIT BARU: dialog dobel bed dipisah ke class terpisah agar tidak menambah ukuran constructor
     private DlgInputDobelBed dobelBedInitBaru;
          
+     private javax.swing.JMenuItem mnReadmisi;
+     private javax.swing.JMenuItem mnRekapReadmisi;
+
+     private void initMenuReadmisi() {
+         mnReadmisi = new javax.swing.JMenuItem("Readmisi");
+         mnRekapReadmisi = new javax.swing.JMenuItem("Rekap Readmisi <= 5 Hari");
+         mnReadmisi.setFont(new java.awt.Font("Segoe UI", 0, 12));
+         mnRekapReadmisi.setFont(mnReadmisi.getFont());
+         mnReadmisi.addActionListener(e -> {
+             int baris = tbKamIn.getSelectedRow();
+             if (baris < 0 || tbKamIn.getValueAt(baris, 0) == null
+                     || tbKamIn.getValueAt(baris, 0).toString().trim().isEmpty()) {
+                 javax.swing.JOptionPane.showMessageDialog(this, "Pilih pasien/episode rawat inap yang sudah pulang terlebih dahulu.");
+                 return;
+             }
+             DlgReadmisi.buka(this, tbKamIn.getValueAt(baris, 0).toString().trim());
+         });
+         mnRekapReadmisi.addActionListener(e -> DlgReadmisi.buka(this, ""));
+         jPopupMenu1.insert(mnReadmisi, 0);
+         jPopupMenu1.insert(mnRekapReadmisi, 1);
+     }
+
      /** Creates new form DlgKamarInap
       * @param parent
         @param modal */
      public DlgKamarInap(java.awt.Frame parent, boolean modal) {
          super(parent, modal);
          initComponents();
+         // RSAJ: pintu masuk terpisah; handler surat dan SKDP lama tetap dipakai.
+         javax.swing.JMenuItem lepasRawatMandiri = new javax.swing.JMenuItem("Surat Lepas Rawat");
+         lepasRawatMandiri.setFont(new java.awt.Font("Segoe UI", 0, 12));
+//         lepasRawatMandiri.addActionListener(e -> bridging.SuratLepasRawatForm.buka(this, TNoRMCari.getText(), ""));
+         MnSurat.add(lepasRawatMandiri);
+
+         // RSAJ: form readmisi dibuat saat dipanggil, tanpa query di pemuatan tabel ranap.
+         initMenuReadmisi();
+         integration.FlowsheetIcuLauncher.pasangMenu(this, MnRMHCU, tbKamIn);
+         bridging.SsrmeLauncher.pasangMenuTabel(this, jPopupMenu1, tbKamIn, 0, 1, false, false);
+
          LblKelasRawat.setIcon(iconKelasRawat);
          tampilkanKelasRawat("");
          initMenuRujukanSatuSehatRanap();
@@ -5780,6 +5813,7 @@ import rekammedis.RMRiwayatPerawatan;
         MnPenilaianKecemasanAnak = new javax.swing.JMenuItem();
         MnPenilaianPasienPenyakitMenular = new javax.swing.JMenuItem();
         MnPenilaianPsikolog = new javax.swing.JMenuItem();
+        MnFormulirHemodialisa = new javax.swing.JMenuItem();
         MnHemodialisa = new javax.swing.JMenuItem();
         MnPemantauanPEWS = new javax.swing.JMenu();
         MnPemantauanPEWSAnak = new javax.swing.JMenuItem();
@@ -5896,6 +5930,7 @@ import rekammedis.RMRiwayatPerawatan;
         jSeparator13 = new javax.swing.JPopupMenu.Separator();
         MnRujukan = new javax.swing.JMenu();
         MnRujuk = new javax.swing.JMenuItem();
+        MnRujukBalik = new javax.swing.JMenuItem();
         MnRujukMasuk = new javax.swing.JMenuItem();
         MenuBPJS = new javax.swing.JMenu();
         MnCekKepesertaan = new javax.swing.JMenuItem();
@@ -8132,6 +8167,22 @@ import rekammedis.RMRiwayatPerawatan;
         });
         MnTindakan.add(MnPeriksaRadiologi);
 
+        MnFormulirHemodialisa.setBackground(new java.awt.Color(255, 255, 254));
+        MnFormulirHemodialisa.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
+        MnFormulirHemodialisa.setForeground(new java.awt.Color(50, 50, 50));
+        MnFormulirHemodialisa.setIcon(ICON_CATEGORY); // NOI18N
+        MnFormulirHemodialisa.setText("Formulir Hemodialisa");
+        MnFormulirHemodialisa.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        MnFormulirHemodialisa.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        MnFormulirHemodialisa.setName("MnFormulirHemodialisa"); // NOI18N
+        MnFormulirHemodialisa.setPreferredSize(new java.awt.Dimension(220, 26));
+        MnFormulirHemodialisa.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                MnFormulirHemodialisaActionPerformed(evt);
+            }
+        });
+        MnTindakan.add(MnFormulirHemodialisa);
+
         MnOperasi.setBackground(new java.awt.Color(255, 255, 254));
         MnOperasi.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
         MnOperasi.setForeground(new java.awt.Color(50, 50, 50));
@@ -9182,6 +9233,22 @@ import rekammedis.RMRiwayatPerawatan;
             }
         });
         MnRujukan.add(MnRujuk);
+
+        MnRujukBalik.setBackground(new java.awt.Color(255, 255, 254));
+        MnRujukBalik.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
+        MnRujukBalik.setForeground(new java.awt.Color(50, 50, 50));
+        MnRujukBalik.setIcon(new javax.swing.ImageIcon(getClass().getResource("/picture/category.png"))); // NOI18N
+        MnRujukBalik.setText("Surat Rujuk Balik");
+        MnRujukBalik.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        MnRujukBalik.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        MnRujukBalik.setName("MnRujukBalik"); // NOI18N
+        MnRujukBalik.setPreferredSize(new java.awt.Dimension(150, 26));
+        MnRujukBalik.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                MnRujukBalikActionPerformed(evt);
+            }
+        });
+        MnRujukan.add(MnRujukBalik);
 
         MnRujukMasuk.setBackground(new java.awt.Color(255, 255, 254));
         MnRujukMasuk.setFont(new java.awt.Font("Tahoma", 0, 11)); // NOI18N
@@ -13367,6 +13434,25 @@ import rekammedis.RMRiwayatPerawatan;
        } 
  }//GEN-LAST:event_MnRujukActionPerformed
  
+
+    private void MnRujukBalikActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnRujukBalikActionPerformed
+        int barisTampilan = tbKamIn.getSelectedRow();
+        String noRawat = "";
+        if (barisTampilan >= 0) {
+            int barisModel = tbKamIn.convertRowIndexToModel(barisTampilan);
+            noRawat = java.util.Objects.toString(tabMode.getValueAt(barisModel, 0), "");
+            if (noRawat.isEmpty() && barisModel > 0) {
+                // Baris bayi ditempatkan sesudah induknya pada model, meski tampilan diurutkan.
+                String noRawatInduk = java.util.Objects.toString(tabMode.getValueAt(barisModel - 1, 0), "");
+                String noRmBayi = java.util.Objects.toString(tabMode.getValueAt(barisModel, 1), "");
+                noRawat = Sequel.cariIsi(
+                        "select g.no_rawat2 from ranap_gabung g join reg_periksa r on r.no_rawat=g.no_rawat2 "
+                        + "where g.no_rawat=? and r.no_rkm_medis=?", noRawatInduk, noRmBayi);
+            }
+        }
+        DlgRujukBalik.buka(internalFrame1, noRawat);
+    }//GEN-LAST:event_MnRujukBalikActionPerformed
+
  private void MnPemberianObatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnPemberianObatActionPerformed
        if(tabMode.getRowCount()==0){
              JOptionPane.showMessageDialog(null,"Maaf, table masih kosong...!!!!");
@@ -19828,6 +19914,46 @@ import rekammedis.RMRiwayatPerawatan;
          }
      }//GEN-LAST:event_MnBarcode2ActionPerformed
  
+    private void MnFormulirHemodialisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnFormulirHemodialisaActionPerformed
+        bukaFormulirHemodialisaRSAJ(tbKamIn, 0);
+    }//GEN-LAST:event_MnFormulirHemodialisaActionPerformed
+
+    // No. Rawat diambil langsung dari model baris terpilih, termasuk popup konsultasi.
+    private void bukaFormulirHemodialisaRSAJ(javax.swing.JTable tabel, int kolomNoRawat) {
+        if (!akses.gethemodialisa()) {
+            JOptionPane.showMessageDialog(this, "Akun ini tidak memiliki hak akses Hemodialisa.");
+            return;
+        }
+        int baris = tabel.getSelectedRow();
+        if (baris < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih pasien pada tabel terlebih dahulu.");
+            tabel.requestFocus();
+            return;
+        }
+        Object nilai = tabel.getModel().getValueAt(tabel.convertRowIndexToModel(baris), kolomNoRawat);
+        String noRawat = nilai == null ? "" : nilai.toString().trim();
+        if (noRawat.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No. Rawat pada baris terpilih belum tersedia. Pilih baris pasien dengan No. Rawat.");
+            return;
+        }
+        rekammedis.DlgFormulirHemodialisa form = null;
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        try {
+            form = new rekammedis.DlgFormulirHemodialisa(null, true);
+            form.setNoRawat(noRawat);
+            form.setLocationRelativeTo(internalFrame1);
+            this.setCursor(Cursor.getDefaultCursor());
+            form.setVisible(true);
+        } catch (Exception ex) {
+            if (form != null) {
+                form.dispose();
+            }
+            JOptionPane.showMessageDialog(this, "Formulir Hemodialisa gagal dibuka: " + ex.getMessage());
+        } finally {
+            this.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
      private void MnHemodialisaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnHemodialisaActionPerformed
          if(tabMode.getRowCount()==0){
              JOptionPane.showMessageDialog(null,"Maaf, table masih kosong...!!!!");
@@ -20266,7 +20392,7 @@ import rekammedis.RMRiwayatPerawatan;
                                 if (rs.next()) {
                                     // Jika query mengembalikan data, lanjutkan membuka BPJSSuratKontrol
                                     this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                                    BPJSSuratKontrol form = new BPJSSuratKontrol(null, false);
+                                    BPJSSuratKontrol form = BPJSSuratKontrol.untukRawatInap();
                                     form.setNoRm(
                                         rs.getString("no_rawat"),
                                         rs.getString("no_sep"),
@@ -20346,7 +20472,7 @@ import rekammedis.RMRiwayatPerawatan;
                         if (rs.next()) {
                             // Jika query mengembalikan data, lanjutkan membuka BPJSSuratKontrol
                             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                            BPJSSuratKontrol form = new BPJSSuratKontrol(null, false);
+                            BPJSSuratKontrol form = BPJSSuratKontrol.untukRawatInap();
                             form.setNoRm(
                                 rs.getString("no_rawat"),
                                 rs.getString("no_sep"),
@@ -25076,7 +25202,7 @@ import rekammedis.RMRiwayatPerawatan;
                                 if (rs.next()) {
                                     // Jika query mengembalikan data, lanjutkan membuka BPJSSuratKontrol
                                     this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                                    BPJSSuratKontrol form = new BPJSSuratKontrol(null, false);
+                                    BPJSSuratKontrol form = BPJSSuratKontrol.untukRawatInap();
                                     form.setNoRm(
                                         rs.getString("no_rawat"),
                                         rs.getString("no_sep"),
@@ -25156,7 +25282,7 @@ import rekammedis.RMRiwayatPerawatan;
                         if (rs.next()) {
                             // Jika query mengembalikan data, lanjutkan membuka BPJSSuratKontrol
                             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-                            BPJSSuratKontrol form = new BPJSSuratKontrol(null, false);
+                            BPJSSuratKontrol form = BPJSSuratKontrol.untukRawatInap();
                             form.setNoRm(
                                 rs.getString("no_rawat"),
                                 rs.getString("no_sep"),
@@ -26454,6 +26580,7 @@ private String getUraianKonsultasi(String noRawat) {
     private javax.swing.JMenuItem MnHapusObatOperasi;
     private javax.swing.JMenuItem MnHapusTagihanOperasi;
     private javax.swing.JMenuItem MnHasilPemeriksaanUSG;
+    private javax.swing.JMenuItem MnFormulirHemodialisa;
     private javax.swing.JMenuItem MnHemodialisa;
     private javax.swing.JMenuItem MnInputResep;
     private javax.swing.JMenuItem MnJadwalOperasi;
@@ -26545,6 +26672,7 @@ private String getUraianKonsultasi(String noRawat) {
     private javax.swing.JMenuItem MnRincianObat;
     private javax.swing.JMenuItem MnRingkasanMasukKeluar;
     private javax.swing.JMenuItem MnRujuk;
+    private javax.swing.JMenuItem MnRujukBalik;
     private javax.swing.JMenuItem MnRujukMasuk;
     private javax.swing.JMenuItem MnRujukSisrute;
     private javax.swing.JMenu MnRujukan;
@@ -27995,6 +28123,8 @@ private void tampil() {
          }         
          
          MnStatusMin.setEnabled(akses.getadmin());
+         mnReadmisi.setEnabled(akses.getkamar_inap());
+         mnRekapReadmisi.setEnabled(akses.getkamar_inap());
          BtnSimpan.setEnabled(akses.getkamar_inap());
          BtnSimpanpindah.setEnabled(akses.getkamar_inap());
          BtnPrint.setEnabled(akses.getkamar_inap());
@@ -28014,6 +28144,7 @@ private void tampil() {
          MnStokObatPasien.setEnabled(akses.getstok_obat_pasien());
          MnResepPulang.setEnabled(akses.getresep_pulang());
          MnRujuk.setEnabled(akses.getrujukan_keluar());
+         MnRujukBalik.setEnabled(akses.getrujukan_keluar());
          MnRujukMasuk.setEnabled(akses.getrujukan_masuk());
          MnHapusTagihanOperasi.setEnabled(akses.getoperasi());
          MnHapusObatOperasi.setEnabled(akses.getoperasi());
@@ -28054,6 +28185,7 @@ private void tampil() {
          MnPCare.setEnabled(akses.getbridging_pcare_daftar()); 
          ppMonitoringAsuhanGizi.setEnabled(akses.getmonitoring_asuhan_gizi()); 
          MnHemodialisa.setEnabled(akses.gethemodialisa()); 
+        MnFormulirHemodialisa.setEnabled(akses.gethemodialisa());
          MnPenjualan1.setEnabled(akses.getpenjualan_obat()); 
          MnBilling.setEnabled(akses.getbilling_ranap()); 
          MnCekKepesertaan.setEnabled(akses.getbpjs_cek_kartu());

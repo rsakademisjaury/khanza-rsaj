@@ -775,6 +775,7 @@ import rekammedis.RMRiwayatPerawatan;
 
          // RSAJ: form readmisi dibuat saat dipanggil, tanpa query di pemuatan tabel ranap.
          initMenuReadmisi();
+         integration.FlowsheetIcuLauncher.pasangMenu(this, MnRMHCU, tbKamIn);
          bridging.SsrmeLauncher.pasangMenuTabel(this, jPopupMenu1, tbKamIn, 0, 1, false, false);
 
          LblKelasRawat.setIcon(iconKelasRawat);
@@ -16520,12 +16521,7 @@ import rekammedis.RMRiwayatPerawatan;
      }//GEN-LAST:event_MnStatusMinActionPerformed
  
      private void MnSensusRanapActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnSensusRanapActionPerformed
-         if(tabMode.getRowCount()==0){
-             JOptionPane.showMessageDialog(null,"Maaf, table masih kosong...!!!!");
-             TCari.requestFocus();
-         }else{
-             Valid.panggilUrl("billing/LaporanSensusHarian.php?tanggal1="+Valid.SetTgl(DTPCari1.getSelectedItem()+"")+"&tanggal2="+Valid.SetTgl(DTPCari2.getSelectedItem()+"")+"&kamar="+BangsalCari.getText().replaceAll(" ","_")+"&usere="+koneksiDB.USERHYBRIDWEB()+"&passwordte="+koneksiDB.PASHYBRIDWEB());                       
-         }
+         new laporan.DlgSensusHarianRanap(this, BangsalCari.getText().trim()).setVisible(true);
      }//GEN-LAST:event_MnSensusRanapActionPerformed
  
      private void MnDepositActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_MnDepositActionPerformed
