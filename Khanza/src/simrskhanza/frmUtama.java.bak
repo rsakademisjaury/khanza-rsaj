@@ -1372,9 +1372,9 @@ public class frmUtama extends javax.swing.JFrame {
     private SwingWorker<LoginAttemptGuard.Result, Void> workerBukaSesi;
     // RSAJ - Tahap 1 pengamanan login. Koneksi terpisah dari pelayanan/alarm.
     private final LoginAttemptGuard pengamanLogin =
-            new LoginAttemptGuard(koneksiDB::condbVerifikasiSesi);
+            new LoginAttemptGuard(koneksiDB::condbPengamanLogin);
     private final LoginSessionGuard pengamanSesiTunggal = new LoginSessionGuard(
-            koneksiDB::condbVerifikasiSesi, koneksiDB::condbPemantauan);
+            koneksiDB::condbPengamanLogin, koneksiDB::condbPemantauan);
     private final LoginSessionMonitor pemantauSesiTunggal = new LoginSessionMonitor(
             pengamanSesiTunggal, this::akhiriSesiTunggal);
     private SwingWorker<LoginAttemptGuard.Result, Void> workerLoginAwal;
@@ -1623,6 +1623,7 @@ public class frmUtama extends javax.swing.JFrame {
         mulaiTahap = System.nanoTime();
         laporStartup(31, "Membangun antarmuka utama...");
         initComponents();
+        btnRlWeb = integration.RlLauncher.buatTombol(this, btnRl4asebab);
         pasangRujukanMasukSatuSehat();
         // PATCH RSAJ V3: sebelum autentikasi berhasil, seluruh tombol utama
         // dan tombol notifikasi disembunyikan. Hanya tombol Log In yang tetap
@@ -1655,7 +1656,8 @@ public class frmUtama extends javax.swing.JFrame {
         this.setExtendedState(MAXIMIZED_BOTH);
         //this.setSize(screen.width,screen.height);
         edAdmin.setDocument(new batasInput((byte)100).getKata(edAdmin));
-        edPwd.setDocument(new batasInput((byte)100).getKata(edPwd));
+        edPwd.setDocument(new javax.swing.text.PlainDocument()); // Password diteruskan persis, termasuk simbol.
+        pasangMenuPassword();
         pasangPemantauPengamanLogin();
         
         edAdmin.requestFocus();
@@ -17128,6 +17130,98 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         this.setCursor(Cursor.getDefaultCursor());
     }//GEN-LAST:event_MnPenyerahanResepActionPerformed
 
+
+    /** Akses password di samping Logout; alur autentikasi tetap melalui form yang sama. */
+    private void pasangMenuPassword() {
+        for (java.awt.Component komponen : panelKanan.getComponents()) {
+            if ("BtnMenuPassword".equals(komponen.getName())) return;
+        }
+        javax.swing.JButton opsi = new javax.swing.JButton() {
+            @Override protected void paintComponent(java.awt.Graphics graphics) {
+                if (getModel().isRollover() || getModel().isPressed()) {
+                    java.awt.Graphics2D g = (java.awt.Graphics2D) graphics.create();
+                    g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                            java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                    g.setColor(new java.awt.Color(24, 111, 178, getModel().isPressed() ? 40 : 22));
+                    g.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 8, 8);
+                    g.dispose();
+                }
+                super.paintComponent(graphics);
+            }
+        };
+        opsi.setName("BtnMenuPassword");
+        opsi.setToolTipText("Menu akun");
+        opsi.getAccessibleContext().setAccessibleName("Menu akun: Ganti Password");
+        opsi.setPreferredSize(new java.awt.Dimension(28, 27));
+        opsi.setMargin(new java.awt.Insets(0, 0, 0, 0));
+        opsi.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        opsi.setBorderPainted(false);
+        opsi.setContentAreaFilled(false);
+        opsi.setOpaque(false);
+        opsi.setFocusPainted(false);
+        opsi.setFocusable(false);
+        opsi.setRolloverEnabled(true);
+        opsi.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        opsi.setIcon(new javax.swing.Icon() {
+            @Override public int getIconWidth() { return 16; }
+            @Override public int getIconHeight() { return 16; }
+            @Override public void paintIcon(java.awt.Component component, java.awt.Graphics graphics, int x, int y) {
+                java.awt.Graphics2D g = (java.awt.Graphics2D) graphics.create();
+                g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(new java.awt.Color(38, 73, 102));
+                for (int i = 0; i < 3; i++) g.fillOval(x + 6, y + 2 + i * 5, 3, 3);
+                g.dispose();
+            }
+        });
+        javax.swing.JPopupMenu menu = new javax.swing.JPopupMenu();
+        menu.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(202, 218, 232)),
+                javax.swing.BorderFactory.createEmptyBorder(4, 4, 4, 4)));
+        javax.swing.JMenuItem ganti = new javax.swing.JMenuItem("Ganti Password");
+        ganti.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        ganti.setMargin(new java.awt.Insets(6, 10, 6, 10));
+        menu.add(ganti);
+        menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+            @Override public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent event) {
+                ganti.setEnabled("Log Out".equals(BtnLog.getText().trim()) && !usernameSesi.isEmpty()
+                        && kunciSesi != null && !kunciSesi.isLocked());
+            }
+            @Override public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent event) { }
+            @Override public void popupMenuCanceled(javax.swing.event.PopupMenuEvent event) { }
+        });
+        opsi.setComponentPopupMenu(menu);
+        Runnable perbarui = () -> {
+            boolean login = "Log Out".equals(BtnLog.getText().trim());
+            opsi.setVisible(login);
+            opsi.setEnabled(login);
+            if (!login) menu.setVisible(false);
+            panelKanan.revalidate();
+            panelKanan.repaint();
+        };
+        BtnLog.addPropertyChangeListener("text", event -> perbarui.run());
+        opsi.addActionListener(event -> {
+            boolean boleh = "Log Out".equals(BtnLog.getText().trim()) && !usernameSesi.isEmpty()
+                    && kunciSesi != null && !kunciSesi.isLocked();
+            ganti.setEnabled(boleh);
+            if (!boleh) return;
+            int x = Math.min(0, opsi.getWidth() - menu.getPreferredSize().width);
+            menu.show(opsi, x, opsi.getHeight());
+        });
+        ganti.addActionListener(event -> {
+            if (!"Log Out".equals(BtnLog.getText().trim()) || usernameSesi.isEmpty()
+                    || kunciSesi == null || kunciSesi.isLocked()) return;
+            setting.WindowInputPassword dialog = new setting.WindowInputPassword(this, true);
+            dialog.setAccount(usernameSesi, adminSesi
+                    ? fungsi.AccountPasswordService.Account.ADMIN : fungsi.AccountPasswordService.Account.USER);
+            dialog.setLocationRelativeTo(this);
+            dialog.setVisible(true);
+        });
+        int posisiLogout = panelKanan.getComponentZOrder(BtnLog);
+        panelKanan.add(opsi, posisiLogout < 0 ? panelKanan.getComponentCount() : posisiLogout + 1);
+        perbarui.run();
+    }
+
     private void BtnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BtnLoginActionPerformed
         if (kunciSesi != null && kunciSesi.isLocked()) {
             loginUlangSesi();
@@ -17375,16 +17469,17 @@ private void formWindowStateChanged(java.awt.event.WindowEvent evt) {//GEN-FIRST
         }
     }
 
-    private void catatGangguanPengamanLogin(Exception exception) {
-        Throwable penyebab = exception.getCause() == null ? exception : exception.getCause();
-        // Tidak mencetak pesan SQL/parameter yang mungkin berisi data sensitif.
-        if (penyebab instanceof java.sql.SQLException) {
-            java.sql.SQLException sql = (java.sql.SQLException) penyebab;
-            System.out.println("[Pengaman Login] SQLState=" + sql.getSQLState()
-                    + ", kode=" + sql.getErrorCode());
-        } else {
-            System.out.println("[Pengaman Login] " + penyebab.getClass().getSimpleName());
-        }
+     private void catatGangguanPengamanLogin(Exception exception) {
+//        Throwable penyebab = exception.getCause() == null ? exception : exception.getCause();
+//        // Tidak mencetak pesan SQL/parameter yang mungkin berisi data sensitif.
+//        if (penyebab instanceof java.sql.SQLException) {
+//            java.sql.SQLException sql = (java.sql.SQLException) penyebab;
+//            System.out.println("[Pengaman Login] SQLState=" + sql.getSQLState()
+//                    + ", kode=" + sql.getErrorCode());
+//        } else {
+//            System.out.println("[Pengaman Login] " + penyebab.getClass().getSimpleName());
+//        }
+          fungsi.LoginFailureDiagnostics.log(exception);
     }
 
     /** Mulai hitungan baru hanya sesudah login biasa benar-benar berhasil. */
@@ -27259,6 +27354,7 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     private widget.ButtonBig btnRl39;
     private widget.ButtonBig btnRl4a;
     private widget.ButtonBig btnRl4asebab;
+    private widget.ButtonBig btnRlWeb;
     private widget.ButtonBig btnRl4b;
     private widget.ButtonBig btnRl4bsebab;
     private widget.ButtonBig btnRuangInventaris;
@@ -29475,6 +29571,10 @@ private boolean isCocokCariMenu(javax.swing.AbstractButton btn) {
             
             if(akses.getrl4asebab()==true){  
                 Panelmenu.add(btnRl4asebab);                 
+                jmlmenu++;
+            }
+            if (integration.RlLauncher.bolehBuka()) {
+                Panelmenu.add(btnRlWeb);
                 jmlmenu++;
             }
             
@@ -35072,6 +35172,10 @@ private boolean isCocokCariMenu(javax.swing.AbstractButton btn) {
         
         if(akses.getrl4asebab()==true){  
             Panelmenu.add(btnRl4asebab);                 
+            jmlmenu++;
+        }
+        if (integration.RlLauncher.bolehBuka()) {
+            Panelmenu.add(btnRlWeb);
             jmlmenu++;
         }
 
@@ -41346,6 +41450,12 @@ private boolean isCocokCariMenu(javax.swing.AbstractButton btn) {
                 Panelmenu.add(btnRl4asebab);                 
                 jmlmenu++;
             }                
+        }
+        if (integration.RlLauncher.bolehBuka()
+                && btnRlWeb.getText().toLowerCase(java.util.Locale.ROOT)
+                        .contains(TCari.getText().trim().toLowerCase(java.util.Locale.ROOT))) {
+            Panelmenu.add(btnRlWeb);
+            jmlmenu++;
         }
         
         if(akses.getrl4bsebab()==true){  

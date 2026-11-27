@@ -11,8 +11,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -20,164 +20,386 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.*;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.plaf.basic.BasicTabbedPaneUI;
 
-/** Inbox berdiri sendiri. Daftar, detail dan respons API memakai satu CardLayout. */
+/** Rujukan masuk model kartu grid. Detail dan pendaftaran menggunakan alur rujukan yang sama. */
 public final class SatuSehatRujukanMasukPanel extends JPanel {
-    private static final Color INK=new Color(25,49,69),MUTED=new Color(91,113,131),BLUE=new Color(10,112,182),BG=new Color(244,247,251),LINE=new Color(219,229,238),LIGHT=new Color(233,244,252),GREEN=new Color(26,111,79),AMBER=new Color(142,86,16);
-    private static final Font BODY=new Font("Segoe UI",Font.PLAIN,13),SMALL=new Font("Segoe UI",Font.PLAIN,12),STRONG=new Font("Segoe UI Semibold",Font.BOLD,14);
-    private static final int SENT_COLUMN=7,ACTION_COLUMN=8;
+    private static final Color INK=new Color(25,49,69),MUTED=new Color(91,113,131),BLUE=new Color(18,100,207),BG=new Color(243,246,251),LINE=new Color(224,231,240),LIGHT=new Color(237,244,255),GREEN=new Color(32,115,82),AMBER=new Color(154,101,20),RED=new Color(170,71,82);
+    private static final Color WAIT_BG=new Color(255,246,229),ACCEPT_BG=new Color(234,246,239),REJECT_BG=new Color(252,240,241);
+    private static final Font BODY=new Font("Segoe UI",Font.PLAIN,13),SMALL=new Font("Segoe UI",Font.PLAIN,12),STRONG=new Font("Segoe UI Semibold",Font.BOLD,15);
     private static final Instant NO_SENT_TIME=Instant.MIN;
-    private static final DateTimeFormatter SENT_FORMAT=DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(ZoneId.of("Asia/Makassar"));
+    private static final ZoneId WITA=ZoneId.of("Asia/Makassar");
+    private static final DateTimeFormatter SENT_FORMAT=DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(WITA);
     private final SatuSehatRujukanMasukService service;
-    private final SatuSehatRujukanIGDRanapApi apiClient=new SatuSehatRujukanIGDRanapApi();
+    private SatuSehatRujukanIGDRanapApi apiClient=new SatuSehatRujukanIGDRanapApi();
     private final JPanel pages=new JPanel(new CardLayout()),detailHost=new JPanel(new BorderLayout(0,12)),apiHost=new JPanel(new BorderLayout(0,10));
-    private final JLabel title=label("Rujukan Masuk",new Font("Segoe UI Semibold",Font.BOLD,23),INK),status=label("Memuat rujukan masuk...",SMALL,MUTED);
-    private final JTextArea message=readOnly(2);private final JPanel notice=new JPanel(new BorderLayout());
+    private final JLabel status=label("Memuat rujukan masuk...",SMALL,MUTED),listCount=label("0 rujukan",SMALL,MUTED);
+    private final JTextArea message=readOnly(2);
+    private final JPanel notice=new JPanel(new BorderLayout());
     private final Timer toastTimer=new Timer(6500,e->notice.setVisible(false));
     private final List<SatuSehatRujukanMasukService.Row> rows=new ArrayList<SatuSehatRujukanMasukService.Row>();
-    private final DefaultTableModel tableModel=new DefaultTableModel(new String[]{"No.","Task ID","Pasien","Fasyankes perujuk","Jenis","Status","Keputusan","Waktu Rujukan Dikirim","Aksi"},0){
-        @Override public boolean isCellEditable(int r,int c){return c==ACTION_COLUMN&&!busy;}
-        @Override public Class<?> getColumnClass(int c){return c==SENT_COLUMN?Instant.class:super.getColumnClass(c);}
-    };
-    private final JTable table=workflowTable(tableModel);
-    private final TableRowSorter<DefaultTableModel> sorter=new TableRowSorter<DefaultTableModel>(tableModel);
+    private final CardGrid cards=new CardGrid();
+    private JScrollPane cardsScroll;
     private final JTextField search=new SearchField();
-    private final JButton reload=button("Perbarui",Color.WHITE,BLUE),close=button("Keluar",Color.WHITE,MUTED);
-    private JButton register;private JLabel registrationStatus;
-    private Runnable onClose;private boolean busy,disposed;private long detailGeneration;
+    private final JButton reload=button("Perbarui",Color.WHITE,BLUE),close=button("Keluar",Color.WHITE,MUTED),apiButton=button("Respon API",Color.WHITE,BLUE);
+    private final JToggleButton[] filters=new JToggleButton[4];
+    private final JLabel[] counts={label("0",new Font("Segoe UI Semibold",Font.BOLD,24),INK),label("0",new Font("Segoe UI Semibold",Font.BOLD,24),INK),label("0",new Font("Segoe UI Semibold",Font.BOLD,24),INK)};
+    private final List<JButton> cardButtons=new ArrayList<JButton>(),detailButtons=new ArrayList<JButton>();
+    private JButton register;
+    private JTextArea registrationStatus;
+    private Runnable onClose;
+    private boolean busy,disposed;
+    private int statusFilter;
+    private String selectedTaskId="",currentPage="list",apiReturnPage="list";
+    private long detailGeneration;
+    private SwingWorker<SatuSehatRujukanIGDRanapApi.IncomingReferralDetail,Void> detailWorker;
     private SatuSehatRujukanIGDRanapApi.IncomingReferralDetail currentDetail;
     private final SatuSehatRujukanMasukService.Listener listener=(snapshot,error,fresh,first)->updateList(snapshot,error);
 
     public SatuSehatRujukanMasukPanel(SatuSehatRujukanMasukService service){
-        this.service=service;setLayout(new BorderLayout(0,12));setBackground(BG);setBorder(BorderFactory.createEmptyBorder(16,20,14,20));
-        JPanel top=new JPanel(new BorderLayout(12,10));top.setOpaque(false);
-        JPanel head=new JPanel(new BorderLayout(12,0));head.setOpaque(false);head.add(title,BorderLayout.WEST);top.add(head,BorderLayout.NORTH);
-        JPanel actions=flow();JButton api=button("Respon API",Color.WHITE,BLUE);api.setIcon(new LineIcon("code",BLUE,16));api.addActionListener(e->showApi());
-        reload.setIcon(new LineIcon("reload",BLUE,16));reload.addActionListener(e->{service.refresh();status.setText("Memperbarui daftar rujukan...");});
-        close.addActionListener(e->requestClose());actions.add(api);actions.add(Box.createHorizontalStrut(6));actions.add(reload);actions.add(Box.createHorizontalStrut(6));actions.add(close);
-        notice.setBackground(LIGHT);notice.setBorder(BorderFactory.createEmptyBorder(9,12,9,12));notice.add(message,BorderLayout.CENTER);notice.setVisible(false);toastTimer.setRepeats(false);top.add(notice,BorderLayout.SOUTH);add(top,BorderLayout.NORTH);
-        pages.setOpaque(false);pages.add(listPage(),"list");detailHost.setOpaque(false);apiHost.setOpaque(false);pages.add(detailHost,"detail");pages.add(apiHost,"api");add(pages,BorderLayout.CENTER);
-        JPanel footer=new JPanel(new BorderLayout(12,0));footer.setOpaque(false);footer.add(actions,BorderLayout.WEST);footer.add(status,BorderLayout.EAST);add(footer,BorderLayout.SOUTH);
-        service.addListener(listener);service.refresh();
+        this.service=service;setLayout(new BorderLayout());setBackground(BG);
+        add(filterBar(),BorderLayout.WEST);
+        JPanel main=new JPanel(new BorderLayout(0,12));main.setOpaque(false);main.setBorder(BorderFactory.createEmptyBorder(23,24,14,24));
+        notice.setBackground(LIGHT);notice.setBorder(BorderFactory.createEmptyBorder(9,12,9,12));notice.add(message,BorderLayout.CENTER);notice.setVisible(false);toastTimer.setRepeats(false);
+        main.add(notice,BorderLayout.NORTH);pages.setOpaque(false);pages.add(listPage(),"list");
+        detailHost.setOpaque(false);apiHost.setOpaque(false);
+        pages.add(pageSurface(detailHost),"detail");pages.add(pageSurface(apiHost),"api");main.add(pages,BorderLayout.CENTER);
+        JPanel footer=new JPanel(new BorderLayout(12,8));footer.setOpaque(false);footer.add(status,BorderLayout.NORTH);
+        JPanel actions=flow();apiButton.setIcon(new LineIcon("code",BLUE,16));apiButton.addActionListener(e->showApi());
+        close.setIcon(new LineIcon("exit",MUTED,15));close.addActionListener(e->requestClose());
+        actions.add(apiButton);actions.add(Box.createHorizontalStrut(8));actions.add(close);footer.add(actions,BorderLayout.WEST);footer.add(listCount,BorderLayout.EAST);main.add(footer,BorderLayout.SOUTH);
+        add(main,BorderLayout.CENTER);service.addListener(listener);service.refresh();
     }
+
+    private JPanel pageSurface(JPanel content){
+        RoundPanel surface=new RoundPanel(Color.WHITE,LINE,16);surface.setLayout(new BorderLayout());surface.setBorder(BorderFactory.createEmptyBorder(20,20,20,20));surface.add(content);return surface;
+    }
+
     public void setOnClose(Runnable action){onClose=action;}
     public void requestClose(){if(busy){toast("Tunggu proses rujukan selesai sebelum menutup form.",true);return;}if(onClose!=null)onClose.run();}
-    public void shutdown(){disposed=true;detailGeneration++;toastTimer.stop();service.removeListener(listener);SatuSehatRujukanMasukPasien.closeFor(this);}
+    public void shutdown(){disposed=true;cancelDetail();toastTimer.stop();service.removeListener(listener);SatuSehatRujukanMasukPasien.closeFor(this);}
+
+    private JPanel filterBar(){
+        JPanel aside=new JPanel(new BorderLayout());aside.setBackground(Color.WHITE);aside.setPreferredSize(new Dimension(185,200));
+        aside.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,0,1,LINE),BorderFactory.createEmptyBorder(26,13,20,13)));
+        JPanel menu=vertical();menu.add(label("KOTAK RUJUKAN",new Font("Segoe UI",Font.PLAIN,11),MUTED));menu.add(Box.createVerticalStrut(18));
+        String[] names={"Semua rujukan","Menunggu","Diterima","Ditolak"},icons={"inbox","clock","check","reject"};ButtonGroup group=new ButtonGroup();
+        for(int i=0;i<filters.length;i++){
+            final int choice=i;JToggleButton item=new JToggleButton(names[i]);item.setIcon(new LineIcon(icons[i],MUTED,17));item.setIconTextGap(9);
+            item.setFont(BODY);item.setOpaque(false);item.setContentAreaFilled(false);item.setHorizontalAlignment(SwingConstants.LEFT);item.setAlignmentX(0);
+            item.setBorder(BorderFactory.createEmptyBorder(11,11,11,11));item.setMaximumSize(new Dimension(Integer.MAX_VALUE,43));
+            item.setUI(new BasicButtonUI(){
+                @Override public void paint(Graphics graphics,JComponent component){
+                    AbstractButton control=(AbstractButton)component;Graphics2D g=(Graphics2D)graphics.create();g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+                    if(control.isSelected()||control.getModel().isRollover()){g.setColor(LIGHT);g.fillRoundRect(0,0,component.getWidth()-1,component.getHeight()-1,11,11);}
+                    if(control.hasFocus()){g.setColor(BLUE);g.drawRoundRect(1,1,component.getWidth()-3,component.getHeight()-3,11,11);}g.dispose();
+                    component.setForeground(control.isSelected()?BLUE:MUTED);super.paint(graphics,component);
+                }
+            });
+            item.addActionListener(e->{statusFilter=choice;filter();});group.add(item);menu.add(item);menu.add(Box.createVerticalStrut(7));filters[i]=item;
+        }
+        filters[0].setSelected(true);aside.add(menu,BorderLayout.NORTH);return aside;
+    }
+
     private JPanel listPage(){
-        JPanel p=new JPanel(new BorderLayout(0,12));p.setOpaque(false);
-        JPanel bar=new JPanel(new BorderLayout(12,0));bar.setOpaque(false);bar.add(label("Urutan awal berdasarkan waktu kirim • WITA",BODY,MUTED),BorderLayout.WEST);
-        search.setFont(BODY);search.setPreferredSize(new Dimension(340,36));search.setToolTipText("Cari RS, pasien, Task ID, jenis, atau waktu kirim");search.getAccessibleContext().setAccessibleName("Cari rujukan masuk");
-        JPanel searchBox=new JPanel(new BorderLayout(8,0));searchBox.setOpaque(false);searchBox.add(label("Cari",SMALL,MUTED),BorderLayout.WEST);searchBox.add(search,BorderLayout.CENTER);bar.add(searchBox,BorderLayout.EAST);p.add(bar,BorderLayout.NORTH);
-        table.setName("tabel_rujukan_masuk");table.setRowSorter(sorter);table.setRowHeight(46);table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        table.setSelectionBackground(BLUE);table.setSelectionForeground(Color.WHITE);
-        int[] widths={48,170,185,210,90,105,105,170,245};for(int i=0;i<widths.length;i++)table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-        DefaultTableCellRenderer numberRenderer=new DefaultTableCellRenderer(){
-            @Override public Component getTableCellRendererComponent(JTable t,Object value,boolean selected,boolean focus,int row,int col){
-                return super.getTableCellRendererComponent(t,row+1,selected,focus,row,col);
-            }
-        };numberRenderer.setHorizontalAlignment(SwingConstants.CENTER);table.getColumnModel().getColumn(0).setCellRenderer(numberRenderer);
-        table.getColumnModel().getColumn(SENT_COLUMN).setCellRenderer(new DefaultTableCellRenderer(){
-            @Override protected void setValue(Object value){setText(formatSentTime((Instant)value));}
-        });
-        TableColumn action=table.getColumnModel().getColumn(ACTION_COLUMN);action.setMinWidth(240);action.setCellRenderer(new ActionCell());action.setCellEditor(new ActionCell());sorter.setSortable(0,false);sorter.setSortable(ACTION_COLUMN,false);
-        sorter.setSortKeys(Collections.singletonList(new RowSorter.SortKey(SENT_COLUMN,SortOrder.DESCENDING)));
-        sorter.setSortsOnUpdates(true);
+        JPanel page=new JPanel(new BorderLayout(0,18));page.setOpaque(false);
+        JPanel tools=new JPanel(new BorderLayout(0,16));tools.setOpaque(false);
+        JPanel heading=new JPanel(new BorderLayout(0,5));heading.setOpaque(false);
+        heading.add(label("KOORDINASI PELAYANAN",new Font("Segoe UI",Font.PLAIN,11),MUTED),BorderLayout.NORTH);
+        JPanel titleRow=new JPanel(new BorderLayout(12,0));titleRow.setOpaque(false);
+        titleRow.add(label("Rujukan Masuk",new Font("Segoe UI Semibold",Font.BOLD,25),INK),BorderLayout.CENTER);
+        JPanel metrics=new JPanel(new FlowLayout(FlowLayout.RIGHT,0,0));metrics.setOpaque(false);
+        String[] names={"Menunggu keputusan","Diterima","Ditolak"};Color[] colors={AMBER,GREEN,RED};
+        for(int i=0;i<counts.length;i++){
+            JPanel metric=new JPanel(new FlowLayout(FlowLayout.LEFT,6,0));metric.setOpaque(false);JPanel mark=new JPanel();mark.setBackground(colors[i]);mark.setPreferredSize(new Dimension(3,28));
+            metric.add(mark);metric.add(counts[i]);metric.add(label(names[i],new Font("Segoe UI",Font.PLAIN,11),MUTED));if(i>0)metrics.add(Box.createHorizontalStrut(9));metrics.add(metric);
+        }
+        titleRow.add(metrics,BorderLayout.EAST);heading.add(titleRow,BorderLayout.CENTER);
+        heading.add(label("Rujukan terbaru dari fasilitas kesehatan pengirim.",BODY,MUTED),BorderLayout.SOUTH);
+        heading.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,1,0,LINE),BorderFactory.createEmptyBorder(0,0,17,0)));tools.add(heading,BorderLayout.NORTH);
+        JPanel searchRow=new JPanel(new BorderLayout(12,0));searchRow.setOpaque(false);search.setFont(BODY);search.setBackground(Color.WHITE);search.setPreferredSize(new Dimension(350,39));
+        search.setToolTipText("Cari pasien, IHS, rumah sakit, Task ID, jenis, atau waktu kirim");search.getAccessibleContext().setAccessibleName("Cari rujukan masuk");
+        reload.setIcon(new LineIcon("reload",BLUE,16));reload.addActionListener(e->{service.refresh();status.setText("Memperbarui daftar rujukan...");});
+        JPanel update=new JPanel(new FlowLayout(FlowLayout.RIGHT,12,0));update.setOpaque(false);update.add(label("Terbaru lebih dahulu · WITA",SMALL,MUTED));update.add(reload);
+        searchRow.add(search,BorderLayout.CENTER);searchRow.add(update,BorderLayout.EAST);tools.add(searchRow,BorderLayout.SOUTH);page.add(tools,BorderLayout.NORTH);
         search.getDocument().addDocumentListener(new DocumentListener(){public void insertUpdate(DocumentEvent e){filter();}public void removeUpdate(DocumentEvent e){filter();}public void changedUpdate(DocumentEvent e){filter();}});
-        table.addMouseListener(new java.awt.event.MouseAdapter(){@Override public void mouseClicked(java.awt.event.MouseEvent e){if(e.getClickCount()==2&&table.getSelectedRow()>=0){int row=table.convertRowIndexToModel(table.getSelectedRow());if(row<rows.size()&&rows.get(row).accepted())loadDetail(rows.get(row).id);}}});
-        table.getInputMap().put(KeyStroke.getKeyStroke("ENTER"),"rujukanAction");table.getActionMap().put("rujukanAction",new AbstractAction(){@Override public void actionPerformed(java.awt.event.ActionEvent e){int vr=table.getSelectedRow();if(vr<0||busy)return;SatuSehatRujukanMasukService.Row r=rows.get(table.convertRowIndexToModel(vr));if(r.accepted())loadDetail(r.id);else if(r.pending()){int vc=table.convertColumnIndexToView(ACTION_COLUMN);table.editCellAt(vr,vc);Component editor=table.getEditorComponent();if(editor instanceof Container&&((Container)editor).getComponentCount()>0)((Container)editor).getComponent(0).requestFocusInWindow();}}});
-        JScrollPane listScroll=scroll(table);listScroll.setColumnHeaderView(table.getTableHeader());p.add(listScroll,BorderLayout.CENTER);return p;
+        cards.setName("grid_kartu_rujukan_masuk");cardsScroll=scroll(cards);cardsScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);page.add(cardsScroll,BorderLayout.CENTER);
+        rebuildCards();return page;
     }
-    private void filter(){final String key=search.getText().trim().toLowerCase(java.util.Locale.ROOT);sorter.setRowFilter(key.isEmpty()?null:new RowFilter<DefaultTableModel,Integer>(){@Override public boolean include(Entry<? extends DefaultTableModel,? extends Integer> e){for(int i=1;i<SENT_COLUMN;i++)if(String.valueOf(e.getValue(i)).toLowerCase(java.util.Locale.ROOT).contains(key))return true;return formatSentTime((Instant)e.getValue(SENT_COLUMN)).contains(key);}});}
-    static Instant sentTime(JsonNode task){
-        Instant authored=parseSentTime(task.path("authoredOn").asText());
-        return authored.equals(NO_SENT_TIME)?parseSentTime(task.path("executionPeriod").path("start").asText()):authored;
+
+    private void showPage(String name){currentPage=name;((CardLayout)pages.getLayout()).show(pages,name);}
+    private void showCards(){
+        if(busy||disposed)return;cancelDetail();currentDetail=null;selectedTaskId="";register=null;registrationStatus=null;detailButtons.clear();showPage("list");
     }
-    private static Instant parseSentTime(String text){
-        try{return OffsetDateTime.parse(text.trim()).toInstant();}
-        catch(DateTimeParseException ex){return NO_SENT_TIME;}
+    private void filter(){showCards();rebuildCards();cardsScroll.getViewport().setViewPosition(new Point(0,0));}
+    private boolean matches(SatuSehatRujukanMasukService.Row row,String key){
+        if((statusFilter==1&&!row.pending())||(statusFilter==2&&!row.accepted())||(statusFilter==3&&!"rejected".equals(row.decision)))return false;
+        String content=row.patient+" "+row.referrer+" "+row.id+" "+row.kind+" "+row.status+" "+decisionLabel(row)+" "+patientReference(row)+" "+formatSentTime(sentTime(row.task));
+        return content.toLowerCase(Locale.ROOT).contains(key);
     }
+
+    private void rebuildCards(){
+        Point position=cardsScroll==null?new Point(0,0):cardsScroll.getViewport().getViewPosition();cards.removeAll();cardButtons.clear();
+        String key=search.getText().trim().toLowerCase(Locale.ROOT);int visible=0;
+        for(SatuSehatRujukanMasukService.Row row:rows)if(matches(row,key)){cards.add(referralCard(row));visible++;}
+        if(visible==0){JPanel empty=empty("inbox",rows.isEmpty()?"Belum ada rujukan":"Rujukan tidak ditemukan",rows.isEmpty()?"Daftar rujukan akan muncul setelah sinkronisasi berhasil.":"Coba kata pencarian atau pilihan status lain.");empty.putClientProperty("rujukan.empty",Boolean.TRUE);cards.add(empty);}
+        listCount.setText(visible+" dari "+rows.size()+" rujukan");updateCounts();cards.revalidate();cards.repaint();
+        if(cardsScroll!=null){int max=Math.max(0,cards.getPreferredSize().height-cardsScroll.getViewport().getExtentSize().height);cardsScroll.getViewport().setViewPosition(new Point(0,Math.min(position.y,max)));}
+    }
+
+    private void updateCounts(){
+        int waiting=0,accepted=0,rejected=0;
+        for(SatuSehatRujukanMasukService.Row row:rows){if(row.pending())waiting++;if(row.accepted())accepted++;if("rejected".equals(row.decision))rejected++;}
+        counts[0].setText(String.valueOf(waiting));counts[1].setText(String.valueOf(accepted));counts[2].setText(String.valueOf(rejected));
+        int[] totals={rows.size(),waiting,accepted,rejected};for(int i=0;i<filters.length;i++)filters[i].getAccessibleContext().setAccessibleDescription(totals[i]+" rujukan");
+    }
+
+    static Instant sentTime(JsonNode task){Instant authored=parseSentTime(task.path("authoredOn").asText());return authored.equals(NO_SENT_TIME)?parseSentTime(task.path("executionPeriod").path("start").asText()):authored;}
+    private static Instant parseSentTime(String text){try{return OffsetDateTime.parse(text.trim()).toInstant();}catch(DateTimeParseException ex){return NO_SENT_TIME;}}
     static String formatSentTime(Instant time){return time==null||NO_SENT_TIME.equals(time)?"—":SENT_FORMAT.format(time);}
+
     private void updateList(SatuSehatRujukanMasukService.Snapshot snapshot,String error){
-        if(disposed)return;if(table.isEditing())table.getCellEditor().cancelCellEditing();
-        if(snapshot!=null){String selected="";int vr=table.getSelectedRow();if(vr>=0){int mr=table.convertRowIndexToModel(vr);if(mr<rows.size())selected=rows.get(mr).id;}
-            rows.clear();rows.addAll(snapshot.rows);tableModel.setRowCount(0);
-            for(int i=0;i<rows.size();i++){SatuSehatRujukanMasukService.Row r=rows.get(i);tableModel.addRow(new Object[]{i+1,r.id,r.patient,r.referrer,r.kind,r.status,r.decision.isEmpty()?(r.pending()?"Menunggu":"Belum ada keputusan"):r.accepted()?"Diterima":"Ditolak",sentTime(r.task),r.id});}
-            for(int i=0;i<rows.size();i++)if(rows.get(i).id.equals(selected)){int view=table.convertRowIndexToView(i);if(view>=0)table.setRowSelectionInterval(view,view);break;}
-            if(!busy)status.setText(snapshot.pending+" menunggu keputusan • "+rows.size()+" rujukan • Diperbarui "+new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date(snapshot.time)));
+        if(disposed)return;
+        if(snapshot!=null){
+            SatuSehatRujukanMasukService.Row previous=findRow(selectedTaskId);rows.clear();rows.addAll(snapshot.rows);
+            rows.sort((a,b)->{int time=sentTime(b.task).compareTo(sentTime(a.task));return time==0?a.id.compareTo(b.id):time;});
+            SatuSehatRujukanMasukService.Row latest=findRow(selectedTaskId);boolean changed=previous==null||latest==null||!previous.task.equals(latest.task);rebuildCards();
+            if(!busy&&!"list".equals(currentPage)&&!selectedTaskId.isEmpty()&&changed){if(latest==null)showCards();else selectReferral(latest);}
+            if(!busy&&detailWorker==null)status.setText(snapshot.pending+" menunggu keputusan • Diperbarui "+DateTimeFormatter.ofPattern("HH:mm:ss").withZone(WITA).format(Instant.ofEpochMilli(snapshot.time))+" WITA");
         }
         if(error!=null&&!error.isEmpty())toast(error,true);
     }
-    private final class ActionCell extends AbstractCellEditor implements TableCellRenderer,TableCellEditor {
-        private String id="";
-        private JPanel cell(int modelRow,boolean editor,boolean selected){
-            JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,6,5)){
-                @Override public void validate(){doLayout();}
-            };p.setBackground(selected?BLUE:Color.WHITE);
-            if(modelRow<0||modelRow>=rows.size())return p;final SatuSehatRujukanMasukService.Row r=rows.get(modelRow);id=r.id;
-            if(r.pending()){addAction(p,"Terima","check",GREEN,editor,()->respond(r.id,true));addAction(p,"Tolak","reject",AMBER,editor,()->respond(r.id,false));}
-            else if(r.accepted())addAction(p,"Lihat Detail","eye",BLUE,editor,()->loadDetail(r.id));
-            return p;
-        }
-        private void addAction(JPanel p,String text,String icon,Color color,boolean editor,Runnable action){JButton b=button(text,Color.WHITE,color);b.setIcon(new LineIcon(icon,color,15));b.setBorder(BorderFactory.createEmptyBorder(6,9,6,9));b.setEnabled(!busy);if(editor)b.addActionListener(e->{fireEditingStopped();action.run();});p.add(b);}
-        @Override public Component getTableCellRendererComponent(JTable t,Object v,boolean selected,boolean focus,int row,int col){return cell(t.convertRowIndexToModel(row),false,selected);}
-        @Override public Component getTableCellEditorComponent(JTable t,Object v,boolean selected,int row,int col){JPanel p=cell(t.convertRowIndexToModel(row),true,true);p.setSize(t.getColumnModel().getColumn(col).getWidth(),t.getRowHeight(row));p.doLayout();return p;}
-        @Override public Object getCellEditorValue(){return id;}
+
+    private static String patientReference(SatuSehatRujukanMasukService.Row row){return SatuSehatRujukanMasukService.reference(row.task.path("for"));}
+    private static String patientName(SatuSehatRujukanMasukService.Row row){String name=or(row.patient,"");String ref=patientReference(row);return name.isEmpty()||name.equals(ref)||name.startsWith("Patient/")?"Pasien rujukan":name;}
+    private static String decisionLabel(SatuSehatRujukanMasukService.Row row){if(row.pending())return "Menunggu";if(row.accepted())return "Diterima";if("rejected".equals(row.decision))return "Ditolak";return "Belum diputuskan";}
+    private static JLabel decisionPill(SatuSehatRujukanMasukService.Row row){
+        Color fill=BG,ink=MUTED;String icon="history";
+        if(row.pending()){fill=WAIT_BG;ink=AMBER;icon="clock";}else if(row.accepted()){fill=ACCEPT_BG;ink=GREEN;icon="check";}else if("rejected".equals(row.decision)){fill=REJECT_BG;ink=RED;icon="reject";}
+        JLabel status=pill(decisionLabel(row),fill,ink);status.setIcon(new LineIcon(icon,ink,12));status.setIconTextGap(5);return status;
     }
+
+    private JPanel referralCard(SatuSehatRujukanMasukService.Row row){
+        RoundPanel tile=new RoundPanel(Color.WHITE,LINE,16);tile.setLayout(new BorderLayout(0,10));tile.setBorder(BorderFactory.createEmptyBorder(15,13,15,13));tile.putClientProperty("rujukan.taskId",row.id);tile.getAccessibleContext().setAccessibleName("Rujukan "+patientName(row)+", "+decisionLabel(row));
+        JPanel top=new JPanel(new BorderLayout(8,0));top.setOpaque(false);JLabel kind=pill(or(row.kind,"Belum diketahui"),LIGHT,BLUE);kind.setIcon(new LineIcon("send",BLUE,12));kind.setIconTextGap(5);top.add(kind,BorderLayout.WEST);
+        JPanel badge=flow();badge.add(decisionPill(row));top.add(badge,BorderLayout.EAST);tile.add(top,BorderLayout.NORTH);
+        JPanel body=new JPanel(new BorderLayout(0,8));body.setOpaque(false);
+        JPanel person=new JPanel(new BorderLayout(11,0));person.setOpaque(false);
+        RoundPanel avatar=new RoundPanel(BG,BG,12);avatar.setLayout(new BorderLayout());avatar.setPreferredSize(new Dimension(41,41));avatar.add(new JLabel(new LineIcon("user",MUTED,23)));person.add(avatar,BorderLayout.WEST);
+        JPanel identity=vertical();JLabel name=label(patientName(row),STRONG,INK);name.setToolTipText(or(row.patient,"Pasien rujukan"));identity.add(name);identity.add(Box.createVerticalStrut(4));
+        String ref=patientReference(row);String ihs=ref.startsWith("Patient/")?"IHS "+ref.substring(8):or(ref,"IHS belum tersedia");JLabel id=label(ihs,SMALL,MUTED);id.setToolTipText(ihs);identity.add(id);person.add(identity,BorderLayout.CENTER);body.add(person,BorderLayout.NORTH);
+        JPanel meta=vertical();JLabel hospital=label(or(row.referrer,"Fasyankes perujuk belum tersedia"),SMALL,MUTED);hospital.setIcon(new LineIcon("hospital",MUTED,15));hospital.setIconTextGap(7);hospital.setToolTipText(row.referrer);meta.add(hospital);meta.add(Box.createVerticalStrut(5));
+        JLabel time=label(formatSentTime(sentTime(row.task))+" WITA",SMALL,MUTED);time.setIcon(new LineIcon("clock",MUTED,15));time.setIconTextGap(7);meta.add(time);body.add(meta,BorderLayout.CENTER);tile.add(body,BorderLayout.CENTER);
+        JPanel bottom=new JPanel(new BorderLayout(6,0));bottom.setOpaque(false);bottom.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1,0,0,0,LINE),BorderFactory.createEmptyBorder(8,0,0,0)));
+        JLabel task=label("Task · "+row.id,new Font("Segoe UI",Font.PLAIN,11),MUTED);task.setToolTipText(row.id);bottom.add(task,BorderLayout.CENTER);
+        JPanel actions=new JPanel(new FlowLayout(FlowLayout.RIGHT,5,0));actions.setOpaque(false);
+        if(row.pending()){
+            actions.add(cardButton("Terima","check",BLUE,Color.WHITE,row.id,()->respond(row.id,true)));actions.add(cardButton("Tolak","reject",Color.WHITE,RED,row.id,()->respond(row.id,false)));
+        }else if(row.accepted())actions.add(cardButton("Lihat Detail","eye",Color.WHITE,BLUE,row.id,()->selectReferral(findRow(row.id))));
+        else actions.add(label("rejected".equals(row.decision)?"Rujukan ditutup":decisionLabel(row),SMALL,MUTED));
+        bottom.add(actions,BorderLayout.EAST);tile.add(bottom,BorderLayout.SOUTH);
+        tile.setMinimumSize(new Dimension(task.getPreferredSize().width+actions.getPreferredSize().width+6+tile.getInsets().left+tile.getInsets().right,CardGrid.HEIGHT));return tile;
+    }
+
+    private JButton cardButton(String text,String icon,Color background,Color foreground,String taskId,Runnable action){
+        JButton control=button(text,background,foreground);control.setIcon(new LineIcon(icon,foreground,12));control.setFont(new Font("Segoe UI",Font.PLAIN,11));control.setBorder(BorderFactory.createEmptyBorder(8,8,8,8));
+        control.putClientProperty("rujukan.taskId",taskId);control.setEnabled(!busy);control.addActionListener(e->action.run());cardButtons.add(control);return control;
+    }
+
+    private static final class CardGrid extends JPanel implements Scrollable {
+        private static final int GAP=15,HEIGHT=236;
+        CardGrid(){setLayout(null);setOpaque(false);setBorder(BorderFactory.createEmptyBorder(0,0,3,3));}
+        private int columns(int width){
+            int minimum=420;for(Component tile:getComponents())minimum=Math.max(minimum,tile.getMinimumSize().width);
+            return Math.max(1,Math.min(3,(Math.max(0,width-3)+GAP)/(minimum+GAP)));
+        }
+        private boolean empty(){return getComponentCount()==1&&Boolean.TRUE.equals(((JComponent)getComponent(0)).getClientProperty("rujukan.empty"));}
+        @Override public Dimension getPreferredSize(){
+            int width=getParent() instanceof JViewport?((JViewport)getParent()).getExtentSize().width:getWidth();if(width<=0)width=800;
+            int columns=empty()?1:columns(width);int lines=(getComponentCount()+columns-1)/columns;return new Dimension(width,Math.max(0,lines*HEIGHT+(lines-1)*GAP)+3);
+        }
+        @Override public void doLayout(){
+            int width=Math.max(0,getWidth()-3),columns=empty()?1:columns(getWidth());int tileWidth=Math.max(0,(width-(columns-1)*GAP)/columns);
+            for(int i=0;i<getComponentCount();i++)getComponent(i).setBounds((i%columns)*(tileWidth+GAP),(i/columns)*(HEIGHT+GAP),tileWidth,HEIGHT);
+        }
+        @Override public void setBounds(int x,int y,int width,int height){int previous=getWidth();super.setBounds(x,y,width,height);if(previous!=width)revalidate();}
+        public Dimension getPreferredScrollableViewportSize(){return new Dimension(800,530);}
+        public int getScrollableUnitIncrement(Rectangle area,int orientation,int direction){return 20;}
+        public int getScrollableBlockIncrement(Rectangle area,int orientation,int direction){return Math.max(20,area.height-30);}
+        public boolean getScrollableTracksViewportWidth(){return true;}public boolean getScrollableTracksViewportHeight(){return false;}
+    }
+
+    private void cancelDetail(){detailGeneration++;if(detailWorker!=null){detailWorker.cancel(true);detailWorker=null;}}
+    private void selectReferral(SatuSehatRujukanMasukService.Row row){
+        if(busy||disposed)return;if(row==null){showCards();return;}cancelDetail();currentDetail=null;selectedTaskId=row.id;
+        showPreview(row,row.pending()?"Rujukan menunggu keputusan penerima.":row.accepted()?"Memuat detail rujukan...":"Keputusan rujukan tercatat pada status di atas.");if(row.accepted())loadDetail(row.id);
+    }
+
+    private JButton detailButton(String text,String icon,Color background,Color foreground,Runnable action){
+        JButton item=button(text,background,foreground);item.setIcon(new LineIcon(icon,foreground,15));item.setEnabled(!busy);item.addActionListener(e->action.run());detailButtons.add(item);return item;
+    }
+    private void refreshPreview(){detailHost.revalidate();detailHost.repaint();showPage("detail");}
+
+    private JPanel detailHeading(String patient,String referrer,SatuSehatRujukanMasukService.Row row){
+        JPanel heading=new JPanel(new BorderLayout(12,0));heading.setOpaque(false);
+        String text="DETAIL RUJUKAN MASUK  —  "+patient+"  ·  Dari "+referrer;
+        JLabel title=label(text,new Font("Segoe UI Semibold",Font.BOLD,15),INK);title.setToolTipText(text);heading.add(title,BorderLayout.CENTER);
+        if(row!=null){JPanel badge=flow();badge.add(decisionPill(row));heading.add(badge,BorderLayout.EAST);}return heading;
+    }
+
+    private void showPreview(SatuSehatRujukanMasukService.Row row,String text){
+        detailHost.removeAll();detailButtons.clear();register=null;registrationStatus=null;
+        if(row==null){detailHost.add(empty("inbox","Pilih rujukan",text),BorderLayout.CENTER);refreshPreview();return;}
+        detailHost.add(detailHeading(patientName(row),or(row.referrer,"—"),row),BorderLayout.NORTH);
+        Vertical summary=new Vertical();summary.add(summaryCard("Identitas rujukan",new String[][]{{"Fasyankes perujuk",or(row.referrer,"—")},{"Jenis pelayanan",or(row.kind,"Belum diketahui")},{"Waktu rujukan dikirim",formatSentTime(sentTime(row.task))+" WITA"},{"Status Task",or(row.status,"—")},{"Keputusan",decisionLabel(row)},{"Task ID",row.id}}));
+        summary.add(Box.createVerticalStrut(12));summary.add(note(text,row.pending()?WAIT_BG:LIGHT,row.pending()?AMBER:BLUE));detailHost.add(scroll(summary),BorderLayout.CENTER);
+        JPanel actions=new JPanel(new FlowLayout(FlowLayout.RIGHT,8,0));actions.setOpaque(false);
+        actions.add(detailButton("Kembali ke Kartu","back",Color.WHITE,BLUE,()->showCards()));
+        if(row.pending()){
+            actions.add(detailButton("Terima Rujukan","check",BLUE,Color.WHITE,()->respond(row.id,true)));
+            actions.add(detailButton("Tolak","reject",Color.WHITE,RED,()->respond(row.id,false)));
+        }else if(row.accepted()){
+            JButton retry=detailButton("Muat Ulang Detail","reload",Color.WHITE,BLUE,()->loadDetail(row.id));retry.setEnabled(detailWorker==null&&!busy);actions.add(retry);
+        }
+        detailHost.add(actions,BorderLayout.SOUTH);refreshPreview();
+    }
+
     private void respond(final String taskId,final boolean accepted){
         if(busy||disposed)return;SatuSehatRujukanMasukService.Row selected=findRow(taskId);if(selected==null||!selected.pending())return;
+        cancelDetail();currentDetail=null;selectedTaskId=taskId;
         if(JOptionPane.showConfirmDialog(this,(accepted?"Terima":"Tolak")+" rujukan untuk "+selected.patient+" dari "+selected.referrer+"?","Konfirmasi rujukan",JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION)return;
+        selected=findRow(taskId);if(selected==null||!selected.pending()||!taskId.equals(selectedTaskId)||busy||disposed)return;
         setBusy(true,(accepted?"Menerima":"Menolak")+" rujukan...");
-        new SwingWorker<JsonNode,Void>(){@Override protected JsonNode doInBackground()throws Exception{return apiClient.responRujukanMasuk(taskId,accepted);}
-            @Override protected void done(){if(disposed)return;try{JsonNode confirmed=get();for(int i=0;i<rows.size();i++)if(rows.get(i).id.equals(taskId)){SatuSehatRujukanMasukService.Row old=rows.get(i);rows.set(i,new SatuSehatRujukanMasukService.Row(confirmed,old.patient,old.referrer,old.kind));tableModel.setValueAt(confirmed.path("status").asText(),i,5);tableModel.setValueAt(accepted?"Diterima":"Ditolak",i,6);break;}setBusy(false,"Keputusan berhasil dikonfirmasi.");table.repaint();toast("Rujukan berhasil "+(accepted?"diterima.":"ditolak."),false);}
-            catch(Exception ex){setBusy(false,"Keputusan belum dapat dikonfirmasi.");failure(ex);}finally{service.decisionChanged();}}
-        }.execute();
-    }
-    private SatuSehatRujukanMasukService.Row findRow(String id){for(SatuSehatRujukanMasukService.Row r:rows)if(r.id.equals(id))return r;return null;}
-    private void loadDetail(final String taskId){
-        if(busy||disposed)return;SatuSehatRujukanMasukService.Row row=findRow(taskId);if(row!=null&&!row.accepted()){toast("Detail tersedia setelah rujukan diterima.",true);return;}
-        final long run=++detailGeneration;setBusy(true,"Memuat detail rujukan...");
-        new SwingWorker<SatuSehatRujukanIGDRanapApi.IncomingReferralDetail,Void>(){
-            @Override protected SatuSehatRujukanIGDRanapApi.IncomingReferralDetail doInBackground()throws Exception{
-                SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d=apiClient.detailRujukanMasuk(taskId);
-                if(!"accepted".equals(SatuSehatRujukanIGDRanapApi.parseDecision(d.task)))throw new java.io.IOException("Rujukan belum diterima atau statusnya telah berubah. Perbarui daftar.");return d;
+        final SatuSehatRujukanIGDRanapApi responseApi=new SatuSehatRujukanIGDRanapApi();
+        new SwingWorker<JsonNode,Void>(){
+            @Override protected JsonNode doInBackground()throws Exception{return responseApi.responRujukanMasuk(taskId,accepted);}
+            @Override protected void done(){
+                if(disposed)return;apiClient=responseApi;
+                try{
+                    JsonNode confirmed=get();
+                    for(int i=0;i<rows.size();i++)if(rows.get(i).id.equals(taskId)){
+                        SatuSehatRujukanMasukService.Row old=rows.get(i);rows.set(i,new SatuSehatRujukanMasukService.Row(confirmed,old.patient,old.referrer,old.kind));break;
+                    }
+                    setBusy(false,"Keputusan berhasil dikonfirmasi.");showCards();rebuildCards();toast("Rujukan berhasil "+(accepted?"diterima.":"ditolak."),false);
+                }catch(Exception ex){setBusy(false,"Keputusan belum dapat dikonfirmasi.");showCards();rebuildCards();failure(ex);}
+                finally{service.decisionChanged();}
             }
-            @Override protected void done(){if(disposed||run!=detailGeneration)return;try{currentDetail=get();setBusy(false,"Detail rujukan dimuat.");showIncomingDetail(currentDetail);}catch(Exception ex){setBusy(false,"Detail belum dapat dimuat.");failure(ex);service.refresh();}}
         }.execute();
     }
-    private void showIncomingDetail(final SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        detailHost.removeAll();title.setText("Detail Rujukan Masuk");
-        JPanel identity=card(SatuSehatRujukanMasukService.resourceName(d.patient,"Pasien rujukan"),"Dari "+SatuSehatRujukanMasukService.resourceName(d.referrerOrganization,referenceText(d.task.path("requester")))+" • No. Rujukan Nasional: "+or(d.nationalReferralNumber,"Belum terbit"));detailHost.add(identity,BorderLayout.NORTH);
-        JTabbedPane tabs=new JTabbedPane();tabs.setFont(BODY);tabs.addTab("Ringkasan",scroll(incomingSummaryPanel(d)));tabs.addTab("Data Klinis",scroll(incomingClinicalPanel(d)));tabs.addTab("CarePlan",scroll(incomingCarePlanPanel(d)));tabs.addTab("Resource FHIR",incomingResourcePanel(d));tabs.addTab("JSON",incomingJsonPanel(d));detailHost.add(tabs,BorderLayout.CENTER);
-        JPanel bottom=new JPanel(new BorderLayout(8,8));bottom.setOpaque(false);registrationStatus=label("Mencocokkan data pasien...",SMALL,MUTED);bottom.add(registrationStatus,BorderLayout.NORTH);
-        JPanel actions=flow();JButton back=button("Kembali ke Daftar",Color.WHITE,BLUE),refresh=button("Muat Ulang Detail",Color.WHITE,BLUE);back.addActionListener(e->{if(!busy){title.setText("Rujukan Masuk");((CardLayout)pages.getLayout()).show(pages,"list");}});refresh.setIcon(new LineIcon("reload",BLUE,15));refresh.addActionListener(e->loadDetail(d.taskId));
-        register=button("Daftarkan Pasien",BLUE,Color.WHITE);register.setIcon(new LineIcon("plus",Color.WHITE,16));register.setEnabled(!busy&&SatuSehatRujukanMasukPasien.allowed());register.addActionListener(e->registerPatient(d));
-        actions.add(back);actions.add(Box.createHorizontalStrut(6));actions.add(refresh);bottom.add(actions,BorderLayout.WEST);bottom.add(register,BorderLayout.EAST);detailHost.add(bottom,BorderLayout.SOUTH);
-        ((CardLayout)pages.getLayout()).show(pages,"detail");detailHost.revalidate();detailHost.repaint();checkRegistration(d);
+
+    private SatuSehatRujukanMasukService.Row findRow(String id){for(SatuSehatRujukanMasukService.Row row:rows)if(row.id.equals(id))return row;return null;}
+    private void loadDetail(final String taskId){
+        if(busy||disposed||!taskId.equals(selectedTaskId))return;
+        SatuSehatRujukanMasukService.Row row=findRow(taskId);if(row==null||!row.accepted())return;
+        cancelDetail();currentDetail=null;final long run=detailGeneration;
+        final SatuSehatRujukanIGDRanapApi detailApi=new SatuSehatRujukanIGDRanapApi();
+        detailWorker=new SwingWorker<SatuSehatRujukanIGDRanapApi.IncomingReferralDetail,Void>(){
+            @Override protected SatuSehatRujukanIGDRanapApi.IncomingReferralDetail doInBackground()throws Exception{
+                SatuSehatRujukanIGDRanapApi.IncomingReferralDetail detail=detailApi.detailRujukanMasuk(taskId);
+                if(!"accepted".equals(SatuSehatRujukanIGDRanapApi.parseDecision(detail.task)))throw new java.io.IOException("Rujukan belum diterima atau statusnya berubah. Perbarui daftar.");return detail;
+            }
+            @Override protected void done(){
+                if(disposed||run!=detailGeneration||!taskId.equals(selectedTaskId))return;
+                detailWorker=null;apiClient=detailApi;SatuSehatRujukanMasukService.Row selected=findRow(taskId);
+                if(selected==null||!selected.accepted()){selectReferral(selected);return;}
+                try{currentDetail=get();status.setText("Detail rujukan dimuat.");showIncomingDetail(currentDetail);}
+                catch(Exception ex){currentDetail=null;status.setText("Detail belum dapat dimuat.");showPreview(selected,"Detail belum dapat dimuat. Gunakan Muat Ulang Detail atau periksa Respon API.");failure(ex);}
+            }
+        };
+        showPreview(row,"Memuat data rujukan dari SATUSEHAT...");status.setText("Memuat detail rujukan...");detailWorker.execute();
     }
-    private void checkRegistration(final SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
+
+    private void showIncomingDetail(final SatuSehatRujukanIGDRanapApi.IncomingReferralDetail detail){
+        detailHost.removeAll();detailButtons.clear();
+        SatuSehatRujukanMasukService.Row row=findRow(detail.taskId);
+        String patient=SatuSehatRujukanMasukService.resourceName(detail.patient,row==null?"Pasien rujukan":patientName(row));
+        String referrer=SatuSehatRujukanMasukService.resourceName(detail.referrerOrganization,row==null?"—":row.referrer);
+        detailHost.add(detailHeading(patient,referrer,row),BorderLayout.NORTH);
+        JTabbedPane tabs=new JTabbedPane();tabs.setFont(BODY);tabs.setBackground(Color.WHITE);tabs.setForeground(INK);
+        tabs.setUI(new BasicTabbedPaneUI(){
+            @Override protected void installDefaults(){super.installDefaults();tabInsets=new Insets(9,12,9,12);contentBorderInsets=new Insets(12,0,0,0);}
+            @Override protected void paintTabBackground(Graphics graphics,int placement,int index,int x,int y,int w,int h,boolean selected){Graphics2D g=(Graphics2D)graphics.create();g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);g.setColor(selected?LIGHT:Color.WHITE);g.fillRoundRect(x,y,w,h,10,10);g.dispose();}
+            @Override protected void paintTabBorder(Graphics g,int placement,int index,int x,int y,int w,int h,boolean selected){}
+            @Override protected void paintContentBorder(Graphics g,int placement,int selected){}
+        });
+        tabs.addTab("Ringkasan",scroll(incomingSummaryPanel(detail)));tabs.addTab("Data Klinis",scroll(incomingClinicalPanel(detail)));tabs.addTab("CarePlan",scroll(incomingCarePlanPanel(detail)));tabs.addTab("Resource FHIR",incomingResourcePanel(detail));tabs.addTab("JSON",incomingJsonPanel(detail));detailHost.add(tabs,BorderLayout.CENTER);
+        JPanel bottom=new JPanel(new BorderLayout(8,10));bottom.setOpaque(false);registrationStatus=readOnly(2);registrationStatus.setColumns(40);registrationStatus.setText("Mencocokkan data pasien...");bottom.add(registrationStatus,BorderLayout.NORTH);
+        JPanel actions=new JPanel(new FlowLayout(FlowLayout.RIGHT,8,0));actions.setOpaque(false);
+        actions.add(detailButton("Kembali ke Kartu","back",Color.WHITE,BLUE,()->showCards()));
+        actions.add(detailButton("Muat Ulang","reload",Color.WHITE,BLUE,()->loadDetail(detail.taskId)));
+        register=detailButton("Daftarkan Pasien","plus",BLUE,Color.WHITE,()->registerPatient(detail));register.setEnabled(!busy&&SatuSehatRujukanMasukPasien.allowed());actions.add(register);
+        bottom.add(actions,BorderLayout.SOUTH);detailHost.add(bottom,BorderLayout.SOUTH);refreshPreview();checkRegistration(detail);
+    }
+
+    private void checkRegistration(final SatuSehatRujukanIGDRanapApi.IncomingReferralDetail detail){
+        if(currentDetail!=detail||register==null)return;
+        final JButton target=register;final JTextArea description=registrationStatus;
         new SwingWorker<SatuSehatRujukanMasukPasien.State,Void>(){
-            @Override protected SatuSehatRujukanMasukPasien.State doInBackground()throws Exception{return SatuSehatRujukanMasukPasien.state(d);}
-            @Override protected void done(){if(disposed||currentDetail!=d)return;try{SatuSehatRujukanMasukPasien.State s=get();registrationStatus.setText(s.message());register.setText(s.found()?"Buka Data Pasien":"Daftarkan Pasien");register.setEnabled(!busy&&SatuSehatRujukanMasukPasien.allowed());}
-                catch(Exception ex){Throwable cause=ex instanceof java.util.concurrent.ExecutionException&&ex.getCause()!=null?ex.getCause():ex;String error=cause.getMessage();registrationStatus.setText((error==null||error.trim().isEmpty()?"Data pasien belum dapat dicocokkan. Periksa koneksi database.":error)+" Anda tetap dapat membuka Data Pasien; validasi ulang dilakukan sebelum Simpan/Ganti.");register.setEnabled(!busy&&SatuSehatRujukanMasukPasien.allowed());}}
+            @Override protected SatuSehatRujukanMasukPasien.State doInBackground()throws Exception{return SatuSehatRujukanMasukPasien.state(detail);}
+            @Override protected void done(){
+                if(disposed||currentDetail!=detail||register!=target)return;
+                try{SatuSehatRujukanMasukPasien.State state=get();description.setText(state.message());target.setText(state.found()?"Buka Data Pasien":"Daftarkan Pasien");}
+                catch(Exception ex){description.setText("Data pasien belum dapat dicocokkan. Pencocokan diulang saat Data Pasien dibuka.");}
+                target.setEnabled(!busy&&SatuSehatRujukanMasukPasien.allowed());
+            }
         }.execute();
     }
-    private void registerPatient(final SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        if(busy||disposed||!SatuSehatRujukanMasukPasien.allowed())return;
+
+    private void registerPatient(final SatuSehatRujukanIGDRanapApi.IncomingReferralDetail detail){
+        SatuSehatRujukanMasukService.Row row=findRow(detail.taskId);
+        if(busy||disposed||currentDetail!=detail||row==null||!row.accepted()||!SatuSehatRujukanMasukPasien.allowed())return;
         setBusy(true,"Menyiapkan form Data Pasien...");
-        SatuSehatRujukanMasukPasien.open(this,d,()->{if(disposed)return;setBusy(false,"Kembali dari Data Pasien.");checkRegistration(d);},error->{if(disposed)return;setBusy(false,"Pendaftaran belum dapat dibuka.");toast(error,true);checkRegistration(d);});
+        SatuSehatRujukanMasukPasien.open(this,detail,()->{if(disposed)return;setBusy(false,"Kembali dari Data Pasien.");checkRegistration(detail);},error->{if(disposed)return;setBusy(false,"Pendaftaran belum dapat dibuka.");toast(error,true);checkRegistration(detail);});
     }
+
     private void showApi(){
-        if(busy)return;apiHost.removeAll();JTextArea text=new JTextArea("REQUEST\n"+apiClient.getLastMethod()+" "+apiClient.getLastUrl()+"\n"+prettyJson(apiClient.getLastRequest())+"\n\nRESPONSE\n"+prettyJson(apiClient.getLastResponse()));text.setEditable(false);text.setFont(new Font("Consolas",Font.PLAIN,12));text.setCaretPosition(0);apiHost.add(scroll(text),BorderLayout.CENTER);
-        JPanel controls=flow();JButton back=button("Kembali",Color.WHITE,BLUE),copy=button("Salin Respons",Color.WHITE,BLUE);back.addActionListener(e->{title.setText(currentDetail==null?"Rujukan Masuk":"Detail Rujukan Masuk");((CardLayout)pages.getLayout()).show(pages,currentDetail==null?"list":"detail");});copy.addActionListener(e->{try{Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text.getText()),null);toast("Respons berhasil disalin.",false);}catch(RuntimeException ex){toast("Clipboard belum tersedia.",true);}});controls.add(back);controls.add(Box.createHorizontalStrut(8));controls.add(copy);apiHost.add(controls,BorderLayout.SOUTH);title.setText("Respon API");((CardLayout)pages.getLayout()).show(pages,"api");
+        if(busy)return;if(detailWorker!=null){toast("Detail sedang dimuat. Respon API dapat dibuka setelah proses selesai.",false);return;}
+        apiHost.removeAll();JTextArea text=new JTextArea("REQUEST\n"+apiClient.getLastMethod()+" "+apiClient.getLastUrl()+"\n"+prettyJson(apiClient.getLastRequest())+"\n\nRESPONSE\n"+prettyJson(apiClient.getLastResponse()));
+        text.setEditable(false);text.setFont(new Font("Consolas",Font.PLAIN,12));text.setCaretPosition(0);apiHost.add(scroll(text),BorderLayout.CENTER);
+        if(!"api".equals(currentPage))apiReturnPage=currentPage;
+        JPanel controls=flow();JButton back=button("Kembali",Color.WHITE,BLUE),copy=button("Salin Respons",Color.WHITE,BLUE);
+        back.setIcon(new LineIcon("back",BLUE,15));back.addActionListener(e->showPage(apiReturnPage));
+        copy.addActionListener(e->{try{Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text.getText()),null);toast("Respons berhasil disalin.",false);}catch(RuntimeException ex){toast("Clipboard belum tersedia.",true);}});
+        controls.add(back);controls.add(Box.createHorizontalStrut(8));controls.add(copy);apiHost.add(controls,BorderLayout.SOUTH);apiHost.revalidate();apiHost.repaint();showPage("api");
     }
-    private void setBusy(boolean value,String text){busy=value;status.setText(text);reload.setEnabled(!value);close.setEnabled(!value);table.repaint();if(register!=null&&value)register.setEnabled(false);}
+
+    private void setBusy(boolean value,String text){
+        busy=value;status.setText(text);reload.setEnabled(!value);close.setEnabled(!value);apiButton.setEnabled(!value);search.setEnabled(!value);
+        for(JToggleButton filter:filters)filter.setEnabled(!value);for(JButton action:detailButtons)action.setEnabled(!value);
+        for(JButton action:cardButtons)action.setEnabled(!value);
+        if(register!=null)register.setEnabled(!value&&currentDetail!=null&&SatuSehatRujukanMasukPasien.allowed());
+        if(!value&&currentDetail!=null){SatuSehatRujukanMasukService.Row selected=findRow(currentDetail.taskId);if(selected==null||!selected.accepted())selectReferral(selected);}
+    }
     private void failure(Exception ex){Throwable cause=ex instanceof java.util.concurrent.ExecutionException&&ex.getCause()!=null?ex.getCause():ex;toast(or(cause.getMessage(),"Proses rujukan belum berhasil. Periksa Respon API."),true);}
-    private void toast(String text,boolean error){notice.setBackground(error?new Color(255,244,225):LIGHT);message.setText(text);message.setForeground(error?AMBER:BLUE);notice.setVisible(true);toastTimer.restart();revalidate();}
+    private void toast(String text,boolean error){notice.setBackground(error?WAIT_BG:LIGHT);message.setText(text);message.setForeground(error?AMBER:BLUE);notice.setVisible(true);toastTimer.restart();revalidate();}
+
+    private JPanel summaryCard(String heading,String[][] values){
+        JPanel panel=card(heading,null);
+        JPanel fields=new JPanel(new GridLayout(0,2,18,12));fields.setOpaque(false);fields.setAlignmentX(Component.LEFT_ALIGNMENT);
+        for(String[] pair:values){
+            JPanel field=vertical();field.add(label(pair[0],SMALL,MUTED));field.add(Box.createVerticalStrut(4));
+            JTextArea value=readOnly(2);value.setColumns(20);value.setFont(BODY);value.setForeground(INK);value.setText(or(pair[1],"—"));field.add(value);fields.add(field);
+        }
+        panel.add(fields);return panel;
+    }
+
     private JPanel incomingSummaryPanel(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
-        Vertical p=new Vertical();String referrer=incomingResourceName(d.referrerOrganization,referenceText(d.task==null?null:d.task.path("requester")));String patient=incomingResourceName(d.patient,referenceText(d.task==null?null:d.task.path("for")));
+        Vertical p=new Vertical();
+        SatuSehatRujukanMasukService.Row row=findRow(d.taskId);
+        String referrer=incomingResourceName(d.referrerOrganization,referenceText(d.task==null?null:d.task.path("requester")));
+        String patient=incomingResourceName(d.patient,referenceText(d.task==null?null:d.task.path("for")));
         String nik=incomingIdentifier(d.patient,"nik"),gender=jsonText(d.patient==null?null:d.patient.path("gender"),"—"),birth=jsonText(d.patient==null?null:d.patient.path("birthDate"),"—");
-        JPanel r=detailCard("Identitas rujukan",new String[][]{{"Fasyankes perujuk",referrer},{"Task ID",or(d.taskId,"—")},{"Status / keputusan",jsonText(d.task==null?null:d.task.path("status"),"—")+(apiClient.parseDecision(d.task).isEmpty()?"":" / "+apiClient.parseDecision(d.task))},{"CarePlan ID",or(d.carePlanId,"—")},{"ServiceRequest ID",or(d.serviceRequestId,"Belum dikirim / belum ditemukan")},{"Nomor Rujukan Nasional",or(d.nationalReferralNumber,"Belum terbit / belum ditemukan")},{"Waktu tugas",incomingTaskTime(d.task)},{"Jenis rujukan",incomingReferralType(d)}});p.add(r);p.add(Box.createVerticalStrut(12));
-        JPanel pt=detailCard("Pasien & kunjungan asal",new String[][]{{"Nama pasien",patient},{"IHS pasien",incomingId(d.patient,"Patient")},{"NIK",or(nik,"—")},{"Jenis kelamin / tanggal lahir",gender+" / "+birth},{"Encounter",incomingId(d.encounter,"Encounter")},{"Status / kelas Encounter",incomingEncounterStatus(d.encounter)},{"Periode Encounter",incomingEncounterPeriod(d.encounter)},{"Lokasi / unit",incomingEncounterLocations(d.encounter)}});p.add(pt);return p;
+        String kind=row==null?incomingReferralType(d):or(row.kind,incomingReferralType(d));
+        p.add(summaryCard("Ringkasan rujukan",new String[][]{
+            {"Fasyankes perujuk",referrer},{"Jenis pelayanan",kind},
+            {"Waktu rujukan dikirim",d.task==null?"—":formatSentTime(sentTime(d.task))+" WITA"},{"Status / keputusan",jsonText(d.task==null?null:d.task.path("status"),"—")+" / "+SatuSehatRujukanIGDRanapApi.parseDecision(d.task)},
+            {"IHS pasien",incomingId(d.patient,"Patient")},{"Nomor Rujukan Nasional",or(d.nationalReferralNumber,"Belum terbit / belum ditemukan")}
+        }));
+        p.add(Box.createVerticalStrut(12));
+        p.add(detailCard("Pasien & kunjungan asal",new String[][]{{"Nama pasien",patient},{"NIK",or(nik,"—")},{"Jenis kelamin / tanggal lahir",gender+" / "+birth},{"Encounter",incomingId(d.encounter,"Encounter")},{"Status / kelas Encounter",incomingEncounterStatus(d.encounter)},{"Periode Encounter",incomingEncounterPeriod(d.encounter)},{"Lokasi / unit",incomingEncounterLocations(d.encounter)}}));
+        p.add(Box.createVerticalStrut(12));
+        p.add(detailCard("Referensi rujukan",new String[][]{{"Task ID",or(d.taskId,"—")},{"CarePlan ID",or(d.carePlanId,"—")},{"ServiceRequest ID",or(d.serviceRequestId,"Belum dikirim / belum ditemukan")},{"Jenis rujukan",incomingReferralType(d)}}));
+        return p;
     }
     private JPanel incomingClinicalPanel(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){
         Vertical p=new Vertical();StringBuilder dx=new StringBuilder();for(JsonNode c:d.conditions){String x=incomingCondition(c);if(!x.isEmpty()){if(dx.length()>0)dx.append("\n");dx.append("• ").append(x);}}if(dx.length()==0)dx.append("—");
@@ -249,7 +471,6 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
     private static String incomingId(JsonNode r,String type){if(r==null)return "—";String id=jsonText(r.path("id"),"");return id.isEmpty()?"—":(type==null||type.isEmpty()?id:type+"/"+id);}
     private static String incomingResourceName(JsonNode r,String fallback){if(r==null)return or(fallback,"—");String rt=jsonText(r.path("resourceType"),"");if("Organization".equals(rt)){String n=jsonText(r.path("name"),"");return n.isEmpty()?or(fallback,"—"):n+" (Organization/"+jsonText(r.path("id"),"—")+")";}JsonNode names=r.path("name");if(names.isArray()&&names.size()>0){JsonNode n=names.get(0);String text=jsonText(n.path("text"),"");if(!text.isEmpty())return text;StringBuilder b=new StringBuilder();JsonNode given=n.path("given");if(given.isArray())for(JsonNode x:given){String q=jsonText(x,"");if(!q.isEmpty()){if(b.length()>0)b.append(' ');b.append(q);}}String family=jsonText(n.path("family"),"");if(!family.isEmpty()){if(b.length()>0)b.append(' ');b.append(family);}if(b.length()>0)return b.toString();}return or(fallback,"—");}
     private static String incomingIdentifier(JsonNode r,String hint){if(r==null)return "";JsonNode ids=r.path("identifier");if(!ids.isArray())return "";String fallback="";for(JsonNode id:ids){String sys=jsonText(id.path("system"),"").toLowerCase(java.util.Locale.ENGLISH),v=jsonText(id.path("value"),"");if(v.isEmpty())continue;if(fallback.isEmpty())fallback=v;if(hint!=null&&!hint.isEmpty()&&sys.contains(hint.toLowerCase(java.util.Locale.ENGLISH)))return v;if("nik".equalsIgnoreCase(hint)&&v.matches("\\d{16}"))return v;}return "nik".equalsIgnoreCase(hint)?"":fallback;}
-    private static String incomingTaskTime(JsonNode t){if(t==null)return "—";String a=jsonText(t.path("authoredOn"),""),e=jsonText(t.path("executionPeriod").path("start"),"");return or(a,or(e,"—"));}
     private static String incomingReferralType(SatuSehatRujukanIGDRanapApi.IncomingReferralDetail d){String x=incomingCoding(d.serviceRequest==null?null:d.serviceRequest.path("code"));if(!x.isEmpty())return x;JsonNode cats=d.carePlan==null?null:d.carePlan.path("category");if(cats!=null&&cats.isArray())for(JsonNode c:cats){String s=incomingCoding(c);if(!s.isEmpty()&&!s.toLowerCase(java.util.Locale.ENGLISH).contains("patient referral"))return s;}return "—";}
     private static String incomingEncounterStatus(JsonNode e){if(e==null)return "—";String status=jsonText(e.path("status"),"—"),code=jsonText(e.path("class").path("code"),""),display=jsonText(e.path("class").path("display"),"");return status+(code.isEmpty()?"":" / "+code+(display.isEmpty()?"":" - "+display));}
     private static String incomingEncounterPeriod(JsonNode e){if(e==null)return "—";String a=jsonText(e.path("period").path("start"),""),b=jsonText(e.path("period").path("end"),"");return a.isEmpty()&&b.isEmpty()?"—":or(a,"?")+" s/d "+or(b,"masih berlangsung");}
@@ -287,7 +508,7 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
     private static String jsonText(JsonNode n,String fallback){return n==null||n.isMissingNode()||n.isNull()||n.asText().trim().isEmpty()?fallback:n.asText();}
     private static String prettyJson(String raw){if(raw==null||raw.trim().isEmpty())return "";try{com.fasterxml.jackson.databind.ObjectMapper m=new com.fasterxml.jackson.databind.ObjectMapper();return m.writerWithDefaultPrettyPrinter().writeValueAsString(m.readTree(raw));}catch(Exception ex){return raw;}}
     private static String or(String s,String fallback){return s==null||s.trim().isEmpty()?fallback:s;}
-    private static JLabel label(String s,Font f,Color c){JLabel l=new JLabel(s);l.setFont(f);l.setForeground(c);l.setAlignmentX(0);return l;}
+    private static JLabel label(String s,Font f,Color c){JLabel l=new JLabel(s);l.putClientProperty("html.disable",Boolean.TRUE);l.setFont(f);l.setForeground(c);l.setAlignmentX(0);return l;}
     private static JLabel pill(String s,final Color bg,Color fg){JLabel l=new JLabel(s){@Override protected void paintComponent(Graphics g){Graphics2D p=(Graphics2D)g.create();p.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);p.setColor(bg);p.fillRoundRect(0,0,getWidth(),getHeight(),10,10);p.dispose();super.paintComponent(g);}};l.setFont(SMALL);l.setForeground(fg);l.setAlignmentX(0);l.setBorder(BorderFactory.createEmptyBorder(7,11,7,11));return l;}
     private static JPanel vertical(){JPanel p=new JPanel();p.setLayout(new BoxLayout(p,BoxLayout.Y_AXIS));p.setOpaque(false);p.setAlignmentX(0);return p;}
     private static JPanel flow(){JPanel p=new JPanel(new FlowLayout(FlowLayout.LEFT,0,0));p.setOpaque(false);p.setAlignmentX(0);return p;}
@@ -298,7 +519,7 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
     private static JPanel note(String s,Color bg,Color fg){RoundPanel p=new RoundPanel(bg,bg,12);p.setLayout(new BorderLayout());p.setBorder(BorderFactory.createEmptyBorder(11,12,11,12));JTextArea t=readOnly(3);t.setText(s);t.setForeground(fg);p.add(t);p.setAlignmentX(0);return p;}
     private static JPanel empty(String icon,String title,String message){JPanel p=vertical();p.setBorder(BorderFactory.createEmptyBorder(28,20,28,20));JLabel i=new JLabel(new LineIcon(icon,BLUE,36));i.setAlignmentX(.5f);p.add(i);p.add(Box.createVerticalStrut(14));JLabel l=label(title,STRONG,INK);l.setAlignmentX(.5f);p.add(l);p.add(Box.createVerticalStrut(12));JTextArea t=readOnly(3);t.setText(message);p.add(t);return p;}
     private static JButton button(String text,final Color bg,Color fg){JButton b=new JButton(text);b.setFont(BODY);b.setForeground(fg);b.setBackground(bg);b.setOpaque(false);b.setContentAreaFilled(false);b.setAlignmentX(0);
-        b.setBorder(BorderFactory.createEmptyBorder(9,13,9,13));b.setUI(new BasicButtonUI(){@Override public void paint(Graphics g,JComponent c){Graphics2D p=(Graphics2D)g.create();p.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);p.setColor(c.isEnabled()?bg:new Color(232,238,243));p.fillRoundRect(0,0,c.getWidth()-1,c.getHeight()-1,12,12);p.setColor(LINE);p.drawRoundRect(0,0,c.getWidth()-1,c.getHeight()-1,12,12);p.dispose();super.paint(g,c);}
+        b.setBorder(BorderFactory.createEmptyBorder(9,13,9,13));b.setUI(new BasicButtonUI(){@Override public void paint(Graphics g,JComponent c){Graphics2D p=(Graphics2D)g.create();p.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);p.setColor(c.isEnabled()?bg:new Color(232,238,243));p.fillRoundRect(0,0,c.getWidth()-1,c.getHeight()-1,10,10);p.setColor(c.hasFocus()?BLUE:BLUE.equals(bg)?BLUE:BLUE.equals(fg)?new Color(185,208,239):RED.equals(fg)?new Color(238,207,212):LINE);p.drawRoundRect(0,0,c.getWidth()-1,c.getHeight()-1,10,10);p.dispose();super.paint(g,c);}
             @Override protected void paintText(Graphics g,AbstractButton b,Rectangle r,String text){if(b.isEnabled())super.paintText(g,b,r,text);else{g.setColor(MUTED);g.drawString(text,r.x,r.y+g.getFontMetrics().getAscent());}}
         });b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));return b;}
     private static DefaultTableModel model(String[] headers){return new DefaultTableModel(headers,0){@Override public boolean isCellEditable(int r,int c){return false;}};}
@@ -318,7 +539,7 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
     private static final class SearchField extends JTextField {
         SearchField(){
             setOpaque(false);
-            setBorder(BorderFactory.createEmptyBorder(2,11,2,11));
+            setBorder(BorderFactory.createEmptyBorder(2,35,2,11));
             addFocusListener(new FocusAdapter(){
                 @Override public void focusGained(FocusEvent e){repaint();}
                 @Override public void focusLost(FocusEvent e){repaint();}
@@ -334,6 +555,13 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
             g.drawRoundRect(1,1,getWidth()-3,getHeight()-3,10,10);
             g.dispose();
             super.paintComponent(graphics);
+            new LineIcon("search",MUTED,16).paintIcon(this,graphics,11,(getHeight()-16)/2);
+            if(getText().isEmpty()&&!hasFocus()){
+                Graphics2D text=(Graphics2D)graphics.create();text.setColor(MUTED);text.setFont(getFont());
+                String hint="Cari pasien, IHS, atau rumah sakit...";FontMetrics metrics=text.getFontMetrics();
+                if(metrics.stringWidth(hint)>getWidth()-47)hint="Cari rujukan...";
+                text.drawString(hint,35,(getHeight()-metrics.getHeight())/2+metrics.getAscent());text.dispose();
+            }
         }
     }
     private static final class LineIcon implements Icon {
@@ -349,6 +577,9 @@ public final class SatuSehatRujukanMasukPanel extends JPanel {
             else if("history".equals(kind)){g.drawArc(3,3,18,18,-40,310);g.drawLine(12,7,12,12);g.drawLine(12,12,16,14);g.drawLine(3,2,3,8);g.drawLine(3,8,8,8);}
             else if("search".equals(kind)){g.drawOval(3,3,13,13);g.drawLine(15,15,22,22);}
             else if("reload".equals(kind)){g.drawArc(4,4,16,16,40,290);g.drawLine(20,3,20,9);g.drawLine(20,9,14,9);}
+            else if("clock".equals(kind)){g.drawOval(3,3,18,18);g.drawLine(12,6,12,12);g.drawLine(12,12,16,14);}
+            else if("back".equals(kind)){g.drawLine(10,5,3,12);g.drawLine(3,12,10,19);g.drawLine(3,12,21,12);}
+            else if("exit".equals(kind)){g.drawLine(10,3,3,3);g.drawLine(3,3,3,21);g.drawLine(3,21,10,21);g.drawLine(9,12,21,12);g.drawLine(16,7,21,12);g.drawLine(21,12,16,17);}
             else if("copy".equals(kind)){g.drawRoundRect(7,7,13,14,2,2);g.drawLine(4,16,4,3);g.drawLine(4,3,16,3);}
             else if("print".equals(kind)){g.drawRect(6,3,12,6);g.drawRoundRect(3,9,18,9,2,2);g.drawRect(6,14,12,7);g.drawLine(17,12,18,12);}
             else if("save".equals(kind)){g.drawRoundRect(3,3,18,18,2,2);g.drawRect(7,3,10,6);g.drawRect(7,14,10,7);}

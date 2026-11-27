@@ -1623,6 +1623,7 @@ public class frmUtama extends javax.swing.JFrame {
         mulaiTahap = System.nanoTime();
         laporStartup(31, "Membangun antarmuka utama...");
         initComponents();
+        btnRlWeb = integration.RlLauncher.buatTombol(this, btnRl4asebab);
         pasangRujukanMasukSatuSehat();
         // PATCH RSAJ V3: sebelum autentikasi berhasil, seluruh tombol utama
         // dan tombol notifikasi disembunyikan. Hanya tombol Log In yang tetap
@@ -27353,6 +27354,7 @@ private void updateLoginStatus(String status, String userName, String iconPath) 
     private widget.ButtonBig btnRl39;
     private widget.ButtonBig btnRl4a;
     private widget.ButtonBig btnRl4asebab;
+    private widget.ButtonBig btnRlWeb;
     private widget.ButtonBig btnRl4b;
     private widget.ButtonBig btnRl4bsebab;
     private widget.ButtonBig btnRuangInventaris;
@@ -29569,6 +29571,10 @@ private boolean isCocokCariMenu(javax.swing.AbstractButton btn) {
             
             if(akses.getrl4asebab()==true){  
                 Panelmenu.add(btnRl4asebab);                 
+                jmlmenu++;
+            }
+            if (integration.RlLauncher.bolehBuka()) {
+                Panelmenu.add(btnRlWeb);
                 jmlmenu++;
             }
             
@@ -35166,6 +35172,10 @@ private boolean isCocokCariMenu(javax.swing.AbstractButton btn) {
         
         if(akses.getrl4asebab()==true){  
             Panelmenu.add(btnRl4asebab);                 
+            jmlmenu++;
+        }
+        if (integration.RlLauncher.bolehBuka()) {
+            Panelmenu.add(btnRlWeb);
             jmlmenu++;
         }
 
@@ -41386,6 +41396,10 @@ private boolean isCocokCariMenu(javax.swing.AbstractButton btn) {
 //            }                
 //        }
 
+        isCariIsiLanjutan();
+    }
+
+    private void isCariIsiLanjutan() {
         if(akses.getrl33()==true){  
             if(btnRl33.getText().toLowerCase().trim().contains(TCari.getText().toLowerCase().trim())){
                 Panelmenu.add(btnRl33);                 
@@ -41440,6 +41454,12 @@ private boolean isCocokCariMenu(javax.swing.AbstractButton btn) {
                 Panelmenu.add(btnRl4asebab);                 
                 jmlmenu++;
             }                
+        }
+        if (integration.RlLauncher.bolehBuka()
+                && btnRlWeb.getText().toLowerCase(java.util.Locale.ROOT)
+                        .contains(TCari.getText().trim().toLowerCase(java.util.Locale.ROOT))) {
+            Panelmenu.add(btnRlWeb);
+            jmlmenu++;
         }
         
         if(akses.getrl4bsebab()==true){  
